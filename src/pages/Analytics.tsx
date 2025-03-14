@@ -7,6 +7,7 @@ import { addDummyTrades } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
 import { TradeMetrics } from '@/components/TradeMetrics';
 import { MonthlyPerformanceTable } from '@/components/MonthlyPerformanceTable';
+import { DataTransferControls } from '@/components/DataTransferControls';
 
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -18,17 +19,24 @@ export default function Analytics() {
     toast.success('Added 10 sample trades for testing');
   };
 
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
   return (
     <div className="max-w-6xl mx-auto py-6 px-4 space-y-8">
       <div className="flex items-center justify-between mb-2 gap-4">
         <h1 className="text-3xl font-bold tracking-tight">
           Trading Analytics
         </h1>
-        {trades.length === 0 && (
-          <Button variant="outline" onClick={handleAddDummyTrades}>
-            Load Sample Data
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <DataTransferControls onImportComplete={handleRefresh} />
+          {trades.length === 0 && (
+            <Button variant="outline" onClick={handleAddDummyTrades}>
+              Load Sample Data
+            </Button>
+          )}
+        </div>
       </div>
       
       {trades.length > 0 ? (

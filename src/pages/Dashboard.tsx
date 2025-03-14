@@ -7,10 +7,15 @@ import { TradeList } from '@/components/TradeList';
 import { Button } from '@/components/ui/button';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
 import { TradePnLCalendar } from '@/components/TradePnLCalendar';
+import { DataTransferControls } from '@/components/DataTransferControls';
 
 export default function Dashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
   const trades = getTradesWithMetrics();
+  
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
   
   return (
     <div className="space-y-8 pb-10">
@@ -24,12 +29,15 @@ export default function Dashboard() {
           </p>
         </div>
         
-        <Button asChild>
-          <Link to="/trade/new">
-            <Plus className="mr-1 h-4 w-4" />
-            New Trade
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <DataTransferControls onImportComplete={handleRefresh} />
+          <Button asChild>
+            <Link to="/trade/new">
+              <Plus className="mr-1 h-4 w-4" />
+              New Trade
+            </Link>
+          </Button>
+        </div>
       </div>
       
       <div className="grid gap-6">

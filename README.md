@@ -10,6 +10,7 @@ A comprehensive trading journal application that helps you track and analyze you
 - Calendar view of trading performance
 - Monthly performance breakdown by strategy and instrument
 - Fully private - all data stays on your local machine
+- Export/import functionality to save your data between browsers or devices
 
 ## How to Run Locally
 
@@ -51,14 +52,16 @@ You can also deploy the built application to any static file server:
 2. Copy the contents of the `dist` folder to your web server directory
 3. Access the application via your local server URL
 
-## Data Storage
+## Data Storage and Backup
 
-All data is stored in your browser's localStorage. This means:
+While the app uses your browser's localStorage for convenience, we understand the importance of data portability. You can:
 
-- Your trading data never leaves your machine
-- No server or cloud storage is used
-- Data persists between sessions on the same browser
-- To backup your data, you can export it (feature coming soon)
+- **Export your data**: Save a JSON backup file of all your trades at any time
+- **Import your data**: Load your trades from a previously exported file
+- **Cross-browser usage**: Export from one browser and import into another
+- **Protection against data loss**: Regular exports protect against browser cache clearing
+
+These features make the application truly browser-independent while still maintaining privacy by keeping all data on your local machine.
 
 ## Technologies Used
 
@@ -68,4 +71,3 @@ All data is stored in your browser's localStorage. This means:
 - shadcn-ui
 - Tailwind CSS
 - localStorage for data persistence
-
