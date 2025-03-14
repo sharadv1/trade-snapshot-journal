@@ -102,7 +102,10 @@ export function TradePnLCalendar() {
                 selected: 'bg-primary text-primary-foreground font-bold',
               }}
               components={{
-                Day: ({ date: dayDate, ...props }) => {
+                Day: (props) => {
+                  // Extract date and className from props
+                  const { date: dayDate, ...rest } = props;
+                  
                   if (!dayDate) return null;
                   
                   const dateKey = format(dayDate, 'yyyy-MM-dd');
@@ -110,8 +113,8 @@ export function TradePnLCalendar() {
                   
                   return (
                     <div
-                      {...props}
-                      className={`${props.className || ''} ${dayClassName(dayDate)}`}
+                      {...rest}
+                      className={`${rest.className || ''} ${dayClassName(dayDate)}`}
                     >
                       {format(dayDate, 'd')}
                     </div>

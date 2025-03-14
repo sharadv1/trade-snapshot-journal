@@ -4,10 +4,12 @@ import { TradeList } from '@/components/TradeList';
 import { Button } from '@/components/ui/button';
 import { addDummyTrades } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
-import { TradePnLCalendar } from '@/components/TradePnLCalendar';
+import { TradeMetrics } from '@/components/TradeMetrics';
+import { getTradesWithMetrics } from '@/utils/tradeStorage';
 
 export default function Index() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const trades = getTradesWithMetrics();
 
   const handleAddDummyTrades = () => {
     addDummyTrades();
@@ -16,7 +18,7 @@ export default function Index() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-6 px-4 space-y-8">
+    <div className="max-w-6xl mx-auto py-6 px-4 space-y-8">
       <div className="flex items-center justify-between mb-2 gap-4">
         <h1 className="text-3xl font-bold tracking-tight">
           Your Trade Journal
@@ -26,9 +28,14 @@ export default function Index() {
         </Button>
       </div>
       
-      <div className="mb-8">
-        <TradePnLCalendar key={refreshKey} />
-      </div>
+      {trades.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold tracking-tight mb-4">
+            Performance Metrics
+          </h2>
+          <TradeMetrics key={refreshKey} trades={trades} />
+        </div>
+      )}
       
       <div>
         <h2 className="text-2xl font-bold tracking-tight mb-4">
