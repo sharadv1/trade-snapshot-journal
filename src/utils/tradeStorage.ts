@@ -6,21 +6,24 @@ import { toast } from './toast';
 // Local storage keys
 const TRADES_STORAGE_KEY = 'trade-journal-trades';
 
-// Server URL - replace with your Docker server URL
-const SERVER_URL = 'http://your-mac-mini-ip:port/api/trades';
+// Server URL storage key
+const SERVER_URL_KEY = 'trade-journal-server-url';
 
 // Flag to determine if using server sync or just localStorage
 let useServerSync = false;
+let serverUrl = '';
 
 // Initialize server connection
-export const initializeServerSync = (serverUrl: string): Promise<boolean> => {
+export const initializeServerSync = (url: string): Promise<boolean> => {
   // Update the server URL
+  serverUrl = url;
+  
   if (serverUrl) {
-    useServerSync = true;
     return fetch(`${serverUrl}/ping`)
       .then(response => {
         if (response.ok) {
           console.log('Successfully connected to trade server');
+          useServerSync = true;
           toast.success('Connected to trade server successfully');
           return true;
         } else {
@@ -54,9 +57,9 @@ export const saveTrades = async (trades: Trade[]): Promise<void> => {
     localStorage.setItem(TRADES_STORAGE_KEY, JSON.stringify(trades));
     
     // If server sync is enabled, also save to server
-    if (useServerSync) {
+    if (useServerSync && serverUrl) {
       try {
-        const response = await fetch(SERVER_URL, {
+        const response = await fetch(serverUrl, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -89,9 +92,9 @@ export const saveTrades = async (trades: Trade[]): Promise<void> => {
 export const getTrades = async (): Promise<Trade[]> => {
   try {
     // Try to get from server first if server sync is enabled
-    if (useServerSync) {
+    if (useServerSync && serverUrl) {
       try {
-        const response = await fetch(SERVER_URL);
+        const response = await fetch(serverUrl);
         if (response.ok) {
           const serverTrades = await response.json();
           console.log('Loaded trades from server');
@@ -156,14 +159,8 @@ export const deleteTrade = async (tradeId: string): Promise<void> => {
   await saveTrades(filteredTrades);
 };
 
-// Get a single trade by ID
-export const getTradeById = async (tradeId: string): Promise<Trade | undefined> => {
-  const trades = await getTrades();
-  return trades.find(trade => trade.id === tradeId);
-};
-
-// Synchronous version for components that can't use async/await
-export const getTradeByIdSync = (tradeId: string): Trade | undefined => {
+// Get a single trade by ID - non-Promise version to fix TS errors
+export const getTradeById = (tradeId: string): Trade | undefined => {
   const trades = getTradesSync();
   return trades.find(trade => trade.id === tradeId);
 };
@@ -179,7 +176,7 @@ export const getTradesWithMetrics = (): TradeWithMetrics[] => {
 
 // Save image to a trade
 export const saveImageToTrade = async (tradeId: string, imageBase64: string): Promise<void> => {
-  const trade = await getTradeById(tradeId);
+  const trade = getTradeById(tradeId);
   
   if (trade) {
     const updatedTrade = {
@@ -192,7 +189,7 @@ export const saveImageToTrade = async (tradeId: string, imageBase64: string): Pr
 
 // Delete image from a trade
 export const deleteImageFromTrade = async (tradeId: string, imageIndex: number): Promise<void> => {
-  const trade = await getTradeById(tradeId);
+  const trade = getTradeById(tradeId);
   
   if (trade) {
     const updatedImages = [...trade.images];
@@ -221,13 +218,13 @@ export const addDummyTrades = async (): Promise<void> => {
 
 // Force sync with server (pull server data)
 export const syncWithServer = async (): Promise<boolean> => {
-  if (!useServerSync) {
+  if (!useServerSync || !serverUrl) {
     toast.error('Server sync is not enabled');
     return false;
   }
   
   try {
-    const response = await fetch(SERVER_URL);
+    const response = await fetch(serverUrl);
     if (response.ok) {
       const serverTrades = await response.json();
       localStorage.setItem(TRADES_STORAGE_KEY, JSON.stringify(serverTrades));
@@ -246,23 +243,25 @@ export const syncWithServer = async (): Promise<boolean> => {
   }
 };
 
-// Create a settings component to configure server connection
-export const configureServerConnection = async (serverUrl: string): Promise<boolean> => {
-  if (!serverUrl) {
+// Configure server connection
+export const configureServerConnection = async (url: string): Promise<boolean> => {
+  if (!url) {
     useServerSync = false;
-    localStorage.removeItem('trade-journal-server-url');
+    serverUrl = '';
+    localStorage.removeItem(SERVER_URL_KEY);
     toast.info('Server sync disabled');
     return false;
   }
   
-  localStorage.setItem('trade-journal-server-url', serverUrl);
-  return initializeServerSync(serverUrl);
+  localStorage.setItem(SERVER_URL_KEY, url);
+  return initializeServerSync(url);
 };
 
 // On app initialization, try to restore server connection
 export const restoreServerConnection = (): void => {
-  const savedServerUrl = localStorage.getItem('trade-journal-server-url');
+  const savedServerUrl = localStorage.getItem(SERVER_URL_KEY);
   if (savedServerUrl) {
+    serverUrl = savedServerUrl;
     initializeServerSync(savedServerUrl)
       .then(success => {
         if (success) {
