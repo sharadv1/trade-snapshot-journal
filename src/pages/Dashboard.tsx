@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronUp, Search, Plus, AlertTriangle, Target, Database } from 'lucide-react';
@@ -18,14 +17,12 @@ export default function Dashboard() {
   const [totalRisk, setTotalRisk] = useState(0);
   const [totalPotentialGain, setTotalPotentialGain] = useState(0);
   
-  // Load trades
   const loadTrades = () => {
     const allTrades = getTradesWithMetrics();
     setTrades(allTrades);
     const openPositions = allTrades.filter(trade => trade.status === 'open');
     setOpenTrades(openPositions);
     
-    // Calculate total risk and potential gain
     let risk = 0;
     let potentialGain = 0;
     
@@ -46,7 +43,6 @@ export default function Dashboard() {
   useEffect(() => {
     loadTrades();
     
-    // Set up localStorage change listener (for multi-tab support)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'trade-journal-trades') {
         loadTrades();
@@ -57,7 +53,6 @@ export default function Dashboard() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
   
-  // Show "back to top" button when scrolled down
   useEffect(() => {
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 500);
@@ -77,7 +72,6 @@ export default function Dashboard() {
     toast.success("Loaded 10 sample trades");
   };
 
-  // Calculate total P&L
   const totalPnL = trades
     .filter(trade => trade.status === 'closed')
     .reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
@@ -177,7 +171,10 @@ export default function Dashboard() {
             </Card>
           )}
           
-          <TradeList trades={openTrades} statusFilter="open" />
+          <TradeList 
+            statusFilter="open"
+            initialTrades={openTrades}
+          />
         </div>
       )}
       

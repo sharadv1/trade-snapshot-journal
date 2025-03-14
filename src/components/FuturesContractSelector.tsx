@@ -9,21 +9,31 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-export function FuturesContractSelector({ selectedValue, onSelect }: FuturesContractSelectorProps) {
+export function FuturesContractSelector({ selectedValue, value, onSelect, onChange }: FuturesContractSelectorProps) {
+  // Use either value or selectedValue based on which is provided
+  const currentValue = value || selectedValue;
+  
   const handleSelect = (value: string) => {
     const contract = COMMON_FUTURES_CONTRACTS.find(c => c.symbol === value);
     if (contract) {
-      onSelect({
-        exchange: contract.exchange,
-        contractSize: 1,
-        tickSize: contract.tickSize,
-        tickValue: contract.pointValue,
-      });
+      // Call the appropriate callback based on which was provided
+      if (onSelect) {
+        onSelect({
+          exchange: contract.exchange,
+          contractSize: 1,
+          tickSize: contract.tickSize,
+          tickValue: contract.tickSize * contract.pointValue,
+        });
+      }
+      
+      if (onChange) {
+        onChange(value);
+      }
     }
   };
 
   return (
-    <Select value={selectedValue} onValueChange={handleSelect}>
+    <Select value={currentValue} onValueChange={handleSelect}>
       <SelectTrigger>
         <SelectValue placeholder="Select a contract" />
       </SelectTrigger>
