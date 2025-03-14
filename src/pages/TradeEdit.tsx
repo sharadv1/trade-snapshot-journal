@@ -10,6 +10,7 @@ export default function TradeEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [trade, setTrade] = useState<Trade | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     if (!id) {
@@ -24,12 +25,21 @@ export default function TradeEdit() {
       toast.error('Trade not found');
       navigate('/');
     }
+    setIsLoading(false);
   }, [id, navigate]);
   
-  if (!trade) {
+  if (isLoading) {
     return (
       <div className="py-8 text-center">
         <p>Loading trade details...</p>
+      </div>
+    );
+  }
+
+  if (!trade) {
+    return (
+      <div className="py-8 text-center">
+        <p>Trade not found</p>
       </div>
     );
   }

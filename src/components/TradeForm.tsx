@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageUpload } from './ImageUpload';
 import { FuturesContractSelector } from './FuturesContractSelector';
+import { SymbolSelector } from './SymbolSelector';
 import { Trade, FuturesContractDetails } from '@/types';
 import { addTrade, updateTrade } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
@@ -138,12 +139,10 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="symbol">Symbol <span className="text-destructive">*</span></Label>
-                  <Input 
-                    id="symbol" 
-                    value={trade.symbol}
-                    onChange={(e) => handleChange('symbol', e.target.value)}
-                    required
-                    placeholder="e.g., AAPL"
+                  <SymbolSelector 
+                    value={trade.symbol || ''} 
+                    onChange={(value) => handleChange('symbol', value)}
+                    tradeType={trade.type as 'equity' | 'futures' | 'option'}
                   />
                 </div>
                 
