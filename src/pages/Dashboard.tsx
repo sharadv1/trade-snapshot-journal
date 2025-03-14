@@ -7,7 +7,7 @@ import { TradeList } from '@/components/TradeList';
 import { Button } from '@/components/ui/button';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
 import { TradePnLCalendar } from '@/components/TradePnLCalendar';
-import { DataTransferControls } from '@/components/DataTransferControls';
+import { DataExportImport } from '@/components/DataExportImport';
 import { ServerSyncConfig } from '@/components/ServerSyncConfig'; 
 
 export default function Dashboard() {
@@ -32,7 +32,7 @@ export default function Dashboard() {
         
         <div className="flex flex-wrap gap-2">
           <ServerSyncConfig />
-          <DataTransferControls onImportComplete={handleRefresh} />
+          <DataExportImport onImportComplete={handleRefresh} />
           <Button asChild>
             <Link to="/trade/new">
               <Plus className="mr-1 h-4 w-4" />

@@ -1,5 +1,5 @@
 
-import { getTrades, saveTrades } from './tradeStorage';
+import { getTrades, saveTrades, getTradesSync } from './tradeStorage';
 import { Trade } from '@/types';
 import { toast } from './toast';
 
@@ -8,7 +8,7 @@ import { toast } from './toast';
  */
 export const exportTradesToFile = (): void => {
   try {
-    const trades = getTrades();
+    const trades = getTradesSync();
     
     if (trades.length === 0) {
       toast.warning('No trades to export');
@@ -41,7 +41,7 @@ export const exportTradesToFile = (): void => {
 };
 
 /**
- * Imports trades from a JSON file
+ * Imports trades from a JSON file with deduplication
  * @param file The JSON file containing the trades data
  * @returns A promise that resolves when the import is complete
  */
@@ -49,7 +49,7 @@ export const importTradesFromFile = (file: File): Promise<void> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         if (!event.target || typeof event.target.result !== 'string') {
           throw new Error('Failed to read file');
@@ -69,9 +69,31 @@ export const importTradesFromFile = (file: File): Promise<void> => {
           }
         });
         
-        // Save the imported trades
-        saveTrades(importedTrades);
-        toast.success(`${importedTrades.length} trades imported successfully`);
+        // Get existing trades for deduplication
+        const existingTrades = getTradesSync();
+        
+        // Perform deduplication
+        const { newTrades, duplicates } = deduplicateTrades(existingTrades, importedTrades);
+        
+        if (newTrades.length === 0) {
+          toast.info('All imported trades already exist in your journal');
+          resolve();
+          return;
+        }
+        
+        // Merge existing and new trades
+        const mergedTrades = [...existingTrades, ...newTrades];
+        
+        // Save the merged trades
+        await saveTrades(mergedTrades);
+        
+        // Show success message with counts
+        if (duplicates > 0) {
+          toast.success(`Imported ${newTrades.length} new trades (${duplicates} duplicates skipped)`);
+        } else {
+          toast.success(`${newTrades.length} trades imported successfully`);
+        }
+        
         resolve();
       } catch (error) {
         console.error('Error importing trades:', error);
@@ -88,3 +110,32 @@ export const importTradesFromFile = (file: File): Promise<void> => {
     reader.readAsText(file);
   });
 };
+
+/**
+ * Deduplicates trades by comparing IDs and trade details
+ * @param existingTrades Array of existing trades
+ * @param importedTrades Array of imported trades
+ * @returns Object containing new trades and count of duplicates
+ */
+function deduplicateTrades(existingTrades: Trade[], importedTrades: Trade[]): { 
+  newTrades: Trade[], 
+  duplicates: number 
+} {
+  const existingIds = new Set(existingTrades.map(trade => trade.id));
+  let duplicates = 0;
+  
+  const newTrades = importedTrades.filter(importedTrade => {
+    // Check if the ID already exists
+    if (existingIds.has(importedTrade.id)) {
+      duplicates++;
+      return false;
+    }
+    
+    // Could add additional deduplication logic here if needed
+    // For example, comparing trades with same symbol, entry date, etc.
+    
+    return true;
+  });
+  
+  return { newTrades, duplicates };
+}
