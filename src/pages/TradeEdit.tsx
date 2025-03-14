@@ -94,7 +94,7 @@ export default function TradeEdit() {
       
       {trade.partialExits && trade.partialExits.length > 0 && (
         <div className="mt-8">
-          <PartialExitsList trade={trade} />
+          <PartialExitsList trade={trade} onUpdate={handleTradeUpdate} />
         </div>
       )}
     </div>
