@@ -1,5 +1,4 @@
 
-import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import Dashboard from '@/pages/Dashboard';
@@ -13,15 +12,15 @@ import './App.css';
 function App() {
   return (
     <Router>
-      <Layout>
-        <Routes>
+      <Routes>
+        <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/trade/new" element={<TradeEntry />} />
           <Route path="/trade/:id" element={<TradeDetail />} />
           <Route path="/trade/edit/:id" element={<TradeEdit />} />
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Layout>
+        </Route>
+      </Routes>
       <Toaster richColors />
     </Router>
   );
