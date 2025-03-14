@@ -35,11 +35,11 @@ export default function Dashboard() {
       <div className="grid gap-6">
         <TradeMetrics trades={trades} showOnlyKeyMetrics={true} />
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid gap-6">
           <div>
             <h2 className="text-xl font-semibold mb-4">PnL Calendar</h2>
             <div className="p-4 border rounded-lg bg-card">
-              <TradePnLCalendar trades={trades} />
+              <TradePnLCalendar />
             </div>
           </div>
           
@@ -55,7 +55,8 @@ export default function Dashboard() {
             </div>
             
             <TradeList 
-              trades={trades} 
+              statusFilter="all"
+              initialTrades={trades}
               onTradeDeleted={() => setRefreshKey(prev => prev + 1)}
               limit={5}
             />

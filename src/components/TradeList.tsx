@@ -20,9 +20,11 @@ import {
 interface TradeListProps {
   statusFilter?: 'open' | 'closed' | 'all';
   initialTrades?: TradeWithMetrics[];
+  limit?: number;
+  onTradeDeleted?: () => void;
 }
 
-export function TradeList({ statusFilter = 'all', initialTrades }: TradeListProps = {}) {
+export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeDeleted }: TradeListProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -163,6 +165,14 @@ export function TradeList({ statusFilter = 'all', initialTrades }: TradeListProp
   };
   
   const hasFilters = strategyFilter !== 'all' || resultFilter !== 'all' || dateParam;
+
+  // Apply limit if specified
+  const limitedTrades = useMemo(() => {
+    if (limit && filteredTrades.length > limit) {
+      return filteredTrades.slice(0, limit);
+    }
+    return filteredTrades;
+  }, [filteredTrades, limit]);
   
   return (
     <Card className="shadow-subtle border">
@@ -303,14 +313,14 @@ export function TradeList({ statusFilter = 'all', initialTrades }: TradeListProp
               </tr>
             </thead>
             <tbody>
-              {filteredTrades.length === 0 ? (
+              {limitedTrades.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center p-4 text-muted-foreground">
                     No trades found
                   </td>
                 </tr>
               ) : (
-                filteredTrades.map(trade => (
+                limitedTrades.map(trade => (
                   <tr key={trade.id} className="border-b hover:bg-muted/50">
                     <td className="p-2">
                       <div className="font-medium">{trade.symbol}</div>
@@ -368,6 +378,14 @@ export function TradeList({ statusFilter = 'all', initialTrades }: TradeListProp
             </tbody>
           </table>
         </div>
+        
+        {limit && filteredTrades.length > limit && (
+          <div className="mt-4 text-center">
+            <Button variant="outline" asChild>
+              <Link to="/">View All Trades</Link>
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
