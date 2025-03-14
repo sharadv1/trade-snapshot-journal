@@ -26,9 +26,11 @@ export default function Index() {
         </Button>
       </div>
       
-      <TradePnLCalendar />
+      <div className="mb-8">
+        <TradePnLCalendar key={refreshKey} />
+      </div>
       
-      <div className="mt-8">
+      <div>
         <h2 className="text-2xl font-bold tracking-tight mb-4">
           Recent Trades
         </h2>

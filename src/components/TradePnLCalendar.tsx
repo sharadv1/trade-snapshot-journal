@@ -103,13 +103,14 @@ export function TradePnLCalendar() {
               }}
               components={{
                 Day: ({ date: dayDate, ...props }) => {
+                  // Fixed props handling here
                   const dateKey = format(dayDate, 'yyyy-MM-dd');
                   const dayPnL = dailyPnL[dateKey];
                   
                   return (
                     <div
                       {...props}
-                      className={`${props.className} ${dayClassName(dayDate)}`}
+                      className={`${props.className || ''} ${dayClassName(dayDate)}`}
                     >
                       {format(dayDate, 'd')}
                     </div>

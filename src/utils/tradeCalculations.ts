@@ -240,6 +240,18 @@ export const formatPercentage = (value: number): string => {
 
 // Generate dummy trades for testing
 export const generateDummyTrades = (): Trade[] => {
+  // Get current date to base all dates off of
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  // Helper to create a date within the past month
+  const getRecentDate = (daysAgo: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() - daysAgo);
+    return date.toISOString().slice(0, 16); // Format as YYYY-MM-DDTHH:MM
+  };
+
   const dummyTrades: Trade[] = [
     // Equity trades - Winners
     {
@@ -247,9 +259,9 @@ export const generateDummyTrades = (): Trade[] => {
       symbol: "AAPL",
       type: "equity",
       direction: "long",
-      entryDate: "2023-10-15T10:30",
+      entryDate: getRecentDate(25),
       entryPrice: 178.50,
-      exitDate: "2023-10-30T15:45",
+      exitDate: getRecentDate(20),
       exitPrice: 186.75,
       quantity: 10,
       fees: 9.95,
@@ -267,9 +279,9 @@ export const generateDummyTrades = (): Trade[] => {
       symbol: "MSFT",
       type: "equity",
       direction: "long",
-      entryDate: "2023-11-05T09:15",
+      entryDate: getRecentDate(18),
       entryPrice: 365.25,
-      exitDate: "2023-11-20T11:30",
+      exitDate: getRecentDate(15),
       exitPrice: 342.90, // Loss
       quantity: 5,
       fees: 7.95,
@@ -286,7 +298,7 @@ export const generateDummyTrades = (): Trade[] => {
       symbol: "NVDA",
       type: "equity",
       direction: "long",
-      entryDate: "2023-12-01T10:00",
+      entryDate: getRecentDate(12),
       entryPrice: 465.75,
       quantity: 4,
       fees: 6.95,
@@ -305,9 +317,9 @@ export const generateDummyTrades = (): Trade[] => {
       symbol: "MES",
       type: "futures",
       direction: "long",
-      entryDate: "2023-09-10T09:20",
+      entryDate: getRecentDate(10),
       entryPrice: 4550.25,
-      exitDate: "2023-09-10T14:30",
+      exitDate: getRecentDate(10),
       exitPrice: 4575.75,
       quantity: 2,
       fees: 4.20,
@@ -331,9 +343,9 @@ export const generateDummyTrades = (): Trade[] => {
       symbol: "MNQ",
       type: "futures",
       direction: "short",
-      entryDate: "2023-10-05T11:15",
+      entryDate: getRecentDate(8),
       entryPrice: 15720.50,
-      exitDate: "2023-10-06T10:30",
+      exitDate: getRecentDate(7),
       exitPrice: 15850.75, // Loss on short
       quantity: 1,
       fees: 2.95,
@@ -356,7 +368,7 @@ export const generateDummyTrades = (): Trade[] => {
       symbol: "MGC",
       type: "futures",
       direction: "long",
-      entryDate: "2023-11-15T13:30",
+      entryDate: getRecentDate(5),
       entryPrice: 1975.60,
       quantity: 1,
       fees: 1.95,
@@ -381,9 +393,9 @@ export const generateDummyTrades = (): Trade[] => {
       symbol: "SPY 450 C 12/15",
       type: "option",
       direction: "long",
-      entryDate: "2023-11-01T11:00",
+      entryDate: getRecentDate(16),
       entryPrice: 5.25,
-      exitDate: "2023-11-30T15:30",
+      exitDate: getRecentDate(4),
       exitPrice: 8.70,
       quantity: 5,
       fees: 3.75,
@@ -399,9 +411,9 @@ export const generateDummyTrades = (): Trade[] => {
       symbol: "AMZN 140 P 01/19",
       type: "option",
       direction: "short",
-      entryDate: "2023-12-01T10:15",
+      entryDate: getRecentDate(14),
       entryPrice: 3.80,
-      exitDate: "2023-12-15T14:30",
+      exitDate: getRecentDate(2),
       exitPrice: 7.25, // Loss on short put
       quantity: 2,
       fees: 2.50,
@@ -418,7 +430,7 @@ export const generateDummyTrades = (): Trade[] => {
       symbol: "MES",
       type: "futures",
       direction: "long",
-      entryDate: "2023-12-05T09:30",
+      entryDate: getRecentDate(6),
       entryPrice: 4680.25,
       quantity: 3,
       fees: 6.30,
@@ -438,7 +450,7 @@ export const generateDummyTrades = (): Trade[] => {
       partialExits: [
         {
           id: "9-1",
-          exitDate: "2023-12-06T10:45",
+          exitDate: getRecentDate(3),
           exitPrice: 4700.50,
           quantity: 1,
           fees: 1.95,
@@ -453,7 +465,7 @@ export const generateDummyTrades = (): Trade[] => {
       symbol: "QQQ",
       type: "equity",
       direction: "long",
-      entryDate: "2023-12-10T09:45",
+      entryDate: getRecentDate(4),
       entryPrice: 380.50,
       quantity: 20,
       fees: 9.95,
@@ -467,7 +479,7 @@ export const generateDummyTrades = (): Trade[] => {
       partialExits: [
         {
           id: "10-1",
-          exitDate: "2023-12-15T14:30",
+          exitDate: getRecentDate(2),
           exitPrice: 385.75,
           quantity: 5,
           fees: 4.95,
@@ -475,7 +487,7 @@ export const generateDummyTrades = (): Trade[] => {
         },
         {
           id: "10-2",
-          exitDate: "2023-12-18T11:15",
+          exitDate: getRecentDate(1),
           exitPrice: 375.25, // Partial loss
           quantity: 5,
           fees: 4.95,

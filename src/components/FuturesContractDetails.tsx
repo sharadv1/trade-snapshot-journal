@@ -17,7 +17,6 @@ export function FuturesContractDetails({ trade }: FuturesContractDetailsProps) {
     exchange, 
     contractSize, 
     tickSize, 
-    tickValue, 
     expirationDate, 
     initialMargin, 
     maintenanceMargin 
@@ -46,11 +45,6 @@ export function FuturesContractDetails({ trade }: FuturesContractDetailsProps) {
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Tick Size:</span>
             <span>{tickSize}</span>
-          </div>
-          
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Tick Value:</span>
-            <span>{formatCurrency(tickValue)}</span>
           </div>
           
           <div className="flex justify-between text-sm">
