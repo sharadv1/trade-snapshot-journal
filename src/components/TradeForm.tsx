@@ -75,7 +75,7 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
           exchange: contract.exchange,
           contractSize: 1,
           tickSize: contract.tickSize,
-          tickValue: contract.tickValue
+          tickValue: contract.tickSize * contract.pointValue // Calculate tickValue from tickSize and pointValue
         });
       }
     }
