@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { COMMON_STRATEGIES } from './trade-form/useTradeForm';
 
 type DailyPnL = {
   [key: string]: {
@@ -62,7 +60,6 @@ export function TradePnLCalendar() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Apply filters to trades
   const filteredTrades = useMemo(() => {
     let result = [...trades];
     
@@ -85,7 +82,6 @@ export function TradePnLCalendar() {
     return result;
   }, [trades, strategyFilter, resultFilter]);
 
-  // Calculate daily P&L for filtered trades
   const dailyPnL = useMemo(() => {
     const pnlByDay: DailyPnL = {};
     
@@ -107,7 +103,6 @@ export function TradePnLCalendar() {
     return pnlByDay;
   }, [filteredTrades]);
 
-  // Get unique list of strategies from trades
   const availableStrategies = useMemo(() => {
     const strategies = new Set<string>();
     trades.forEach(trade => {
@@ -124,7 +119,6 @@ export function TradePnLCalendar() {
     return eachDayOfInterval({ start, end });
   }, [currentMonth]);
 
-  // Create calendar grid with leading and trailing days
   const calendarDays = useMemo(() => {
     const firstDayOfMonth = startOfMonth(currentMonth);
     const firstDayOfWeek = getDay(firstDayOfMonth); // 0 = Sunday, 1 = Monday, etc.
@@ -165,7 +159,6 @@ export function TradePnLCalendar() {
     setCurrentMonth(new Date());
   };
 
-  // Determine cell background color based on P&L
   const getCellClass = (day: Date | null) => {
     if (!day) return '';
     
@@ -185,11 +178,8 @@ export function TradePnLCalendar() {
     
     if (dayData && dayData.tradeIds.length > 0) {
       if (dayData.tradeIds.length === 1) {
-        // If there's only one trade, navigate directly to it
         navigate(`/trade/${dayData.tradeIds[0]}`);
       } else {
-        // If there are multiple trades, show a view filtered by date
-        // This could be improved to show a modal with all trades for the day
         const date = format(day, 'yyyy-MM-dd');
         navigate(`/?date=${date}`);
       }
@@ -286,14 +276,12 @@ export function TradePnLCalendar() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-7 gap-1">
-          {/* Day headers */}
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
             <div key={day} className="text-center p-2 font-medium text-muted-foreground">
               {day}
             </div>
           ))}
           
-          {/* Calendar days */}
           {calendarDays.flat().map((day, i) => {
             if (!day) {
               return (

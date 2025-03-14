@@ -1,7 +1,7 @@
 
 import { Strategy } from '@/types';
 import { toast } from './toast';
-import { getStoredTrades } from './tradeStorage';
+import { getTradesSync } from './tradeStorage';
 
 const STRATEGIES_STORAGE_KEY = 'trading-journal-strategies';
 
@@ -89,7 +89,7 @@ export function updateStrategy(updatedStrategy: Strategy): Strategy {
 
 // Check if a strategy is in use by any trades
 export function isStrategyInUse(strategyId: string): boolean {
-  const trades = getStoredTrades();
+  const trades = getTradesSync();
   
   // Get the strategy name from ID
   const strategies = getStrategies();

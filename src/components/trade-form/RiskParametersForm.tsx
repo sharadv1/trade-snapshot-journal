@@ -9,7 +9,6 @@ import { getStrategies } from '@/utils/strategyStorage';
 interface RiskParametersFormProps {
   trade: Partial<Trade>;
   handleChange: (field: keyof Trade, value: any) => void;
-  COMMON_STRATEGIES: string[];
 }
 
 export function RiskParametersForm({ trade, handleChange }: RiskParametersFormProps) {
