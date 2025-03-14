@@ -60,6 +60,7 @@ export function TradeMetrics({ trades }: TradeMetricsProps) {
 
   return (
     <div className="space-y-6">
+      {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <MetricCard title="Win Rate" value={`${metrics.winRate.toFixed(1)}%`} />
         <MetricCard title="Profit Factor" value={metrics.profitFactor.toFixed(2)} />
@@ -71,6 +72,7 @@ export function TradeMetrics({ trades }: TradeMetricsProps) {
         />
       </div>
       
+      {/* Cumulative P&L Chart */}
       <CumulativePnLChart trades={trades} />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

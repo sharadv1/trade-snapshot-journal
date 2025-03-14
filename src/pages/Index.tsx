@@ -33,7 +33,7 @@ export default function Index() {
           <h2 className="text-2xl font-bold tracking-tight mb-4">
             Performance Metrics
           </h2>
-          <TradeMetrics key={refreshKey} trades={trades} />
+          <TradeMetrics trades={trades} key={refreshKey} />
         </div>
       )}
       
