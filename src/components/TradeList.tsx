@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowDown, ArrowUp, Edit, Search, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Edit, Filter, Search, Trash2, Trophy, X as XIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { TradeWithMetrics } from '@/types';
 import { formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
 import { deleteTrade, getTradesWithMetrics } from '@/utils/tradeStorage';
@@ -22,12 +24,25 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [strategyFilter, setStrategyFilter] = useState('all');
+  const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
+  
+  // Get unique list of strategies from trades
+  const availableStrategies = useMemo(() => {
+    const strategies = new Set<string>();
+    trades.forEach(trade => {
+      if (trade.strategy) {
+        strategies.add(trade.strategy);
+      }
+    });
+    return Array.from(strategies).sort();
+  }, [trades]);
   
   useEffect(() => {
     const loadTrades = () => {
       const allTrades = initialTrades || getTradesWithMetrics();
       setTrades(allTrades);
-      applyFilters(allTrades, searchTerm, statusFilter, typeFilter);
+      applyFilters(allTrades, searchTerm, statusFilter, typeFilter, strategyFilter, resultFilter);
     };
     
     loadTrades();
@@ -43,14 +58,16 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
   }, [initialTrades, initialStatusFilter]);
   
   useEffect(() => {
-    applyFilters(trades, searchTerm, statusFilter, typeFilter);
-  }, [searchTerm, statusFilter, typeFilter, trades]);
+    applyFilters(trades, searchTerm, statusFilter, typeFilter, strategyFilter, resultFilter);
+  }, [searchTerm, statusFilter, typeFilter, strategyFilter, resultFilter, trades]);
   
   const applyFilters = (
     allTrades: TradeWithMetrics[], 
     search: string, 
     status: string, 
-    type: string
+    type: string,
+    strategy: string,
+    result: 'all' | 'win' | 'loss'
   ) => {
     let result = [...allTrades];
     
@@ -69,6 +86,25 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
     
     if (type !== 'all') {
       result = result.filter(trade => trade.type === type);
+    }
+    
+    // Filter by strategy
+    if (strategy !== 'all') {
+      result = result.filter(trade => trade.strategy === strategy);
+    }
+    
+    // Filter by win/loss
+    if (result !== 'all') {
+      result = result.filter(trade => {
+        if (trade.status !== 'closed') return true; // Keep open trades regardless of win/loss filter
+        
+        if (result === 'win') {
+          return trade.metrics.profitLoss >= 0;
+        } else if (result === 'loss') {
+          return trade.metrics.profitLoss < 0;
+        }
+        return true;
+      });
     }
     
     result.sort((a, b) => 
@@ -91,42 +127,113 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
   
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <div className="relative flex-grow">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search trades..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+          <div className="relative flex-grow">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search trades..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="equity">Equity</SelectItem>
+                <SelectItem value="futures">Futures</SelectItem>
+                <SelectItem value="option">Option</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-1" />
+                  More Filters
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Strategy</h4>
+                    <Select 
+                      value={strategyFilter} 
+                      onValueChange={setStrategyFilter}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Strategies" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Strategies</SelectItem>
+                        {availableStrategies.map((strategy) => (
+                          <SelectItem key={strategy} value={strategy}>
+                            {strategy}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Result</h4>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant={resultFilter === 'all' ? 'default' : 'outline'} 
+                        size="sm"
+                        onClick={() => setResultFilter('all')}
+                      >
+                        All
+                      </Button>
+                      <Button 
+                        variant={resultFilter === 'win' ? 'default' : 'outline'} 
+                        size="sm"
+                        onClick={() => setResultFilter('win')}
+                        className="text-profit"
+                      >
+                        <Trophy className="h-4 w-4 mr-1" />
+                        Wins
+                      </Button>
+                      <Button 
+                        variant={resultFilter === 'loss' ? 'default' : 'outline'} 
+                        size="sm"
+                        onClick={() => setResultFilter('loss')}
+                        className="text-loss"
+                      >
+                        <XIcon className="h-4 w-4 mr-1" />
+                        Losses
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="equity">Equity</SelectItem>
-              <SelectItem value="futures">Futures</SelectItem>
-              <SelectItem value="option">Option</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {filteredTrades.length > 0 && (
+          <div className="text-sm text-muted-foreground ml-2">
+            Showing {filteredTrades.length} of {trades.length} trades
+          </div>
+        )}
       </div>
       
       {filteredTrades.length === 0 ? (
