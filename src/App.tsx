@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import Dashboard from '@/pages/Dashboard';
 import TradeEntry from '@/pages/TradeEntry';
@@ -16,6 +16,7 @@ function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/index" element={<Navigate to="/" replace />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/trade/new" element={<TradeEntry />} />
           <Route path="/trade/:id" element={<TradeDetail />} />

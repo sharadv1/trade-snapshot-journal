@@ -5,6 +5,7 @@ import { getTradesWithMetrics } from '@/utils/tradeStorage';
 import { Button } from '@/components/ui/button';
 import { addDummyTrades } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
+import { TradeMetrics } from '@/components/TradeMetrics';
 
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -38,7 +39,12 @@ export default function Analytics() {
             <CumulativePnLChart trades={trades} key={refreshKey} />
           </div>
           
-          {/* More analytics components can be added here */}
+          <div className="w-full">
+            <h2 className="text-2xl font-bold tracking-tight mb-4">
+              Detailed Performance Metrics
+            </h2>
+            <TradeMetrics trades={trades} key={refreshKey} showOnlyKeyMetrics={false} />
+          </div>
         </div>
       ) : (
         <div className="text-center py-12 text-muted-foreground">

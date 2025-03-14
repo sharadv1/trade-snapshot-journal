@@ -1,14 +1,15 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronUp, Plus, AlertTriangle, Target, Database } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TradeList } from '@/components/TradeList';
-import { CumulativePnLChart } from '@/components/CumulativePnLChart';
 import { getTradesWithMetrics, addDummyTrades } from '@/utils/tradeStorage';
 import { TradeWithMetrics } from '@/types';
 import { formatCurrency } from '@/utils/tradeCalculations';
 import { toast } from '@/utils/toast';
+import { TradeMetrics } from '@/components/TradeMetrics';
 
 export default function Dashboard() {
   const [trades, setTrades] = useState<TradeWithMetrics[]>([]);
@@ -16,6 +17,7 @@ export default function Dashboard() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [totalRisk, setTotalRisk] = useState(0);
   const [totalPotentialGain, setTotalPotentialGain] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
   
   const loadTrades = () => {
     const allTrades = getTradesWithMetrics();
@@ -38,6 +40,7 @@ export default function Dashboard() {
     
     setTotalRisk(risk);
     setTotalPotentialGain(potentialGain);
+    setRefreshKey(prev => prev + 1);
   };
   
   useEffect(() => {
@@ -88,8 +91,9 @@ export default function Dashboard() {
       </div>
       
       {trades.length > 0 && (
-        <div className="w-full" style={{ clear: 'both' }}>
-          <CumulativePnLChart trades={trades} />
+        <div className="w-full mb-8">
+          <h2 className="text-lg font-semibold mb-4">Performance Metrics</h2>
+          <TradeMetrics trades={trades} key={refreshKey} showOnlyKeyMetrics={true} />
         </div>
       )}
       
