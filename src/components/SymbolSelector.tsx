@@ -13,6 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { COMMON_FUTURES_CONTRACTS } from '@/types';
 
 // Common stock symbols and futures contracts
 const PRESET_SYMBOLS = [
@@ -22,25 +23,39 @@ const PRESET_SYMBOLS = [
   'MES', 'MNQ', 'MYM', 'MGC', 'SIL', 'M6E', 'M6B',
 ];
 
+// Get list of futures symbols from our contracts data
+const FUTURES_SYMBOLS = COMMON_FUTURES_CONTRACTS.map(contract => contract.symbol);
+
 interface SymbolSelectorProps {
   value: string;
   onChange: (value: string) => void;
   tradeType?: 'equity' | 'futures' | 'option';
+  onTypeChange?: (type: 'equity' | 'futures' | 'option') => void;
 }
 
-export function SymbolSelector({ value, onChange, tradeType = 'equity' }: SymbolSelectorProps) {
+export function SymbolSelector({ 
+  value, 
+  onChange, 
+  tradeType = 'equity',
+  onTypeChange
+}: SymbolSelectorProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value || '');
   const [symbols, setSymbols] = useState<string[]>(() => {
     // Get custom symbols from localStorage or use defaults
-    const savedSymbols = localStorage.getItem('customSymbols');
-    const customSymbols = savedSymbols ? JSON.parse(savedSymbols) : [];
-    return [...PRESET_SYMBOLS, ...customSymbols];
+    try {
+      const savedSymbols = localStorage.getItem('customSymbols');
+      const customSymbols = savedSymbols ? JSON.parse(savedSymbols) : [];
+      return [...PRESET_SYMBOLS, ...customSymbols];
+    } catch (error) {
+      console.error('Error loading symbols from localStorage:', error);
+      return PRESET_SYMBOLS;
+    }
   });
 
   // Filter symbols based on trade type
   const filteredSymbols = tradeType === 'futures' 
-    ? symbols.filter(s => ['MES', 'MNQ', 'MYM', 'MGC', 'SIL', 'M6E', 'M6B'].includes(s))
+    ? symbols.filter(s => FUTURES_SYMBOLS.includes(s))
     : symbols;
 
   const saveSymbol = (symbol: string) => {
@@ -49,13 +64,23 @@ export function SymbolSelector({ value, onChange, tradeType = 'equity' }: Symbol
     const newSymbols = [...symbols, symbol];
     setSymbols(newSymbols);
     
-    // Save to localStorage
-    const customSymbols = newSymbols.filter(s => !PRESET_SYMBOLS.includes(s));
-    localStorage.setItem('customSymbols', JSON.stringify(customSymbols));
+    try {
+      // Save to localStorage
+      const customSymbols = newSymbols.filter(s => !PRESET_SYMBOLS.includes(s));
+      localStorage.setItem('customSymbols', JSON.stringify(customSymbols));
+    } catch (error) {
+      console.error('Error saving symbols to localStorage:', error);
+    }
   };
 
   const handleSelect = (currentValue: string) => {
     onChange(currentValue);
+    
+    // Auto-select futures type if a futures symbol is selected
+    if (FUTURES_SYMBOLS.includes(currentValue) && onTypeChange) {
+      onTypeChange('futures');
+    }
+    
     setOpen(false);
   };
 

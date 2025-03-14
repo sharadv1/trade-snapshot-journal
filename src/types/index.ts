@@ -1,3 +1,4 @@
+
 export interface Trade {
   id: string;
   symbol: string;
@@ -12,6 +13,7 @@ export interface Trade {
   stopLoss?: number;
   takeProfit?: number;
   strategy?: string;
+  customStrategy?: string;
   notes?: string;
   images: string[]; // Base64 encoded images
   tags?: string[];
