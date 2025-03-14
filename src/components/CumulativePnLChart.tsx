@@ -11,7 +11,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Legend
 } from 'recharts';
 
 interface CumulativePnLChartProps {
@@ -20,14 +21,15 @@ interface CumulativePnLChartProps {
 
 interface ChartDataPoint {
   date: string;
-  pnl: number;
-  daily: number;
-  symbol: string;
+  formattedDate: string;
+  timestamp: number;
+  total: number;
+  [key: string]: number | string; // For strategy-specific data
 }
 
 export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
   // Sort and prepare data for chart (only closed trades)
-  const chartData = useMemo(() => {
+  const { chartData, strategies } = useMemo(() => {
     // Filter by closed trades and sort by exit date
     const closedTrades = trades
       .filter(trade => trade.status === 'closed' && trade.exitDate)
@@ -37,22 +39,92 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
         return dateA - dateB;
       });
     
-    // Calculate cumulative P&L over time
-    let cumulative = 0;
-    return closedTrades.map(trade => {
-      cumulative += trade.metrics.profitLoss;
-      return {
-        date: format(new Date(trade.exitDate!), 'MMM d, yyyy'),
-        pnl: cumulative,
-        daily: trade.metrics.profitLoss,
-        symbol: trade.symbol
-      };
+    // Get unique strategies
+    const uniqueStrategies = Array.from(
+      new Set(
+        closedTrades
+          .filter(trade => trade.strategy)
+          .map(trade => trade.strategy as string)
+      )
+    );
+    
+    // Prepare data points by date
+    const dataByDate = new Map<string, ChartDataPoint>();
+    
+    // Initialize strategy cumulative values
+    const strategyCumulatives: Record<string, number> = {};
+    uniqueStrategies.forEach(strategy => {
+      strategyCumulatives[strategy] = 0;
     });
+    
+    let totalCumulative = 0;
+
+    // Process each trade
+    closedTrades.forEach(trade => {
+      if (!trade.exitDate) return;
+      
+      const exitDate = new Date(trade.exitDate);
+      const dateKey = format(exitDate, 'yyyy-MM-dd');
+      const formattedDate = format(exitDate, 'MMM d, yyyy');
+      const timestamp = exitDate.getTime();
+      
+      // Update total cumulative P&L
+      totalCumulative += trade.metrics.profitLoss;
+      
+      // Update strategy-specific cumulative P&L
+      if (trade.strategy) {
+        strategyCumulatives[trade.strategy] = 
+          (strategyCumulatives[trade.strategy] || 0) + trade.metrics.profitLoss;
+      }
+      
+      // Create or update data point
+      if (!dataByDate.has(dateKey)) {
+        const dataPoint: ChartDataPoint = {
+          date: dateKey,
+          formattedDate,
+          timestamp,
+          total: totalCumulative,
+        };
+        
+        // Add strategy-specific values
+        uniqueStrategies.forEach(strategy => {
+          dataPoint[strategy] = strategyCumulatives[strategy];
+        });
+        
+        dataByDate.set(dateKey, dataPoint);
+      } else {
+        // Update existing data point
+        const dataPoint = dataByDate.get(dateKey)!;
+        dataPoint.total = totalCumulative;
+        
+        // Update strategy values
+        uniqueStrategies.forEach(strategy => {
+          dataPoint[strategy] = strategyCumulatives[strategy];
+        });
+      }
+    });
+    
+    // Convert map to array and sort by timestamp
+    const chartData = Array.from(dataByDate.values())
+      .sort((a, b) => a.timestamp - b.timestamp);
+    
+    return { chartData, strategies: uniqueStrategies };
   }, [trades]);
 
-  // Determine chart colors
-  const isPositive = chartData.length > 0 && chartData[chartData.length - 1]?.pnl >= 0;
-  const lineColor = isPositive ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 60%)';
+  // Define strategy colors
+  const strategyColors = [
+    '#2563eb', // Blue
+    '#059669', // Green
+    '#d946ef', // Purple
+    '#f59e0b', // Amber
+    '#dc2626', // Red
+    '#6366f1', // Indigo
+    '#0891b2', // Cyan
+  ];
+
+  // Determine chart colors for the total line
+  const isPositive = chartData.length > 0 && chartData[chartData.length - 1]?.total >= 0;
+  const totalLineColor = isPositive ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 60%)';
 
   if (chartData.length === 0) {
     return (
@@ -77,11 +149,11 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart 
               data={chartData}
-              margin={{ top: 10, right: 20, left: 10, bottom: 30 }}
+              margin={{ top: 10, right: 30, left: 10, bottom: 30 }}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis 
-                dataKey="date" 
+                dataKey="formattedDate" 
                 tick={{ fontSize: 12 }}
                 tickMargin={10}
                 tickFormatter={(value) => {
@@ -100,41 +172,63 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
               <Tooltip 
                 content={({active, payload, label}) => {
                   if (active && payload && payload.length) {
-                    const pnlValue = Number(payload[0].value);
-                    const dailyValue = Number(payload[0].payload.daily);
-                    
                     return (
                       <div className="bg-background p-3 border rounded shadow-md">
                         <div className="font-medium mb-1">{label}</div>
-                        <div className="flex justify-between gap-4 text-sm">
-                          <span>Cumulative:</span>
-                          <span className={pnlValue >= 0 ? 'text-profit' : 'text-loss'}>
-                            {formatCurrency(pnlValue)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between gap-4 text-sm">
-                          <span>Daily P&L:</span>
-                          <span className={dailyValue >= 0 ? 'text-profit' : 'text-loss'}>
-                            {formatCurrency(dailyValue)}
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {payload[0].payload.symbol}
-                        </div>
+                        {payload.map((entry, index) => {
+                          const value = Number(entry.value);
+                          const name = entry.name === 'total' ? 'Overall P&L' : entry.name;
+                          return (
+                            <div key={`tooltip-${index}`} className="flex justify-between gap-4 text-sm">
+                              <span className="flex items-center">
+                                <span 
+                                  className="inline-block w-3 h-3 mr-2 rounded-full" 
+                                  style={{ backgroundColor: entry.color }}
+                                ></span>
+                                {name}:
+                              </span>
+                              <span className={value >= 0 ? 'text-profit' : 'text-loss'}>
+                                {formatCurrency(value)}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   }
                   return null;
                 }}
               />
+              <Legend 
+                verticalAlign="bottom"
+                height={36}
+                formatter={(value) => value === 'total' ? 'Overall P&L' : value}
+              />
+              
+              {/* Line for overall P&L */}
               <Line 
                 type="monotone" 
-                dataKey="pnl" 
-                stroke={lineColor} 
+                dataKey="total" 
+                name="total"
+                stroke={totalLineColor} 
                 strokeWidth={2}
                 dot={{ r: 3, strokeWidth: 1 }}
                 activeDot={{ r: 5, strokeWidth: 1 }}
               />
+              
+              {/* Lines for each strategy */}
+              {strategies.map((strategy, index) => (
+                <Line 
+                  key={strategy}
+                  type="monotone" 
+                  dataKey={strategy} 
+                  name={strategy}
+                  stroke={strategyColors[index % strategyColors.length]} 
+                  strokeWidth={1.5}
+                  dot={{ r: 2 }}
+                  activeDot={{ r: 4 }}
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>

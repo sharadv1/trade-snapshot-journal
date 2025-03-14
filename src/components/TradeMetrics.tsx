@@ -13,6 +13,7 @@ import {
   YAxis
 } from 'recharts';
 import { TradePnLCalendar } from './TradePnLCalendar';
+import { CumulativePnLChart } from './CumulativePnLChart';
 
 interface TradeMetricsProps {
   trades: TradeWithMetrics[];
@@ -69,6 +70,8 @@ export function TradeMetrics({ trades }: TradeMetricsProps) {
           className={metrics.netProfit >= 0 ? "text-profit" : "text-loss"}
         />
       </div>
+      
+      <CumulativePnLChart trades={trades} />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="shadow-subtle border">
