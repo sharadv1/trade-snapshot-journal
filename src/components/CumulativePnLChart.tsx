@@ -56,7 +56,7 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
 
   if (chartData.length === 0) {
     return (
-      <Card className="w-full mb-12">
+      <Card className="w-full mb-8">
         <CardHeader>
           <CardTitle className="text-base font-medium">Cumulative Profit & Loss</CardTitle>
         </CardHeader>
@@ -85,10 +85,12 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
                 tick={{ fontSize: 12 }}
                 tickMargin={10}
                 tickFormatter={(value) => {
+                  // Format the date to show month and day only
                   const parts = value.split(',')[0].split(' ');
                   return `${parts[0]} ${parts[1]}`;
                 }}
                 height={50}
+                minTickGap={30}
               />
               <YAxis 
                 tickFormatter={(value) => formatCurrency(Number(value)).replace('$', '')}
