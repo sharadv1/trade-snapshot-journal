@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trade, FuturesContractDetails as ContractDetails } from '@/types';
-import { formatCurrency } from '@/utils/tradeCalculations';
+import { formatCurrency, getContractPointValue } from '@/utils/tradeCalculations';
 
 interface FuturesContractDetailsProps {
   trade: Trade;
@@ -23,8 +23,8 @@ export function FuturesContractDetails({ trade }: FuturesContractDetailsProps) {
     maintenanceMargin 
   } = trade.contractDetails;
 
-  // Calculate point value (the value of a 1 point move)
-  const pointValue = tickValue / tickSize;
+  // Get point value from our utility function
+  const pointValue = getContractPointValue(trade);
 
   return (
     <Card className="shadow-subtle border">

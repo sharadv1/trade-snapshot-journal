@@ -23,7 +23,7 @@ export function FuturesContractSelector({
           exchange: contract.exchange,
           contractSize: 1, // Default value, can be customized later
           tickSize: contract.tickSize,
-          tickValue: contract.tickValue
+          tickValue: contract.tickSize * contract.pointValue // Calculate tickValue from tickSize and pointValue
         };
         onChange(details);
       }

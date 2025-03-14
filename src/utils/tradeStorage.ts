@@ -1,6 +1,6 @@
 
 import { Trade, TradeWithMetrics } from '@/types';
-import { calculateTradeMetrics } from './tradeCalculations';
+import { calculateTradeMetrics, generateDummyTrades } from './tradeCalculations';
 
 // Local storage keys
 const TRADES_STORAGE_KEY = 'trade-journal-trades';
@@ -94,4 +94,16 @@ export const deleteImageFromTrade = (tradeId: string, imageIndex: number): void 
     };
     updateTrade(updatedTrade);
   }
+};
+
+// Add dummy trades for testing
+export const addDummyTrades = (): void => {
+  const dummyTrades = generateDummyTrades();
+  
+  // Remove any existing trades
+  localStorage.removeItem(TRADES_STORAGE_KEY);
+  
+  // Save the dummy trades
+  saveTrades(dummyTrades);
+  console.log('Added 10 dummy trades for testing');
 };

@@ -1,4 +1,3 @@
-
 import { Trade, TradeMetrics, PerformanceMetrics, TradeWithMetrics, PartialExit, FuturesContractDetails, COMMON_FUTURES_CONTRACTS } from '@/types';
 
 // Calculate metrics for a single trade
@@ -116,22 +115,7 @@ export const getContractPointValue = (trade: Trade): number => {
     const commonContract = COMMON_FUTURES_CONTRACTS.find(c => c.symbol === trade.symbol);
     
     if (commonContract) {
-      switch (commonContract.symbol) {
-        case 'MES': return 5;     // $5 per point
-        case 'MNQ': return 2;     // $2 per point
-        case 'MYM': return 0.5;   // $0.50 per point
-        case 'MGC': return 10;    // $10 per point
-        case 'SIL': return 5;     // $5 per point
-        case 'M6E': return 12500; // $12,500 per point
-        case 'M6B': return 6500;  // $6,500 per point
-        default: 
-          // If defined in contractDetails, calculate from there
-          if (trade.contractDetails?.tickSize && trade.contractDetails?.tickValue) {
-            return trade.contractDetails.tickValue / trade.contractDetails.tickSize;
-          }
-          // Fallback: return 1 to avoid division by zero errors
-          return 1;
-      }
+      return commonContract.pointValue; // Use the pointValue directly now
     }
     
     // If contract details are available, use them as a fallback
@@ -254,3 +238,247 @@ export const formatPercentage = (value: number): string => {
   }).format(value / 100);
 };
 
+// Generate dummy trades for testing
+export const generateDummyTrades = (): Trade[] => {
+  const dummyTrades: Trade[] = [
+    // Equity trades
+    {
+      id: "1",
+      symbol: "AAPL",
+      type: "equity",
+      direction: "long",
+      entryDate: "2023-10-15T10:30",
+      entryPrice: 178.50,
+      exitDate: "2023-10-30T15:45",
+      exitPrice: 186.75,
+      quantity: 10,
+      fees: 9.95,
+      stopLoss: 170.00,
+      takeProfit: 190.00,
+      strategy: "Trend Following",
+      notes: "Bought after strong earnings report. Market was showing bullish momentum.",
+      images: [],
+      tags: ["tech", "earnings", "momentum"],
+      status: "closed"
+    },
+    {
+      id: "2",
+      symbol: "MSFT",
+      type: "equity",
+      direction: "long",
+      entryDate: "2023-11-05T09:15",
+      entryPrice: 365.25,
+      exitDate: "2023-11-20T11:30",
+      exitPrice: 378.90,
+      quantity: 5,
+      fees: 7.95,
+      stopLoss: 355.00,
+      takeProfit: 385.00,
+      strategy: "Breakout",
+      notes: "Entered on breakout of key resistance level with high volume.",
+      images: [],
+      tags: ["tech", "breakout", "cloud"],
+      status: "closed"
+    },
+    {
+      id: "3",
+      symbol: "NVDA",
+      type: "equity",
+      direction: "long",
+      entryDate: "2023-12-01T10:00",
+      entryPrice: 465.75,
+      quantity: 4,
+      fees: 6.95,
+      stopLoss: 445.00,
+      takeProfit: 500.00,
+      strategy: "Momentum",
+      notes: "AI theme continues to drive semiconductor sector. Strong relative strength.",
+      images: [],
+      tags: ["tech", "semiconductor", "AI"],
+      status: "open"
+    },
+    
+    // Futures trades
+    {
+      id: "4",
+      symbol: "MES",
+      type: "futures",
+      direction: "long",
+      entryDate: "2023-09-10T09:20",
+      entryPrice: 4550.25,
+      exitDate: "2023-09-10T14:30",
+      exitPrice: 4575.75,
+      quantity: 2,
+      fees: 4.20,
+      stopLoss: 4530.00,
+      takeProfit: 4580.00,
+      strategy: "Scalping",
+      notes: "Quick intraday trade on market pullback. Entered at support level.",
+      images: [],
+      tags: ["day-trade", "scalp", "index"],
+      status: "closed",
+      contractDetails: {
+        exchange: "CME",
+        contractSize: 1,
+        tickSize: 0.25,
+        tickValue: 1.25
+      }
+    },
+    {
+      id: "5",
+      symbol: "MNQ",
+      type: "futures",
+      direction: "short",
+      entryDate: "2023-10-05T11:15",
+      entryPrice: 15720.50,
+      exitDate: "2023-10-06T10:30",
+      exitPrice: 15650.75,
+      quantity: 1,
+      fees: 2.95,
+      stopLoss: 15760.00,
+      takeProfit: 15640.00,
+      strategy: "Mean Reversion",
+      notes: "Shorted at resistance after overbought conditions. Closed at target the next day.",
+      images: [],
+      tags: ["swing-trade", "tech-index"],
+      status: "closed",
+      contractDetails: {
+        exchange: "CME",
+        contractSize: 1,
+        tickSize: 0.25,
+        tickValue: 0.5
+      }
+    },
+    {
+      id: "6",
+      symbol: "MGC",
+      type: "futures",
+      direction: "long",
+      entryDate: "2023-11-15T13:30",
+      entryPrice: 1975.60,
+      quantity: 1,
+      fees: 1.95,
+      stopLoss: 1950.00,
+      takeProfit: 2020.00,
+      strategy: "Trend Following",
+      notes: "Long gold on inflation concerns and technical breakout. Looking for continuation.",
+      images: [],
+      tags: ["gold", "inflation", "commodity"],
+      status: "open",
+      contractDetails: {
+        exchange: "COMEX",
+        contractSize: 1,
+        tickSize: 0.1,
+        tickValue: 1
+      }
+    },
+    
+    // Option trades
+    {
+      id: "7",
+      symbol: "SPY 450 C 12/15",
+      type: "option",
+      direction: "long",
+      entryDate: "2023-11-01T11:00",
+      entryPrice: 5.25,
+      exitDate: "2023-11-30T15:30",
+      exitPrice: 8.70,
+      quantity: 5,
+      fees: 3.75,
+      strategy: "Momentum",
+      notes: "Bought calls on market pullback with strong technical support.",
+      images: [],
+      tags: ["options", "call", "index"],
+      status: "closed"
+    },
+    {
+      id: "8",
+      symbol: "AMZN 140 P 01/19",
+      type: "option",
+      direction: "short",
+      entryDate: "2023-12-01T10:15",
+      entryPrice: 3.80,
+      quantity: 2,
+      fees: 2.50,
+      strategy: "Income Generation",
+      notes: "Sold puts after stock pullback, looking to collect premium or get assigned at support.",
+      images: [],
+      tags: ["options", "put", "income"],
+      status: "open"
+    },
+    
+    // Trade with partial exits
+    {
+      id: "9",
+      symbol: "MES",
+      type: "futures",
+      direction: "long",
+      entryDate: "2023-12-05T09:30",
+      entryPrice: 4680.25,
+      quantity: 3,
+      fees: 6.30,
+      stopLoss: 4650.00,
+      takeProfit: 4720.00,
+      strategy: "Swing Trading",
+      notes: "Entered on pullback to moving average with positive divergence.",
+      images: [],
+      tags: ["futures", "swing-trade", "partial-exits"],
+      status: "open",
+      contractDetails: {
+        exchange: "CME",
+        contractSize: 1,
+        tickSize: 0.25,
+        tickValue: 1.25
+      },
+      partialExits: [
+        {
+          id: "9-1",
+          exitDate: "2023-12-06T10:45",
+          exitPrice: 4700.50,
+          quantity: 1,
+          fees: 1.95,
+          notes: "Took partial profit at first target"
+        }
+      ]
+    },
+    
+    // Complex trade with multiple partial exits
+    {
+      id: "10",
+      symbol: "QQQ",
+      type: "equity",
+      direction: "long",
+      entryDate: "2023-12-10T09:45",
+      entryPrice: 380.50,
+      quantity: 20,
+      fees: 9.95,
+      stopLoss: 370.00,
+      takeProfit: 400.00,
+      strategy: "Position Trading",
+      notes: "Building position in tech ETF on sector rotation. Planning to scale out at different levels.",
+      images: [],
+      tags: ["etf", "position-sizing", "tech"],
+      status: "open",
+      partialExits: [
+        {
+          id: "10-1",
+          exitDate: "2023-12-15T14:30",
+          exitPrice: 385.75,
+          quantity: 5,
+          fees: 4.95,
+          notes: "Took 25% off at first target"
+        },
+        {
+          id: "10-2",
+          exitDate: "2023-12-18T11:15",
+          exitPrice: 390.25,
+          quantity: 5,
+          fees: 4.95,
+          notes: "Took another 25% at second target"
+        }
+      ]
+    }
+  ];
+  
+  return dummyTrades;
+};

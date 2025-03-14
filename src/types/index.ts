@@ -87,15 +87,15 @@ export interface FuturesContract {
   exchange: string;
   description: string;
   tickSize: number;
-  tickValue: number;
+  pointValue: number; // Renamed from tickValue to pointValue
 }
 
 export const COMMON_FUTURES_CONTRACTS: FuturesContract[] = [
-  { symbol: 'MES', exchange: 'CME', description: 'Micro E-mini S&P 500', tickSize: 0.25, tickValue: 1.25 },
-  { symbol: 'MNQ', exchange: 'CME', description: 'Micro E-mini Nasdaq-100', tickSize: 0.25, tickValue: 0.5 },
-  { symbol: 'MYM', exchange: 'CBOT', description: 'Micro E-mini Dow', tickSize: 1, tickValue: 0.5 },
-  { symbol: 'MGC', exchange: 'COMEX', description: 'Micro Gold', tickSize: 0.1, tickValue: 1 },
-  { symbol: 'SIL', exchange: 'COMEX', description: 'Silver', tickSize: 0.005, tickValue: 25 },
-  { symbol: 'M6E', exchange: 'CME', description: 'Micro Euro FX', tickSize: 0.0001, tickValue: 1.25 },
-  { symbol: 'M6B', exchange: 'CME', description: 'Micro British Pound', tickSize: 0.0001, tickValue: 0.65 },
+  { symbol: 'MES', exchange: 'CME', description: 'Micro E-mini S&P 500', tickSize: 0.25, pointValue: 5 },
+  { symbol: 'MNQ', exchange: 'CME', description: 'Micro E-mini Nasdaq-100', tickSize: 0.25, pointValue: 2 },
+  { symbol: 'MYM', exchange: 'CBOT', description: 'Micro E-mini Dow', tickSize: 1, pointValue: 0.5 },
+  { symbol: 'MGC', exchange: 'COMEX', description: 'Micro Gold', tickSize: 0.1, pointValue: 10 },
+  { symbol: 'SIL', exchange: 'COMEX', description: 'Silver', tickSize: 0.005, pointValue: 5 },
+  { symbol: 'M6E', exchange: 'CME', description: 'Micro Euro FX', tickSize: 0.0001, pointValue: 12500 },
+  { symbol: 'M6B', exchange: 'CME', description: 'Micro British Pound', tickSize: 0.0001, pointValue: 6500 },
 ];

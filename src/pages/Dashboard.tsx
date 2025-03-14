@@ -1,14 +1,15 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronUp, Search, Plus, AlertTriangle, Target } from 'lucide-react';
+import { ChevronUp, Search, Plus, AlertTriangle, Target, Database } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TradeList } from '@/components/TradeList';
 import { TradeMetrics } from '@/components/TradeMetrics';
-import { getTradesWithMetrics } from '@/utils/tradeStorage';
+import { getTradesWithMetrics, addDummyTrades } from '@/utils/tradeStorage';
 import { TradeWithMetrics } from '@/types';
 import { formatCurrency } from '@/utils/tradeCalculations';
+import { toast } from '@/utils/toast';
 
 export default function Dashboard() {
   const [trades, setTrades] = useState<TradeWithMetrics[]>([]);
@@ -18,7 +19,7 @@ export default function Dashboard() {
   const [totalPotentialGain, setTotalPotentialGain] = useState(0);
   
   // Load trades
-  useEffect(() => {
+  const loadTrades = () => {
     const allTrades = getTradesWithMetrics();
     setTrades(allTrades);
     const openPositions = allTrades.filter(trade => trade.status === 'open');
@@ -40,13 +41,15 @@ export default function Dashboard() {
     
     setTotalRisk(risk);
     setTotalPotentialGain(potentialGain);
+  };
+  
+  useEffect(() => {
+    loadTrades();
     
     // Set up localStorage change listener (for multi-tab support)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'trade-journal-trades') {
-        const updatedTrades = getTradesWithMetrics();
-        setTrades(updatedTrades);
-        setOpenTrades(updatedTrades.filter(trade => trade.status === 'open'));
+        loadTrades();
       }
     };
     
@@ -66,6 +69,12 @@ export default function Dashboard() {
   
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  const handleLoadDummyData = () => {
+    addDummyTrades();
+    loadTrades();
+    toast.success("Loaded 10 sample trades");
   };
 
   // Calculate total P&L
@@ -94,17 +103,29 @@ export default function Dashboard() {
                 Start tracking your trades to see performance metrics
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-start">
+            <CardContent className="flex justify-start gap-3">
               <Button asChild>
                 <Link to="/trade/new">
                   <Plus className="mr-1 h-4 w-4" />
                   Record Your First Trade
                 </Link>
               </Button>
+              <Button variant="outline" onClick={handleLoadDummyData}>
+                <Database className="mr-1 h-4 w-4" />
+                Load Sample Data
+              </Button>
             </CardContent>
           </Card>
         ) : (
-          <TradeMetrics trades={trades} />
+          <div className="space-y-4">
+            <TradeMetrics trades={trades} />
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" onClick={handleLoadDummyData}>
+                <Database className="mr-1 h-4 w-4" />
+                Replace with Sample Data
+              </Button>
+            </div>
+          </div>
         )}
       </div>
       
