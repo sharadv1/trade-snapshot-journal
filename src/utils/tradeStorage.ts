@@ -1,4 +1,3 @@
-
 import { Trade, TradeWithMetrics } from '@/types';
 import { calculateTradeMetrics, generateDummyTrades } from './tradeCalculations';
 

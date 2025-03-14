@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowDown, ArrowUp, Edit, Search, Trash2, AlertTriangle, Target } from 'lucide-react';
+import { ArrowDown, ArrowUp, Edit, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,7 +23,6 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'all');
   const [typeFilter, setTypeFilter] = useState('all');
   
-  // Load trades
   useEffect(() => {
     const loadTrades = () => {
       const allTrades = initialTrades || getTradesWithMetrics();
@@ -34,7 +32,6 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
     
     loadTrades();
     
-    // Reload when localStorage changes (for multi-tab support)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'trade-journal-trades') {
         loadTrades();
@@ -45,7 +42,6 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [initialTrades, initialStatusFilter]);
   
-  // Apply filters when filter state changes
   useEffect(() => {
     applyFilters(trades, searchTerm, statusFilter, typeFilter);
   }, [searchTerm, statusFilter, typeFilter, trades]);
@@ -58,7 +54,6 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
   ) => {
     let result = [...allTrades];
     
-    // Filter by search term
     if (search) {
       const searchLower = search.toLowerCase();
       result = result.filter(trade => 
@@ -68,17 +63,14 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
       );
     }
     
-    // Filter by status
     if (status !== 'all') {
       result = result.filter(trade => trade.status === status);
     }
     
-    // Filter by type
     if (type !== 'all') {
       result = result.filter(trade => trade.type === type);
     }
     
-    // Sort by date (newest first)
     result.sort((a, b) => 
       new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime()
     );
@@ -216,7 +208,6 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
                     {trade.status === 'open' && trade.stopLoss && trade.metrics.riskedAmount && (
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                          <AlertTriangle className="h-4 w-4" />
                           <span className="text-sm font-medium">
                             Risk: {formatCurrency(trade.metrics.riskedAmount)}
                           </span>
@@ -224,7 +215,6 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
                         
                         {trade.takeProfit && trade.metrics.maxPotentialGain && (
                           <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                            <Target className="h-4 w-4" />
                             <span className="text-sm font-medium">
                               Target: {formatCurrency(trade.metrics.maxPotentialGain)}
                             </span>
@@ -281,7 +271,6 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
   );
 }
 
-// Helper for className merging
 function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(' ');
 }

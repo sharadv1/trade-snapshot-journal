@@ -241,7 +241,7 @@ export const formatPercentage = (value: number): string => {
 // Generate dummy trades for testing
 export const generateDummyTrades = (): Trade[] => {
   const dummyTrades: Trade[] = [
-    // Equity trades
+    // Equity trades - Winners
     {
       id: "1",
       symbol: "AAPL",
@@ -261,6 +261,7 @@ export const generateDummyTrades = (): Trade[] => {
       tags: ["tech", "earnings", "momentum"],
       status: "closed"
     },
+    // Equity trade - Loser
     {
       id: "2",
       symbol: "MSFT",
@@ -269,15 +270,15 @@ export const generateDummyTrades = (): Trade[] => {
       entryDate: "2023-11-05T09:15",
       entryPrice: 365.25,
       exitDate: "2023-11-20T11:30",
-      exitPrice: 378.90,
+      exitPrice: 342.90, // Loss
       quantity: 5,
       fees: 7.95,
-      stopLoss: 355.00,
+      stopLoss: 340.00,
       takeProfit: 385.00,
       strategy: "Breakout",
-      notes: "Entered on breakout of key resistance level with high volume.",
+      notes: "Breakout failed and reversed. Cut losses near stop.",
       images: [],
-      tags: ["tech", "breakout", "cloud"],
+      tags: ["tech", "breakout", "failed"],
       status: "closed"
     },
     {
@@ -298,7 +299,7 @@ export const generateDummyTrades = (): Trade[] => {
       status: "open"
     },
     
-    // Futures trades
+    // Futures trades - Winner
     {
       id: "4",
       symbol: "MES",
@@ -324,6 +325,7 @@ export const generateDummyTrades = (): Trade[] => {
         tickValue: 1.25
       }
     },
+    // Futures trades - Loser
     {
       id: "5",
       symbol: "MNQ",
@@ -332,15 +334,15 @@ export const generateDummyTrades = (): Trade[] => {
       entryDate: "2023-10-05T11:15",
       entryPrice: 15720.50,
       exitDate: "2023-10-06T10:30",
-      exitPrice: 15650.75,
+      exitPrice: 15850.75, // Loss on short
       quantity: 1,
       fees: 2.95,
-      stopLoss: 15760.00,
+      stopLoss: 15860.00,
       takeProfit: 15640.00,
       strategy: "Mean Reversion",
-      notes: "Shorted at resistance after overbought conditions. Closed at target the next day.",
+      notes: "Trade went against expectation. Market continued upward trend.",
       images: [],
-      tags: ["swing-trade", "tech-index"],
+      tags: ["failed", "tech-index"],
       status: "closed",
       contractDetails: {
         exchange: "CME",
@@ -373,7 +375,7 @@ export const generateDummyTrades = (): Trade[] => {
       }
     },
     
-    // Option trades
+    // Option trades - Winner
     {
       id: "7",
       symbol: "SPY 450 C 12/15",
@@ -391,6 +393,7 @@ export const generateDummyTrades = (): Trade[] => {
       tags: ["options", "call", "index"],
       status: "closed"
     },
+    // Option trades - Loser
     {
       id: "8",
       symbol: "AMZN 140 P 01/19",
@@ -398,16 +401,18 @@ export const generateDummyTrades = (): Trade[] => {
       direction: "short",
       entryDate: "2023-12-01T10:15",
       entryPrice: 3.80,
+      exitDate: "2023-12-15T14:30",
+      exitPrice: 7.25, // Loss on short put
       quantity: 2,
       fees: 2.50,
       strategy: "Income Generation",
-      notes: "Sold puts after stock pullback, looking to collect premium or get assigned at support.",
+      notes: "Market dropped sharply after poor retail sales. Had to exit at a loss.",
       images: [],
-      tags: ["options", "put", "income"],
-      status: "open"
+      tags: ["options", "put", "loss"],
+      status: "closed"
     },
     
-    // Trade with partial exits
+    // Trade with partial exits - Mixed results
     {
       id: "9",
       symbol: "MES",
@@ -442,7 +447,7 @@ export const generateDummyTrades = (): Trade[] => {
       ]
     },
     
-    // Complex trade with multiple partial exits
+    // Complex trade with multiple partial exits - Mixed results
     {
       id: "10",
       symbol: "QQQ",
@@ -471,10 +476,10 @@ export const generateDummyTrades = (): Trade[] => {
         {
           id: "10-2",
           exitDate: "2023-12-18T11:15",
-          exitPrice: 390.25,
+          exitPrice: 375.25, // Partial loss
           quantity: 5,
           fees: 4.95,
-          notes: "Took another 25% at second target"
+          notes: "Exited another 25% at a loss due to sector rotation"
         }
       ]
     }
