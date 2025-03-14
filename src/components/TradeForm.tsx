@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageUpload } from './ImageUpload';
-import { Trade } from '@/types';
+import { Trade, FuturesContractDetails } from '@/types';
 import { addTrade, updateTrade } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
 
@@ -34,11 +35,26 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
       status: 'open',
       images: [],
       tags: [],
+      partialExits: []
+    }
+  );
+
+  // Futures-specific contract details
+  const [contractDetails, setContractDetails] = useState<Partial<FuturesContractDetails>>(
+    initialTrade?.contractDetails || {
+      exchange: '',
+      contractSize: 1,
+      tickSize: 0.01,
+      tickValue: 0.01
     }
   );
 
   const handleChange = (field: keyof Trade, value: any) => {
     setTrade(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleContractDetailsChange = (field: keyof FuturesContractDetails, value: any) => {
+    setContractDetails(prev => ({ ...prev, [field]: value }));
   };
 
   const handleImageUpload = (base64Image: string) => {
@@ -63,15 +79,21 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
     }
     
     try {
+      // Add futures contract details if the trade type is futures
+      const tradeToSave = {
+        ...trade,
+        images,
+        contractDetails: trade.type === 'futures' ? contractDetails : undefined
+      };
+      
       if (isEditing && initialTrade) {
-        const updatedTrade = { ...initialTrade, ...trade, images } as Trade;
+        const updatedTrade = { ...initialTrade, ...tradeToSave } as Trade;
         updateTrade(updatedTrade);
         toast.success("Trade updated successfully");
       } else {
         const newTrade = {
-          ...trade,
+          ...tradeToSave,
           id: crypto.randomUUID(),
-          images
         } as Trade;
         addTrade(newTrade);
         toast.success("Trade added successfully");
@@ -99,9 +121,12 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="px-6">
-            <TabsList className="grid grid-cols-3 w-full">
+            <TabsList className="grid grid-cols-4 w-full">
               <TabsTrigger value="details">Trade Details</TabsTrigger>
               <TabsTrigger value="risk">Risk Parameters</TabsTrigger>
+              <TabsTrigger value="contract" disabled={trade.type !== 'futures'}>
+                Contract Details
+              </TabsTrigger>
               <TabsTrigger value="notes">Notes & Images</TabsTrigger>
             </TabsList>
           </div>
@@ -287,6 +312,94 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
                 <h3 className="text-sm font-medium mb-2">Risk Management</h3>
                 <p className="text-sm text-muted-foreground">
                   Setting a stop loss and take profit helps you maintain discipline and automatically calculates your risk-to-reward ratio.
+                </p>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="contract" className="space-y-4 mt-0">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="exchange">Exchange</Label>
+                  <Input 
+                    id="exchange" 
+                    value={contractDetails.exchange}
+                    onChange={(e) => handleContractDetailsChange('exchange', e.target.value)}
+                    placeholder="e.g., CME, CBOT"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="contractSize">Contract Size</Label>
+                  <Input 
+                    id="contractSize" 
+                    type="number"
+                    min="1"
+                    value={contractDetails.contractSize}
+                    onChange={(e) => handleContractDetailsChange('contractSize', parseFloat(e.target.value))}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="tickSize">Tick Size</Label>
+                  <Input 
+                    id="tickSize" 
+                    type="number"
+                    min="0.0001"
+                    step="0.0001"
+                    value={contractDetails.tickSize}
+                    onChange={(e) => handleContractDetailsChange('tickSize', parseFloat(e.target.value))}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="tickValue">Tick Value</Label>
+                  <Input 
+                    id="tickValue" 
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={contractDetails.tickValue}
+                    onChange={(e) => handleContractDetailsChange('tickValue', parseFloat(e.target.value))}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="expirationDate">Expiration Date</Label>
+                  <Input 
+                    id="expirationDate" 
+                    type="date"
+                    value={contractDetails.expirationDate?.split('T')[0] || ''}
+                    onChange={(e) => handleContractDetailsChange('expirationDate', e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="initialMargin">Initial Margin</Label>
+                  <Input 
+                    id="initialMargin" 
+                    type="number"
+                    min="0"
+                    value={contractDetails.initialMargin || ''}
+                    onChange={(e) => handleContractDetailsChange('initialMargin', parseFloat(e.target.value))}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="maintenanceMargin">Maintenance Margin</Label>
+                  <Input 
+                    id="maintenanceMargin" 
+                    type="number"
+                    min="0"
+                    value={contractDetails.maintenanceMargin || ''}
+                    onChange={(e) => handleContractDetailsChange('maintenanceMargin', parseFloat(e.target.value))}
+                  />
+                </div>
+              </div>
+              
+              <div className="border rounded-md p-4 bg-muted/30">
+                <h3 className="text-sm font-medium mb-2">Futures Contract Information</h3>
+                <p className="text-sm text-muted-foreground">
+                  Enter the contract specifications to better track and analyze your futures trades.
                 </p>
               </div>
             </TabsContent>

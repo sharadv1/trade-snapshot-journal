@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -10,24 +11,31 @@ import {
   Hash, 
   LineChart, 
   Target, 
-  Trash2 
+  Trash2,
+  CircleCheck,
+  SplitSquareVertical
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { TradeWithMetrics } from '@/types';
 import { deleteTrade, getTradeById } from '@/utils/tradeStorage';
 import { calculateTradeMetrics, formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
 import { toast } from '@/utils/toast';
+import { ExitTradeForm } from '@/components/ExitTradeForm';
+import { PartialExitsList } from '@/components/PartialExitsList';
+import { FuturesContractDetails } from '@/components/FuturesContractDetails';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [trade, setTrade] = useState<TradeWithMetrics | null>(null);
   const [activeTab, setActiveTab] = useState('details');
+  const [exitDialogOpen, setExitDialogOpen] = useState(false);
   
-  useEffect(() => {
+  const loadTradeData = () => {
     if (!id) return;
     
     const tradeData = getTradeById(id);
@@ -38,16 +46,14 @@ export default function TradeDetail() {
       toast.error('Trade not found');
       navigate('/');
     }
+  };
+  
+  useEffect(() => {
+    loadTradeData();
     
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'trade-journal-trades') {
-        const updatedTrade = getTradeById(id);
-        if (updatedTrade) {
-          const metrics = calculateTradeMetrics(updatedTrade);
-          setTrade({ ...updatedTrade, metrics });
-        } else {
-          navigate('/');
-        }
+        loadTradeData();
       }
     };
     
@@ -64,6 +70,14 @@ export default function TradeDetail() {
       navigate('/');
     }
   };
+
+  const handleExitDialogClose = () => {
+    setExitDialogOpen(false);
+  };
+  
+  const handleTradeUpdate = () => {
+    loadTradeData();
+  };
   
   if (!trade) {
     return (
@@ -72,6 +86,15 @@ export default function TradeDetail() {
       </div>
     );
   }
+
+  // Calculate total quantity exited from partial exits
+  const totalExitedQuantity = (trade.partialExits || []).reduce(
+    (total, exit) => total + exit.quantity, 
+    0
+  );
+  
+  // Calculate remaining quantity
+  const remainingQuantity = trade.quantity - totalExitedQuantity;
 
   return (
     <div className="py-8 animate-fade-in">
@@ -116,11 +139,29 @@ export default function TradeDetail() {
           </div>
           
           <div className="text-muted-foreground mt-1">
-            {trade.type.charAt(0).toUpperCase() + trade.type.slice(1)} • {trade.quantity} shares
+            {trade.type.charAt(0).toUpperCase() + trade.type.slice(1)} • {trade.quantity} {trade.type === 'futures' ? 'contracts' : 'shares'}
           </div>
         </div>
         
         <div className="flex items-center gap-2">
+          {trade.status === 'open' && remainingQuantity > 0 && (
+            <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="default" size="sm">
+                  <CircleCheck className="mr-1 h-4 w-4" />
+                  Exit Position
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md p-0">
+                <ExitTradeForm 
+                  trade={trade} 
+                  onClose={handleExitDialogClose}
+                  onUpdate={handleTradeUpdate}
+                />
+              </DialogContent>
+            </Dialog>
+          )}
+          
           <Button
             variant="outline"
             size="sm"
@@ -257,12 +298,17 @@ export default function TradeDetail() {
                         </h3>
                         <p className="mt-1">
                           {trade.quantity} {trade.type === 'futures' ? 'contracts' : 'shares'}
+                          {trade.partialExits && trade.partialExits.length > 0 && (
+                            <span className="text-sm text-muted-foreground ml-2">
+                              ({remainingQuantity} remaining)
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>
                   </div>
                   
-                  {trade.status === 'closed' && (
+                  {(trade.status === 'closed' || (trade.partialExits && trade.partialExits.length > 0)) && (
                     <>
                       <Separator />
                       
@@ -313,6 +359,12 @@ export default function TradeDetail() {
                   )}
                 </CardContent>
               </Card>
+
+              {trade.partialExits && trade.partialExits.length > 0 && (
+                <div className="mt-6">
+                  <PartialExitsList trade={trade} />
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="notes" className="mt-4">
@@ -375,7 +427,7 @@ export default function TradeDetail() {
               <CardTitle className="text-base">Trade Metrics</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {trade.status === 'closed' ? (
+              {trade.status === 'closed' || (trade.partialExits && trade.partialExits.length > 0) ? (
                 <div className="space-y-3">
                   <div className={cn(
                     "py-6 px-4 rounded-md text-center",
@@ -455,6 +507,10 @@ export default function TradeDetail() {
             </CardContent>
           </Card>
           
+          {trade.type === 'futures' && trade.contractDetails && (
+            <FuturesContractDetails trade={trade} />
+          )}
+          
           <Card className="shadow-subtle border">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Trade Statistics</CardTitle>
@@ -501,7 +557,14 @@ export default function TradeDetail() {
                 
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Quantity:</span>
-                  <span>{trade.quantity}</span>
+                  <span>
+                    {trade.quantity}
+                    {trade.partialExits && trade.partialExits.length > 0 && (
+                      <span className="text-muted-foreground ml-1">
+                        ({remainingQuantity} remaining)
+                      </span>
+                    )}
+                  </span>
                 </div>
                 
                 {trade.fees !== undefined && (

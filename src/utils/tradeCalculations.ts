@@ -1,5 +1,5 @@
 
-import { Trade, TradeMetrics, PerformanceMetrics, TradeWithMetrics } from '@/types';
+import { Trade, TradeMetrics, PerformanceMetrics, TradeWithMetrics, PartialExit } from '@/types';
 
 // Calculate metrics for a single trade
 export const calculateTradeMetrics = (trade: Trade): TradeMetrics => {
@@ -11,17 +11,48 @@ export const calculateTradeMetrics = (trade: Trade): TradeMetrics => {
     maxPotentialGain: undefined
   };
 
-  // Calculate P&L if we have exit price
-  if (trade.exitPrice) {
-    const direction = trade.direction === 'long' ? 1 : -1;
-    const priceDifference = (trade.exitPrice - trade.entryPrice) * direction;
-    metrics.profitLoss = priceDifference * trade.quantity - (trade.fees || 0);
-    metrics.profitLossPercentage = (priceDifference / trade.entryPrice) * 100;
+  const direction = trade.direction === 'long' ? 1 : -1;
+  let totalPL = 0;
+  let totalExitValue = 0;
+  let totalEntryValue = 0;
+  let totalExitedQuantity = 0;
+
+  // Calculate P&L from partial exits
+  if (trade.partialExits && trade.partialExits.length > 0) {
+    trade.partialExits.forEach(exit => {
+      const exitValue = exit.exitPrice * exit.quantity;
+      const entryValue = trade.entryPrice * exit.quantity;
+      const partialPL = (exitValue - entryValue) * direction - (exit.fees || 0);
+      
+      totalPL += partialPL;
+      totalExitValue += exitValue;
+      totalEntryValue += entryValue;
+      totalExitedQuantity += exit.quantity;
+    });
+  }
+
+  // Add P&L from final exit if trade is closed
+  if (trade.status === 'closed' && trade.exitPrice) {
+    const remainingQuantity = trade.quantity - totalExitedQuantity;
+    const exitValue = trade.exitPrice * remainingQuantity;
+    const entryValue = trade.entryPrice * remainingQuantity;
+    const finalPL = (exitValue - entryValue) * direction - (trade.fees || 0);
+    
+    totalPL += finalPL;
+    totalExitValue += exitValue;
+    totalEntryValue += entryValue;
+  }
+
+  // Set the calculated P&L
+  metrics.profitLoss = totalPL;
+  
+  // Calculate P&L percentage if we have any exits
+  if (totalEntryValue > 0 && (totalExitedQuantity > 0 || trade.status === 'closed')) {
+    metrics.profitLossPercentage = (totalPL / totalEntryValue) * 100;
   }
 
   // Calculate risk metrics if stop loss is defined
   if (trade.stopLoss) {
-    const direction = trade.direction === 'long' ? 1 : -1;
     const riskPerUnit = Math.abs(trade.entryPrice - trade.stopLoss);
     metrics.riskedAmount = riskPerUnit * trade.quantity;
     

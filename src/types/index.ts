@@ -17,6 +17,27 @@ export interface Trade {
   images: string[]; // Base64 encoded images
   tags?: string[];
   status: 'open' | 'closed';
+  partialExits?: PartialExit[];
+  contractDetails?: FuturesContractDetails;
+}
+
+export interface PartialExit {
+  id: string;
+  exitDate: string;
+  exitPrice: number;
+  quantity: number;
+  fees?: number;
+  notes?: string;
+}
+
+export interface FuturesContractDetails {
+  exchange: string;
+  contractSize: number;
+  tickSize: number;
+  tickValue: number;
+  expirationDate?: string;
+  initialMargin?: number;
+  maintenanceMargin?: number;
 }
 
 export interface TradeMetrics {
