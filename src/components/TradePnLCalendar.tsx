@@ -1,7 +1,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, Filter, Trophy, X as XIcon } from 'lucide-react';
 import { 
   format, 
   startOfMonth, 
@@ -14,22 +15,35 @@ import {
   getDay,
   parse
 } from 'date-fns';
+import { Button } from './ui/button';
 import { TradeWithMetrics } from '@/types';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
 import { formatCurrency } from '@/utils/tradeCalculations';
-import { Button } from './ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { COMMON_STRATEGIES } from './trade-form/useTradeForm';
 
 type DailyPnL = {
   [key: string]: {
     pnl: number;
     tradeCount: number;
+    tradeIds: string[];
   };
 };
 
 export function TradePnLCalendar() {
+  const navigate = useNavigate();
   const [trades, setTrades] = useState<TradeWithMetrics[]>([]);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-
+  const [strategyFilter, setStrategyFilter] = useState<string>('all');
+  const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
+  
   useEffect(() => {
     const loadTrades = () => {
       const allTrades = getTradesWithMetrics();
@@ -48,25 +62,60 @@ export function TradePnLCalendar() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Calculate daily P&L for all trades
+  // Apply filters to trades
+  const filteredTrades = useMemo(() => {
+    let result = [...trades];
+    
+    // Filter by strategy
+    if (strategyFilter !== 'all') {
+      result = result.filter(trade => trade.strategy === strategyFilter);
+    }
+    
+    // Filter by win/loss
+    if (resultFilter !== 'all') {
+      result = result.filter(trade => {
+        if (resultFilter === 'win') {
+          return trade.metrics.profitLoss >= 0;
+        } else {
+          return trade.metrics.profitLoss < 0;
+        }
+      });
+    }
+    
+    return result;
+  }, [trades, strategyFilter, resultFilter]);
+
+  // Calculate daily P&L for filtered trades
   const dailyPnL = useMemo(() => {
     const pnlByDay: DailyPnL = {};
     
-    trades.forEach(trade => {
+    filteredTrades.forEach(trade => {
       if (trade.exitDate && trade.metrics.profitLoss !== undefined) {
         // Format date as YYYY-MM-DD for consistent keys
         const exitDay = format(new Date(trade.exitDate), 'yyyy-MM-dd');
         
         if (!pnlByDay[exitDay]) {
-          pnlByDay[exitDay] = { pnl: 0, tradeCount: 0 };
+          pnlByDay[exitDay] = { pnl: 0, tradeCount: 0, tradeIds: [] };
         }
         
         pnlByDay[exitDay].pnl += trade.metrics.profitLoss;
         pnlByDay[exitDay].tradeCount += 1;
+        pnlByDay[exitDay].tradeIds.push(trade.id);
       }
     });
     
     return pnlByDay;
+  }, [filteredTrades]);
+
+  // Get unique list of strategies from trades
+  const availableStrategies = useMemo(() => {
+    const strategies = new Set<string>();
+    trades.forEach(trade => {
+      if (trade.strategy) {
+        strategies.add(trade.strategy);
+      }
+    });
+    return Array.from(strategies).sort();
   }, [trades]);
 
   const daysInMonth = useMemo(() => {
@@ -112,6 +161,10 @@ export function TradePnLCalendar() {
     setCurrentMonth(prev => subMonths(prev, 1));
   };
 
+  const goToToday = () => {
+    setCurrentMonth(new Date());
+  };
+
   // Determine cell background color based on P&L
   const getCellClass = (day: Date | null) => {
     if (!day) return '';
@@ -126,19 +179,109 @@ export function TradePnLCalendar() {
       : 'bg-loss/20';
   };
 
+  const handleDayClick = (day: Date) => {
+    const dateKey = format(day, 'yyyy-MM-dd');
+    const dayData = dailyPnL[dateKey];
+    
+    if (dayData && dayData.tradeIds.length > 0) {
+      if (dayData.tradeIds.length === 1) {
+        // If there's only one trade, navigate directly to it
+        navigate(`/trade/${dayData.tradeIds[0]}`);
+      } else {
+        // If there are multiple trades, show a view filtered by date
+        // This could be improved to show a modal with all trades for the day
+        const date = format(day, 'yyyy-MM-dd');
+        navigate(`/?date=${date}`);
+      }
+    }
+  };
+
   return (
     <Card className="shadow-subtle border">
       <CardHeader className="flex-row justify-between items-center pb-2">
-        <CardTitle className="text-xl">
-          {format(currentMonth, 'MMMM yyyy')}
-        </CardTitle>
-        <div className="flex gap-1">
-          <Button variant="outline" size="icon" onClick={prevMonth}>
-            <ChevronLeft className="h-4 w-4" />
+        <div className="flex gap-2 items-center">
+          <CardTitle className="text-xl">
+            {format(currentMonth, 'MMMM yyyy')}
+          </CardTitle>
+          
+          <Button variant="outline" size="sm" onClick={goToToday}>
+            <CalendarDays className="h-4 w-4 mr-1" />
+            Today
           </Button>
-          <Button variant="outline" size="icon" onClick={nextMonth}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        </div>
+        
+        <div className="flex gap-2 items-center">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-1" />
+                Filters
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Strategy</h4>
+                  <Select 
+                    value={strategyFilter} 
+                    onValueChange={setStrategyFilter}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Strategies" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Strategies</SelectItem>
+                      {availableStrategies.map((strategy) => (
+                        <SelectItem key={strategy} value={strategy}>
+                          {strategy}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="font-medium">Result</h4>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant={resultFilter === 'all' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setResultFilter('all')}
+                    >
+                      All
+                    </Button>
+                    <Button 
+                      variant={resultFilter === 'win' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setResultFilter('win')}
+                      className="text-profit"
+                    >
+                      <Trophy className="h-4 w-4 mr-1" />
+                      Wins
+                    </Button>
+                    <Button 
+                      variant={resultFilter === 'loss' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setResultFilter('loss')}
+                      className="text-loss"
+                    >
+                      <XIcon className="h-4 w-4 mr-1" />
+                      Losses
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          
+          <div className="flex gap-1">
+            <Button variant="outline" size="icon" onClick={prevMonth}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={nextMonth}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -169,7 +312,8 @@ export function TradePnLCalendar() {
             return (
               <div 
                 key={dateKey} 
-                className={`border rounded-md p-2 h-24 flex flex-col ${getCellClass(day)}`}
+                className={`border rounded-md p-2 h-24 flex flex-col ${getCellClass(day)} ${dayData ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+                onClick={() => dayData && handleDayClick(day)}
               >
                 <div className="self-end text-sm font-medium">
                   {format(day, 'd')}
