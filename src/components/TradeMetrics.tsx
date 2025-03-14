@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PerformanceMetrics, TradeWithMetrics } from '@/types';
+import { TradeWithMetrics } from '@/types';
 import { calculatePerformanceMetrics, formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
 import {
   Bar,
@@ -13,13 +13,13 @@ import {
   YAxis
 } from 'recharts';
 import { TradePnLCalendar } from './TradePnLCalendar';
-import { CumulativePnLChart } from './CumulativePnLChart';
 
 interface TradeMetricsProps {
   trades: TradeWithMetrics[];
+  showOnlyKeyMetrics?: boolean;
 }
 
-export function TradeMetrics({ trades }: TradeMetricsProps) {
+export function TradeMetrics({ trades, showOnlyKeyMetrics = false }: TradeMetricsProps) {
   const metrics = calculatePerformanceMetrics(trades);
   
   // Prepare data for PnL by trade type
@@ -58,6 +58,25 @@ export function TradeMetrics({ trades }: TradeMetricsProps) {
     }))
     .sort((a, b) => Math.abs(b.value) - Math.abs(a.value)); // Sort by absolute P&L value
 
+  // Render only the key metrics cards if showOnlyKeyMetrics is true
+  if (showOnlyKeyMetrics) {
+    return (
+      <div className="space-y-6">
+        {/* Key Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <MetricCard title="Win Rate" value={`${metrics.winRate.toFixed(1)}%`} />
+          <MetricCard title="Profit Factor" value={metrics.profitFactor.toFixed(2)} />
+          <MetricCard title="Sortino Ratio" value={metrics.sortinoRatio.toFixed(2)} />
+          <MetricCard 
+            title="Net Profit/Loss" 
+            value={formatCurrency(metrics.netProfit)} 
+            className={metrics.netProfit >= 0 ? "text-profit" : "text-loss"}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Key Metrics Cards */}
@@ -71,9 +90,6 @@ export function TradeMetrics({ trades }: TradeMetricsProps) {
           className={metrics.netProfit >= 0 ? "text-profit" : "text-loss"}
         />
       </div>
-      
-      {/* Cumulative P&L Chart */}
-      <CumulativePnLChart trades={trades} />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="shadow-subtle border">
