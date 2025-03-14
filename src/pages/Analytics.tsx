@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { addDummyTrades } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
 import { TradeMetrics } from '@/components/TradeMetrics';
+import { MonthlyPerformanceTable } from '@/components/MonthlyPerformanceTable';
 
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -36,14 +37,16 @@ export default function Analytics() {
             <h2 className="text-2xl font-bold tracking-tight mb-4">
               Cumulative Profit & Loss
             </h2>
-            <CumulativePnLChart trades={trades} key={refreshKey} />
+            <div className="h-[500px]">
+              <CumulativePnLChart trades={trades} key={refreshKey} />
+            </div>
           </div>
           
           <div className="w-full">
             <h2 className="text-2xl font-bold tracking-tight mb-4">
-              Detailed Performance Metrics
+              Monthly Performance by Strategy & Instrument
             </h2>
-            <TradeMetrics trades={trades} key={refreshKey} showOnlyKeyMetrics={false} />
+            <MonthlyPerformanceTable trades={trades} key={refreshKey} />
           </div>
         </div>
       ) : (
