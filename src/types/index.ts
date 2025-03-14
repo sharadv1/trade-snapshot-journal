@@ -91,11 +91,11 @@ export interface FuturesContract {
 }
 
 export const COMMON_FUTURES_CONTRACTS: FuturesContract[] = [
-  { symbol: 'MES', exchange: 'CME', description: 'Micro E-mini S&P 500', tickSize: 0.25, tickValue: 5 },
-  { symbol: 'MNQ', exchange: 'CME', description: 'Micro E-mini Nasdaq-100', tickSize: 0.25, tickValue: 2 },
+  { symbol: 'MES', exchange: 'CME', description: 'Micro E-mini S&P 500', tickSize: 0.25, tickValue: 1.25 },
+  { symbol: 'MNQ', exchange: 'CME', description: 'Micro E-mini Nasdaq-100', tickSize: 0.25, tickValue: 0.5 },
   { symbol: 'MYM', exchange: 'CBOT', description: 'Micro E-mini Dow', tickSize: 1, tickValue: 0.5 },
-  { symbol: 'MGC', exchange: 'COMEX', description: 'Micro Gold', tickSize: 0.1, tickValue: 10 },
-  { symbol: 'SIL', exchange: 'COMEX', description: 'Silver', tickSize: 0.005, tickValue: 5 },
-  { symbol: 'M6E', exchange: 'CME', description: 'Micro Euro FX', tickSize: 0.0001, tickValue: 12500 },
-  { symbol: 'M6B', exchange: 'CME', description: 'Micro British Pound', tickSize: 0.0001, tickValue: 6500 },
+  { symbol: 'MGC', exchange: 'COMEX', description: 'Micro Gold', tickSize: 0.1, tickValue: 1 },
+  { symbol: 'SIL', exchange: 'COMEX', description: 'Silver', tickSize: 0.005, tickValue: 25 },
+  { symbol: 'M6E', exchange: 'CME', description: 'Micro Euro FX', tickSize: 0.0001, tickValue: 1.25 },
+  { symbol: 'M6B', exchange: 'CME', description: 'Micro British Pound', tickSize: 0.0001, tickValue: 0.65 },
 ];

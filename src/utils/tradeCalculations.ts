@@ -111,16 +111,32 @@ export const calculateTradeMetrics = (trade: Trade): TradeMetrics => {
 // Helper function to get contract point value 
 export const getContractPointValue = (trade: Trade): number => {
   // For futures contracts, get the contract details
-  if (trade.type === 'futures' && trade.contractDetails) {
-    // If tick size and value are defined, calculate point value
-    if (trade.contractDetails.tickSize && trade.contractDetails.tickValue) {
-      return trade.contractDetails.tickValue / trade.contractDetails.tickSize;
+  if (trade.type === 'futures' && trade.symbol) {
+    // First, try to find the contract in common contracts
+    const commonContract = COMMON_FUTURES_CONTRACTS.find(c => c.symbol === trade.symbol);
+    
+    if (commonContract) {
+      switch (commonContract.symbol) {
+        case 'MES': return 5;     // $5 per point
+        case 'MNQ': return 2;     // $2 per point
+        case 'MYM': return 0.5;   // $0.50 per point
+        case 'MGC': return 10;    // $10 per point
+        case 'SIL': return 5;     // $5 per point
+        case 'M6E': return 12500; // $12,500 per point
+        case 'M6B': return 6500;  // $6,500 per point
+        default: 
+          // If defined in contractDetails, calculate from there
+          if (trade.contractDetails?.tickSize && trade.contractDetails?.tickValue) {
+            return trade.contractDetails.tickValue / trade.contractDetails.tickSize;
+          }
+          // Fallback: return 1 to avoid division by zero errors
+          return 1;
+      }
     }
     
-    // If not defined in contractDetails, look up from common contracts
-    const commonContract = COMMON_FUTURES_CONTRACTS.find(c => c.symbol === trade.symbol);
-    if (commonContract) {
-      return commonContract.tickValue / commonContract.tickSize;
+    // If contract details are available, use them as a fallback
+    if (trade.contractDetails?.tickSize && trade.contractDetails?.tickValue) {
+      return trade.contractDetails.tickValue / trade.contractDetails.tickSize;
     }
   }
   
