@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageUpload } from './ImageUpload';
 import { Trade } from '@/types';
 import { addTrade, updateTrade } from '@/utils/tradeStorage';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/utils/toast';
 
 interface TradeFormProps {
   initialTrade?: Trade;
@@ -23,7 +22,6 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
   const [activeTab, setActiveTab] = useState('details');
   const [images, setImages] = useState<string[]>(initialTrade?.images || []);
 
-  // Trade state with defaults for new trades
   const [trade, setTrade] = useState<Partial<Trade>>(
     initialTrade || {
       symbol: '',
@@ -59,14 +57,12 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
     if (!trade.symbol || !trade.entryPrice || !trade.quantity) {
       toast.error("Please fill in all required fields");
       return;
     }
     
     try {
-      // Create a new trade or update existing
       if (isEditing && initialTrade) {
         const updatedTrade = { ...initialTrade, ...trade, images } as Trade;
         updateTrade(updatedTrade);
@@ -81,7 +77,6 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
         toast.success("Trade added successfully");
       }
       
-      // Navigate back to trades list
       navigate('/');
     } catch (error) {
       console.error("Error saving trade:", error);

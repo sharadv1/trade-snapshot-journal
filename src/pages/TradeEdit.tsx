@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TradeForm } from '@/components/TradeForm';
 import { Trade } from '@/types';
 import { getTradeById } from '@/utils/tradeStorage';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/utils/toast';
 
 export default function TradeEdit() {
   const { id } = useParams<{ id: string }>();

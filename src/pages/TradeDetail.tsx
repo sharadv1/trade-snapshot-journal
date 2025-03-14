@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -20,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TradeWithMetrics } from '@/types';
 import { deleteTrade, getTradeById } from '@/utils/tradeStorage';
 import { calculateTradeMetrics, formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/utils/toast';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -40,7 +39,6 @@ export default function TradeDetail() {
       navigate('/');
     }
     
-    // Set up localStorage change listener
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'trade-journal-trades') {
         const updatedTrade = getTradeById(id);

@@ -9,23 +9,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { TradeWithMetrics } from '@/types';
 import { formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
 import { deleteTrade, getTradesWithMetrics } from '@/utils/tradeStorage';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/utils/toast';
 
 interface TradeListProps {
+  trades?: TradeWithMetrics[];
+  statusFilter?: string;
   onTradeSelected?: (trade: TradeWithMetrics) => void;
 }
 
-export function TradeList({ onTradeSelected }: TradeListProps) {
+export function TradeList({ trades: initialTrades, statusFilter: initialStatusFilter, onTradeSelected }: TradeListProps) {
   const [trades, setTrades] = useState<TradeWithMetrics[]>([]);
   const [filteredTrades, setFilteredTrades] = useState<TradeWithMetrics[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'all');
   const [typeFilter, setTypeFilter] = useState('all');
   
   // Load trades
   useEffect(() => {
     const loadTrades = () => {
-      const allTrades = getTradesWithMetrics();
+      const allTrades = initialTrades || getTradesWithMetrics();
       setTrades(allTrades);
       applyFilters(allTrades, searchTerm, statusFilter, typeFilter);
     };
@@ -41,7 +43,7 @@ export function TradeList({ onTradeSelected }: TradeListProps) {
     
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [initialTrades, initialStatusFilter]);
   
   // Apply filters when filter state changes
   useEffect(() => {
