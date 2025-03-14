@@ -1,3 +1,4 @@
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -39,4 +40,18 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* Fix chart container styling */
+.chart-container {
+  display: block !important;
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Ensure the chart is visible and doesn't get cut off */
+.recharts-wrapper {
+  display: block !important;
+  position: relative !important;
+  width: 100% !important;
 }

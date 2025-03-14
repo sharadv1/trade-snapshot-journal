@@ -13,10 +13,6 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts';
-import { 
-  ChartContainer,
-  ChartTooltip
-} from '@/components/ui/chart';
 
 interface CumulativePnLChartProps {
   trades: TradeWithMetrics[];
@@ -58,81 +54,82 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
   const isPositive = chartData.length > 0 && chartData[chartData.length - 1]?.pnl >= 0;
   const lineColor = isPositive ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 60%)';
 
-  const chartConfig = {
-    pnl: {
-      label: "Cumulative P&L",
-      color: lineColor
-    }
-  };
+  if (chartData.length === 0) {
+    return (
+      <Card className="w-full mb-12">
+        <CardHeader>
+          <CardTitle className="text-base font-medium">Cumulative Profit & Loss</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[250px] flex items-center justify-center text-muted-foreground">
+          No closed trades to display
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="w-full mb-8 shadow-md">
-      <CardHeader className="pb-2">
+    <Card className="w-full mb-12">
+      <CardHeader>
         <CardTitle className="text-base font-medium">Cumulative Profit & Loss</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="w-full h-[300px] relative">
-          {chartData.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-muted-foreground">
-              No closed trades to display
-            </div>
-          ) : (
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis 
-                    dataKey="date" 
-                    tick={{ fontSize: 12 }}
-                    tickMargin={10}
-                    tickFormatter={(value) => value.split(' ')[1]} // Show only the day part
-                  />
-                  <YAxis 
-                    tickFormatter={(value) => formatCurrency(Number(value)).replace('$', '')}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <ChartTooltip 
-                    content={({active, payload, label}) => {
-                      if (active && payload && payload.length) {
-                        const pnlValue = Number(payload[0].value);
-                        const dailyValue = Number(payload[0].payload.daily);
-                        
-                        return (
-                          <div className="bg-background p-3 border rounded shadow-md">
-                            <div className="font-medium mb-1">{label}</div>
-                            <div className="flex justify-between gap-4 text-sm">
-                              <span>Cumulative:</span>
-                              <span className={pnlValue >= 0 ? 'text-profit' : 'text-loss'}>
-                                {formatCurrency(pnlValue)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between gap-4 text-sm">
-                              <span>Daily P&L:</span>
-                              <span className={dailyValue >= 0 ? 'text-profit' : 'text-loss'}>
-                                {formatCurrency(dailyValue)}
-                              </span>
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {payload[0].payload.symbol}
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="pnl" 
-                    stroke={lineColor} 
-                    strokeWidth={2}
-                    dot={{ r: 3, strokeWidth: 1 }}
-                    activeDot={{ r: 5, strokeWidth: 1 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          )}
+      <CardContent className="pt-0">
+        <div style={{ width: '100%', height: 300 }} className="chart-container">
+          <LineChart 
+            width={1000} 
+            height={300} 
+            data={chartData}
+            margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 12 }}
+              tickMargin={10}
+              tickFormatter={(value) => value.split(' ')[1]} // Show only the day part
+            />
+            <YAxis 
+              tickFormatter={(value) => formatCurrency(Number(value)).replace('$', '')}
+              tick={{ fontSize: 12 }}
+            />
+            <Tooltip 
+              content={({active, payload, label}) => {
+                if (active && payload && payload.length) {
+                  const pnlValue = Number(payload[0].value);
+                  const dailyValue = Number(payload[0].payload.daily);
+                  
+                  return (
+                    <div className="bg-background p-3 border rounded shadow-md">
+                      <div className="font-medium mb-1">{label}</div>
+                      <div className="flex justify-between gap-4 text-sm">
+                        <span>Cumulative:</span>
+                        <span className={pnlValue >= 0 ? 'text-profit' : 'text-loss'}>
+                          {formatCurrency(pnlValue)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-4 text-sm">
+                        <span>Daily P&L:</span>
+                        <span className={dailyValue >= 0 ? 'text-profit' : 'text-loss'}>
+                          {formatCurrency(dailyValue)}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {payload[0].payload.symbol}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="pnl" 
+              stroke={lineColor} 
+              strokeWidth={2}
+              dot={{ r: 3, strokeWidth: 1 }}
+              activeDot={{ r: 5, strokeWidth: 1 }}
+            />
+          </LineChart>
         </div>
       </CardContent>
     </Card>

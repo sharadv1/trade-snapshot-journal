@@ -1,11 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronUp, Search, Plus, AlertTriangle, Target, Database } from 'lucide-react';
+import { ChevronUp, Plus, AlertTriangle, Target, Database } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TradeList } from '@/components/TradeList';
-import { TradeMetrics } from '@/components/TradeMetrics';
 import { CumulativePnLChart } from '@/components/CumulativePnLChart';
 import { getTradesWithMetrics, addDummyTrades } from '@/utils/tradeStorage';
 import { TradeWithMetrics } from '@/types';
@@ -79,8 +77,8 @@ export default function Dashboard() {
     .reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
 
   return (
-    <div className="pb-12 space-y-8">
-      <div className="py-6">
+    <div className="flex flex-col gap-12 pb-16">
+      <div className="pt-4">
         <h1 className="text-3xl font-bold tracking-tight mb-1">
           Trade Journal
         </h1>
@@ -89,55 +87,41 @@ export default function Dashboard() {
         </p>
       </div>
       
-      {/* Chart Section - Separated from other content */}
-      <div className="w-full">
-        {trades.length > 0 && <CumulativePnLChart trades={trades} />}
-      </div>
+      {trades.length > 0 && (
+        <div className="w-full" style={{ clear: 'both' }}>
+          <CumulativePnLChart trades={trades} />
+        </div>
+      )}
       
-      {/* Performance Overview Section */}
-      <div>
-        <h2 className="text-lg font-semibold mb-4">Performance Overview</h2>
-        {trades.length === 0 ? (
-          <Card className="shadow-subtle border">
-            <CardHeader>
-              <CardTitle>Welcome to Your Trade Journal</CardTitle>
-              <CardDescription>
-                Start tracking your trades to see performance metrics
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-start gap-3">
-              <Button asChild>
-                <Link to="/trade/new">
-                  <Plus className="mr-1 h-4 w-4" />
-                  Record Your First Trade
-                </Link>
-              </Button>
-              <Button variant="outline" onClick={handleLoadDummyData}>
-                <Database className="mr-1 h-4 w-4" />
-                Load Sample Data
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            <TradeMetrics trades={trades} />
-            <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={handleLoadDummyData}>
-                <Database className="mr-1 h-4 w-4" />
-                Replace with Sample Data
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+      {trades.length === 0 && (
+        <Card className="shadow-md border mt-6">
+          <CardHeader>
+            <CardTitle>Welcome to Your Trade Journal</CardTitle>
+            <CardDescription>
+              Start tracking your trades to see performance metrics
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-start gap-3">
+            <Button asChild>
+              <Link to="/trade/new">
+                <Plus className="mr-1 h-4 w-4" />
+                Record Your First Trade
+              </Link>
+            </Button>
+            <Button variant="outline" onClick={handleLoadDummyData}>
+              <Database className="mr-1 h-4 w-4" />
+              Load Sample Data
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       
-      {/* Open Positions Section */}
       {openTrades.length > 0 && (
-        <div>
+        <div className="w-full mt-8">
           <h2 className="text-lg font-semibold mb-4">Open Positions</h2>
           
           {(totalRisk > 0 || totalPotentialGain > 0) && (
-            <Card className="shadow-subtle border mb-4">
+            <Card className="shadow-md border mb-4">
               <CardContent className="pt-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <h3 className="text-sm font-medium">Position Summary</h3>
@@ -187,8 +171,7 @@ export default function Dashboard() {
         </div>
       )}
       
-      {/* Trade History Section */}
-      <div>
+      <div className="w-full mt-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Trade History</h2>
           <Button asChild>
