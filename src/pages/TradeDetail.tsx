@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -422,7 +421,10 @@ export default function TradeDetail() {
 
               {trade.partialExits && trade.partialExits.length > 0 && (
                 <div className="mt-6">
-                  <PartialExitsList trade={trade} />
+                  <PartialExitsList 
+                    trade={trade} 
+                    onUpdate={() => loadTradeData()} 
+                  />
                 </div>
               )}
             </TabsContent>
