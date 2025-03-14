@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageUpload } from './ImageUpload';
 import { SymbolSelector } from './SymbolSelector';
-import { Trade, FuturesContractDetails, COMMON_FUTURES_CONTRACTS } from '@/types';
+import { Trade, FuturesContractDetails, COMMON_FUTURES_CONTRACTS, PartialExit } from '@/types';
 import { addTrade, updateTrade } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
 import { formatCurrency } from '@/utils/tradeCalculations';
@@ -126,13 +126,19 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
       };
       
       if (isEditing && initialTrade) {
-        const updatedTrade = { ...initialTrade, ...tradeToSave } as Trade;
+        // Ensure we preserve the partial exits if they exist
+        const updatedTrade = { 
+          ...initialTrade, 
+          ...tradeToSave,
+          partialExits: initialTrade.partialExits || [] 
+        } as Trade;
         updateTrade(updatedTrade);
         toast.success("Trade updated successfully");
       } else {
         const newTrade = {
           ...tradeToSave,
           id: crypto.randomUUID(),
+          partialExits: []
         } as Trade;
         addTrade(newTrade);
         toast.success("Trade added successfully");
@@ -314,31 +320,30 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
                 </div>
               )}
               
-              {trade.status === 'closed' && (
-                <div className="grid grid-cols-2 gap-4 pt-2 border-t">
-                  <div className="space-y-2">
-                    <Label htmlFor="exitDate">Exit Date & Time</Label>
-                    <Input 
-                      id="exitDate" 
-                      type="datetime-local" 
-                      value={trade.exitDate}
-                      onChange={(e) => handleChange('exitDate', e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="exitPrice">Exit Price</Label>
-                    <Input 
-                      id="exitPrice" 
-                      type="number" 
-                      min="0" 
-                      step="0.01"
-                      value={trade.exitPrice}
-                      onChange={(e) => handleChange('exitPrice', parseFloat(e.target.value))}
-                    />
-                  </div>
+              {/* Always show exit fields, regardless of trade status */}
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                <div className="space-y-2">
+                  <Label htmlFor="exitDate">Exit Date & Time</Label>
+                  <Input 
+                    id="exitDate" 
+                    type="datetime-local" 
+                    value={trade.exitDate || ''}
+                    onChange={(e) => handleChange('exitDate', e.target.value)}
+                  />
                 </div>
-              )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="exitPrice">Exit Price</Label>
+                  <Input 
+                    id="exitPrice" 
+                    type="number" 
+                    min="0" 
+                    step="0.01"
+                    value={trade.exitPrice || ''}
+                    onChange={(e) => handleChange('exitPrice', parseFloat(e.target.value))}
+                  />
+                </div>
+              </div>
             </TabsContent>
             
             <TabsContent value="risk" className="space-y-4 mt-0">

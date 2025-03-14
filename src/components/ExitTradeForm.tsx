@@ -1,11 +1,12 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DialogTitle } from '@/components/ui/dialog'; // Import DialogTitle
 import { Trade, PartialExit } from '@/types';
 import { updateTrade, getTradeById } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
@@ -46,6 +47,13 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
   // Calculate remaining quantity
   const remainingQuantity = trade.quantity - totalExitedQuantity;
 
+  // When trade changes, update the default partial quantity
+  useEffect(() => {
+    if (remainingQuantity > 0) {
+      setPartialQuantity(Math.min(remainingQuantity, Math.floor(trade.quantity / 2)));
+    }
+  }, [trade, remainingQuantity]);
+  
   const handleFullExit = () => {
     if (!exitPrice) {
       toast.error("Please enter an exit price");
@@ -53,12 +61,20 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
     }
 
     try {
+      // Fetch the latest trade data to make sure we have all partial exits
+      const latestTrade = getTradeById(trade.id);
+      if (!latestTrade) {
+        toast.error("Failed to retrieve latest trade data");
+        return;
+      }
+      
       const updatedTrade: Trade = {
-        ...trade,
+        ...latestTrade,
         exitPrice,
         exitDate,
         fees,
-        status: 'closed'
+        status: 'closed',
+        notes: notes ? (latestTrade.notes ? `${latestTrade.notes}\n\nExit Notes: ${notes}` : notes) : latestTrade.notes
       };
       
       updateTrade(updatedTrade);
@@ -83,6 +99,13 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
     }
 
     try {
+      // Fetch the latest trade data to make sure we have all partial exits
+      const latestTrade = getTradeById(trade.id);
+      if (!latestTrade) {
+        toast.error("Failed to retrieve latest trade data");
+        return;
+      }
+      
       const newPartialExit: PartialExit = {
         id: crypto.randomUUID(),
         exitDate: partialExitDate,
@@ -92,17 +115,18 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
         notes: partialNotes
       };
 
+      const partialExits = [...(latestTrade.partialExits || []), newPartialExit];
+      
       const updatedTrade: Trade = {
-        ...trade,
-        partialExits: [
-          ...(trade.partialExits || []),
-          newPartialExit
-        ]
+        ...latestTrade,
+        partialExits
       };
       
       // If this exit closes the position completely
       if (partialQuantity === remainingQuantity) {
         updatedTrade.status = 'closed';
+        updatedTrade.exitDate = partialExitDate;
+        updatedTrade.exitPrice = partialExitPrice;
       }
       
       updateTrade(updatedTrade);
@@ -124,6 +148,8 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
             <X className="h-4 w-4" />
           </Button>
         </div>
+        {/* Add DialogTitle for accessibility */}
+        <DialogTitle className="sr-only">Exit Trade</DialogTitle>
       </CardHeader>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
