@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, ListChecks } from 'lucide-react';
 import { TradeMetrics } from '@/components/TradeMetrics';
 import { TradeList } from '@/components/TradeList';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,12 @@ export default function Dashboard() {
         <div className="flex flex-wrap gap-2">
           <ServerSyncConfig />
           <DataExportImport onImportComplete={handleRefresh} />
+          <Button variant="outline" asChild>
+            <Link to="/strategies">
+              <ListChecks className="mr-1 h-4 w-4" />
+              Strategies
+            </Link>
+          </Button>
           <Button asChild>
             <Link to="/trade/new">
               <Plus className="mr-1 h-4 w-4" />

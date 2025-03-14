@@ -1,4 +1,3 @@
-
 export interface Trade {
   id: string;
   symbol: string;
@@ -88,6 +87,14 @@ export interface FuturesContract {
   description: string;
   tickSize: number;
   pointValue: number; // Renamed from tickValue to pointValue
+}
+
+export interface Strategy {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  isDefault?: boolean;
 }
 
 export const COMMON_FUTURES_CONTRACTS: FuturesContract[] = [

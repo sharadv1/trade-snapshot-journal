@@ -1,8 +1,10 @@
 
+import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trade } from '@/types';
+import { Trade, Strategy } from '@/types';
+import { getStrategies } from '@/utils/strategyStorage';
 
 interface RiskParametersFormProps {
   trade: Partial<Trade>;
@@ -10,7 +12,14 @@ interface RiskParametersFormProps {
   COMMON_STRATEGIES: string[];
 }
 
-export function RiskParametersForm({ trade, handleChange, COMMON_STRATEGIES }: RiskParametersFormProps) {
+export function RiskParametersForm({ trade, handleChange }: RiskParametersFormProps) {
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+
+  useEffect(() => {
+    // Load strategies from storage
+    setStrategies(getStrategies());
+  }, []);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -48,9 +57,17 @@ export function RiskParametersForm({ trade, handleChange, COMMON_STRATEGIES }: R
               <SelectValue placeholder="Select strategy" />
             </SelectTrigger>
             <SelectContent>
-              {COMMON_STRATEGIES.map((strategy) => (
-                <SelectItem key={strategy} value={strategy}>
-                  {strategy}
+              {strategies.map((strategy) => (
+                <SelectItem key={strategy.id} value={strategy.name}>
+                  <div className="flex items-center">
+                    {strategy.color && (
+                      <div 
+                        className="w-3 h-3 rounded-full mr-2" 
+                        style={{ backgroundColor: strategy.color }} 
+                      />
+                    )}
+                    {strategy.name}
+                  </div>
                 </SelectItem>
               ))}
               <SelectItem value="custom">Custom</SelectItem>

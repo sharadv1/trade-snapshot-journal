@@ -28,7 +28,6 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
     handleRemoveImage,
     handleSubmit,
     pointValue,
-    COMMON_STRATEGIES,
   } = useTradeForm(initialTrade, isEditing);
 
   return (
@@ -68,7 +67,6 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
               <RiskParametersForm 
                 trade={trade}
                 handleChange={handleChange}
-                COMMON_STRATEGIES={COMMON_STRATEGIES}
               />
             </TabsContent>
             

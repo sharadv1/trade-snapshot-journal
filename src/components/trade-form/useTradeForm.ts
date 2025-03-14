@@ -5,21 +5,6 @@ import { Trade, FuturesContractDetails, COMMON_FUTURES_CONTRACTS } from '@/types
 import { addTrade, updateTrade } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
 
-export const COMMON_STRATEGIES = [
-  'Trend Following',
-  'Breakout',
-  'Momentum',
-  'Mean Reversion',
-  'Scalping',
-  'Swing Trading',
-  'Position Trading',
-  'Gap Trading',
-  'Range Trading',
-  'Arbitrage',
-  'News-Based',
-  'Technical Pattern',
-];
-
 export function useTradeForm(initialTrade?: Trade, isEditing = false) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('details');
@@ -153,6 +138,5 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
     handleRemoveImage,
     handleSubmit,
     pointValue,
-    COMMON_STRATEGIES,
   };
 }
