@@ -13,7 +13,8 @@ import {
   Target, 
   Trash2,
   CircleCheck,
-  SplitSquareVertical
+  SplitSquareVertical,
+  Calculator
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +35,7 @@ export default function TradeDetail() {
   const [trade, setTrade] = useState<TradeWithMetrics | null>(null);
   const [activeTab, setActiveTab] = useState('details');
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
+  const [showCalculations, setShowCalculations] = useState(false);
   
   const loadTradeData = () => {
     if (!id) return;
@@ -77,6 +79,10 @@ export default function TradeDetail() {
   
   const handleTradeUpdate = () => {
     loadTradeData();
+  };
+
+  const toggleCalculations = () => {
+    setShowCalculations(!showCalculations);
   };
   
   if (!trade) {
@@ -308,6 +314,37 @@ export default function TradeDetail() {
                     </div>
                   </div>
                   
+                  {trade.type === 'futures' && trade.contractDetails && (
+                    <>
+                      <Separator />
+                      
+                      <div>
+                        <h3 className="text-sm font-medium mb-3">Contract Details</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="bg-muted/50 p-3 rounded-md">
+                            <h4 className="text-xs text-muted-foreground mb-1">Exchange</h4>
+                            <p className="font-medium">{trade.contractDetails.exchange}</p>
+                          </div>
+                          
+                          <div className="bg-muted/50 p-3 rounded-md">
+                            <h4 className="text-xs text-muted-foreground mb-1">Contract Size</h4>
+                            <p className="font-medium">{trade.contractDetails.contractSize}</p>
+                          </div>
+                          
+                          <div className="bg-muted/50 p-3 rounded-md">
+                            <h4 className="text-xs text-muted-foreground mb-1">Tick Size</h4>
+                            <p className="font-medium">{trade.contractDetails.tickSize}</p>
+                          </div>
+                          
+                          <div className="bg-muted/50 p-3 rounded-md">
+                            <h4 className="text-xs text-muted-foreground mb-1">Tick Value</h4>
+                            <p className="font-medium">${trade.contractDetails.tickValue}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
                   {(trade.status === 'closed' || (trade.partialExits && trade.partialExits.length > 0)) && (
                     <>
                       <Separator />
@@ -355,6 +392,29 @@ export default function TradeDetail() {
                           )}
                         </div>
                       </div>
+                    </>
+                  )}
+                  
+                  {trade.metrics.riskedAmount && trade.metrics.calculationExplanation && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-sm font-medium">Risk/Reward Calculation</h3>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={toggleCalculations} 
+                          className="flex items-center gap-1"
+                        >
+                          <Calculator className="h-4 w-4" />
+                          {showCalculations ? 'Hide Calculations' : 'Show Calculations'}
+                        </Button>
+                      </div>
+                      
+                      {showCalculations && (
+                        <div className="bg-muted/30 p-4 rounded-md font-mono text-sm whitespace-pre-wrap">
+                          {trade.metrics.calculationExplanation}
+                        </div>
+                      )}
                     </>
                   )}
                 </CardContent>
@@ -506,10 +566,6 @@ export default function TradeDetail() {
               </Button>
             </CardContent>
           </Card>
-          
-          {trade.type === 'futures' && trade.contractDetails && (
-            <FuturesContractDetails trade={trade} />
-          )}
           
           <Card className="shadow-subtle border">
             <CardHeader className="pb-2">

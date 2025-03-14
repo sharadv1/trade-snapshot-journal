@@ -49,9 +49,10 @@ export function TradeMetrics({ trades }: TradeMetricsProps) {
   
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <MetricCard title="Win Rate" value={`${metrics.winRate.toFixed(1)}%`} />
         <MetricCard title="Profit Factor" value={metrics.profitFactor.toFixed(2)} />
+        <MetricCard title="Sortino Ratio" value={metrics.sortinoRatio.toFixed(2)} />
         <MetricCard 
           title="Net Profit/Loss" 
           value={formatCurrency(metrics.netProfit)} 

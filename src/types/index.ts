@@ -47,6 +47,7 @@ export interface TradeMetrics {
   riskRewardRatio?: number;
   riskedAmount?: number;
   maxPotentialGain?: number;
+  calculationExplanation?: string;
 }
 
 export interface TradeWithMetrics extends Trade {
@@ -63,6 +64,7 @@ export interface PerformanceMetrics {
   averageLoss: number;
   profitFactor: number;
   expectancy: number;
+  sortinoRatio: number;
   largestWin: number;
   largestLoss: number;
   netProfit: number;
