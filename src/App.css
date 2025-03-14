@@ -42,16 +42,13 @@
   color: #888;
 }
 
-/* Fix chart container styling */
-.chart-container {
-  display: block !important;
-  position: relative !important;
-  overflow: visible !important;
+/* Improved chart styling */
+.recharts-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative;
 }
 
-/* Ensure the chart is visible and doesn't get cut off */
-.recharts-wrapper {
-  display: block !important;
-  position: relative !important;
-  width: 100% !important;
+.recharts-surface {
+  overflow: visible;
 }

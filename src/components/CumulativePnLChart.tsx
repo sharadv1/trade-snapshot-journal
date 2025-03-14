@@ -68,68 +68,73 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
   }
 
   return (
-    <Card className="w-full mb-12">
+    <Card className="w-full mb-8">
       <CardHeader>
         <CardTitle className="text-base font-medium">Cumulative Profit & Loss</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0">
-        <div style={{ width: '100%', height: 300 }} className="chart-container">
-          <LineChart 
-            width={1000} 
-            height={300} 
-            data={chartData}
-            margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis 
-              dataKey="date" 
-              tick={{ fontSize: 12 }}
-              tickMargin={10}
-              tickFormatter={(value) => value.split(' ')[1]} // Show only the day part
-            />
-            <YAxis 
-              tickFormatter={(value) => formatCurrency(Number(value)).replace('$', '')}
-              tick={{ fontSize: 12 }}
-            />
-            <Tooltip 
-              content={({active, payload, label}) => {
-                if (active && payload && payload.length) {
-                  const pnlValue = Number(payload[0].value);
-                  const dailyValue = Number(payload[0].payload.daily);
-                  
-                  return (
-                    <div className="bg-background p-3 border rounded shadow-md">
-                      <div className="font-medium mb-1">{label}</div>
-                      <div className="flex justify-between gap-4 text-sm">
-                        <span>Cumulative:</span>
-                        <span className={pnlValue >= 0 ? 'text-profit' : 'text-loss'}>
-                          {formatCurrency(pnlValue)}
-                        </span>
+      <CardContent>
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart 
+              data={chartData}
+              margin={{ top: 10, right: 20, left: 10, bottom: 30 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis 
+                dataKey="date" 
+                tick={{ fontSize: 12 }}
+                tickMargin={10}
+                tickFormatter={(value) => {
+                  const parts = value.split(',')[0].split(' ');
+                  return `${parts[0]} ${parts[1]}`;
+                }}
+                height={50}
+              />
+              <YAxis 
+                tickFormatter={(value) => formatCurrency(Number(value)).replace('$', '')}
+                tick={{ fontSize: 12 }}
+                width={60}
+              />
+              <Tooltip 
+                content={({active, payload, label}) => {
+                  if (active && payload && payload.length) {
+                    const pnlValue = Number(payload[0].value);
+                    const dailyValue = Number(payload[0].payload.daily);
+                    
+                    return (
+                      <div className="bg-background p-3 border rounded shadow-md">
+                        <div className="font-medium mb-1">{label}</div>
+                        <div className="flex justify-between gap-4 text-sm">
+                          <span>Cumulative:</span>
+                          <span className={pnlValue >= 0 ? 'text-profit' : 'text-loss'}>
+                            {formatCurrency(pnlValue)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-4 text-sm">
+                          <span>Daily P&L:</span>
+                          <span className={dailyValue >= 0 ? 'text-profit' : 'text-loss'}>
+                            {formatCurrency(dailyValue)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {payload[0].payload.symbol}
+                        </div>
                       </div>
-                      <div className="flex justify-between gap-4 text-sm">
-                        <span>Daily P&L:</span>
-                        <span className={dailyValue >= 0 ? 'text-profit' : 'text-loss'}>
-                          {formatCurrency(dailyValue)}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {payload[0].payload.symbol}
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="pnl" 
-              stroke={lineColor} 
-              strokeWidth={2}
-              dot={{ r: 3, strokeWidth: 1 }}
-              activeDot={{ r: 5, strokeWidth: 1 }}
-            />
-          </LineChart>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="pnl" 
+                stroke={lineColor} 
+                strokeWidth={2}
+                dot={{ r: 3, strokeWidth: 1 }}
+                activeDot={{ r: 5, strokeWidth: 1 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
