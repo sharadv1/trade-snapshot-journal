@@ -66,12 +66,12 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
   };
 
   return (
-    <Card className="shadow-subtle border mb-6">
+    <Card className="w-full mb-8 shadow-md">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-medium">Cumulative Profit & Loss</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px] w-full relative">
+        <div className="w-full h-[300px] relative">
           {chartData.length === 0 ? (
             <div className="h-full flex items-center justify-center text-muted-foreground">
               No closed trades to display
