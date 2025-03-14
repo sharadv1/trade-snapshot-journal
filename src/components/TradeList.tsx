@@ -16,9 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { COMMON_STRATEGIES } from './trade-form/useTradeForm';
 
-export function TradeList() {
+interface TradeListProps {
+  statusFilter?: 'open' | 'closed' | 'all';
+  initialTrades?: TradeWithMetrics[];
+}
+
+export function TradeList({ statusFilter = 'all', initialTrades }: TradeListProps = {}) {
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -43,7 +47,7 @@ export function TradeList() {
   
   useEffect(() => {
     const loadTrades = () => {
-      const allTrades = getTradesWithMetrics();
+      const allTrades = initialTrades || getTradesWithMetrics();
       setTrades(allTrades);
     };
     
@@ -51,16 +55,26 @@ export function TradeList() {
     
     // Reload when localStorage changes (for multi-tab support)
     const handleStorageChange = () => {
-      loadTrades();
+      if (!initialTrades) {
+        // Only reload automatically if not using initialTrades
+        loadTrades();
+      }
     };
     
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [initialTrades]);
   
   // Apply filters and sorting
   const filteredTrades = useMemo(() => {
     let filteredResults = [...trades];
+    
+    // Apply status filter first
+    if (statusFilter === 'open') {
+      filteredResults = filteredResults.filter(trade => trade.status === 'open');
+    } else if (statusFilter === 'closed') {
+      filteredResults = filteredResults.filter(trade => trade.status === 'closed');
+    }
     
     // If date filter is applied
     if (dateParam) {
@@ -68,7 +82,7 @@ export function TradeList() {
       if (isValid(filterDate)) {
         const dateString = format(filterDate, 'yyyy-MM-dd');
         filteredResults = filteredResults.filter(trade => {
-          if (trade.status === 'closed' && trade.exitDate) {
+          if (trade.exitDate) {
             return format(new Date(trade.exitDate), 'yyyy-MM-dd') === dateString;
           }
           return false;
@@ -129,7 +143,7 @@ export function TradeList() {
     });
     
     return filteredResults;
-  }, [trades, sortField, sortDirection, strategyFilter, resultFilter, dateParam]);
+  }, [trades, sortField, sortDirection, strategyFilter, resultFilter, dateParam, statusFilter]);
   
   const handleSort = (field: string) => {
     if (sortField === field) {

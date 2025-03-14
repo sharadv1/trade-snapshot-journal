@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronUp, Search, Plus, AlertTriangle, Target, Database } from 'lucide-react';
@@ -5,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { TradeList } from '@/components/TradeList';
 import { TradeMetrics } from '@/components/TradeMetrics';
+import { CumulativePnLChart } from '@/components/CumulativePnLChart';
 import { getTradesWithMetrics, addDummyTrades } from '@/utils/tradeStorage';
 import { TradeWithMetrics } from '@/types';
 import { formatCurrency } from '@/utils/tradeCalculations';
@@ -86,6 +88,12 @@ export default function Dashboard() {
           Track, analyze, and improve your trading performance
         </p>
       </div>
+      
+      {trades.length > 0 && (
+        <div className="mb-8">
+          <CumulativePnLChart trades={trades} />
+        </div>
+      )}
       
       <div className="mb-8">
         <h2 className="text-lg font-semibold mb-4">Performance Overview</h2>
@@ -188,7 +196,7 @@ export default function Dashboard() {
             </Link>
           </Button>
         </div>
-        <TradeList />
+        <TradeList statusFilter="closed" />
       </div>
       
       {showBackToTop && (
