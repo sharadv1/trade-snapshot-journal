@@ -23,6 +23,9 @@ export function FuturesContractDetails({ trade }: FuturesContractDetailsProps) {
     maintenanceMargin 
   } = trade.contractDetails;
 
+  // Calculate point value (the value of a 1 point move)
+  const pointValue = tickValue / tickSize;
+
   return (
     <Card className="shadow-subtle border">
       <CardHeader className="pb-2">
@@ -48,6 +51,11 @@ export function FuturesContractDetails({ trade }: FuturesContractDetailsProps) {
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Tick Value:</span>
             <span>{formatCurrency(tickValue)}</span>
+          </div>
+          
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Point Value:</span>
+            <span>{formatCurrency(pointValue)}</span>
           </div>
           
           {expirationDate && (

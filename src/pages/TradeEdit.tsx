@@ -37,7 +37,7 @@ export default function TradeEdit() {
   return (
     <div className="max-w-3xl mx-auto py-8">
       <h1 className="text-3xl font-bold tracking-tight mb-6">
-        Edit Trade: {trade.symbol}
+        Edit Trade: {trade.symbol} {trade.type === 'futures' ? '(Futures)' : ''}
       </h1>
       <TradeForm initialTrade={trade} isEditing={true} />
     </div>

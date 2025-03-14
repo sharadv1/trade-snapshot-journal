@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageUpload } from './ImageUpload';
+import { FuturesContractSelector } from './FuturesContractSelector';
 import { Trade, FuturesContractDetails } from '@/types';
 import { addTrade, updateTrade } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
@@ -39,7 +39,6 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
     }
   );
 
-  // Futures-specific contract details
   const [contractDetails, setContractDetails] = useState<Partial<FuturesContractDetails>>(
     initialTrade?.contractDetails || {
       exchange: '',
@@ -55,6 +54,10 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
 
   const handleContractDetailsChange = (field: keyof FuturesContractDetails, value: any) => {
     setContractDetails(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleContractDetailsSet = (details: FuturesContractDetails) => {
+    setContractDetails(details);
   };
 
   const handleImageUpload = (base64Image: string) => {
@@ -79,7 +82,6 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
     }
     
     try {
-      // Add futures contract details if the trade type is futures
       const tradeToSave = {
         ...trade,
         images,
@@ -317,12 +319,21 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
             </TabsContent>
             
             <TabsContent value="contract" className="space-y-4 mt-0">
+              <FuturesContractSelector 
+                onChange={handleContractDetailsSet}
+                initialSymbol={
+                  initialTrade?.symbol && initialTrade.type === 'futures' 
+                    ? initialTrade.symbol.toUpperCase() 
+                    : undefined
+                }
+              />
+              
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="exchange">Exchange</Label>
                   <Input 
                     id="exchange" 
-                    value={contractDetails.exchange}
+                    value={contractDetails.exchange || ''}
                     onChange={(e) => handleContractDetailsChange('exchange', e.target.value)}
                     placeholder="e.g., CME, CBOT"
                   />
@@ -334,7 +345,7 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
                     id="contractSize" 
                     type="number"
                     min="1"
-                    value={contractDetails.contractSize}
+                    value={contractDetails.contractSize || 1}
                     onChange={(e) => handleContractDetailsChange('contractSize', parseFloat(e.target.value))}
                   />
                 </div>
@@ -346,7 +357,7 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
                     type="number"
                     min="0.0001"
                     step="0.0001"
-                    value={contractDetails.tickSize}
+                    value={contractDetails.tickSize || 0.01}
                     onChange={(e) => handleContractDetailsChange('tickSize', parseFloat(e.target.value))}
                   />
                 </div>
@@ -358,7 +369,7 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
                     type="number"
                     min="0.01"
                     step="0.01"
-                    value={contractDetails.tickValue}
+                    value={contractDetails.tickValue || 0.01}
                     onChange={(e) => handleContractDetailsChange('tickValue', parseFloat(e.target.value))}
                   />
                 </div>
@@ -399,7 +410,7 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
               <div className="border rounded-md p-4 bg-muted/30">
                 <h3 className="text-sm font-medium mb-2">Futures Contract Information</h3>
                 <p className="text-sm text-muted-foreground">
-                  Enter the contract specifications to better track and analyze your futures trades.
+                  Select from common contracts or enter custom contract specifications to better track and analyze your futures trades.
                 </p>
               </div>
             </TabsContent>
