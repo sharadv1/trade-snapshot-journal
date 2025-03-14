@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
 import { TradePnLCalendar } from '@/components/TradePnLCalendar';
 import { DataTransferControls } from '@/components/DataTransferControls';
+import { ServerSyncConfig } from '@/components/ServerSyncConfig'; 
 
 export default function Dashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -29,7 +30,8 @@ export default function Dashboard() {
           </p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <ServerSyncConfig />
           <DataTransferControls onImportComplete={handleRefresh} />
           <Button asChild>
             <Link to="/trade/new">
