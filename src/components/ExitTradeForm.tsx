@@ -2,12 +2,12 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DialogTitle } from '@/components/ui/dialog';
 import { Trade } from '@/types';
 import { X } from 'lucide-react';
 import { FullExitForm } from './trade-exit/FullExitForm';
 import { PartialExitForm } from './trade-exit/PartialExitForm';
 import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
 
 interface ExitTradeFormProps {
   trade: Trade;
@@ -51,8 +51,8 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
             <X className="h-4 w-4" />
           </Button>
         </div>
-        {/* Add DialogTitle for accessibility */}
-        <DialogTitle className="sr-only">Exit Trade</DialogTitle>
+        {/* Use VisuallyHidden instead of DialogTitle */}
+        <VisuallyHidden>Exit Trade</VisuallyHidden>
       </CardHeader>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

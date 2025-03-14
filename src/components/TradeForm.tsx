@@ -7,6 +7,7 @@ import { TradeDetailsForm } from './trade-form/TradeDetailsForm';
 import { RiskParametersForm } from './trade-form/RiskParametersForm';
 import { NotesAndImagesForm } from './trade-form/NotesAndImagesForm';
 import { useTradeForm } from './trade-form/useTradeForm';
+import { useNavigate } from 'react-router-dom';
 
 interface TradeFormProps {
   initialTrade?: Trade;
@@ -14,6 +15,7 @@ interface TradeFormProps {
 }
 
 export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
+  const navigate = useNavigate();
   const {
     trade,
     contractDetails,
