@@ -79,7 +79,7 @@ export default function Dashboard() {
     .reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
 
   return (
-    <div className="pb-12 animate-fade-in space-y-6">
+    <div className="pb-12 animate-fade-in">
       <div className="py-8">
         <h1 className="text-3xl font-bold tracking-tight mb-1">
           Trade Journal
@@ -90,12 +90,12 @@ export default function Dashboard() {
       </div>
       
       {trades.length > 0 && (
-        <div>
+        <div className="mb-8">
           <CumulativePnLChart trades={trades} />
         </div>
       )}
       
-      <div>
+      <div className="mb-8">
         <h2 className="text-lg font-semibold mb-4">Performance Overview</h2>
         {trades.length === 0 ? (
           <Card className="shadow-subtle border">
@@ -132,7 +132,7 @@ export default function Dashboard() {
       </div>
       
       {openTrades.length > 0 && (
-        <div>
+        <div className="mb-8">
           <h2 className="text-lg font-semibold mb-4">Open Positions</h2>
           
           {(totalRisk > 0 || totalPotentialGain > 0) && (
