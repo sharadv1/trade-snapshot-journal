@@ -23,6 +23,13 @@ interface CumulativePnLChartProps {
   trades: TradeWithMetrics[];
 }
 
+interface ChartDataPoint {
+  date: string;
+  pnl: number;
+  daily: number;
+  symbol: string;
+}
+
 export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
   // Sort and prepare data for chart (only closed trades)
   const chartData = useMemo(() => {
@@ -65,7 +72,7 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
         <CardTitle className="text-base font-medium">Cumulative Profit & Loss</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-64">
+        <div className="h-[300px]">
           {chartData.length === 0 ? (
             <div className="h-full flex items-center justify-center text-muted-foreground">
               No closed trades to display
@@ -81,25 +88,28 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
                   tickFormatter={(value) => value.split(' ')[1]} // Show only the day part
                 />
                 <YAxis 
-                  tickFormatter={(value) => formatCurrency(value).replace('$', '')}
+                  tickFormatter={(value) => formatCurrency(Number(value)).replace('$', '')}
                   tick={{ fontSize: 12 }}
                 />
                 <ChartTooltip 
                   content={({active, payload, label}) => {
                     if (active && payload && payload.length) {
+                      const pnlValue = Number(payload[0].value);
+                      const dailyValue = Number(payload[0].payload.daily);
+                      
                       return (
                         <div className="bg-background p-3 border rounded shadow-md">
                           <div className="font-medium mb-1">{label}</div>
                           <div className="flex justify-between gap-4 text-sm">
                             <span>Cumulative:</span>
-                            <span className={payload[0].value >= 0 ? 'text-profit' : 'text-loss'}>
-                              {formatCurrency(payload[0].value)}
+                            <span className={pnlValue >= 0 ? 'text-profit' : 'text-loss'}>
+                              {formatCurrency(pnlValue)}
                             </span>
                           </div>
                           <div className="flex justify-between gap-4 text-sm">
                             <span>Daily P&L:</span>
-                            <span className={Number(payload[0].payload.daily) >= 0 ? 'text-profit' : 'text-loss'}>
-                              {formatCurrency(payload[0].payload.daily)}
+                            <span className={dailyValue >= 0 ? 'text-profit' : 'text-loss'}>
+                              {formatCurrency(dailyValue)}
                             </span>
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">
