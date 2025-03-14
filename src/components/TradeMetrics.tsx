@@ -21,7 +21,7 @@ interface TradeMetricsProps {
 export function TradeMetrics({ trades }: TradeMetricsProps) {
   const metrics = calculatePerformanceMetrics(trades);
   
-  // Prepare data for PnL by trade type (now for vertical bars)
+  // Prepare data for PnL by trade type
   const pnlByType = trades.reduce((acc, trade) => {
     if (trade.status !== 'closed') return acc;
     
@@ -70,7 +70,7 @@ export function TradeMetrics({ trades }: TradeMetricsProps) {
         />
       </div>
       
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="shadow-subtle border">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium">P&L by Instrument Type</CardTitle>
@@ -78,17 +78,10 @@ export function TradeMetrics({ trades }: TradeMetricsProps) {
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={pnlByTypeData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                  <XAxis 
-                    type="number" 
-                    tickFormatter={(value) => formatCurrency(value).replace('$', '')}
-                  />
-                  <YAxis 
-                    type="category" 
-                    dataKey="name" 
-                    width={80}
-                  />
+                <BarChart data={pnlByTypeData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis tickFormatter={(value) => formatCurrency(value).replace('$', '')} />
                   <Tooltip
                     formatter={(value: number) => [formatCurrency(value), 'P&L']}
                     labelFormatter={(label) => `Type: ${label}`}
@@ -109,19 +102,12 @@ export function TradeMetrics({ trades }: TradeMetricsProps) {
             <CardTitle className="text-base font-medium">P&L by Strategy</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
+            <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={pnlByStrategyData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                  <XAxis 
-                    type="number" 
-                    tickFormatter={(value) => formatCurrency(value).replace('$', '')}
-                  />
-                  <YAxis 
-                    type="category" 
-                    dataKey="name" 
-                    width={120}
-                  />
+                <BarChart data={pnlByStrategyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis tickFormatter={(value) => formatCurrency(value).replace('$', '')} />
                   <Tooltip
                     formatter={(value: number) => [formatCurrency(value), 'P&L']}
                     labelFormatter={(label) => `Strategy: ${label}`}
