@@ -9,6 +9,8 @@ const TRADES_STORAGE_KEY = 'trade-journal-trades';
 export const saveTrades = (trades: Trade[]): void => {
   try {
     localStorage.setItem(TRADES_STORAGE_KEY, JSON.stringify(trades));
+    // Dispatch a storage event to notify other tabs
+    window.dispatchEvent(new Event('storage'));
     console.log('Trades saved successfully');
   } catch (error) {
     console.error('Error saving trades to localStorage:', error);

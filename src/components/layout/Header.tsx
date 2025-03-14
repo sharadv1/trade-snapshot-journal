@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowRight, BarChart2, BookOpen, Plus } from 'lucide-react';
+import { BarChart2, BookOpen, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -58,7 +58,6 @@ export function Header() {
         
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
             size="sm"
             className="hidden md:flex"
             asChild
@@ -66,13 +65,6 @@ export function Header() {
             <Link to="/trade/new">
               <Plus className="mr-1 h-4 w-4" />
               New Trade
-            </Link>
-          </Button>
-          
-          <Button size="sm" className="hidden md:flex" asChild>
-            <Link to="/trade/new">
-              <span>Quick Entry</span>
-              <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
           
