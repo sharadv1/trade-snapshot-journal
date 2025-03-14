@@ -54,6 +54,12 @@ export function PartialExitsList({ trade, onUpdate }: PartialExitsListProps) {
               <span>Remaining:</span>
               <span className="font-medium">{remainingQuantity} units</span>
             </div>
+            <div className="flex justify-between text-sm mt-1">
+              <span>Status:</span>
+              <span className={`font-medium ${trade.status === 'closed' ? 'text-red-500' : 'text-green-500'}`}>
+                {trade.status === 'closed' && remainingQuantity > 0 ? 'Error: Closed with remaining units' : trade.status}
+              </span>
+            </div>
           </div>
 
           <div className="divide-y">

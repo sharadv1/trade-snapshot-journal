@@ -54,6 +54,18 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         return;
       }
       
+      // Recalculate the total exited quantity to ensure we're using the latest data
+      const partialExitedQuantity = (latestTrade.partialExits || []).reduce(
+        (total, exit) => total + exit.quantity, 0
+      );
+      
+      // If there are partial exits that account for the full position,
+      // warn the user and prevent the full exit
+      if (partialExitedQuantity >= latestTrade.quantity) {
+        toast.error("All units have already been exited through partial exits");
+        return;
+      }
+      
       const updatedTrade: Trade = {
         ...latestTrade,
         exitPrice,
@@ -103,13 +115,20 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
 
       const partialExits = [...(latestTrade.partialExits || []), newPartialExit];
       
+      // Recalculate the remaining quantity after this exit
+      const newTotalExitedQuantity = partialExits.reduce(
+        (total, exit) => total + exit.quantity, 
+        0
+      );
+      const newRemainingQuantity = latestTrade.quantity - newTotalExitedQuantity;
+      
       const updatedTrade: Trade = {
         ...latestTrade,
         partialExits
       };
       
-      // If this exit closes the position completely
-      if (partialQuantity === remainingQuantity) {
+      // Only close the trade if there's no remaining quantity
+      if (newRemainingQuantity === 0) {
         updatedTrade.status = 'closed';
         updatedTrade.exitDate = partialExitDate;
         updatedTrade.exitPrice = partialExitPrice;
