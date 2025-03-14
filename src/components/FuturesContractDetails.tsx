@@ -1,79 +1,28 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trade, FuturesContractDetails as ContractDetails } from '@/types';
-import { formatCurrency, getContractPointValue } from '@/utils/tradeCalculations';
+import { FuturesContractDetailsProps } from './types/futuresTypes';
 
-interface FuturesContractDetailsProps {
-  trade: Trade;
-}
-
-export function FuturesContractDetails({ trade }: FuturesContractDetailsProps) {
-  // Only show for futures contracts
-  if (trade.type !== 'futures' || !trade.contractDetails) {
-    return null;
-  }
-
-  const { 
-    exchange, 
-    contractSize, 
-    tickSize, 
-    expirationDate, 
-    initialMargin, 
-    maintenanceMargin 
-  } = trade.contractDetails;
-
-  // Get point value from our utility function
-  const pointValue = getContractPointValue(trade);
-
+export function FuturesContractDetails({ details, value }: FuturesContractDetailsProps) {
+  if (!details.exchange) return null;
+  
   return (
-    <Card className="shadow-subtle border">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">Futures Contract Details</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Exchange:</span>
-            <span>{exchange}</span>
-          </div>
-          
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Contract Size:</span>
-            <span>{contractSize}</span>
-          </div>
-          
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Tick Size:</span>
-            <span>{tickSize}</span>
-          </div>
-          
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Point Value:</span>
-            <span>{formatCurrency(pointValue)}</span>
-          </div>
-          
-          {expirationDate && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Expiration Date:</span>
-              <span>{new Date(expirationDate).toLocaleDateString()}</span>
-            </div>
-          )}
-          
-          {initialMargin !== undefined && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Initial Margin:</span>
-              <span>{formatCurrency(initialMargin)}</span>
-            </div>
-          )}
-          
-          {maintenanceMargin !== undefined && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Maintenance Margin:</span>
-              <span>{formatCurrency(maintenanceMargin)}</span>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="bg-muted p-3 rounded-md text-sm mt-2">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+        <dt className="text-muted-foreground">Exchange:</dt>
+        <dd>{details.exchange}</dd>
+        
+        <dt className="text-muted-foreground">Tick Size:</dt>
+        <dd>{details.tickSize}</dd>
+        
+        <dt className="text-muted-foreground">Point Value:</dt>
+        <dd>${details.tickValue}</dd>
+        
+        {value !== undefined && (
+          <>
+            <dt className="text-muted-foreground font-medium">Tick Value:</dt>
+            <dd className="font-medium">${(details.tickSize || 0) * (details.tickValue || 0)}</dd>
+          </>
+        )}
+      </dl>
+    </div>
   );
 }

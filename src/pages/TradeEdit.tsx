@@ -56,9 +56,9 @@ export default function TradeEdit() {
     
     // If trade is closed but has remaining quantity, reopen it
     if (trade.status === 'closed' && remainingQuantity > 0) {
-      const updatedTrade = {
+      const updatedTrade: Trade = {
         ...trade,
-        status: 'open',
+        status: 'open' as const,
         exitDate: undefined,
         exitPrice: undefined
       };

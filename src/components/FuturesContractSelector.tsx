@@ -1,58 +1,39 @@
 
-import { useState, useEffect } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { COMMON_FUTURES_CONTRACTS, FuturesContract, FuturesContractDetails } from '@/types';
+import { FuturesContractSelectorProps } from './types/futuresTypes';
+import { COMMON_FUTURES_CONTRACTS } from '@/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-interface FuturesContractSelectorProps {
-  onChange: (details: FuturesContractDetails) => void;
-  initialSymbol?: string;
-}
-
-export function FuturesContractSelector({ 
-  onChange,
-  initialSymbol 
-}: FuturesContractSelectorProps) {
-  const [selectedContract, setSelectedContract] = useState<string>(initialSymbol || '');
-  
-  // Apply contract details when contract is selected
-  useEffect(() => {
-    if (selectedContract) {
-      const contract = COMMON_FUTURES_CONTRACTS.find(c => c.symbol === selectedContract);
-      if (contract) {
-        const details: FuturesContractDetails = {
-          exchange: contract.exchange,
-          contractSize: 1, // Default value, can be customized later
-          tickSize: contract.tickSize,
-          tickValue: contract.tickSize * contract.pointValue // Calculate tickValue from tickSize and pointValue
-        };
-        onChange(details);
-      }
+export function FuturesContractSelector({ selectedValue, onSelect }: FuturesContractSelectorProps) {
+  const handleSelect = (value: string) => {
+    const contract = COMMON_FUTURES_CONTRACTS.find(c => c.symbol === value);
+    if (contract) {
+      onSelect({
+        exchange: contract.exchange,
+        contractSize: 1,
+        tickSize: contract.tickSize,
+        tickValue: contract.pointValue,
+      });
     }
-  }, [selectedContract, onChange]);
+  };
 
   return (
-    <div className="space-y-2">
-      <Select 
-        value={selectedContract} 
-        onValueChange={setSelectedContract}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Select a common contract" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="">Custom Contract</SelectItem>
-          {COMMON_FUTURES_CONTRACTS.map((contract) => (
-            <SelectItem key={contract.symbol} value={contract.symbol}>
-              {contract.symbol} - {contract.description}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <div className="text-xs text-muted-foreground">
-        {selectedContract && 
-          COMMON_FUTURES_CONTRACTS.find(c => c.symbol === selectedContract)?.description
-        }
-      </div>
-    </div>
+    <Select value={selectedValue} onValueChange={handleSelect}>
+      <SelectTrigger>
+        <SelectValue placeholder="Select a contract" />
+      </SelectTrigger>
+      <SelectContent>
+        {COMMON_FUTURES_CONTRACTS.map((contract) => (
+          <SelectItem key={contract.symbol} value={contract.symbol}>
+            {contract.symbol} - {contract.description}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

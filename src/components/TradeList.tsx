@@ -1,30 +1,33 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowDown, ArrowUp, Edit, Filter, Search, Trash2, Trophy, X as XIcon } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { TradeWithMetrics } from '@/types';
+import { getTradesWithMetrics } from '@/utils/tradeStorage';
+import { format, parse, isValid } from 'date-fns';
 import { formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
-import { deleteTrade, getTradesWithMetrics } from '@/utils/tradeStorage';
-import { toast } from '@/utils/toast';
+import { Filter, ChevronUp, ChevronDown, Clock, CheckCircle, Trophy, X as XIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { COMMON_STRATEGIES } from './trade-form/useTradeForm';
 
-interface TradeListProps {
-  trades?: TradeWithMetrics[];
-  statusFilter?: string;
-  onTradeSelected?: (trade: TradeWithMetrics) => void;
-}
-
-export function TradeList({ trades: initialTrades, statusFilter: initialStatusFilter, onTradeSelected }: TradeListProps) {
+export function TradeList() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const dateParam = queryParams.get('date');
+  
   const [trades, setTrades] = useState<TradeWithMetrics[]>([]);
-  const [filteredTrades, setFilteredTrades] = useState<TradeWithMetrics[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'all');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [strategyFilter, setStrategyFilter] = useState('all');
+  const [sortField, setSortField] = useState<string>('entryDate');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [strategyFilter, setStrategyFilter] = useState<string>('all');
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
   
   // Get unique list of strategies from trades
@@ -40,344 +43,318 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
   
   useEffect(() => {
     const loadTrades = () => {
-      const allTrades = initialTrades || getTradesWithMetrics();
+      const allTrades = getTradesWithMetrics();
       setTrades(allTrades);
-      applyFilters(allTrades, searchTerm, statusFilter, typeFilter, strategyFilter, resultFilter);
     };
     
     loadTrades();
     
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'trade-journal-trades') {
-        loadTrades();
-      }
+    // Reload when localStorage changes (for multi-tab support)
+    const handleStorageChange = () => {
+      loadTrades();
     };
     
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [initialTrades, initialStatusFilter]);
+  }, []);
   
-  useEffect(() => {
-    applyFilters(trades, searchTerm, statusFilter, typeFilter, strategyFilter, resultFilter);
-  }, [searchTerm, statusFilter, typeFilter, strategyFilter, resultFilter, trades]);
-  
-  const applyFilters = (
-    allTrades: TradeWithMetrics[], 
-    search: string, 
-    status: string, 
-    type: string,
-    strategy: string,
-    result: 'all' | 'win' | 'loss'
-  ) => {
-    let result = [...allTrades];
+  // Apply filters and sorting
+  const filteredTrades = useMemo(() => {
+    let filteredResults = [...trades];
     
-    if (search) {
-      const searchLower = search.toLowerCase();
-      result = result.filter(trade => 
-        trade.symbol.toLowerCase().includes(searchLower) ||
-        trade.strategy?.toLowerCase().includes(searchLower) ||
-        trade.notes?.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    if (status !== 'all') {
-      result = result.filter(trade => trade.status === status);
-    }
-    
-    if (type !== 'all') {
-      result = result.filter(trade => trade.type === type);
+    // If date filter is applied
+    if (dateParam) {
+      const filterDate = parse(dateParam, 'yyyy-MM-dd', new Date());
+      if (isValid(filterDate)) {
+        const dateString = format(filterDate, 'yyyy-MM-dd');
+        filteredResults = filteredResults.filter(trade => {
+          if (trade.status === 'closed' && trade.exitDate) {
+            return format(new Date(trade.exitDate), 'yyyy-MM-dd') === dateString;
+          }
+          return false;
+        });
+      }
     }
     
     // Filter by strategy
-    if (strategy !== 'all') {
-      result = result.filter(trade => trade.strategy === strategy);
+    if (strategyFilter !== 'all') {
+      filteredResults = filteredResults.filter(trade => trade.strategy === strategyFilter);
     }
     
     // Filter by win/loss
-    if (result !== 'all') {
-      result = result.filter(trade => {
-        if (trade.status !== 'closed') return true; // Keep open trades regardless of win/loss filter
+    if (resultFilter !== 'all') {
+      filteredResults = filteredResults.filter(trade => {
+        if (trade.status !== 'closed') return false;
         
-        if (result === 'win') {
+        if (resultFilter === 'win') {
           return trade.metrics.profitLoss >= 0;
-        } else if (result === 'loss') {
+        } else { // resultFilter === 'loss'
           return trade.metrics.profitLoss < 0;
         }
-        return true;
       });
     }
     
-    result.sort((a, b) => 
-      new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime()
-    );
+    // Sort the trades
+    filteredResults.sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+      
+      switch (sortField) {
+        case 'symbol':
+          aValue = a.symbol;
+          bValue = b.symbol;
+          break;
+        case 'entryDate':
+          aValue = new Date(a.entryDate).getTime();
+          bValue = new Date(b.entryDate).getTime();
+          break;
+        case 'exitDate':
+          aValue = a.exitDate ? new Date(a.exitDate).getTime() : 0;
+          bValue = b.exitDate ? new Date(b.exitDate).getTime() : 0;
+          break;
+        case 'profitLoss':
+          aValue = a.status === 'closed' ? a.metrics.profitLoss : 0;
+          bValue = b.status === 'closed' ? b.metrics.profitLoss : 0;
+          break;
+        default:
+          aValue = a[sortField as keyof TradeWithMetrics];
+          bValue = b[sortField as keyof TradeWithMetrics];
+      }
+      
+      if (sortDirection === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
     
-    setFilteredTrades(result);
-  };
+    return filteredResults;
+  }, [trades, sortField, sortDirection, strategyFilter, resultFilter, dateParam]);
   
-  const handleDeleteTrade = (id: string, event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    if (confirm('Are you sure you want to delete this trade?')) {
-      deleteTrade(id);
-      setTrades(prev => prev.filter(trade => trade.id !== id));
-      toast.success('Trade deleted successfully');
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
     }
   };
   
+  const resetFilters = () => {
+    setStrategyFilter('all');
+    setResultFilter('all');
+    if (dateParam) {
+      navigate('/');
+    }
+  };
+  
+  const hasFilters = strategyFilter !== 'all' || resultFilter !== 'all' || dateParam;
+  
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-          <div className="relative flex-grow">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search trades..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+    <Card className="shadow-subtle border">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-xl">Trades</CardTitle>
+        
+        <div className="flex items-center gap-2">
+          {hasFilters && (
+            <Button variant="outline" size="sm" onClick={resetFilters}>
+              Clear Filters
+            </Button>
+          )}
           
-          <div className="flex items-center gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-36">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-36">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="equity">Equity</SelectItem>
-                <SelectItem value="futures">Futures</SelectItem>
-                <SelectItem value="option">Option</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Filter className="h-4 w-4 mr-1" />
-                  More Filters
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Strategy</h4>
-                    <Select 
-                      value={strategyFilter} 
-                      onValueChange={setStrategyFilter}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-1" />
+                Filters
+                {hasFilters && <span className="ml-1 h-2 w-2 rounded-full bg-primary"></span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Strategy</h4>
+                  <Select 
+                    value={strategyFilter} 
+                    onValueChange={setStrategyFilter}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Strategies" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Strategies</SelectItem>
+                      {availableStrategies.map((strategy) => (
+                        <SelectItem key={strategy} value={strategy}>
+                          {strategy}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="font-medium">Result</h4>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant={resultFilter === 'all' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setResultFilter('all')}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Strategies" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Strategies</SelectItem>
-                        {availableStrategies.map((strategy) => (
-                          <SelectItem key={strategy} value={strategy}>
-                            {strategy}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Result</h4>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant={resultFilter === 'all' ? 'default' : 'outline'} 
-                        size="sm"
-                        onClick={() => setResultFilter('all')}
-                      >
-                        All
-                      </Button>
-                      <Button 
-                        variant={resultFilter === 'win' ? 'default' : 'outline'} 
-                        size="sm"
-                        onClick={() => setResultFilter('win')}
-                        className="text-profit"
-                      >
-                        <Trophy className="h-4 w-4 mr-1" />
-                        Wins
-                      </Button>
-                      <Button 
-                        variant={resultFilter === 'loss' ? 'default' : 'outline'} 
-                        size="sm"
-                        onClick={() => setResultFilter('loss')}
-                        className="text-loss"
-                      >
-                        <XIcon className="h-4 w-4 mr-1" />
-                        Losses
-                      </Button>
-                    </div>
+                      All
+                    </Button>
+                    <Button 
+                      variant={resultFilter === 'win' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setResultFilter('win')}
+                      className="text-profit"
+                    >
+                      <Trophy className="h-4 w-4 mr-1" />
+                      Wins
+                    </Button>
+                    <Button 
+                      variant={resultFilter === 'loss' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setResultFilter('loss')}
+                      className="text-loss"
+                    >
+                      <XIcon className="h-4 w-4 mr-1" />
+                      Losses
+                    </Button>
                   </div>
                 </div>
-              </PopoverContent>
-            </Popover>
-          </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
-        
-        {filteredTrades.length > 0 && (
-          <div className="text-sm text-muted-foreground ml-2">
-            Showing {filteredTrades.length} of {trades.length} trades
+      </CardHeader>
+      
+      <CardContent>
+        {dateParam && (
+          <div className="mb-4 p-2 bg-muted rounded-md flex justify-between items-center">
+            <span>
+              Showing trades closed on: <strong>{format(parse(dateParam, 'yyyy-MM-dd', new Date()), 'MMMM d, yyyy')}</strong>
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+              <XIcon className="h-4 w-4" />
+            </Button>
           </div>
         )}
-      </div>
-      
-      {filteredTrades.length === 0 ? (
-        <Card className="shadow-subtle border">
-          <CardHeader>
-            <CardTitle>No trades found</CardTitle>
-            <CardDescription>
-              {trades.length === 0 
-                ? "You haven't recorded any trades yet." 
-                : "No trades match your search filters."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild>
-              <Link to="/trade/new">Record your first trade</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {filteredTrades.map((trade) => (
-            <Link 
-              key={trade.id} 
-              to={`/trade/${trade.id}`}
-              onClick={() => onTradeSelected && onTradeSelected(trade)} 
-              className="block group"
-            >
-              <Card className="shadow-subtle border transition-all hover:shadow-glass">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4">
-                  <div className="flex items-start gap-3">
-                    <div className={cn(
-                      "p-3 rounded-md",
-                      trade.direction === 'long'
-                        ? "bg-profit/10 text-profit"
-                        : "bg-loss/10 text-loss"
-                    )}>
-                      {trade.direction === 'long' ? (
-                        <ArrowUp className="h-4 w-4" />
-                      ) : (
-                        <ArrowDown className="h-4 w-4" />
-                      )}
-                    </div>
-                    
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-foreground">{trade.symbol}</h3>
-                        <span className={cn(
-                          "text-xs px-1.5 py-0.5 rounded-full",
-                          trade.status === 'open'
-                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                            : "bg-muted text-muted-foreground"
-                        )}>
-                          {trade.status === 'open' ? 'Open' : 'Closed'}
-                        </span>
-                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-                          {trade.type.charAt(0).toUpperCase() + trade.type.slice(1)}
-                        </span>
-                      </div>
-                      
-                      <div className="text-sm text-muted-foreground mt-1">
-                        <span>{new Date(trade.entryDate).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'short', 
-                          day: 'numeric'
-                        })}</span>
-                        <span className="mx-1">•</span>
-                        <span>{trade.quantity} {trade.type === 'futures' ? 'contracts' : 'shares'} @ {formatCurrency(trade.entryPrice)}</span>
-                        {trade.strategy && (
-                          <>
-                            <span className="mx-1">•</span>
-                            <span>{trade.strategy}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between sm:justify-end gap-4">
-                    {trade.status === 'open' && trade.stopLoss && trade.metrics.riskedAmount && (
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                          <span className="text-sm font-medium">
-                            Risk: {formatCurrency(trade.metrics.riskedAmount)}
-                          </span>
-                        </div>
-                        
-                        {trade.takeProfit && trade.metrics.maxPotentialGain && (
-                          <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                            <span className="text-sm font-medium">
-                              Target: {formatCurrency(trade.metrics.maxPotentialGain)}
-                            </span>
-                            {trade.metrics.riskRewardRatio && (
-                              <span className="text-xs ml-1">
-                                ({trade.metrics.riskRewardRatio.toFixed(1)}R)
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-2" onClick={() => handleSort('symbol')}>
+                  <div className="flex items-center cursor-pointer hover:text-primary transition-colors">
+                    Symbol
+                    {sortField === 'symbol' && (
+                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
                     )}
-                    
-                    {trade.status === 'closed' && (
-                      <div className="text-right">
-                        <span className={cn(
-                          "font-mono text-sm font-medium",
-                          trade.metrics.profitLoss >= 0 ? "text-profit" : "text-loss"
-                        )}>
+                  </div>
+                </th>
+                <th className="text-left p-2" onClick={() => handleSort('direction')}>
+                  <div className="flex items-center cursor-pointer hover:text-primary transition-colors">
+                    Direction
+                    {sortField === 'direction' && (
+                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
+                    )}
+                  </div>
+                </th>
+                <th className="text-left p-2" onClick={() => handleSort('entryDate')}>
+                  <div className="flex items-center cursor-pointer hover:text-primary transition-colors">
+                    Entry Date
+                    {sortField === 'entryDate' && (
+                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
+                    )}
+                  </div>
+                </th>
+                <th className="text-left p-2" onClick={() => handleSort('exitDate')}>
+                  <div className="flex items-center cursor-pointer hover:text-primary transition-colors">
+                    Exit Date
+                    {sortField === 'exitDate' && (
+                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
+                    )}
+                  </div>
+                </th>
+                <th className="text-left p-2" onClick={() => handleSort('profitLoss')}>
+                  <div className="flex items-center cursor-pointer hover:text-primary transition-colors">
+                    P&L
+                    {sortField === 'profitLoss' && (
+                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
+                    )}
+                  </div>
+                </th>
+                <th className="text-left p-2">Status</th>
+                <th className="text-right p-2">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTrades.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center p-4 text-muted-foreground">
+                    No trades found
+                  </td>
+                </tr>
+              ) : (
+                filteredTrades.map(trade => (
+                  <tr key={trade.id} className="border-b hover:bg-muted/50">
+                    <td className="p-2">
+                      <div className="font-medium">{trade.symbol}</div>
+                      <div className="text-xs text-muted-foreground">{trade.type}</div>
+                    </td>
+                    <td className="p-2">
+                      <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                        trade.direction === 'long' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {trade.direction.toUpperCase()}
+                      </div>
+                    </td>
+                    <td className="p-2">
+                      {format(new Date(trade.entryDate), 'MMM d, yyyy')}
+                    </td>
+                    <td className="p-2">
+                      {trade.exitDate 
+                        ? format(new Date(trade.exitDate), 'MMM d, yyyy')
+                        : '-'
+                      }
+                    </td>
+                    <td className="p-2">
+                      {trade.status === 'closed' ? (
+                        <span className={trade.metrics.profitLoss >= 0 ? 'text-profit' : 'text-loss'}>
                           {formatCurrency(trade.metrics.profitLoss)}
+                          <span className="text-xs ml-1">
+                            ({formatPercentage(trade.metrics.profitLossPercentage)})
+                          </span>
                         </span>
-                        <div className={cn(
-                          "text-xs",
-                          trade.metrics.profitLoss >= 0 ? "text-profit" : "text-loss"
-                        )}>
-                          {trade.metrics.profitLossPercentage >= 0 ? '+' : ''}
-                          {formatPercentage(trade.metrics.profitLossPercentage)}
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="p-2">
+                      {trade.status === 'open' ? (
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 text-blue-500 mr-1" />
+                          <span>Open</span>
                         </div>
-                      </div>
-                    )}
-                    
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" asChild>
-                        <Link to={`/trade/edit/${trade.id}`} onClick={(e) => e.stopPropagation()}>
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={(e) => handleDeleteTrade(trade.id, e)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </Link>
-          ))}
+                      ) : (
+                        <div className="flex items-center">
+                          <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                          <span>Closed</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-2 text-right">
+                      <Link to={`/trade/${trade.id}`}>
+                        <Button variant="ghost" size="sm">View</Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
-}
-
-function cn(...classes: (string | undefined | null | false)[]) {
-  return classes.filter(Boolean).join(' ');
 }
