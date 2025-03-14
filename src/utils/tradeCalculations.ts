@@ -1,5 +1,5 @@
 
-import { Trade, TradeMetrics, PerformanceMetrics, TradeWithMetrics, PartialExit } from '@/types';
+import { Trade, TradeMetrics, PerformanceMetrics, TradeWithMetrics, PartialExit, FuturesContractDetails, COMMON_FUTURES_CONTRACTS } from '@/types';
 
 // Calculate metrics for a single trade
 export const calculateTradeMetrics = (trade: Trade): TradeMetrics => {
@@ -51,20 +51,57 @@ export const calculateTradeMetrics = (trade: Trade): TradeMetrics => {
     metrics.profitLossPercentage = (totalPL / totalEntryValue) * 100;
   }
 
-  // Calculate risk metrics if stop loss is defined
+  // Calculate risk metrics differently based on trade type
   if (trade.stopLoss) {
-    const riskPerUnit = Math.abs(trade.entryPrice - trade.stopLoss);
-    metrics.riskedAmount = riskPerUnit * trade.quantity;
-    
-    // Calculate R:R ratio if take profit is defined
-    if (trade.takeProfit) {
-      const rewardPerUnit = Math.abs(trade.takeProfit - trade.entryPrice);
-      metrics.maxPotentialGain = rewardPerUnit * trade.quantity;
-      metrics.riskRewardRatio = rewardPerUnit / riskPerUnit;
+    if (trade.type === 'futures' && trade.contractDetails) {
+      // Get contract info
+      const pointValue = getContractPointValue(trade);
+      
+      // Calculate risk in points
+      const riskInPoints = Math.abs(trade.entryPrice - trade.stopLoss);
+      // Convert points to money based on contract value
+      metrics.riskedAmount = riskInPoints * pointValue * trade.quantity;
+      
+      // Calculate R:R ratio if take profit is defined
+      if (trade.takeProfit) {
+        const rewardInPoints = Math.abs(trade.takeProfit - trade.entryPrice);
+        metrics.maxPotentialGain = rewardInPoints * pointValue * trade.quantity;
+        metrics.riskRewardRatio = rewardInPoints / riskInPoints;
+      }
+    } else {
+      // Standard calculation for non-futures
+      const riskPerUnit = Math.abs(trade.entryPrice - trade.stopLoss);
+      metrics.riskedAmount = riskPerUnit * trade.quantity;
+      
+      if (trade.takeProfit) {
+        const rewardPerUnit = Math.abs(trade.takeProfit - trade.entryPrice);
+        metrics.maxPotentialGain = rewardPerUnit * trade.quantity;
+        metrics.riskRewardRatio = rewardPerUnit / riskPerUnit;
+      }
     }
   }
 
   return metrics;
+};
+
+// Helper function to get contract point value 
+export const getContractPointValue = (trade: Trade): number => {
+  // For futures contracts, get the contract details
+  if (trade.type === 'futures' && trade.contractDetails) {
+    // If tick size and value are defined, calculate point value
+    if (trade.contractDetails.tickSize && trade.contractDetails.tickValue) {
+      return trade.contractDetails.tickValue / trade.contractDetails.tickSize;
+    }
+    
+    // If not defined in contractDetails, look up from common contracts
+    const commonContract = COMMON_FUTURES_CONTRACTS.find(c => c.symbol === trade.symbol);
+    if (commonContract) {
+      return commonContract.tickValue / commonContract.tickSize;
+    }
+  }
+  
+  // Default value if we can't determine
+  return 1;
 };
 
 // Calculate overall performance metrics from a list of trades

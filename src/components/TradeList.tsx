@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowDown, ArrowUp, Edit, Search, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Edit, Search, Trash2, AlertTriangle, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -201,7 +201,7 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
                           day: 'numeric'
                         })}</span>
                         <span className="mx-1">•</span>
-                        <span>{trade.quantity} shares @ {formatCurrency(trade.entryPrice)}</span>
+                        <span>{trade.quantity} {trade.type === 'futures' ? 'contracts' : 'shares'} @ {formatCurrency(trade.entryPrice)}</span>
                         {trade.strategy && (
                           <>
                             <span className="mx-1">•</span>
@@ -212,7 +212,32 @@ export function TradeList({ trades: initialTrades, statusFilter: initialStatusFi
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between sm:justify-end gap-6">
+                  <div className="flex items-center justify-between sm:justify-end gap-4">
+                    {trade.status === 'open' && trade.stopLoss && trade.metrics.riskedAmount && (
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span className="text-sm font-medium">
+                            Risk: {formatCurrency(trade.metrics.riskedAmount)}
+                          </span>
+                        </div>
+                        
+                        {trade.takeProfit && trade.metrics.maxPotentialGain && (
+                          <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                            <Target className="h-4 w-4" />
+                            <span className="text-sm font-medium">
+                              Target: {formatCurrency(trade.metrics.maxPotentialGain)}
+                            </span>
+                            {trade.metrics.riskRewardRatio && (
+                              <span className="text-xs ml-1">
+                                ({trade.metrics.riskRewardRatio.toFixed(1)}R)
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     {trade.status === 'closed' && (
                       <div className="text-right">
                         <span className={cn(
