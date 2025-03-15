@@ -19,7 +19,7 @@ export interface Trade {
   images?: string[];
   partialExits?: PartialExit[];
   contractDetails?: FuturesContractDetails;
-  pspTime?: string; // New field for PSP time (HH:MM)
+  pspTime?: string; // PSP time in HH:MM AM/PM format
 }
 
 export interface PartialExit {

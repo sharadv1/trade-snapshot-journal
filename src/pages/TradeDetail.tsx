@@ -273,7 +273,9 @@ export default function TradeDetail() {
                             PSP Time
                           </h3>
                           <p className="mt-1">
-                            {trade.pspTime}
+                            {trade.pspTime.includes('AM') || trade.pspTime.includes('PM') 
+                              ? trade.pspTime 
+                              : `${trade.pspTime} ${parseInt(trade.pspTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}`}
                           </p>
                         </div>
                       )}
