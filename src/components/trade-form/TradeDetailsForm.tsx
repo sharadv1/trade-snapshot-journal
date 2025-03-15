@@ -143,6 +143,17 @@ export function TradeDetailsForm({
           />
         </div>
       </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="pspTime">PSP Time (HH:MM)</Label>
+        <Input 
+          id="pspTime" 
+          type="time"
+          value={trade.pspTime || ''}
+          onChange={(e) => handleChange('pspTime', e.target.value)}
+          placeholder="Enter PSP time (e.g., 09:30)"
+        />
+      </div>
     </div>
   );
 }

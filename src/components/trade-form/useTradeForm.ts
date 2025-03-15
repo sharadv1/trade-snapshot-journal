@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trade, FuturesContractDetails, COMMON_FUTURES_CONTRACTS } from '@/types';
@@ -22,7 +21,8 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
       status: 'open',
       images: [],
       tags: [],
-      partialExits: []
+      partialExits: [],
+      pspTime: ''
     }
   );
 
@@ -35,12 +35,10 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
     }
   );
 
-  // Calculate point value for futures contracts
   const pointValue = trade.type === 'futures' && contractDetails.tickSize && contractDetails.tickValue
     ? contractDetails.tickValue / contractDetails.tickSize
     : 0;
 
-  // Update contract details when a futures symbol is selected
   useEffect(() => {
     if (trade.type === 'futures' && trade.symbol) {
       const contract = COMMON_FUTURES_CONTRACTS.find(c => c.symbol === trade.symbol);
@@ -49,14 +47,13 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
           exchange: contract.exchange,
           contractSize: 1,
           tickSize: contract.tickSize,
-          tickValue: contract.tickSize * contract.pointValue // Calculate tickValue from tickSize and pointValue
+          tickValue: contract.tickSize * contract.pointValue
         });
       }
     }
   }, [trade.type, trade.symbol]);
 
   const handleChange = (field: keyof Trade, value: any) => {
-    // If changing strategy, ensure we don't set to "custom" on a new trade
     if (field === 'strategy' && value === 'custom' && !isEditing) {
       toast.error("Custom strategies are not allowed for new trades");
       return;
@@ -84,7 +81,6 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
 
   const handleTypeChange = (type: 'equity' | 'futures' | 'option') => {
     handleChange('type', type);
-    // Reset symbol if changing away from futures to avoid invalid symbols
     if (type !== 'futures' && trade.type === 'futures') {
       handleChange('symbol', '');
     }
@@ -106,7 +102,6 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
       };
       
       if (isEditing && initialTrade) {
-        // Ensure we preserve the partial exits if they exist
         const updatedTrade = { 
           ...initialTrade, 
           ...tradeToSave,
