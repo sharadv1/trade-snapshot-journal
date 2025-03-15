@@ -7,8 +7,14 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:80"
+      - "8080:3000"
     restart: unless-stopped
-    # Uncomment the volume below if you want to persist data
-    # volumes:
-    #  - ./data:/data
+    environment:
+      - PORT=3000
+      - DATA_DIR=/data
+    volumes:
+      - trade-journal-data:/data
+
+volumes:
+  trade-journal-data:
+    driver: local

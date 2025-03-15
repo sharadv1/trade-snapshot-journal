@@ -36,7 +36,7 @@ docker-compose up -d
 
 # Or build and run manually
 docker build -t trade-journal .
-docker run -d -p 8080:80 --name trade-journal trade-journal
+docker run -d -p 8080:3000 -v trade-journal-data:/data --name trade-journal trade-journal
 ```
 
 ## Accessing Your Application
@@ -44,9 +44,28 @@ docker run -d -p 8080:80 --name trade-journal trade-journal
 After deployment, your application will be available at:
 - `http://your-server-ip:8080`
 
-## Notes
+## Data Persistence
 
-- The application uses browser localStorage for data storage, so your data will be stored in the browser, not in the container.
-- If you want to implement server-side data persistence, you'll need to develop a backend API and modify the application to use it.
-- The "Server Sync" feature in the application can be configured to connect to an API if you develop one separately.
+This Docker setup includes a Node.js backend that stores all trade data in a persistent volume:
 
+- All data is saved to the `trade-journal-data` Docker volume
+- The volume persists even if the container is removed or updated
+- Data is stored in a JSON file on the server
+- The application automatically connects to this backend API
+- To enable the server sync feature, enter `http://localhost:8080/api/trades` in the server configuration
+
+## Backing Up Your Data
+
+To create a backup of your trade data from the Docker volume:
+
+```bash
+# Copy the trades.json file from the container
+docker cp trade-journal:/data/trades.json ./trades-backup.json
+```
+
+To restore from a backup:
+
+```bash
+# Copy a backup file to the container
+docker cp ./trades-backup.json trade-journal:/data/trades.json
+```

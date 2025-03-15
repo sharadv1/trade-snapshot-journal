@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogTrigger
 } from '@/components/ui/dialog';
-import { Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, InfoIcon } from 'lucide-react';
 import { 
   configureServerConnection, 
   isUsingServerSync, 
@@ -20,6 +20,12 @@ import {
   restoreServerConnection 
 } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function ServerSyncConfig() {
   const [isOpen, setIsOpen] = useState(false);
@@ -63,6 +69,11 @@ export function ServerSyncConfig() {
       setIsSyncing(false);
     }
   };
+
+  const handleUseDocker = () => {
+    // Use the Docker API endpoint URL
+    setServerUrl(window.location.origin + '/api/trades');
+  };
   
   return (
     <div>
@@ -86,21 +97,41 @@ export function ServerSyncConfig() {
           <DialogHeader>
             <DialogTitle>Trade Server Configuration</DialogTitle>
             <DialogDescription>
-              Configure your Docker server to sync trades across all browsers and devices.
+              Configure your server to sync trades across all browsers and devices.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="server-url">Server URL</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="server-url">Server URL</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 px-2 text-xs"
+                        onClick={handleUseDocker}
+                      >
+                        <InfoIcon className="h-3 w-3 mr-1" />
+                        Use Docker API
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Set URL for Docker deployment</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Input
                 id="server-url"
-                placeholder="http://your-mac-mini-ip:port/api/trades"
+                placeholder="http://your-server-ip:8080/api/trades"
                 value={serverUrl}
                 onChange={(e) => setServerUrl(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Enter the full URL to your Docker server's API endpoint
+                If using the Docker deployment, use the API endpoint URL
               </p>
             </div>
           </div>
