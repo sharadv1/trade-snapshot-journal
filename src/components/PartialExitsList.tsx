@@ -4,6 +4,8 @@ import { Trade, PartialExit } from '@/types';
 import { formatCurrency } from '@/utils/tradeCalculations';
 import { EditPartialExitModal } from './trade-exit/EditPartialExitModal';
 import { DeletePartialExitButton } from './trade-exit/DeletePartialExitButton';
+import { useEffect, useState } from 'react';
+import { getTradeById } from '@/utils/tradeStorage';
 
 interface PartialExitsListProps {
   trade: Trade;
@@ -11,12 +13,38 @@ interface PartialExitsListProps {
 }
 
 export function PartialExitsList({ trade, onUpdate }: PartialExitsListProps) {
-  if (!trade.partialExits || trade.partialExits.length === 0) {
+  const [currentTrade, setCurrentTrade] = useState<Trade>(trade);
+  
+  // Force refresh of trade data when storage changes
+  useEffect(() => {
+    const refreshTrade = () => {
+      const updatedTrade = getTradeById(trade.id);
+      if (updatedTrade) {
+        setCurrentTrade(updatedTrade);
+      }
+    };
+    
+    // Initial load
+    refreshTrade();
+    
+    // Listen for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'trade-journal-trades') {
+        refreshTrade();
+        onUpdate();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [trade.id, onUpdate]);
+
+  if (!currentTrade.partialExits || currentTrade.partialExits.length === 0) {
     return null;
   }
 
   // Sort partial exits by date (newest first)
-  const sortedExits = [...trade.partialExits].sort((a, b) => 
+  const sortedExits = [...currentTrade.partialExits].sort((a, b) => 
     new Date(b.exitDate).getTime() - new Date(a.exitDate).getTime()
   );
 
@@ -27,11 +55,21 @@ export function PartialExitsList({ trade, onUpdate }: PartialExitsListProps) {
   );
 
   // Calculate remaining quantity
-  const remainingQuantity = trade.quantity - totalExitedQuantity;
+  const remainingQuantity = currentTrade.quantity - totalExitedQuantity;
 
   // Calculate max quantity for each exit (original quantity + current exit quantity)
   const getMaxQuantityForExit = (currentExit: PartialExit) => {
     return remainingQuantity + currentExit.quantity;
+  };
+
+  const handleExitUpdate = () => {
+    // Refresh trade data
+    const updatedTrade = getTradeById(trade.id);
+    if (updatedTrade) {
+      setCurrentTrade(updatedTrade);
+    }
+    // Call the parent's onUpdate handler
+    onUpdate();
   };
 
   return (
@@ -44,7 +82,7 @@ export function PartialExitsList({ trade, onUpdate }: PartialExitsListProps) {
           <div className="bg-muted/30 p-3 rounded-md">
             <div className="flex justify-between text-sm">
               <span>Total Position:</span>
-              <span className="font-medium">{trade.quantity} units</span>
+              <span className="font-medium">{currentTrade.quantity} units</span>
             </div>
             <div className="flex justify-between text-sm">
               <span>Exited:</span>
@@ -56,8 +94,8 @@ export function PartialExitsList({ trade, onUpdate }: PartialExitsListProps) {
             </div>
             <div className="flex justify-between text-sm mt-1">
               <span>Status:</span>
-              <span className={`font-medium ${trade.status === 'closed' ? 'text-red-500' : 'text-green-500'}`}>
-                {trade.status === 'closed' && remainingQuantity > 0 ? 'Error: Closed with remaining units' : trade.status}
+              <span className={`font-medium ${currentTrade.status === 'closed' ? 'text-red-500' : 'text-green-500'}`}>
+                {currentTrade.status === 'closed' && remainingQuantity > 0 ? 'Error: Closed with remaining units' : currentTrade.status}
               </span>
             </div>
           </div>
@@ -76,6 +114,11 @@ export function PartialExitsList({ trade, onUpdate }: PartialExitsListProps) {
                         month: 'short',
                         day: 'numeric'
                       })}
+                      {' '}
+                      {new Date(exit.exitDate).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
                     </div>
                     
                     {exit.notes && (
@@ -91,15 +134,15 @@ export function PartialExitsList({ trade, onUpdate }: PartialExitsListProps) {
                   
                   <div className="flex space-x-1">
                     <EditPartialExitModal 
-                      trade={trade} 
+                      trade={currentTrade} 
                       partialExit={exit} 
-                      onSuccess={onUpdate}
+                      onSuccess={handleExitUpdate}
                       maxQuantity={getMaxQuantityForExit(exit)}
                     />
                     <DeletePartialExitButton 
-                      trade={trade} 
+                      trade={currentTrade} 
                       exitId={exit.id} 
-                      onSuccess={onUpdate}
+                      onSuccess={handleExitUpdate}
                     />
                   </div>
                 </div>

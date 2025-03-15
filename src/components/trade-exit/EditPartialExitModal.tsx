@@ -104,7 +104,15 @@ export function EditPartialExitModal({
         }
       }
       
+      // This triggers a storage event to update the view
       updateTrade(updatedTrade);
+      
+      // Force a custom storage event to ensure updates
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'trade-journal-trades',
+        newValue: JSON.stringify(localStorage.getItem('trade-journal-trades'))
+      }));
+      
       toast.success("Partial exit updated successfully");
       setOpen(false);
       onSuccess();

@@ -35,7 +35,8 @@ export default function TradeDetail() {
   const [activeTab, setActiveTab] = useState('details');
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
   const [showCalculations, setShowCalculations] = useState(false);
-  
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const loadTradeData = () => {
     if (!id) return;
     
@@ -43,6 +44,7 @@ export default function TradeDetail() {
     if (tradeData) {
       const metrics = calculateTradeMetrics(tradeData);
       setTrade({ ...tradeData, metrics });
+      setRefreshKey(prev => prev + 1);
     } else {
       toast.error('Trade not found');
       navigate('/');
@@ -59,7 +61,13 @@ export default function TradeDetail() {
     };
     
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    
+    const intervalId = setInterval(loadTradeData, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(intervalId);
+    };
   }, [id, navigate]);
   
   const handleDeleteTrade = () => {
@@ -271,6 +279,9 @@ export default function TradeDetail() {
                               hour: '2-digit',
                               minute: '2-digit'
                             })}
+                            {trade.partialExits && trade.partialExits.length > 1 && (
+                              <span className="text-xs ml-2 text-muted-foreground">(latest exit)</span>
+                            )}
                           </p>
                         </div>
                       )}
@@ -681,3 +692,4 @@ function calculateHoldTime(entryDate: string, exitDate: string): string {
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
 }
+

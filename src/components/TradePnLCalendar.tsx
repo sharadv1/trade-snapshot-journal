@@ -42,21 +42,31 @@ export function TradePnLCalendar() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [strategyFilter, setStrategyFilter] = useState<string>('all');
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
-  
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const loadTrades = () => {
+    const allTrades = getTradesWithMetrics();
+    setTrades(allTrades.filter(trade => trade.status === 'closed'));
+    setRefreshKey(prev => prev + 1);
+  };
+
   useEffect(() => {
-    const loadTrades = () => {
-      const allTrades = getTradesWithMetrics();
-      setTrades(allTrades.filter(trade => trade.status === 'closed'));
-    };
-    
     loadTrades();
     
-    const handleStorageChange = () => {
-      loadTrades();
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'trade-journal-trades') {
+        loadTrades();
+      }
     };
     
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    
+    const intervalId = setInterval(loadTrades, 2000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(intervalId);
+    };
   }, []);
 
   const filteredTrades = useMemo(() => {
@@ -77,14 +87,16 @@ export function TradePnLCalendar() {
     }
     
     return result;
-  }, [trades, strategyFilter, resultFilter]);
+  }, [trades, strategyFilter, resultFilter, refreshKey]);
 
   const dailyPnL = useMemo(() => {
     const pnlByDay: DailyPnL = {};
     
     filteredTrades.forEach(trade => {
-      if (trade.exitDate && trade.metrics.profitLoss !== undefined) {
-        const exitDay = format(new Date(trade.exitDate), 'yyyy-MM-dd');
+      const exitDate = trade.metrics.latestExitDate || trade.exitDate;
+      
+      if (exitDate && trade.metrics.profitLoss !== undefined) {
+        const exitDay = format(new Date(exitDate), 'yyyy-MM-dd');
         
         if (!pnlByDay[exitDay]) {
           pnlByDay[exitDay] = { pnl: 0, tradeCount: 0, tradeIds: [] };
@@ -97,7 +109,7 @@ export function TradePnLCalendar() {
     });
     
     return pnlByDay;
-  }, [filteredTrades]);
+  }, [filteredTrades, refreshKey]);
 
   const availableStrategies = useMemo(() => {
     const strategies = new Set<string>();
@@ -117,7 +129,7 @@ export function TradePnLCalendar() {
 
   const calendarDays = useMemo(() => {
     const firstDayOfMonth = startOfMonth(currentMonth);
-    const firstDayOfWeek = getDay(firstDayOfMonth); // 0 = Sunday, 1 = Monday, etc.
+    const firstDayOfWeek = getDay(firstDayOfMonth);
     
     const days = [...daysInMonth];
     
@@ -259,6 +271,15 @@ export function TradePnLCalendar() {
                     </Button>
                   </div>
                 </div>
+
+                <Button 
+                  onClick={loadTrades} 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                >
+                  Refresh Calendar
+                </Button>
               </div>
             </PopoverContent>
           </Popover>
