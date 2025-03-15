@@ -12,7 +12,8 @@ import {
   addMonths,
   subMonths,
   getDay,
-  parse
+  parse,
+  isToday
 } from 'date-fns';
 import { Button } from './ui/button';
 import { TradeWithMetrics } from '@/types';
@@ -45,13 +46,11 @@ export function TradePnLCalendar() {
   useEffect(() => {
     const loadTrades = () => {
       const allTrades = getTradesWithMetrics();
-      // Only include closed trades (they have P&L)
       setTrades(allTrades.filter(trade => trade.status === 'closed'));
     };
     
     loadTrades();
     
-    // Reload when localStorage changes (for multi-tab support)
     const handleStorageChange = () => {
       loadTrades();
     };
@@ -63,12 +62,10 @@ export function TradePnLCalendar() {
   const filteredTrades = useMemo(() => {
     let result = [...trades];
     
-    // Filter by strategy
     if (strategyFilter !== 'all') {
       result = result.filter(trade => trade.strategy === strategyFilter);
     }
     
-    // Filter by win/loss
     if (resultFilter !== 'all') {
       result = result.filter(trade => {
         if (resultFilter === 'win') {
@@ -87,7 +84,6 @@ export function TradePnLCalendar() {
     
     filteredTrades.forEach(trade => {
       if (trade.exitDate && trade.metrics.profitLoss !== undefined) {
-        // Format date as YYYY-MM-DD for consistent keys
         const exitDay = format(new Date(trade.exitDate), 'yyyy-MM-dd');
         
         if (!pnlByDay[exitDay]) {
@@ -125,18 +121,15 @@ export function TradePnLCalendar() {
     
     const days = [...daysInMonth];
     
-    // Add empty cells before the first day
     for (let i = 0; i < firstDayOfWeek; i++) {
       days.unshift(null);
     }
     
-    // Group days into weeks (rows of 7)
     const weeks = [];
     for (let i = 0; i < days.length; i += 7) {
       weeks.push(days.slice(i, i + 7));
     }
     
-    // If the last week is not complete, pad with nulls
     const lastWeek = weeks[weeks.length - 1];
     if (lastWeek.length < 7) {
       for (let i = lastWeek.length; i < 7; i++) {
@@ -162,14 +155,20 @@ export function TradePnLCalendar() {
   const getCellClass = (day: Date | null) => {
     if (!day) return '';
     
+    let classes = '';
+    
+    if (isToday(day)) {
+      classes += 'ring-2 ring-primary font-bold ';
+    }
+    
     const dateKey = format(day, 'yyyy-MM-dd');
     const dayData = dailyPnL[dateKey];
     
-    if (!dayData) return 'bg-background';
+    if (!dayData) return classes + 'bg-background';
     
-    return dayData.pnl >= 0 
+    return classes + (dayData.pnl >= 0 
       ? 'bg-profit/20' 
-      : 'bg-loss/20';
+      : 'bg-loss/20');
   };
 
   const handleDayClick = (day: Date) => {
@@ -296,14 +295,15 @@ export function TradePnLCalendar() {
             
             const dateKey = format(day, 'yyyy-MM-dd');
             const dayData = dailyPnL[dateKey];
+            const isCurrentDay = isToday(day);
             
             return (
               <div 
                 key={dateKey} 
-                className={`border rounded-md p-2 h-24 flex flex-col ${getCellClass(day)} ${dayData ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+                className={`border rounded-md p-2 h-24 flex flex-col ${getCellClass(day)} ${dayData ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${isCurrentDay ? 'shadow-md' : ''}`}
                 onClick={() => dayData && handleDayClick(day)}
               >
-                <div className="self-end text-sm font-medium">
+                <div className={`self-end text-sm font-medium ${isCurrentDay ? 'bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center' : ''}`}>
                   {format(day, 'd')}
                 </div>
                 {dayData ? (
