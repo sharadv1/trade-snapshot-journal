@@ -106,17 +106,21 @@ export function isStrategyInUse(strategyId: string): boolean {
 
 // Delete a strategy
 export function deleteStrategy(strategyId: string): boolean {
+  // Don't allow deleting default strategies
+  const strategies = getStrategies();
+  const strategy = strategies.find(s => s.id === strategyId);
+  
+  if (!strategy) {
+    return false;
+  }
+  
+  if (strategy.isDefault) {
+    throw new Error("Cannot delete default strategies");
+  }
+  
   // Check if strategy is in use
   if (isStrategyInUse(strategyId)) {
     throw new Error("Cannot delete strategy that is being used by existing trades");
-  }
-  
-  const strategies = getStrategies();
-  
-  // Don't allow deleting default strategies
-  const strategy = strategies.find(s => s.id === strategyId);
-  if (strategy?.isDefault) {
-    throw new Error("Cannot delete default strategies");
   }
   
   const updatedStrategies = strategies.filter(s => s.id !== strategyId);

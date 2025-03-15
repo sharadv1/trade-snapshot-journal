@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Strategy } from '@/types';
 import { 
@@ -13,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Card, 
   CardContent, 
@@ -49,12 +49,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, CheckSquare } from 'lucide-react';
 
 export default function StrategyManagement() {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
+  const [selectedStrategies, setSelectedStrategies] = useState<string[]>([]);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [newStrategy, setNewStrategy] = useState<Partial<Strategy>>({
     name: '',
     description: '',
@@ -70,6 +72,7 @@ export default function StrategyManagement() {
     try {
       const loadedStrategies = getStrategies();
       setStrategies(loadedStrategies);
+      setSelectedStrategies([]);
     } catch (error) {
       console.error('Failed to load strategies:', error);
       toast.error('Failed to load strategies');
@@ -121,17 +124,83 @@ export default function StrategyManagement() {
 
   const handleDeleteStrategy = (strategyId: string) => {
     try {
-      // First check if strategy is in use
-      if (isStrategyInUse(strategyId)) {
-        toast.error('Cannot delete strategy that is being used by existing trades');
-        return;
-      }
-
       deleteStrategy(strategyId);
       toast.success('Strategy deleted successfully');
       loadStrategies();
     } catch (error) {
       toast.error((error as Error).message || 'Failed to delete strategy');
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedStrategies.length === 0) {
+      toast.error('No strategies selected');
+      return;
+    }
+
+    // Check if any selected strategies are in use or default
+    const nonDeletableStrategies: string[] = [];
+    const defaultStrategies: string[] = [];
+
+    selectedStrategies.forEach(id => {
+      const strategy = strategies.find(s => s.id === id);
+      if (!strategy) return;
+      
+      if (isStrategyInUse(id)) {
+        nonDeletableStrategies.push(strategy.name);
+      } else if (strategy.isDefault) {
+        defaultStrategies.push(strategy.name);
+      }
+    });
+
+    if (nonDeletableStrategies.length > 0) {
+      toast.error(`Cannot delete strategies in use: ${nonDeletableStrategies.join(', ')}`);
+      return;
+    }
+
+    if (defaultStrategies.length > 0) {
+      toast.error(`Cannot delete default strategies: ${defaultStrategies.join(', ')}`);
+      return;
+    }
+
+    // Delete all selected strategies
+    let deleteCount = 0;
+    selectedStrategies.forEach(id => {
+      try {
+        const result = deleteStrategy(id);
+        if (result) deleteCount++;
+      } catch (error) {
+        console.error(`Failed to delete strategy ${id}:`, error);
+      }
+    });
+
+    if (deleteCount > 0) {
+      toast.success(`Successfully deleted ${deleteCount} strategies`);
+      loadStrategies();
+    } else {
+      toast.error('No strategies were deleted');
+    }
+
+    setBulkDeleteDialogOpen(false);
+  };
+
+  const toggleStrategySelection = (strategyId: string) => {
+    setSelectedStrategies(prev => {
+      if (prev.includes(strategyId)) {
+        return prev.filter(id => id !== strategyId);
+      } else {
+        return [...prev, strategyId];
+      }
+    });
+  };
+
+  const toggleAllStrategies = () => {
+    if (selectedStrategies.length === strategies.filter(s => !s.isDefault).length) {
+      // If all non-default strategies are selected, deselect all
+      setSelectedStrategies([]);
+    } else {
+      // Otherwise, select all non-default strategies
+      setSelectedStrategies(strategies.filter(s => !s.isDefault).map(s => s.id));
     }
   };
 
@@ -160,6 +229,9 @@ export default function StrategyManagement() {
     });
   };
 
+  const nonDefaultStrategiesCount = strategies.filter(s => !s.isDefault).length;
+  const allNonDefaultSelected = selectedStrategies.length === nonDefaultStrategiesCount && nonDefaultStrategiesCount > 0;
+
   return (
     <div className="space-y-8 pb-10">
       <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
@@ -172,10 +244,21 @@ export default function StrategyManagement() {
           </p>
         </div>
         
-        <Button onClick={openAddDialog}>
-          <Plus className="mr-1 h-4 w-4" />
-          Add Strategy
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          {selectedStrategies.length > 0 && (
+            <Button 
+              variant="destructive" 
+              onClick={() => setBulkDeleteDialogOpen(true)}
+            >
+              <Trash2 className="mr-1 h-4 w-4" />
+              Delete Selected ({selectedStrategies.length})
+            </Button>
+          )}
+          <Button onClick={openAddDialog}>
+            <Plus className="mr-1 h-4 w-4" />
+            Add Strategy
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -189,6 +272,15 @@ export default function StrategyManagement() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead style={{ width: '50px' }}>
+                  <div className="flex items-center">
+                    <Checkbox 
+                      checked={allNonDefaultSelected} 
+                      onCheckedChange={toggleAllStrategies}
+                      disabled={nonDefaultStrategiesCount === 0}
+                    />
+                  </div>
+                </TableHead>
                 <TableHead style={{ width: '50px' }}>Color</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead className="hidden md:table-cell">Description</TableHead>
@@ -198,6 +290,13 @@ export default function StrategyManagement() {
             <TableBody>
               {strategies.map((strategy) => (
                 <TableRow key={strategy.id}>
+                  <TableCell>
+                    <Checkbox 
+                      checked={selectedStrategies.includes(strategy.id)}
+                      onCheckedChange={() => toggleStrategySelection(strategy.id)}
+                      disabled={strategy.isDefault}
+                    />
+                  </TableCell>
                   <TableCell>
                     <div 
                       className="w-6 h-6 rounded-full" 
@@ -241,12 +340,17 @@ export default function StrategyManagement() {
                                   Default strategies cannot be deleted.
                                 </p>
                               )}
+                              {isStrategyInUse(strategy.id) && (
+                                <p className="mt-2 text-destructive">
+                                  This strategy is currently in use by existing trades and cannot be deleted.
+                                </p>
+                              )}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              disabled={strategy.isDefault}
+                              disabled={strategy.isDefault || isStrategyInUse(strategy.id)}
                               onClick={() => handleDeleteStrategy(strategy.id)}
                             >
                               Delete
@@ -261,7 +365,7 @@ export default function StrategyManagement() {
 
               {strategies.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                     No strategies found. Add a strategy to get started.
                   </TableCell>
                 </TableRow>
@@ -360,6 +464,28 @@ export default function StrategyManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bulk Delete Strategies</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedStrategies.length} selected strategies?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Selected
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
