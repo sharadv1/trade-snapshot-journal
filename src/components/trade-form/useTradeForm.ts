@@ -56,6 +56,12 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
   }, [trade.type, trade.symbol]);
 
   const handleChange = (field: keyof Trade, value: any) => {
+    // If changing strategy, ensure we don't set to "custom" on a new trade
+    if (field === 'strategy' && value === 'custom' && !isEditing) {
+      toast.error("Custom strategies are not allowed for new trades");
+      return;
+    }
+
     setTrade(prev => ({ ...prev, [field]: value }));
   };
 

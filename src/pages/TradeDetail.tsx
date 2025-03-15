@@ -92,13 +92,11 @@ export default function TradeDetail() {
     );
   }
 
-  // Calculate total quantity exited from partial exits
   const totalExitedQuantity = (trade.partialExits || []).reduce(
     (total, exit) => total + exit.quantity, 
     0
   );
   
-  // Calculate remaining quantity
   const remainingQuantity = trade.quantity - totalExitedQuantity;
 
   return (
@@ -652,12 +650,10 @@ export default function TradeDetail() {
   );
 }
 
-// Helper for className merging
 function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
-// Calculate hold time between entry and exit dates
 function calculateHoldTime(entryDate: string, exitDate: string): string {
   const entry = new Date(entryDate);
   const exit = new Date(exitDate);
@@ -677,3 +673,4 @@ function calculateHoldTime(entryDate: string, exitDate: string): string {
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
 }
+

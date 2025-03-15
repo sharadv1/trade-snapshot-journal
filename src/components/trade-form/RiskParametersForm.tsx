@@ -69,16 +69,16 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
                   </div>
                 </SelectItem>
               ))}
-              <SelectItem value="custom">Custom</SelectItem>
             </SelectContent>
           </Select>
           
-          {trade.strategy === 'custom' && (
+          {trade.strategy === 'custom' && trade.customStrategy && (
             <Input 
               className="mt-2"
               placeholder="Enter custom strategy name"
-              value={trade.customStrategy || ''}
+              value={trade.customStrategy}
               onChange={(e) => handleChange('customStrategy', e.target.value)}
+              disabled
             />
           )}
         </div>
