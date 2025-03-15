@@ -1,0 +1,14 @@
+
+version: '3'
+
+services:
+  trade-journal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    # Uncomment the volume below if you want to persist data
+    # volumes:
+    #  - ./data:/data

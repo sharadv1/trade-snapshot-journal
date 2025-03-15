@@ -52,6 +52,17 @@ You can also deploy the built application to any static file server:
 2. Copy the contents of the `dist` folder to your web server directory
 3. Access the application via your local server URL
 
+### Option 4: Docker Deployment
+
+For Docker deployment instructions, including how to use with Portainer:
+
+```sh
+# See the Docker deployment guide
+cat README.docker.md
+```
+
+Or open the [Docker Deployment Guide](README.docker.md) file.
+
 ## Data Storage and Backup
 
 While the app uses your browser's localStorage for convenience, we understand the importance of data portability. You can:
