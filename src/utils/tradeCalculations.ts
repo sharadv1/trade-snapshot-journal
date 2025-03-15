@@ -1,3 +1,4 @@
+
 import { Trade, TradeMetrics, PerformanceMetrics, TradeWithMetrics, PartialExit, FuturesContractDetails, COMMON_FUTURES_CONTRACTS } from '@/types';
 
 // Calculate metrics for a single trade
@@ -16,6 +17,7 @@ export const calculateTradeMetrics = (trade: Trade): TradeMetrics => {
   let totalExitValue = 0;
   let totalEntryValue = 0;
   let totalExitedQuantity = 0;
+  let weightedExitPrice = 0;
 
   // Calculate P&L from partial exits
   if (trade.partialExits && trade.partialExits.length > 0) {
@@ -28,19 +30,29 @@ export const calculateTradeMetrics = (trade: Trade): TradeMetrics => {
       totalExitValue += exitValue;
       totalEntryValue += entryValue;
       totalExitedQuantity += exit.quantity;
+      weightedExitPrice += exit.exitPrice * exit.quantity; // For weighted average calculation
     });
   }
 
   // Add P&L from final exit if trade is closed
   if (trade.status === 'closed' && trade.exitPrice) {
     const remainingQuantity = trade.quantity - totalExitedQuantity;
-    const exitValue = trade.exitPrice * remainingQuantity;
-    const entryValue = trade.entryPrice * remainingQuantity;
-    const finalPL = (exitValue - entryValue) * direction - (trade.fees || 0);
-    
-    totalPL += finalPL;
-    totalExitValue += exitValue;
-    totalEntryValue += entryValue;
+    if (remainingQuantity > 0) {
+      const exitValue = trade.exitPrice * remainingQuantity;
+      const entryValue = trade.entryPrice * remainingQuantity;
+      const finalPL = (exitValue - entryValue) * direction - (trade.fees || 0);
+      
+      totalPL += finalPL;
+      totalExitValue += exitValue;
+      totalEntryValue += entryValue;
+      totalExitedQuantity += remainingQuantity;
+      weightedExitPrice += trade.exitPrice * remainingQuantity; // Add to weighted average
+    }
+  }
+
+  // Calculate weighted average exit price
+  if (totalExitedQuantity > 0) {
+    metrics.weightedExitPrice = weightedExitPrice / totalExitedQuantity;
   }
 
   // Set the calculated P&L

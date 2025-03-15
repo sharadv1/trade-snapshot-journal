@@ -47,6 +47,7 @@ export interface TradeMetrics {
   riskedAmount?: number;
   maxPotentialGain?: number;
   calculationExplanation?: string;
+  weightedExitPrice?: number;
 }
 
 export interface TradeWithMetrics extends Trade {

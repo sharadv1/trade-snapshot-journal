@@ -8,6 +8,7 @@ import { FullExitForm } from './trade-exit/FullExitForm';
 import { PartialExitForm } from './trade-exit/PartialExitForm';
 import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
+import { DialogTitle } from '@/components/ui/dialog';
 
 interface ExitTradeFormProps {
   trade: Trade;
@@ -51,8 +52,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
             <X className="h-4 w-4" />
           </Button>
         </div>
-        {/* Use VisuallyHidden instead of DialogTitle */}
-        <VisuallyHidden>Exit Trade</VisuallyHidden>
+        <DialogTitle className="sr-only">Exit Trade</DialogTitle>
       </CardHeader>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

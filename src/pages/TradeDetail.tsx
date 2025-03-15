@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog';
 import { TradeWithMetrics } from '@/types';
 import { deleteTrade, getTradeById } from '@/utils/tradeStorage';
 import { calculateTradeMetrics, formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
@@ -74,6 +74,7 @@ export default function TradeDetail() {
 
   const handleExitDialogClose = () => {
     setExitDialogOpen(false);
+    loadTradeData();
   };
   
   const handleTradeUpdate = () => {
@@ -98,6 +99,8 @@ export default function TradeDetail() {
   );
   
   const remainingQuantity = trade.quantity - totalExitedQuantity;
+
+  const displayExitPrice = trade.metrics.weightedExitPrice || trade.exitPrice;
 
   return (
     <div className="py-8 animate-fade-in">
@@ -156,6 +159,7 @@ export default function TradeDetail() {
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md p-0">
+                <DialogTitle className="sr-only">Exit Position</DialogTitle>
                 <ExitTradeForm 
                   trade={trade} 
                   onClose={handleExitDialogClose}
@@ -270,14 +274,17 @@ export default function TradeDetail() {
                         </div>
                       )}
                       
-                      {trade.status === 'closed' && trade.exitPrice && (
+                      {(trade.status === 'closed' || totalExitedQuantity > 0) && displayExitPrice && (
                         <div>
                           <h3 className="text-sm font-medium text-muted-foreground flex items-center">
                             <CircleDollarSign className="mr-1.5 h-4 w-4" />
-                            Exit Price
+                            {trade.partialExits && trade.partialExits.length > 1 ? 'Avg. Exit Price' : 'Exit Price'}
                           </h3>
                           <p className="mt-1 font-mono">
-                            {formatCurrency(trade.exitPrice)}
+                            {formatCurrency(displayExitPrice)}
+                            {trade.partialExits && trade.partialExits.length > 1 && (
+                              <span className="text-xs ml-2 text-muted-foreground">(weighted avg.)</span>
+                            )}
                           </p>
                         </div>
                       )}
@@ -421,7 +428,7 @@ export default function TradeDetail() {
                 <div className="mt-6">
                   <PartialExitsList 
                     trade={trade} 
-                    onUpdate={() => loadTradeData()} 
+                    onUpdate={handleTradeUpdate} 
                   />
                 </div>
               )}
@@ -673,4 +680,3 @@ function calculateHoldTime(entryDate: string, exitDate: string): string {
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
 }
-
