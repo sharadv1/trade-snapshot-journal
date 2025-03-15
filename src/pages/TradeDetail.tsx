@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -28,6 +29,7 @@ import { ExitTradeForm } from '@/components/ExitTradeForm';
 import { PartialExitsList } from '@/components/PartialExitsList';
 import { FuturesContractDetails } from '@/components/FuturesContractDetails';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
+import { NotesAndImagesForm } from '@/components/trade-form/NotesAndImagesForm';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -94,6 +96,11 @@ export default function TradeDetail() {
   const toggleCalculations = () => {
     setShowCalculations(!showCalculations);
   };
+
+  // These are dummy functions since we're only displaying the notes and images, not editing them
+  const handleChange = () => {};
+  const onImageUpload = () => {};
+  const onImageRemove = () => {};
 
   if (!trade) {
     return (
@@ -205,10 +212,9 @@ export default function TradeDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3 w-full">
+            <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="notes">Notes</TabsTrigger>
-              <TabsTrigger value="images">Images</TabsTrigger>
+              <TabsTrigger value="notes">Notes & Images</TabsTrigger>
             </TabsList>
             
             <TabsContent value="details" className="mt-4">
@@ -451,49 +457,49 @@ export default function TradeDetail() {
             <TabsContent value="notes" className="mt-4">
               <Card className="shadow-subtle border">
                 <CardHeader>
-                  <CardTitle className="text-lg">Trade Notes</CardTitle>
+                  <CardTitle className="text-lg">Notes & Images</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {trade.notes ? (
-                    <div className="whitespace-pre-wrap">
-                      {trade.notes}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground italic">
-                      No notes were added for this trade.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="images" className="mt-4">
-              <Card className="shadow-subtle border">
-                <CardHeader>
-                  <CardTitle className="text-lg">Trade Images</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {trade.images && trade.images.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {trade.images.map((image, index) => (
-                        <div
-                          key={index}
-                          className="block border rounded-md overflow-hidden hover:shadow-elevated transition-all cursor-pointer"
-                          onClick={() => setViewingImage(image)}
-                        >
-                          <img 
-                            src={image} 
-                            alt={`Trade image ${index + 1}`} 
-                            className="w-full h-auto object-cover"
-                          />
+                  <div className="space-y-8">
+                    {/* Using the same NotesAndImagesForm component for consistency but disabling edits */}
+                    <div className="space-y-2">
+                      <h3 className="text-base font-medium">Trade Notes</h3>
+                      {trade.notes ? (
+                        <div className="whitespace-pre-wrap mt-2 p-4 bg-muted/30 rounded-md">
+                          {trade.notes}
                         </div>
-                      ))}
+                      ) : (
+                        <p className="text-muted-foreground italic">
+                          No notes were added for this trade.
+                        </p>
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-muted-foreground italic">
-                      No images were added for this trade.
-                    </p>
-                  )}
+                    
+                    <div className="space-y-3">
+                      <h3 className="text-base font-medium">Trade Images</h3>
+                      {trade.images && trade.images.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                          {trade.images.map((image, index) => (
+                            <div
+                              key={index}
+                              className="block border rounded-md overflow-hidden hover:shadow-elevated transition-all cursor-pointer"
+                              onClick={() => setViewingImage(image)}
+                            >
+                              <img 
+                                src={image} 
+                                alt={`Trade image ${index + 1}`} 
+                                className="w-full h-auto object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground italic">
+                          No images were added for this trade.
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

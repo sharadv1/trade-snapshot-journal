@@ -78,7 +78,7 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
       ...instrumentCategories
     ];
     
-    // Track totals for cumulative calculation
+    // Track totals for cumulative calculation - only using instrument data
     const categoryTotals = {
       totalDollarValue: 0,
       totalR: 0,
@@ -89,7 +89,7 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
     const monthlyPerformance: MonthPerformanceData[] = sortedMonths.map(({ month, rawMonth }) => {
       const monthData: MonthPerformanceData = { month, rawMonth };
       
-      // Monthly totals for all categories combined
+      // Monthly totals for all categories combined - only tracking instruments
       let monthlyDollarTotal = 0;
       let monthlyRTotal = 0;
       let monthlyTradeCount = 0;
@@ -113,6 +113,29 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
             const isInMonth = tradeDate >= monthStart && tradeDate <= monthEnd;
             return isInMonth && trade.type === category.name;
           });
+          
+          // Only add to totals for instrument categories
+          if (tradesInCategory.length > 0) {
+            // Calculate total dollar value (sum of all profit/loss)
+            const categoryDollarValue = tradesInCategory.reduce(
+              (sum, trade) => sum + (trade.metrics?.profitLoss || 0), 
+              0
+            );
+            
+            // Calculate total R (sum of all profit/loss divided by risked amount)
+            let categoryRValue = 0;
+            tradesInCategory.forEach(trade => {
+              if (trade.metrics && trade.metrics.riskedAmount && trade.metrics.riskedAmount > 0) {
+                const tradeR = trade.metrics.profitLoss / trade.metrics.riskedAmount;
+                categoryRValue += tradeR;
+              }
+            });
+            
+            // Add to monthly totals (only counting instruments)
+            monthlyDollarTotal += categoryDollarValue;
+            monthlyRTotal += categoryRValue;
+            monthlyTradeCount += tradesInCategory.length;
+          }
         }
         
         if (tradesInCategory.length > 0) {
@@ -130,11 +153,6 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
               totalR += tradeR;
             }
           });
-          
-          // Add to monthly totals
-          monthlyDollarTotal += totalDollarValue;
-          monthlyRTotal += totalR;
-          monthlyTradeCount += tradesInCategory.length;
           
           monthData[category.id] = {
             totalDollarValue,
@@ -157,7 +175,7 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
         count: monthlyTradeCount
       };
       
-      // Update cumulative totals
+      // Update cumulative totals (only counting instruments)
       categoryTotals.totalDollarValue += monthlyDollarTotal;
       categoryTotals.totalR += monthlyRTotal;
       categoryTotals.count += monthlyTradeCount;
