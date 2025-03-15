@@ -25,7 +25,7 @@ interface MonthlyPerformanceTableProps {
 }
 
 export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPerformanceTableProps) {
-  const { monthlyData, categories } = useMemo(() => {
+  const { monthlyData, categories, totals } = useMemo(() => {
     // Get unique months from trades
     const months = new Map<string, Date>();
     
@@ -78,9 +78,21 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
       ...instrumentCategories
     ];
     
+    // Track totals for cumulative calculation
+    const categoryTotals = {
+      totalDollarValue: 0,
+      totalR: 0,
+      count: 0
+    };
+    
     // Calculate performance metrics for each month and category
     const monthlyPerformance: MonthPerformanceData[] = sortedMonths.map(({ month, rawMonth }) => {
       const monthData: MonthPerformanceData = { month, rawMonth };
+      
+      // Monthly totals for all categories combined
+      let monthlyDollarTotal = 0;
+      let monthlyRTotal = 0;
+      let monthlyTradeCount = 0;
       
       // For each category, calculate metrics
       allCategories.forEach(category => {
@@ -119,6 +131,11 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
             }
           });
           
+          // Add to monthly totals
+          monthlyDollarTotal += totalDollarValue;
+          monthlyRTotal += totalR;
+          monthlyTradeCount += tradesInCategory.length;
+          
           monthData[category.id] = {
             totalDollarValue,
             totalR: parseFloat(totalR.toFixed(2)),
@@ -133,12 +150,25 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
         }
       });
       
+      // Add monthly total for all categories
+      monthData.monthlyTotal = {
+        totalDollarValue: monthlyDollarTotal,
+        totalR: parseFloat(monthlyRTotal.toFixed(2)),
+        count: monthlyTradeCount
+      };
+      
+      // Update cumulative totals
+      categoryTotals.totalDollarValue += monthlyDollarTotal;
+      categoryTotals.totalR += monthlyRTotal;
+      categoryTotals.count += monthlyTradeCount;
+      
       return monthData;
     });
     
     return {
       monthlyData: monthlyPerformance,
-      categories: allCategories
+      categories: allCategories,
+      totals: categoryTotals
     };
   }, [trades]);
 
@@ -178,6 +208,9 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
                 {category.name}
               </TableHead>
             ))}
+            <TableHead className="font-semibold text-foreground text-base py-4 text-right">
+              Cumulative Total
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -208,8 +241,48 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
                   </TableCell>
                 );
               })}
+              
+              {/* Cumulative Total Column */}
+              <TableCell className="text-right">
+                {monthData.monthlyTotal?.count > 0 ? (
+                  <div className="flex flex-col items-end">
+                    <span className={monthData.monthlyTotal.totalDollarValue > 0 ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                      {formatCurrency(monthData.monthlyTotal.totalDollarValue)}
+                    </span>
+                    <span className={`text-xs ${monthData.monthlyTotal.totalR > 0 ? "text-green-600" : "text-red-600"}`}>
+                      {monthData.monthlyTotal.totalR > 0 ? '+' : ''}{monthData.monthlyTotal.totalR}R
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({monthData.monthlyTotal.count} trades)
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </TableCell>
             </TableRow>
           ))}
+          
+          {/* Grand Total Row */}
+          <TableRow className="border-t-2 bg-muted/20">
+            <TableCell className="font-bold">All Time Total</TableCell>
+            {activeCategories.map(category => (
+              <TableCell key={`total-${category.id}`}></TableCell>
+            ))}
+            <TableCell className="text-right">
+              <div className="flex flex-col items-end">
+                <span className={totals.totalDollarValue > 0 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
+                  {formatCurrency(totals.totalDollarValue)}
+                </span>
+                <span className={`text-xs font-medium ${totals.totalR > 0 ? "text-green-600" : "text-red-600"}`}>
+                  {totals.totalR > 0 ? '+' : ''}{parseFloat(totals.totalR.toFixed(2))}R
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  ({totals.count} trades)
+                </span>
+              </div>
+            </TableCell>
+          </TableRow>
         </TableBody>
       </Table>
     </div>
