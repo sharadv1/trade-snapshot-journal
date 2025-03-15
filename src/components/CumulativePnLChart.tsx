@@ -1,4 +1,3 @@
-
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TradeWithMetrics } from '@/types';
@@ -132,7 +131,7 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
         <CardHeader>
           <CardTitle className="text-base font-medium">Cumulative Profit & Loss</CardTitle>
         </CardHeader>
-        <CardContent className="h-[250px] flex items-center justify-center text-muted-foreground">
+        <CardContent className="h-[400px] flex items-center justify-center text-muted-foreground">
           No closed trades to display
         </CardContent>
       </Card>
@@ -145,7 +144,7 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
         <CardTitle className="text-base font-medium">Cumulative Profit & Loss</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px] w-full">
+        <div className="h-[400px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart 
               data={chartData}

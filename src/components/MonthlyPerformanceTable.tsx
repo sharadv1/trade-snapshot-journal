@@ -153,11 +153,11 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
   return (
     <div className="rounded-lg border overflow-hidden">
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-muted">
           <TableRow>
-            <TableHead className="font-medium">Month</TableHead>
+            <TableHead className="font-semibold text-foreground text-base py-4">Month</TableHead>
             {activeCategories.map(category => (
-              <TableHead key={category.id} className="font-medium">
+              <TableHead key={category.id} className="font-semibold text-foreground text-base py-4">
                 {category.name}
               </TableHead>
             ))}
