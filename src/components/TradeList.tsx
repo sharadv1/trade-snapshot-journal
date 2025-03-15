@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -352,9 +351,9 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
                               ({formatPercentage(trade.metrics.profitLossPercentage)})
                             </span>
                           </span>
-                          {trade.metrics.riskedAmount > 0 && (
+                          {trade.metrics.riskRewardRatio && trade.metrics.riskedAmount > 0 && (
                             <span className={`text-xs ${trade.metrics.profitLoss >= 0 ? 'text-profit' : 'text-loss'}`}>
-                              {(trade.metrics.profitLoss / trade.metrics.riskedAmount).toFixed(2)}R
+                              {trade.metrics.riskRewardRatio.toFixed(2)}R
                             </span>
                           )}
                         </div>
