@@ -80,16 +80,18 @@ export function ImageViewerDialog({ image, isOpen, onClose }: ImageViewerDialogP
             </Button>
           </div>
           
-          <div className="overflow-auto p-4 pb-8 h-full flex items-center justify-center">
-            <img 
-              src={image} 
-              alt="Trade image" 
-              className="transition-transform duration-200 object-contain max-h-[85vh] max-w-[90vw]"
-              style={{ 
-                transform: `scale(${zoomLevel / 100})`,
-                transformOrigin: 'center'
-              }}
-            />
+          <div className="h-full flex items-center justify-center p-4">
+            <div className="relative overflow-auto max-h-full max-w-full flex items-center justify-center">
+              <img 
+                src={image} 
+                alt="Trade image" 
+                className="object-contain max-h-[calc(90vh-32px)]"
+                style={{ 
+                  transform: `scale(${zoomLevel / 100})`,
+                  transformOrigin: 'center'
+                }}
+              />
+            </div>
           </div>
         </div>
       </DialogContent>

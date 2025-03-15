@@ -95,7 +95,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
     
     if (!trade.symbol || !trade.entryPrice || !trade.quantity) {
       toast.error("Please fill in all required fields");
-      return;
+      return false;
     }
     
     try {
@@ -122,12 +122,14 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
         } as Trade;
         addTrade(newTrade);
         toast.success("Trade added successfully");
+        navigate('/');
       }
       
-      navigate('/');
+      return true;
     } catch (error) {
       console.error("Error saving trade:", error);
       toast.error("Failed to save trade");
+      return false;
     }
   };
 

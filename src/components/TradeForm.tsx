@@ -30,8 +30,21 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
     pointValue,
   } = useTradeForm(initialTrade, isEditing);
 
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const success = handleSubmit(e);
+    
+    // If this is an edit and submission was successful, navigate to the trade detail page
+    if (success && isEditing && initialTrade) {
+      navigate(`/trade/${initialTrade.id}`);
+      return;
+    }
+    
+    // For new trades or if submission failed, navigate as determined by the form handler
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="animate-scale-in">
+    <form onSubmit={onSubmit} className="animate-scale-in">
       <Card className="shadow-subtle border">
         <CardHeader>
           <CardTitle>{isEditing ? "Edit Trade" : "New Trade"}</CardTitle>
@@ -83,7 +96,14 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
         </Tabs>
         
         <CardFooter className="flex justify-between border-t pt-6">
-          <Button variant="outline" type="button" onClick={() => navigate('/')}>
+          <Button 
+            variant="outline" 
+            type="button" 
+            onClick={() => isEditing && initialTrade 
+              ? navigate(`/trade/${initialTrade.id}`) 
+              : navigate('/')
+            }
+          >
             Cancel
           </Button>
           <Button type="submit">
