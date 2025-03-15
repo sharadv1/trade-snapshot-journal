@@ -14,7 +14,8 @@ import {
   CircleCheck,
   SplitSquareVertical,
   Calculator,
-  Clock
+  Clock,
+  Timer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -276,6 +277,24 @@ export default function TradeDetail() {
                             {trade.pspTime.includes('AM') || trade.pspTime.includes('PM') 
                               ? trade.pspTime 
                               : `${trade.pspTime} ${parseInt(trade.pspTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}`}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {trade.timeframe && (
+                        <div>
+                          <h3 className="text-sm font-medium text-muted-foreground flex items-center">
+                            <Timer className="mr-1.5 h-4 w-4" />
+                            Timeframe
+                          </h3>
+                          <p className="mt-1">
+                            {trade.timeframe === 'm5' && '5 Minutes (M5)'}
+                            {trade.timeframe === 'm15' && '15 Minutes (M15)'}
+                            {trade.timeframe === 'H1' && '1 Hour (H1)'}
+                            {trade.timeframe === 'H4' && '4 Hours (H4)'}
+                            {trade.timeframe === 'D1' && 'Daily (D1)'}
+                            {trade.timeframe === 'W1' && 'Weekly (W1)'}
+                            {trade.timeframe === 'M1' && 'Monthly (M1)'}
                           </p>
                         </div>
                       )}

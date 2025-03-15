@@ -22,7 +22,8 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
       images: [],
       tags: [],
       partialExits: [],
-      pspTime: ''
+      pspTime: '',
+      timeframe: ''
     }
   );
 

@@ -7,6 +7,8 @@ import { SymbolSelector } from '@/components/SymbolSelector';
 import { FuturesContractSelector } from '@/components/FuturesContractSelector';
 import { FuturesContractDetails as FuturesDetails } from '@/components/FuturesContractDetails';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChevronDown } from 'lucide-react';
 
 interface TradeDetailsFormProps {
   trade: Partial<Trade>;
@@ -144,15 +146,38 @@ export function TradeDetailsForm({
         </div>
       </div>
       
-      <div className="space-y-2">
-        <Label htmlFor="pspTime">PSP Time (HH:MM)</Label>
-        <Input 
-          id="pspTime" 
-          type="time"
-          value={trade.pspTime || ''}
-          onChange={(e) => handleChange('pspTime', e.target.value)}
-          placeholder="Enter PSP time (e.g., 09:30)"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="pspTime">PSP Time (HH:MM)</Label>
+          <Input 
+            id="pspTime" 
+            type="time"
+            value={trade.pspTime || ''}
+            onChange={(e) => handleChange('pspTime', e.target.value)}
+            placeholder="Enter PSP time (e.g., 09:30)"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="timeframe">Timeframe</Label>
+          <Select
+            value={trade.timeframe || ''}
+            onValueChange={(value) => handleChange('timeframe', value)}
+          >
+            <SelectTrigger id="timeframe" className="w-full">
+              <SelectValue placeholder="Select timeframe" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="m5">5 Minutes (M5)</SelectItem>
+              <SelectItem value="m15">15 Minutes (M15)</SelectItem>
+              <SelectItem value="H1">1 Hour (H1)</SelectItem>
+              <SelectItem value="H4">4 Hours (H4)</SelectItem>
+              <SelectItem value="D1">Daily (D1)</SelectItem>
+              <SelectItem value="W1">Weekly (W1)</SelectItem>
+              <SelectItem value="M1">Monthly (M1)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+
 export interface Trade {
   id: string;
   symbol: string;
@@ -20,6 +21,7 @@ export interface Trade {
   partialExits?: PartialExit[];
   contractDetails?: FuturesContractDetails;
   pspTime?: string; // PSP time in HH:MM AM/PM format
+  timeframe?: 'm5' | 'm15' | 'H1' | 'H4' | 'D1' | 'W1' | 'M1';
 }
 
 export interface PartialExit {
