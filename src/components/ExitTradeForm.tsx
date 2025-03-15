@@ -43,6 +43,17 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
     handlePartialExit
   } = useExitTradeLogic(trade, onUpdate, onClose);
 
+  // Wrapper functions to ensure trade updates are visible immediately
+  const handleSubmitFullExit = async () => {
+    await handleFullExit();
+    onUpdate(); // Ensure parent component refreshes data
+  };
+
+  const handleSubmitPartialExit = async () => {
+    await handlePartialExit();
+    onUpdate(); // Ensure parent component refreshes data
+  };
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -104,7 +115,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
           Cancel
         </Button>
         <Button 
-          onClick={activeTab === 'full' ? handleFullExit : handlePartialExit}
+          onClick={activeTab === 'full' ? handleSubmitFullExit : handleSubmitPartialExit}
         >
           {activeTab === 'full' ? 'Close Trade' : 'Record Partial Exit'}
         </Button>

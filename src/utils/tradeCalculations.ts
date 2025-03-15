@@ -19,16 +19,28 @@ export const calculateTradeMetrics = (trade: Trade): TradeMetrics => {
   let totalExitedQuantity = 0;
   let weightedExitPrice = 0;
 
+  // Get contract point value for futures contracts
+  const pointValue = trade.type === 'futures' ? getContractPointValue(trade) : 1;
+
   // Calculate P&L from partial exits
   if (trade.partialExits && trade.partialExits.length > 0) {
     trade.partialExits.forEach(exit => {
-      const exitValue = exit.exitPrice * exit.quantity;
-      const entryValue = trade.entryPrice * exit.quantity;
-      const partialPL = (exitValue - entryValue) * direction - (exit.fees || 0);
+      let partialPL;
+      
+      if (trade.type === 'futures') {
+        // For futures, calculate P&L based on point difference × point value
+        const pointDifference = (exit.exitPrice - trade.entryPrice) * direction;
+        partialPL = pointDifference * pointValue * exit.quantity - (exit.fees || 0);
+      } else {
+        // For other instruments, calculate P&L based on price difference
+        const exitValue = exit.exitPrice * exit.quantity;
+        const entryValue = trade.entryPrice * exit.quantity;
+        partialPL = (exitValue - entryValue) * direction - (exit.fees || 0);
+      }
       
       totalPL += partialPL;
-      totalExitValue += exitValue;
-      totalEntryValue += entryValue;
+      totalExitValue += exit.exitPrice * exit.quantity;
+      totalEntryValue += trade.entryPrice * exit.quantity;
       totalExitedQuantity += exit.quantity;
       weightedExitPrice += exit.exitPrice * exit.quantity; // For weighted average calculation
     });
@@ -38,13 +50,22 @@ export const calculateTradeMetrics = (trade: Trade): TradeMetrics => {
   if (trade.status === 'closed' && trade.exitPrice) {
     const remainingQuantity = trade.quantity - totalExitedQuantity;
     if (remainingQuantity > 0) {
-      const exitValue = trade.exitPrice * remainingQuantity;
-      const entryValue = trade.entryPrice * remainingQuantity;
-      const finalPL = (exitValue - entryValue) * direction - (trade.fees || 0);
+      let finalPL;
+      
+      if (trade.type === 'futures') {
+        // For futures, calculate P&L based on point difference × point value
+        const pointDifference = (trade.exitPrice - trade.entryPrice) * direction;
+        finalPL = pointDifference * pointValue * remainingQuantity - (trade.fees || 0);
+      } else {
+        // For other instruments, calculate P&L based on price difference
+        const exitValue = trade.exitPrice * remainingQuantity;
+        const entryValue = trade.entryPrice * remainingQuantity;
+        finalPL = (exitValue - entryValue) * direction - (trade.fees || 0);
+      }
       
       totalPL += finalPL;
-      totalExitValue += exitValue;
-      totalEntryValue += entryValue;
+      totalExitValue += trade.exitPrice * remainingQuantity;
+      totalEntryValue += trade.entryPrice * remainingQuantity;
       totalExitedQuantity += remainingQuantity;
       weightedExitPrice += trade.exitPrice * remainingQuantity; // Add to weighted average
     }
