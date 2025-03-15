@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatCurrency } from '@/utils/tradeCalculations';
 
 interface MonthPerformanceData {
   month: string;
@@ -77,11 +78,11 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
       ...instrumentCategories
     ];
     
-    // Calculate win rates for each month and category
+    // Calculate performance metrics for each month and category
     const monthlyPerformance: MonthPerformanceData[] = sortedMonths.map(({ month, rawMonth }) => {
       const monthData: MonthPerformanceData = { month, rawMonth };
       
-      // For each category, calculate win rate
+      // For each category, calculate metrics
       allCategories.forEach(category => {
         const monthStart = new Date(rawMonth.getFullYear(), rawMonth.getMonth(), 1);
         const monthEnd = new Date(rawMonth.getFullYear(), rawMonth.getMonth() + 1, 0);
@@ -103,16 +104,32 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
         }
         
         if (tradesInCategory.length > 0) {
-          const winningTrades = tradesInCategory.filter(
-            trade => trade.metrics && trade.metrics.profitLoss > 0
-          ).length;
-          const winRate = (winningTrades / tradesInCategory.length) * 100;
+          // Calculate total dollar value (sum of all profit/loss)
+          const totalDollarValue = tradesInCategory.reduce(
+            (sum, trade) => sum + (trade.metrics?.profitLoss || 0), 
+            0
+          );
+          
+          // Calculate total R (sum of all profit/loss divided by risked amount)
+          let totalR = 0;
+          tradesInCategory.forEach(trade => {
+            if (trade.metrics && trade.metrics.riskedAmount && trade.metrics.riskedAmount > 0) {
+              const tradeR = trade.metrics.profitLoss / trade.metrics.riskedAmount;
+              totalR += tradeR;
+            }
+          });
+          
           monthData[category.id] = {
-            winRate: Math.round(winRate),
+            totalDollarValue,
+            totalR: parseFloat(totalR.toFixed(2)),
             count: tradesInCategory.length
           };
         } else {
-          monthData[category.id] = { winRate: null, count: 0 };
+          monthData[category.id] = { 
+            totalDollarValue: 0, 
+            totalR: 0, 
+            count: 0 
+          };
         }
       });
       
@@ -169,12 +186,17 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
               <TableCell className="font-medium">{monthData.month}</TableCell>
               {activeCategories.map(category => {
                 const data = monthData[category.id];
+                const isProfitable = data?.totalDollarValue > 0;
+                
                 return (
                   <TableCell key={category.id}>
                     {data?.count > 0 ? (
                       <div className="flex flex-col">
-                        <span className={data.winRate >= 50 ? "text-green-600" : "text-red-600"}>
-                          {data.winRate}%
+                        <span className={isProfitable ? "text-green-600" : "text-red-600"}>
+                          {formatCurrency(data.totalDollarValue)}
+                        </span>
+                        <span className={`text-xs ${isProfitable ? "text-green-600" : "text-red-600"}`}>
+                          {data.totalR > 0 ? '+' : ''}{data.totalR}R
                         </span>
                         <span className="text-xs text-muted-foreground">
                           ({data.count} trades)
