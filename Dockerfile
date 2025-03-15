@@ -1,11 +1,11 @@
 
 # Use Node.js as the base image
-FROM node:18-alpine
+FROM node:18-alpine as builder
 
 # Create app directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy package files
 COPY package*.json ./
 
 # Install dependencies
@@ -17,8 +17,19 @@ COPY . .
 # Build the React frontend
 RUN npm run build
 
-# Add backend dependencies
-RUN npm install express cors
+# Production image
+FROM node:18-alpine
+
+# Create app directory
+WORKDIR /app
+
+# Install only production dependencies for the server
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy built files from builder stage
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/server.js ./server.js
 
 # Create data directory
 RUN mkdir -p /data

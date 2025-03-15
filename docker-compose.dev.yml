@@ -5,18 +5,18 @@ services:
   trade-journal:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "8080:3000"
     restart: unless-stopped
     environment:
       - PORT=3000
       - DATA_DIR=/data
-      - NODE_ENV=production
+      - NODE_ENV=development
     volumes:
       - trade-journal-data:/data
-      # For development, uncomment the next line to mount your source code
-      # - ./:/app:ro
+      - ./:/app
+      - /app/node_modules
 
 volumes:
   trade-journal-data:
