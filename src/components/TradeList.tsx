@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,7 +35,6 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   const [strategyFilter, setStrategyFilter] = useState<string>('all');
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
   
-  // Get unique list of strategies from trades
   const availableStrategies = useMemo(() => {
     const strategies = new Set<string>();
     trades.forEach(trade => {
@@ -55,10 +53,8 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     
     loadTrades();
     
-    // Reload when localStorage changes (for multi-tab support)
     const handleStorageChange = () => {
       if (!initialTrades) {
-        // Only reload automatically if not using initialTrades
         loadTrades();
       }
     };
@@ -67,18 +63,15 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [initialTrades]);
   
-  // Apply filters and sorting
   const filteredTrades = useMemo(() => {
     let filteredResults = [...trades];
     
-    // Apply status filter first
     if (statusFilter === 'open') {
       filteredResults = filteredResults.filter(trade => trade.status === 'open');
     } else if (statusFilter === 'closed') {
       filteredResults = filteredResults.filter(trade => trade.status === 'closed');
     }
     
-    // If date filter is applied
     if (dateParam) {
       const filterDate = parse(dateParam, 'yyyy-MM-dd', new Date());
       if (isValid(filterDate)) {
@@ -92,12 +85,10 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
       }
     }
     
-    // Filter by strategy
     if (strategyFilter !== 'all') {
       filteredResults = filteredResults.filter(trade => trade.strategy === strategyFilter);
     }
     
-    // Filter by win/loss
     if (resultFilter !== 'all') {
       filteredResults = filteredResults.filter(trade => {
         if (trade.status !== 'closed') return false;
@@ -110,7 +101,6 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
       });
     }
     
-    // Sort the trades
     filteredResults.sort((a, b) => {
       let aValue: any;
       let bValue: any;
@@ -166,7 +156,6 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   
   const hasFilters = strategyFilter !== 'all' || resultFilter !== 'all' || dateParam;
 
-  // Apply limit if specified
   const limitedTrades = useMemo(() => {
     if (limit && filteredTrades.length > limit) {
       return filteredTrades.slice(0, limit);
@@ -302,7 +291,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
                 </th>
                 <th className="text-left p-2" onClick={() => handleSort('profitLoss')}>
                   <div className="flex items-center cursor-pointer hover:text-primary transition-colors">
-                    P&L
+                    P&L / R
                     {sortField === 'profitLoss' && (
                       sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
                     )}
@@ -344,12 +333,19 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
                     </td>
                     <td className="p-2">
                       {trade.status === 'closed' ? (
-                        <span className={trade.metrics.profitLoss >= 0 ? 'text-profit' : 'text-loss'}>
-                          {formatCurrency(trade.metrics.profitLoss)}
-                          <span className="text-xs ml-1">
-                            ({formatPercentage(trade.metrics.profitLossPercentage)})
+                        <div className="flex flex-col">
+                          <span className={trade.metrics.profitLoss >= 0 ? 'text-profit' : 'text-loss'}>
+                            {formatCurrency(trade.metrics.profitLoss)}
+                            <span className="text-xs ml-1">
+                              ({formatPercentage(trade.metrics.profitLossPercentage)})
+                            </span>
                           </span>
-                        </span>
+                          {trade.metrics.riskedAmount > 0 && (
+                            <span className={`text-xs ${trade.metrics.profitLoss >= 0 ? 'text-profit' : 'text-loss'}`}>
+                              {(trade.metrics.profitLoss / trade.metrics.riskedAmount).toFixed(2)}R
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         '-'
                       )}
