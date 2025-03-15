@@ -1,4 +1,3 @@
-
 import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { Trade, TradeWithMetrics } from '@/types';
@@ -122,12 +121,11 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
               0
             );
             
-            // Calculate total R (sum of all profit/loss divided by risked amount)
+            // Calculate total R (sum of all risk-reward ratios)
             let categoryRValue = 0;
             tradesInCategory.forEach(trade => {
-              if (trade.metrics && trade.metrics.riskedAmount && trade.metrics.riskedAmount > 0) {
-                const tradeR = trade.metrics.profitLoss / trade.metrics.riskedAmount;
-                categoryRValue += tradeR;
+              if (trade.metrics && trade.metrics.riskRewardRatio) {
+                categoryRValue += trade.metrics.riskRewardRatio;
               }
             });
             
@@ -145,12 +143,11 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
             0
           );
           
-          // Calculate total R (sum of all profit/loss divided by risked amount)
+          // Calculate total R using the pre-calculated risk-reward ratio
           let totalR = 0;
           tradesInCategory.forEach(trade => {
-            if (trade.metrics && trade.metrics.riskedAmount && trade.metrics.riskedAmount > 0) {
-              const tradeR = trade.metrics.profitLoss / trade.metrics.riskedAmount;
-              totalR += tradeR;
+            if (trade.metrics && trade.metrics.riskRewardRatio) {
+              totalR += trade.metrics.riskRewardRatio;
             }
           });
           
