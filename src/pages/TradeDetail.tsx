@@ -94,7 +94,7 @@ export default function TradeDetail() {
   const toggleCalculations = () => {
     setShowCalculations(!showCalculations);
   };
-  
+
   if (!trade) {
     return (
       <div className="py-8 text-center">

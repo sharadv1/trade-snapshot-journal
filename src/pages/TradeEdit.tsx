@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TradeForm } from '@/components/TradeForm';
@@ -41,20 +40,16 @@ export default function TradeEdit() {
     loadTradeData();
   };
 
-  // Fix trade status if it's marked as closed but still has remaining units
   const fixTradeStatus = () => {
     if (!trade) return;
     
-    // Calculate total quantity exited from partial exits
     const totalExitedQuantity = (trade.partialExits || []).reduce(
       (total, exit) => total + exit.quantity, 
       0
     );
     
-    // Calculate remaining quantity
     const remainingQuantity = trade.quantity - totalExitedQuantity;
     
-    // If trade is closed but has remaining quantity, reopen it
     if (trade.status === 'closed' && remainingQuantity > 0) {
       const updatedTrade: Trade = {
         ...trade,
@@ -85,16 +80,13 @@ export default function TradeEdit() {
     );
   }
 
-  // Calculate total quantity exited from partial exits
   const totalExitedQuantity = (trade.partialExits || []).reduce(
     (total, exit) => total + exit.quantity, 
     0
   );
   
-  // Calculate remaining quantity
   const remainingQuantity = trade.quantity - totalExitedQuantity;
 
-  // Check if trade status is inconsistent
   const hasStatusError = trade.status === 'closed' && remainingQuantity > 0;
 
   return (
@@ -138,7 +130,11 @@ export default function TradeEdit() {
       
       {trade.partialExits && trade.partialExits.length > 0 && (
         <div className="mt-8">
-          <PartialExitsList trade={trade} onUpdate={handleTradeUpdate} />
+          <PartialExitsList 
+            trade={trade} 
+            onUpdate={handleTradeUpdate}
+            allowEditing={true}
+          />
         </div>
       )}
     </div>

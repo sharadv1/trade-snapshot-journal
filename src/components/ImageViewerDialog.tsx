@@ -84,7 +84,7 @@ export function ImageViewerDialog({ image, isOpen, onClose }: ImageViewerDialogP
             <img 
               src={image} 
               alt="Trade image" 
-              className="transition-transform duration-200 max-h-[85vh]"
+              className="transition-transform duration-200 object-contain max-h-[85vh] max-w-[90vw]"
               style={{ 
                 transform: `scale(${zoomLevel / 100})`,
                 transformOrigin: 'center'

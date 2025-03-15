@@ -10,9 +10,10 @@ import { getTradeById } from '@/utils/tradeStorage';
 interface PartialExitsListProps {
   trade: Trade;
   onUpdate: () => void;
+  allowEditing?: boolean;
 }
 
-export function PartialExitsList({ trade, onUpdate }: PartialExitsListProps) {
+export function PartialExitsList({ trade, onUpdate, allowEditing = false }: PartialExitsListProps) {
   const [currentTrade, setCurrentTrade] = useState<Trade>(trade);
   
   // Force refresh of trade data when storage changes
@@ -132,19 +133,21 @@ export function PartialExitsList({ trade, onUpdate }: PartialExitsListProps) {
                     )}
                   </div>
                   
-                  <div className="flex space-x-1">
-                    <EditPartialExitModal 
-                      trade={currentTrade} 
-                      partialExit={exit} 
-                      onSuccess={handleExitUpdate}
-                      maxQuantity={getMaxQuantityForExit(exit)}
-                    />
-                    <DeletePartialExitButton 
-                      trade={currentTrade} 
-                      exitId={exit.id} 
-                      onSuccess={handleExitUpdate}
-                    />
-                  </div>
+                  {allowEditing && (
+                    <div className="flex space-x-1">
+                      <EditPartialExitModal 
+                        trade={currentTrade} 
+                        partialExit={exit} 
+                        onSuccess={handleExitUpdate}
+                        maxQuantity={getMaxQuantityForExit(exit)}
+                      />
+                      <DeletePartialExitButton 
+                        trade={currentTrade} 
+                        exitId={exit.id} 
+                        onSuccess={handleExitUpdate}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
