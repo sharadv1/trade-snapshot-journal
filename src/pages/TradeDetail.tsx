@@ -101,6 +101,7 @@ export default function TradeDetail() {
   const remainingQuantity = trade.quantity - totalExitedQuantity;
 
   const displayExitPrice = trade.metrics.weightedExitPrice || trade.exitPrice;
+  const displayExitDate = trade.metrics.latestExitDate || trade.exitDate;
 
   return (
     <div className="py-8 animate-fade-in">
@@ -256,14 +257,14 @@ export default function TradeDetail() {
                     </div>
                     
                     <div className="space-y-4">
-                      {trade.status === 'closed' && trade.exitDate && (
+                      {trade.status === 'closed' && displayExitDate && (
                         <div>
                           <h3 className="text-sm font-medium text-muted-foreground flex items-center">
                             <Calendar className="mr-1.5 h-4 w-4" />
                             Exit Date & Time
                           </h3>
                           <p className="mt-1">
-                            {new Date(trade.exitDate).toLocaleString('en-US', {
+                            {new Date(displayExitDate).toLocaleString('en-US', {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric',

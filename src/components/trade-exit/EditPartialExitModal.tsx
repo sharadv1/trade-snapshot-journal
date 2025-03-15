@@ -6,7 +6,8 @@ import {
   DialogFooter, 
   DialogHeader,
   DialogTitle,
-  DialogTrigger 
+  DialogTrigger,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ import { CircleDollarSign, SplitSquareVertical, Calendar } from 'lucide-react';
 import { Trade, PartialExit } from '@/types';
 import { toast } from '@/utils/toast';
 import { getTradeById, updateTrade } from '@/utils/tradeStorage';
+import { isTradeFullyExited } from '@/utils/tradeCalculations';
 
 interface EditPartialExitModalProps {
   trade: Trade;
@@ -75,6 +77,33 @@ export function EditPartialExitModal({
         partialExits: updatedPartialExits
       };
       
+      // Check if trade is fully exited through partial exits
+      if (isTradeFullyExited(updatedTrade)) {
+        // If fully exited, update trade status to closed
+        updatedTrade.status = 'closed';
+        
+        // Find the latest exit date among partial exits
+        const sortedExits = [...updatedPartialExits].sort((a, b) => 
+          new Date(b.exitDate).getTime() - new Date(a.exitDate).getTime()
+        );
+        
+        if (sortedExits.length > 0) {
+          // Set the trade's exit date to the latest partial exit date
+          updatedTrade.exitDate = sortedExits[0].exitDate;
+          
+          // Calculate weighted average exit price for the main trade
+          const totalQuantity = updatedTrade.quantity;
+          let weightedSum = 0;
+          
+          updatedPartialExits.forEach(exit => {
+            weightedSum += exit.exitPrice * exit.quantity;
+          });
+          
+          // Set the trade's exit price to the weighted average
+          updatedTrade.exitPrice = weightedSum / totalQuantity;
+        }
+      }
+      
       updateTrade(updatedTrade);
       toast.success("Partial exit updated successfully");
       setOpen(false);
@@ -93,6 +122,9 @@ export function EditPartialExitModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Partial Exit</DialogTitle>
+          <DialogDescription>
+            Update the details of this partial exit
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">

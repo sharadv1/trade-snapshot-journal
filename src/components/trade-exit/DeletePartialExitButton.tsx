@@ -12,9 +12,11 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 import { Trade } from '@/types';
 import { toast } from '@/utils/toast';
 import { getTradeById, updateTrade } from '@/utils/tradeStorage';
+import { isTradeFullyExited } from '@/utils/tradeCalculations';
 
 interface DeletePartialExitButtonProps {
   trade: Trade;
@@ -38,23 +40,48 @@ export function DeletePartialExitButton({
         return;
       }
       
-      // Filter out the partial exit
-      const updatedPartialExits = latestTrade.partialExits?.filter(exit => exit.id !== exitId) || [];
-      
-      // Update trade status if there are no more exits
-      let status = latestTrade.status;
-      if (updatedPartialExits.length === 0 && status === 'closed') {
-        status = 'open';
-      }
+      // Filter out the partial exit to be deleted
+      const updatedPartialExits = latestTrade.partialExits?.filter(
+        exit => exit.id !== exitId
+      ) || [];
       
       const updatedTrade: Trade = {
         ...latestTrade,
-        partialExits: updatedPartialExits,
-        status,
-        // Clear exit data if reopening the trade
-        exitDate: status === 'open' ? undefined : latestTrade.exitDate,
-        exitPrice: status === 'open' ? undefined : latestTrade.exitPrice
+        partialExits: updatedPartialExits
       };
+      
+      // After deletion, check if trade is still fully exited
+      if (isTradeFullyExited(updatedTrade)) {
+        // If still fully exited, update the exitDate to the latest partial exit
+        const sortedExits = [...updatedPartialExits].sort((a, b) => 
+          new Date(b.exitDate).getTime() - new Date(a.exitDate).getTime()
+        );
+        
+        if (sortedExits.length > 0) {
+          updatedTrade.exitDate = sortedExits[0].exitDate;
+          
+          // Recalculate weighted average exit price
+          const totalQuantity = updatedTrade.quantity;
+          let weightedSum = 0;
+          
+          updatedPartialExits.forEach(exit => {
+            weightedSum += exit.exitPrice * exit.quantity;
+          });
+          
+          updatedTrade.exitPrice = weightedSum / totalQuantity;
+        }
+      } else if (updatedPartialExits.length === 0) {
+        // If no more partial exits, revert to open status if appropriate
+        const totalExitedQuantity = updatedPartialExits.reduce(
+          (total, exit) => total + exit.quantity, 0
+        );
+        
+        if (totalExitedQuantity < updatedTrade.quantity) {
+          updatedTrade.status = 'open';
+          updatedTrade.exitDate = undefined;
+          updatedTrade.exitPrice = undefined;
+        }
+      }
       
       updateTrade(updatedTrade);
       toast.success("Partial exit deleted successfully");
@@ -69,8 +96,8 @@ export function DeletePartialExitButton({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-          Delete
+        <Button variant="ghost" size="sm">
+          <Trash2 className="h-4 w-4 text-destructive" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
