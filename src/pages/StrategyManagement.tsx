@@ -138,9 +138,8 @@ export default function StrategyManagement() {
       return;
     }
 
-    // Check if any selected strategies are in use or default
+    // Check if any selected strategies are in use
     const nonDeletableStrategies: string[] = [];
-    const defaultStrategies: string[] = [];
 
     selectedStrategies.forEach(id => {
       const strategy = strategies.find(s => s.id === id);
@@ -148,18 +147,11 @@ export default function StrategyManagement() {
       
       if (isStrategyInUse(id)) {
         nonDeletableStrategies.push(strategy.name);
-      } else if (strategy.isDefault) {
-        defaultStrategies.push(strategy.name);
       }
     });
 
     if (nonDeletableStrategies.length > 0) {
       toast.error(`Cannot delete strategies in use: ${nonDeletableStrategies.join(', ')}`);
-      return;
-    }
-
-    if (defaultStrategies.length > 0) {
-      toast.error(`Cannot delete default strategies: ${defaultStrategies.join(', ')}`);
       return;
     }
 
@@ -195,12 +187,12 @@ export default function StrategyManagement() {
   };
 
   const toggleAllStrategies = () => {
-    if (selectedStrategies.length === strategies.filter(s => !s.isDefault).length) {
-      // If all non-default strategies are selected, deselect all
+    if (selectedStrategies.length === strategies.length) {
+      // If all strategies are selected, deselect all
       setSelectedStrategies([]);
     } else {
-      // Otherwise, select all non-default strategies
-      setSelectedStrategies(strategies.filter(s => !s.isDefault).map(s => s.id));
+      // Otherwise, select all strategies
+      setSelectedStrategies(strategies.map(s => s.id));
     }
   };
 
@@ -229,8 +221,7 @@ export default function StrategyManagement() {
     });
   };
 
-  const nonDefaultStrategiesCount = strategies.filter(s => !s.isDefault).length;
-  const allNonDefaultSelected = selectedStrategies.length === nonDefaultStrategiesCount && nonDefaultStrategiesCount > 0;
+  const allStrategiesSelected = selectedStrategies.length === strategies.length && strategies.length > 0;
 
   return (
     <div className="space-y-8 pb-10">
@@ -275,9 +266,9 @@ export default function StrategyManagement() {
                 <TableHead style={{ width: '50px' }}>
                   <div className="flex items-center">
                     <Checkbox 
-                      checked={allNonDefaultSelected} 
+                      checked={allStrategiesSelected} 
                       onCheckedChange={toggleAllStrategies}
-                      disabled={nonDefaultStrategiesCount === 0}
+                      disabled={strategies.length === 0}
                     />
                   </div>
                 </TableHead>
@@ -294,7 +285,6 @@ export default function StrategyManagement() {
                     <Checkbox 
                       checked={selectedStrategies.includes(strategy.id)}
                       onCheckedChange={() => toggleStrategySelection(strategy.id)}
-                      disabled={strategy.isDefault}
                     />
                   </TableCell>
                   <TableCell>
@@ -324,7 +314,6 @@ export default function StrategyManagement() {
                             variant="ghost" 
                             size="icon"
                             className="text-destructive"
-                            disabled={strategy.isDefault}
                           >
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only">Delete</span>
@@ -335,11 +324,6 @@ export default function StrategyManagement() {
                             <AlertDialogTitle>Delete Strategy</AlertDialogTitle>
                             <AlertDialogDescription>
                               Are you sure you want to delete the strategy "{strategy.name}"?
-                              {strategy.isDefault && (
-                                <p className="mt-2 text-destructive">
-                                  Default strategies cannot be deleted.
-                                </p>
-                              )}
                               {isStrategyInUse(strategy.id) && (
                                 <p className="mt-2 text-destructive">
                                   This strategy is currently in use by existing trades and cannot be deleted.
@@ -350,7 +334,7 @@ export default function StrategyManagement() {
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              disabled={strategy.isDefault || isStrategyInUse(strategy.id)}
+                              disabled={isStrategyInUse(strategy.id)}
                               onClick={() => handleDeleteStrategy(strategy.id)}
                             >
                               Delete

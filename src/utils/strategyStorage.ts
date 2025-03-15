@@ -7,18 +7,18 @@ const STRATEGIES_STORAGE_KEY = 'trading-journal-strategies';
 
 // Default strategies to populate initially
 export const DEFAULT_STRATEGIES: Strategy[] = [
-  { id: '1', name: 'Trend Following', description: 'Following established market trends', color: '#4CAF50', isDefault: true },
-  { id: '2', name: 'Breakout', description: 'Trading price movements through support or resistance levels', color: '#2196F3', isDefault: true },
-  { id: '3', name: 'Momentum', description: 'Trading in the direction of price movement', color: '#F44336', isDefault: true },
-  { id: '4', name: 'Mean Reversion', description: 'Trading price returns to average/mean value', color: '#9C27B0', isDefault: true },
-  { id: '5', name: 'Scalping', description: 'Making small profits on small price changes', color: '#FF9800', isDefault: true },
-  { id: '6', name: 'Swing Trading', description: 'Capturing short to medium term gains over days or weeks', color: '#795548', isDefault: true },
-  { id: '7', name: 'Position Trading', description: 'Long-term strategy based on macro trends', color: '#607D8B', isDefault: true },
-  { id: '8', name: 'Gap Trading', description: 'Trading price gaps between market sessions', color: '#E91E63', isDefault: true },
-  { id: '9', name: 'Range Trading', description: 'Trading between support and resistance levels', color: '#00BCD4', isDefault: true },
-  { id: '10', name: 'Arbitrage', description: 'Exploiting price differences between markets', color: '#CDDC39', isDefault: true },
-  { id: '11', name: 'News-Based', description: 'Trading based on news and announcements', color: '#FF5722', isDefault: true },
-  { id: '12', name: 'Technical Pattern', description: 'Trading based on chart patterns', color: '#3F51B5', isDefault: true },
+  { id: '1', name: 'Trend Following', description: 'Following established market trends', color: '#4CAF50' },
+  { id: '2', name: 'Breakout', description: 'Trading price movements through support or resistance levels', color: '#2196F3' },
+  { id: '3', name: 'Momentum', description: 'Trading in the direction of price movement', color: '#F44336' },
+  { id: '4', name: 'Mean Reversion', description: 'Trading price returns to average/mean value', color: '#9C27B0' },
+  { id: '5', name: 'Scalping', description: 'Making small profits on small price changes', color: '#FF9800' },
+  { id: '6', name: 'Swing Trading', description: 'Capturing short to medium term gains over days or weeks', color: '#795548' },
+  { id: '7', name: 'Position Trading', description: 'Long-term strategy based on macro trends', color: '#607D8B' },
+  { id: '8', name: 'Gap Trading', description: 'Trading price gaps between market sessions', color: '#E91E63' },
+  { id: '9', name: 'Range Trading', description: 'Trading between support and resistance levels', color: '#00BCD4' },
+  { id: '10', name: 'Arbitrage', description: 'Exploiting price differences between markets', color: '#CDDC39' },
+  { id: '11', name: 'News-Based', description: 'Trading based on news and announcements', color: '#FF5722' },
+  { id: '12', name: 'Technical Pattern', description: 'Trading based on chart patterns', color: '#3F51B5' },
 ];
 
 // Initialize strategies with defaults if none exist
@@ -106,16 +106,12 @@ export function isStrategyInUse(strategyId: string): boolean {
 
 // Delete a strategy
 export function deleteStrategy(strategyId: string): boolean {
-  // Don't allow deleting default strategies
+  // Only check if strategy is in use
   const strategies = getStrategies();
   const strategy = strategies.find(s => s.id === strategyId);
   
   if (!strategy) {
     return false;
-  }
-  
-  if (strategy.isDefault) {
-    throw new Error("Cannot delete default strategies");
   }
   
   // Check if strategy is in use
