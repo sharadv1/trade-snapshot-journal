@@ -1,8 +1,9 @@
 
 import { useState } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, ZoomIn, ZoomOut, Maximize, ExternalLink } from 'lucide-react';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
 
 interface ImageViewerDialogProps {
   image: string;
@@ -31,7 +32,10 @@ export function ImageViewerDialog({ image, isOpen, onClose }: ImageViewerDialogP
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden" onPointerDownOutside={onClose}>
+      <DialogContent className="max-w-6xl w-[95vw] p-0 overflow-hidden" onPointerDownOutside={onClose}>
+        <DialogTitle>
+          <VisuallyHidden>Image Viewer</VisuallyHidden>
+        </DialogTitle>
         <div className="relative">
           <div className="absolute top-4 right-4 flex space-x-2 z-10">
             <Button 
@@ -76,7 +80,7 @@ export function ImageViewerDialog({ image, isOpen, onClose }: ImageViewerDialogP
             </Button>
           </div>
           
-          <div className="overflow-auto p-4 pb-8 max-h-[80vh] flex items-center justify-center">
+          <div className="overflow-auto p-4 pb-8 max-h-[85vh] flex items-center justify-center">
             <img 
               src={image} 
               alt="Trade image" 

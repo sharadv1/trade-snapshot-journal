@@ -665,6 +665,14 @@ export default function TradeDetail() {
           </Card>
         </div>
       </div>
+      
+      {viewingImage && (
+        <ImageViewerDialog 
+          image={viewingImage} 
+          isOpen={!!viewingImage} 
+          onClose={() => setViewingImage(null)} 
+        />
+      )}
     </div>
   );
 }
