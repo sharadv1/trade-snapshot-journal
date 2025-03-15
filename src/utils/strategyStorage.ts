@@ -1,5 +1,5 @@
 
-import { Strategy } from '@/types';
+import { Strategy, Trade } from '@/types';
 import { toast } from './toast';
 import { getTradesSync } from './tradeStorage';
 
@@ -98,10 +98,7 @@ export function isStrategyInUse(strategyId: string): boolean {
   if (!strategy) return false;
   
   // Check if any trade is using this strategy
-  return trades.some(trade => 
-    trade.strategy === strategy.name || 
-    (trade.strategy === 'custom' && trade.customStrategy === strategy.name)
-  );
+  return trades.some(trade => trade.strategy === strategy.name);
 }
 
 // Delete a strategy

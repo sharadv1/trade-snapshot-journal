@@ -45,9 +45,7 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
       
       // Add strategy and instrument type
       if (trade.strategy) {
-        uniqueStrategies.add(trade.strategy === 'custom' && trade.customStrategy 
-          ? trade.customStrategy 
-          : trade.strategy);
+        uniqueStrategies.add(trade.strategy);
       }
       uniqueInstruments.add(trade.type);
     });
@@ -94,10 +92,7 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
           tradesInCategory = trades.filter(trade => {
             const tradeDate = new Date(trade.entryDate);
             const isInMonth = tradeDate >= monthStart && tradeDate <= monthEnd;
-            const strategyName = trade.strategy === 'custom' && trade.customStrategy 
-              ? trade.customStrategy 
-              : trade.strategy;
-            return isInMonth && strategyName === category.name;
+            return isInMonth && trade.strategy === category.name;
           });
         } else {
           tradesInCategory = trades.filter(trade => {

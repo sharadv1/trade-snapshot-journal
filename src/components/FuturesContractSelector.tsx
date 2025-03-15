@@ -40,7 +40,7 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
       <SelectContent>
         {COMMON_FUTURES_CONTRACTS.map((contract) => (
           <SelectItem key={contract.symbol} value={contract.symbol}>
-            {contract.symbol} - {contract.description}
+            {contract.symbol} - {contract.name}
           </SelectItem>
         ))}
       </SelectContent>

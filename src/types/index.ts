@@ -14,6 +14,7 @@ export interface Trade {
   stopLoss?: number;
   takeProfit?: number;
   strategy?: string;
+  customStrategy?: string;
   notes?: string;
   tags?: string[];
   images?: string[];
@@ -50,6 +51,13 @@ export interface TradeMetrics {
 
 export interface TradeWithMetrics extends Trade {
   metrics: TradeMetrics;
+}
+
+export interface Strategy {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
 }
 
 export const COMMON_FUTURES_CONTRACTS = [

@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TradeWithMetrics } from '@/types';
-import { calculatePerformanceMetrics, formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
+import { calculateTradeMetrics, formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
 import {
   Bar,
   BarChart,
@@ -18,6 +18,52 @@ interface TradeMetricsProps {
   trades: TradeWithMetrics[];
   showOnlyKeyMetrics?: boolean;
 }
+
+// Helper function to calculate performance metrics from trade data
+const calculatePerformanceMetrics = (trades: TradeWithMetrics[]) => {
+  const closedTrades = trades.filter(trade => trade.status === 'closed');
+  const winningTrades = closedTrades.filter(trade => trade.metrics.profitLoss > 0);
+  const losingTrades = closedTrades.filter(trade => trade.metrics.profitLoss <= 0);
+  
+  const totalTrades = closedTrades.length;
+  const winRate = totalTrades > 0 ? (winningTrades.length / totalTrades) * 100 : 0;
+  
+  const totalProfit = winningTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
+  const totalLoss = Math.abs(losingTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0));
+  
+  const profitFactor = totalLoss > 0 ? totalProfit / totalLoss : totalProfit > 0 ? Infinity : 0;
+  const netProfit = totalProfit - totalLoss;
+  
+  const averageWin = winningTrades.length > 0 
+    ? totalProfit / winningTrades.length 
+    : 0;
+    
+  const averageLoss = losingTrades.length > 0 
+    ? -totalLoss / losingTrades.length 
+    : 0;
+    
+  const expectancy = (winRate / 100) * averageWin - (1 - winRate / 100) * Math.abs(averageLoss);
+  
+  // Calculate Sortino ratio (using 0% as risk-free rate and considering only downside deviation)
+  const returns = closedTrades.map(trade => trade.metrics.profitLossPercentage / 100);
+  const negativeReturns = returns.filter(r => r < 0);
+  const avgReturn = returns.length > 0 ? returns.reduce((sum, r) => sum + r, 0) / returns.length : 0;
+  const downsideDeviation = negativeReturns.length > 0
+    ? Math.sqrt(negativeReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) / negativeReturns.length)
+    : 0.0001; // Avoid division by zero
+  const sortinoRatio = downsideDeviation > 0 ? avgReturn / downsideDeviation : 0;
+  
+  return {
+    totalTrades,
+    winRate,
+    profitFactor,
+    netProfit,
+    averageWin,
+    averageLoss,
+    expectancy,
+    sortinoRatio
+  };
+};
 
 export function TradeMetrics({ trades, showOnlyKeyMetrics = false }: TradeMetricsProps) {
   const metrics = calculatePerformanceMetrics(trades);

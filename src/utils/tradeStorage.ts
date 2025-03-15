@@ -1,6 +1,6 @@
 
 import { Trade, TradeWithMetrics } from '@/types';
-import { calculateTradeMetrics, generateDummyTrades } from './tradeCalculations';
+import { calculateTradeMetrics } from './tradeCalculations';
 import { toast } from './toast';
 
 // Local storage keys
@@ -205,7 +205,67 @@ export const deleteImageFromTrade = async (tradeId: string, imageIndex: number):
 
 // Add dummy trades for testing
 export const addDummyTrades = async (): Promise<void> => {
-  const dummyTrades = generateDummyTrades();
+  // Sample trades for testing
+  const dummyTrades: Trade[] = [
+    {
+      id: crypto.randomUUID(),
+      symbol: 'AAPL',
+      direction: 'long',
+      type: 'equity',
+      status: 'closed',
+      entryDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      entryPrice: 150.25,
+      exitDate: new Date().toISOString(),
+      exitPrice: 165.75,
+      quantity: 10,
+      fees: 9.99,
+      strategy: 'Trend Following',
+      notes: 'Strong earnings report',
+      tags: ['tech', 'earnings'],
+      images: [],
+      partialExits: []
+    },
+    {
+      id: crypto.randomUUID(),
+      symbol: 'MSFT',
+      direction: 'long',
+      type: 'equity',
+      status: 'open',
+      entryDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      entryPrice: 310.20,
+      quantity: 5,
+      fees: 9.99,
+      strategy: 'Momentum',
+      notes: 'Following tech uptrend',
+      tags: ['tech'],
+      images: [],
+      partialExits: []
+    },
+    {
+      id: crypto.randomUUID(),
+      symbol: 'ES',
+      direction: 'short',
+      type: 'futures',
+      status: 'closed',
+      entryDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      entryPrice: 4580.25,
+      exitDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      exitPrice: 4530.50,
+      quantity: 1,
+      fees: 4.50,
+      strategy: 'Reversal',
+      notes: 'Short-term overbought',
+      tags: ['index', 'overnight'],
+      images: [],
+      partialExits: [],
+      contractDetails: {
+        exchange: 'CME',
+        contractSize: 1,
+        tickSize: 0.25,
+        tickValue: 12.50
+      }
+    }
+  ];
   
   // Remove any existing trades
   localStorage.removeItem(TRADES_STORAGE_KEY);
