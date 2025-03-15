@@ -17,7 +17,7 @@ function App() {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={<Dashboard />} index />
+          <Route path="/" element={<Dashboard />} />
           <Route path="/home" element={<Index />} />
           <Route path="/trade/new" element={<TradeEntry />} />
           <Route path="/trade/:id" element={<TradeDetail />} />
