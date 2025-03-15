@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -273,6 +274,14 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
                     )}
                   </div>
                 </th>
+                <th className="text-left p-2" onClick={() => handleSort('strategy')}>
+                  <div className="flex items-center cursor-pointer hover:text-primary transition-colors">
+                    Strategy
+                    {sortField === 'strategy' && (
+                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
+                    )}
+                  </div>
+                </th>
                 <th className="text-left p-2" onClick={() => handleSort('entryDate')}>
                   <div className="flex items-center cursor-pointer hover:text-primary transition-colors">
                     Entry Date
@@ -304,7 +313,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
             <tbody>
               {limitedTrades.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center p-4 text-muted-foreground">
+                  <td colSpan={8} className="text-center p-4 text-muted-foreground">
                     No trades found
                   </td>
                 </tr>
@@ -321,6 +330,9 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
                       }`}>
                         {trade.direction.toUpperCase()}
                       </div>
+                    </td>
+                    <td className="p-2">
+                      {trade.strategy || 'Unspecified'}
                     </td>
                     <td className="p-2">
                       {format(new Date(trade.entryDate), 'MMM d, yyyy')}
