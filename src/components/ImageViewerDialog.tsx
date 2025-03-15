@@ -1,0 +1,94 @@
+
+import { useState } from 'react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { X, ZoomIn, ZoomOut, Maximize, ExternalLink } from 'lucide-react';
+
+interface ImageViewerDialogProps {
+  image: string;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function ImageViewerDialog({ image, isOpen, onClose }: ImageViewerDialogProps) {
+  const [zoomLevel, setZoomLevel] = useState(100);
+  
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 25, 200));
+  };
+  
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 25, 50));
+  };
+  
+  const handleReset = () => {
+    setZoomLevel(100);
+  };
+  
+  const openInNewTab = () => {
+    window.open(image, '_blank');
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl p-0 overflow-hidden" onPointerDownOutside={onClose}>
+        <div className="relative">
+          <div className="absolute top-4 right-4 flex space-x-2 z-10">
+            <Button 
+              variant="secondary" 
+              size="icon" 
+              className="h-8 w-8 rounded-full opacity-90 hover:opacity-100"
+              onClick={handleZoomIn}
+            >
+              <ZoomIn size={16} />
+            </Button>
+            <Button 
+              variant="secondary" 
+              size="icon" 
+              className="h-8 w-8 rounded-full opacity-90 hover:opacity-100"
+              onClick={handleZoomOut}
+            >
+              <ZoomOut size={16} />
+            </Button>
+            <Button 
+              variant="secondary" 
+              size="icon" 
+              className="h-8 w-8 rounded-full opacity-90 hover:opacity-100"
+              onClick={handleReset}
+            >
+              <Maximize size={16} />
+            </Button>
+            <Button 
+              variant="secondary" 
+              size="icon" 
+              className="h-8 w-8 rounded-full opacity-90 hover:opacity-100"
+              onClick={openInNewTab}
+            >
+              <ExternalLink size={16} />
+            </Button>
+            <Button 
+              variant="secondary" 
+              size="icon" 
+              className="h-8 w-8 rounded-full opacity-90 hover:opacity-100"
+              onClick={onClose}
+            >
+              <X size={16} />
+            </Button>
+          </div>
+          
+          <div className="overflow-auto p-4 pb-8 max-h-[80vh] flex items-center justify-center">
+            <img 
+              src={image} 
+              alt="Trade image" 
+              className="transition-transform duration-200"
+              style={{ 
+                transform: `scale(${zoomLevel / 100})`,
+                transformOrigin: 'center'
+              }}
+            />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

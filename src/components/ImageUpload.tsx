@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ImageViewerDialog } from './ImageViewerDialog';
 
 interface ImageUploadProps {
   images: string[];
@@ -12,6 +13,7 @@ interface ImageUploadProps {
 
 export function ImageUpload({ images, onImageUpload, onImageRemove }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
   
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -60,6 +62,10 @@ export function ImageUpload({ images, onImageUpload, onImageRemove }: ImageUploa
     reader.readAsDataURL(file);
   };
 
+  const handleImageClick = (image: string) => {
+    setViewingImage(image);
+  };
+
   return (
     <div className="space-y-4">
       <div 
@@ -104,7 +110,8 @@ export function ImageUpload({ images, onImageUpload, onImageRemove }: ImageUploa
               <img 
                 src={image} 
                 alt={`Trade image ${index + 1}`} 
-                className="rounded-md w-full h-24 object-cover border"
+                className="rounded-md w-full h-24 object-cover border cursor-pointer hover:opacity-95"
+                onClick={() => handleImageClick(image)}
               />
               <Button
                 type="button"
@@ -118,6 +125,14 @@ export function ImageUpload({ images, onImageUpload, onImageRemove }: ImageUploa
             </div>
           ))}
         </div>
+      )}
+      
+      {viewingImage && (
+        <ImageViewerDialog 
+          image={viewingImage} 
+          isOpen={!!viewingImage} 
+          onClose={() => setViewingImage(null)} 
+        />
       )}
     </div>
   );

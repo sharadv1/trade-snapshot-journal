@@ -27,6 +27,7 @@ import { toast } from '@/utils/toast';
 import { ExitTradeForm } from '@/components/ExitTradeForm';
 import { PartialExitsList } from '@/components/PartialExitsList';
 import { FuturesContractDetails } from '@/components/FuturesContractDetails';
+import { ImageViewerDialog } from '@/components/ImageViewerDialog';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +37,7 @@ export default function TradeDetail() {
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
   const [showCalculations, setShowCalculations] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
 
   const loadTradeData = () => {
     if (!id) return;
@@ -474,19 +476,17 @@ export default function TradeDetail() {
                   {trade.images && trade.images.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {trade.images.map((image, index) => (
-                        <a
+                        <div
                           key={index}
-                          href={image}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block border rounded-md overflow-hidden hover:shadow-elevated transition-all"
+                          className="block border rounded-md overflow-hidden hover:shadow-elevated transition-all cursor-pointer"
+                          onClick={() => setViewingImage(image)}
                         >
                           <img 
                             src={image} 
                             alt={`Trade image ${index + 1}`} 
                             className="w-full h-auto object-cover"
                           />
-                        </a>
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -692,4 +692,3 @@ function calculateHoldTime(entryDate: string, exitDate: string): string {
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
 }
-
