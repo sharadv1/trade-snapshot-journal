@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -14,7 +13,8 @@ import {
   Trash2,
   CircleCheck,
   SplitSquareVertical,
-  Calculator
+  Calculator,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -96,11 +96,6 @@ export default function TradeDetail() {
   const toggleCalculations = () => {
     setShowCalculations(!showCalculations);
   };
-
-  // These are dummy functions since we're only displaying the notes and images, not editing them
-  const handleChange = () => {};
-  const onImageUpload = () => {};
-  const onImageRemove = () => {};
 
   if (!trade) {
     return (
@@ -267,6 +262,18 @@ export default function TradeDetail() {
                           </h3>
                           <p className="mt-1">
                             {trade.strategy}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {trade.pspTime && (
+                        <div>
+                          <h3 className="text-sm font-medium text-muted-foreground flex items-center">
+                            <Clock className="mr-1.5 h-4 w-4" />
+                            PSP Time
+                          </h3>
+                          <p className="mt-1">
+                            {trade.pspTime}
                           </p>
                         </div>
                       )}
@@ -461,7 +468,6 @@ export default function TradeDetail() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-8">
-                    {/* Using the same NotesAndImagesForm component for consistency but disabling edits */}
                     <div className="space-y-2">
                       <h3 className="text-base font-medium">Trade Notes</h3>
                       {trade.notes ? (
