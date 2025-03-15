@@ -112,8 +112,18 @@ export default function StrategyManagement() {
         return;
       }
 
+      // Check if the name has changed from the original
+      const originalStrategy = strategies.find(s => s.id === editingStrategy.id);
+      const nameChanged = originalStrategy && originalStrategy.name !== editingStrategy.name;
+
       updateStrategy(editingStrategy);
-      toast.success('Strategy updated successfully');
+      
+      if (nameChanged) {
+        toast.success('Strategy updated and trade references updated');
+      } else {
+        toast.success('Strategy updated successfully');
+      }
+      
       setDialogOpen(false);
       setEditingStrategy(null);
       loadStrategies();

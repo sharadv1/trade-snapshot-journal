@@ -1,7 +1,6 @@
-
 import { Strategy, Trade } from '@/types';
 import { toast } from './toast';
-import { getTradesSync } from './tradeStorage';
+import { getTradesSync, updateTrade } from './tradeStorage';
 
 const STRATEGIES_STORAGE_KEY = 'trading-journal-strategies';
 
@@ -68,6 +67,10 @@ export function addStrategy(strategy: Omit<Strategy, 'id'>): Strategy {
 export function updateStrategy(updatedStrategy: Strategy): Strategy {
   const strategies = getStrategies();
   
+  // Get the original strategy to check if name changed
+  const originalStrategy = strategies.find(s => s.id === updatedStrategy.id);
+  const nameChanged = originalStrategy && originalStrategy.name !== updatedStrategy.name;
+  
   // Check if updated name conflicts with another strategy
   const nameConflict = strategies.some(
     s => s.id !== updatedStrategy.id && 
@@ -78,11 +81,38 @@ export function updateStrategy(updatedStrategy: Strategy): Strategy {
     throw new Error(`Another strategy with name "${updatedStrategy.name}" already exists`);
   }
   
+  // Update the strategy in our strategies array
   const updatedStrategies = strategies.map(s => 
     s.id === updatedStrategy.id ? updatedStrategy : s
   );
   
   localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
+  
+  // If name has changed, update all trades using this strategy
+  if (nameChanged && originalStrategy) {
+    try {
+      const trades = getTradesSync();
+      let updatedCount = 0;
+      
+      trades.forEach(trade => {
+        if (trade.strategy === originalStrategy.name) {
+          const updatedTrade = {
+            ...trade,
+            strategy: updatedStrategy.name
+          };
+          updateTrade(updatedTrade);
+          updatedCount++;
+        }
+      });
+      
+      if (updatedCount > 0) {
+        console.log(`Updated strategy name in ${updatedCount} trades`);
+      }
+    } catch (error) {
+      console.error('Error updating trades with new strategy name:', error);
+      toast.error('Strategy updated but failed to update some trades');
+    }
+  }
   
   return updatedStrategy;
 }
