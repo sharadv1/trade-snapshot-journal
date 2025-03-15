@@ -32,11 +32,11 @@ export function ImageViewerDialog({ image, isOpen, onClose }: ImageViewerDialogP
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-[95vw] p-0 overflow-hidden" onPointerDownOutside={onClose}>
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 overflow-hidden" onPointerDownOutside={onClose}>
         <DialogTitle>
           <VisuallyHidden>Image Viewer</VisuallyHidden>
         </DialogTitle>
-        <div className="relative">
+        <div className="relative h-full">
           <div className="absolute top-4 right-4 flex space-x-2 z-10">
             <Button 
               variant="secondary" 
@@ -80,11 +80,11 @@ export function ImageViewerDialog({ image, isOpen, onClose }: ImageViewerDialogP
             </Button>
           </div>
           
-          <div className="overflow-auto p-4 pb-8 max-h-[85vh] flex items-center justify-center">
+          <div className="overflow-auto p-4 pb-8 h-full flex items-center justify-center">
             <img 
               src={image} 
               alt="Trade image" 
-              className="transition-transform duration-200"
+              className="transition-transform duration-200 max-h-[85vh]"
               style={{ 
                 transform: `scale(${zoomLevel / 100})`,
                 transformOrigin: 'center'
