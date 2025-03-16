@@ -16,6 +16,8 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
   const searchParams = new URLSearchParams(location.search);
   const ideaIdFromUrl = searchParams.get('ideaId');
   
+  console.log('useTradeForm initializing with ideaId:', ideaIdFromUrl);
+  
   const [trade, setTrade] = useState<Partial<Trade>>(
     initialTrade || {
       symbol: '',
@@ -26,6 +28,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
       quantity: 0,
       fees: 0,
       status: 'open',
+      strategy: '',
       images: [],
       tags: [],
       partialExits: [],
@@ -47,8 +50,10 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
   // Handle pre-filling from trade idea
   useEffect(() => {
     if (!isEditing && ideaIdFromUrl) {
+      console.log('Loading idea data for ID:', ideaIdFromUrl);
       const idea = getIdeaById(ideaIdFromUrl);
       if (idea) {
+        console.log('Idea found:', idea);
         setTrade(prev => ({
           ...prev,
           symbol: idea.symbol,
@@ -56,6 +61,8 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
           direction: idea.direction || 'long',
           notes: prev.notes ? `${prev.notes}\n\nBased on trade idea: ${idea.description}` : `Based on trade idea: ${idea.description}`
         }));
+      } else {
+        console.log('No idea found for ID:', ideaIdFromUrl);
       }
     }
   }, [ideaIdFromUrl, isEditing]);
@@ -79,6 +86,8 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
   }, [trade.type, trade.symbol]);
 
   const handleChange = (field: keyof Trade, value: any) => {
+    console.log(`Changing ${field} to:`, value);
+    
     if (field === 'strategy' && value === 'custom' && !isEditing) {
       toast.error("Custom strategies are not allowed for new trades");
       return;

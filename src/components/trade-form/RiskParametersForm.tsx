@@ -65,11 +65,11 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
             <SelectContent>
               {strategies.length > 0 ? (
                 strategies.map((strategy) => {
-                  console.log('Rendering strategy item:', strategy.name, strategy.id);
-                  // Ensure strategy name is never empty
-                  const strategyValue = strategy.name || `strategy-${strategy.id}`;
+                  // Ensure strategy name is never empty and always a string
+                  const strategyName = strategy.name || `strategy-${strategy.id}`;
+                  console.log('Rendering strategy item:', strategyName, strategy.id);
                   return (
-                    <SelectItem key={strategy.id} value={strategyValue}>
+                    <SelectItem key={strategy.id} value={strategyName}>
                       <div className="flex items-center">
                         {strategy.color && (
                           <div 
@@ -77,13 +77,13 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
                             style={{ backgroundColor: strategy.color }} 
                           />
                         )}
-                        {strategy.name || `Unnamed Strategy ${strategy.id.substring(0, 4)}`}
+                        {strategyName}
                       </div>
                     </SelectItem>
                   );
                 })
               ) : (
-                <SelectItem value="no-strategies">No strategies available</SelectItem>
+                <SelectItem value="no-strategies-available">No strategies available</SelectItem>
               )}
             </SelectContent>
           </Select>
