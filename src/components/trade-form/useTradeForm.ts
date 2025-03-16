@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Trade, FuturesContractDetails, COMMON_FUTURES_CONTRACTS } from '@/types';
 import { addTrade, updateTrade } from '@/utils/tradeStorage';
-import { getIdeaById } from '@/utils/ideaStorage';
+import { getIdeaById, markIdeaAsTaken } from '@/utils/ideaStorage';
 import { toast } from '@/utils/toast';
 
 export function useTradeForm(initialTrade?: Trade, isEditing = false) {
@@ -125,6 +125,11 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
         images,
         contractDetails: trade.type === 'futures' ? contractDetails : undefined
       };
+      
+      // Update idea status if an idea is associated with this trade
+      if (trade.ideaId) {
+        markIdeaAsTaken(trade.ideaId);
+      }
       
       if (isEditing && initialTrade) {
         const updatedTrade = { 

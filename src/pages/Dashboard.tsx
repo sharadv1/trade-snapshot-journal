@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, ListChecks } from 'lucide-react';
@@ -8,7 +7,6 @@ import { getTradesWithMetrics } from '@/utils/tradeStorage';
 import { TradePnLCalendar } from '@/components/TradePnLCalendar';
 import { DataExportImport } from '@/components/DataExportImport';
 import { ServerSyncConfig } from '@/components/ServerSyncConfig'; 
-import { QuickTradeEntry } from '@/components/QuickTradeEntry';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/utils/tradeCalculations';
 import { TradeWithMetrics } from '@/types';
@@ -107,8 +105,6 @@ export default function Dashboard() {
               limit={5}
             />
           </div>
-          
-          <QuickTradeEntry onTradeAdded={handleRefresh} />
         </div>
       </div>
     </div>
@@ -129,17 +125,14 @@ function calculateTotalPnL(trades: TradeWithMetrics[]): number {
     .reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
 }
 
-// Updated Expectancy calculation to correctly handle R multiples
 function calculateExpectancy(trades: TradeWithMetrics[]): number {
   const closedTrades = trades.filter(trade => trade.status === 'closed');
   if (closedTrades.length === 0) return 0;
   
-  // Get trades with valid risk values
   const tradesWithRisk = closedTrades.filter(trade => 
     trade.metrics.riskedAmount && trade.metrics.riskedAmount > 0
   );
   
-  // If no trades have defined risk, return a simplified calculation
   if (tradesWithRisk.length === 0) {
     const winningTrades = closedTrades.filter(trade => trade.metrics.profitLoss > 0);
     const losingTrades = closedTrades.filter(trade => trade.metrics.profitLoss < 0);
@@ -152,25 +145,21 @@ function calculateExpectancy(trades: TradeWithMetrics[]): number {
       
     const avgLoss = losingTrades.length > 0
       ? Math.abs(losingTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0)) / losingTrades.length
-      : 1; // Avoid division by zero
-      
-    // If no losing trades, return a positive value based on win rate
+      : 1;
+    
     if (avgLoss === 0) return winRate * 2;
     
     const rMultiple = avgWin / avgLoss;
     return (winRate * rMultiple) - (1 - winRate);
   }
   
-  // Calculate properly using R multiples for trades with defined risk
   let totalRMultiple = 0;
   
   for (const trade of tradesWithRisk) {
-    // R multiple = profit or loss divided by risked amount
     const rMultiple = trade.metrics.profitLoss / trade.metrics.riskedAmount;
     totalRMultiple += rMultiple;
   }
   
-  // Expectancy = Average R multiple
   return totalRMultiple / tradesWithRisk.length;
 }
 
@@ -178,13 +167,10 @@ function calculateSortinoRatio(trades: TradeWithMetrics[]): number {
   const closedTrades = trades.filter(trade => trade.status === 'closed');
   if (closedTrades.length === 0) return 0;
   
-  // Calculate daily returns
   const returns = closedTrades.map(trade => trade.metrics.profitLossPercentage / 100);
   
-  // Calculate average return
   const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
   
-  // Calculate downside deviation (only negative returns)
   const negativeReturns = returns.filter(r => r < 0);
   if (negativeReturns.length === 0) return avgReturn > 0 ? 3 : 0;
   
@@ -194,8 +180,6 @@ function calculateSortinoRatio(trades: TradeWithMetrics[]): number {
   
   if (downsideDeviation === 0) return 0;
   
-  // Sortino ratio = (Average Return - Risk Free Rate) / Downside Deviation
-  // Assuming risk free rate is 0 for simplicity
   return avgReturn / downsideDeviation;
 }
 

@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export function IdeaList() {
+export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilter?: string, sortBy?: string }) {
   const navigate = useNavigate();
   const [ideas, setIdeas] = useState<TradeIdea[]>([]);
   const [editingIdea, setEditingIdea] = useState<TradeIdea | null>(null);
@@ -77,9 +77,26 @@ export function IdeaList() {
   };
   
   const createTradeFromIdea = (idea: TradeIdea) => {
-    // Navigate to the new trade page and pass the idea ID to prefill
+    // Fix: Navigate to the correct route for creating a new trade
     navigate(`/trade/new?ideaId=${idea.id}`);
   };
+  
+  // Filter and sort ideas
+  const filteredIdeas = ideas.filter(idea => {
+    if (statusFilter === 'all') return true;
+    return idea.status === statusFilter;
+  });
+  
+  const sortedIdeas = [...filteredIdeas].sort((a, b) => {
+    if (sortBy === 'date') {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    } else if (sortBy === 'symbol') {
+      return a.symbol.localeCompare(b.symbol);
+    } else if (sortBy === 'status') {
+      return a.status.localeCompare(b.status);
+    }
+    return 0;
+  });
   
   const renderStatusBadge = (status: TradeIdea['status']) => {
     switch (status) {
@@ -121,7 +138,7 @@ export function IdeaList() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {ideas.map((idea) => (
+          {sortedIdeas.map((idea) => (
             <Card key={idea.id} className="overflow-hidden flex flex-col">
               <CardHeader className="p-4 pb-2">
                 <div className="flex justify-between items-start">

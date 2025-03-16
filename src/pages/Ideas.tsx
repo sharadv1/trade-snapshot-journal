@@ -3,10 +3,13 @@ import { Sparkles, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IdeaList } from '@/components/idea/IdeaList';
 import { IdeaDialog } from '@/components/idea/IdeaDialog';
+import { IdeaFilters } from '@/components/idea/IdeaFilters';
 import { useState } from 'react';
 
 export default function Ideas() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date');
   
   const handleIdeaAdded = () => {
     setRefreshKey(prev => prev + 1);
@@ -35,7 +38,18 @@ export default function Ideas() {
         />
       </div>
       
-      <IdeaList key={refreshKey} />
+      <IdeaFilters 
+        statusFilter={statusFilter}
+        sortBy={sortBy}
+        onStatusFilterChange={setStatusFilter}
+        onSortByChange={setSortBy}
+      />
+      
+      <IdeaList 
+        key={refreshKey} 
+        statusFilter={statusFilter} 
+        sortBy={sortBy} 
+      />
     </div>
   );
 }
