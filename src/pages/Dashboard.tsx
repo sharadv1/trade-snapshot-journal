@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, ListChecks, FileBarChart2, Calendar, BarChart, ChevronRight, CheckCircle2, Clock, PieChart } from 'lucide-react';
@@ -61,14 +62,13 @@ export default function Dashboard() {
         </div>
       </div>
       
-      <Tabs defaultValue="summary" className="w-full">
-        <TabsList className="grid grid-cols-3 w-full max-w-md mb-4">
-          <TabsTrigger value="summary">Summary</TabsTrigger>
-          <TabsTrigger value="journal">Journal</TabsTrigger>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+      <Tabs defaultValue="view1" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full max-w-md mb-4">
+          <TabsTrigger value="view1">View 1</TabsTrigger>
+          <TabsTrigger value="view2">View 2</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="summary" className="grid gap-6 animate-in fade-in">
+        <TabsContent value="view1" className="grid gap-6 animate-in fade-in">
           <TradeMetrics trades={trades} showOnlyKeyMetrics={true} />
           
           <div className="grid gap-6">
@@ -100,7 +100,7 @@ export default function Dashboard() {
           </div>
         </TabsContent>
         
-        <TabsContent value="journal" className="animate-in fade-in">
+        <TabsContent value="view2" className="animate-in fade-in">
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Trading Dashboard</h2>
@@ -237,228 +237,8 @@ export default function Dashboard() {
             <QuickTradeEntry onTradeAdded={handleRefresh} />
           </div>
         </TabsContent>
-        
-        <TabsContent value="dashboard" className="animate-in fade-in">
-          <div className="space-y-6">
-            <div className="mb-6">
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink href="/">Home</BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Trading Dashboard</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-              
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mt-4">
-                <h1 className="text-3xl font-bold">Trading Dashboard</h1>
-                <div className="flex items-center gap-3 mt-4 md:mt-0">
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to="/analytics">
-                      <PieChart className="h-4 w-4 mr-2" />
-                      Analytics
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to="/strategies">
-                      <ListChecks className="h-4 w-4 mr-2" />
-                      Strategies
-                    </Link>
-                  </Button>
-                  <Button size="sm" asChild>
-                    <Link to="/trade/new">
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Trade
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
-            {/* Stats cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatsCard 
-                title="Total P&L" 
-                value={formatCurrency(calculateTotalPnL(trades))}
-                change="+12.5% from last month"
-                positive={calculateTotalPnL(trades) > 0}
-                icon={<BarChart className="h-4 w-4" />}
-              />
-              <StatsCard 
-                title="Win Rate" 
-                value={`${calculateWinRate(trades).toFixed(1)}%`}
-                change="-2.1% from last month"
-                positive={calculateWinRate(trades) > 50}
-                icon={<CheckCircle2 className="h-4 w-4" />}
-              />
-              <StatsCard 
-                title="Open Positions" 
-                value={trades.filter(t => t.status === 'open').length.toString()}
-                change="+3 from last week"
-                positive={true}
-                icon={<Clock className="h-4 w-4" />}
-              />
-              <StatsCard 
-                title="Profit Factor" 
-                value={calculateProfitFactor(trades).toFixed(2)}
-                change="+0.3 from last month"
-                positive={calculateProfitFactor(trades) > 2}
-                icon={<PieChart className="h-4 w-4" />}
-              />
-            </div>
-            
-            {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Chart Section */}
-              <Card className="lg:col-span-2 shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <div>
-                    <CardTitle className="text-lg font-semibold">Performance Overview</CardTitle>
-                    <p className="text-sm text-muted-foreground">Monthly cumulative P&L</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm">1W</Button>
-                    <Button variant="outline" size="sm">1M</Button>
-                    <Button variant="default" size="sm">3M</Button>
-                    <Button variant="outline" size="sm">YTD</Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                    <p>P&L Chart would be displayed here</p>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Sidebar widgets */}
-              <div className="space-y-6">
-                {/* Recent Activity */}
-                <Card className="shadow-sm">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-2 pb-3">
-                    <ul className="space-y-4">
-                      {trades.slice(0, 3).map(trade => (
-                        <li key={trade.id} className="flex items-start px-2 py-1 rounded-lg hover:bg-accent transition-colors cursor-pointer">
-                          <div className={`rounded-full p-1.5 mr-3 ${trade.metrics.profitLoss >= 0 ? 'bg-profit/10 text-profit' : 'bg-loss/10 text-loss'}`}>
-                            {trade.metrics.profitLoss >= 0 ? 
-                              <CheckCircle2 className="h-5 w-5" /> : 
-                              <XIcon className="h-5 w-5" />
-                            }
-                          </div>
-                          <div className="flex-1 space-y-1">
-                            <div className="flex justify-between">
-                              <p className="text-sm font-medium">{trade.symbol} {trade.direction}</p>
-                              <p className={`text-sm font-medium ${trade.metrics.profitLoss >= 0 ? 'text-profit' : 'text-loss'}`}>
-                                {formatCurrency(trade.metrics.profitLoss)}
-                              </p>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              Closed on {format(new Date(trade.exitDate || trade.entryDate), 'MMM d, yyyy')}
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                    <Button variant="ghost" size="sm" className="w-full mt-3 text-primary" asChild>
-                      <Link to="/">
-                        View all trades
-                        <ChevronRight className="h-3 w-3 ml-1" />
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-                
-                {/* Quick Entry */}
-                <Card className="shadow-sm">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg font-semibold">Quick Trade</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <QuickTradeEntry 
-                      onTradeAdded={handleRefresh}
-                      compact={true}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-            
-            {/* Bottom Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Strategy Performance */}
-              <Card className="shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-semibold">Strategy Performance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {generateStrategyPerformance(trades).map((strategy, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-sm font-bold text-primary">{index + 1}</span>
-                          </div>
-                          <div>
-                            <p className="font-medium">{strategy.name}</p>
-                            <p className="text-xs text-muted-foreground">{strategy.tradeCount} trades</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={`font-medium ${strategy.pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
-                            {formatCurrency(strategy.pnl)}
-                          </p>
-                          <div className="flex items-center justify-end">
-                            <span className={`text-xs ${strategy.pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
-                              {strategy.winRate}% win rate
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* We remove the compact prop from TradePnLCalendar since it doesn't exist in the component */}
-              <Card className="shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-semibold">Trade Calendar</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <TradePnLCalendar />
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
-  );
-}
-
-// XIcon component for consistency
-function XIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
   );
 }
 

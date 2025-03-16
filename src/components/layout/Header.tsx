@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart2, BookOpen, Home, Plus } from 'lucide-react';
+import { BarChart2, Home, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -21,7 +21,6 @@ export function Header() {
   
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: Home },
-    { name: 'Journal', path: '/', icon: BookOpen },
     { name: 'Analytics', path: '/analytics', icon: BarChart2 },
   ];
   
