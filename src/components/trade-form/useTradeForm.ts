@@ -28,7 +28,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
       quantity: 0,
       fees: 0,
       status: 'open',
-      strategy: '',
+      strategy: 'default-strategy', // Ensure strategy always has a default value
       images: [],
       tags: [],
       partialExits: [],
@@ -129,8 +129,12 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
     }
     
     try {
+      // Ensure strategy has a default value if empty
+      const finalStrategy = trade.strategy || 'default-strategy';
+      
       const tradeToSave = {
         ...trade,
+        strategy: finalStrategy,
         images,
         contractDetails: trade.type === 'futures' ? contractDetails : undefined
       };

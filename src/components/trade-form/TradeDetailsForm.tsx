@@ -91,20 +91,20 @@ export function TradeDetailsForm({
       <div className="space-y-2">
         <Label htmlFor="ideaId">Trade Idea</Label>
         <Select 
-          value={trade.ideaId || ''}
-          onValueChange={(value) => handleChange('ideaId', value)}
+          value={trade.ideaId || 'none'}
+          onValueChange={(value) => handleChange('ideaId', value === 'none' ? '' : value)}
         >
           <SelectTrigger id="ideaId">
             <SelectValue placeholder="Select a trade idea (optional)" />
           </SelectTrigger>
           <SelectContent>
             {ideas.length === 0 ? (
-              <SelectItem value="" disabled>No available ideas</SelectItem>
+              <SelectItem value="no-available" disabled>No available ideas</SelectItem>
             ) : (
               <>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {ideas.map(idea => (
-                  <SelectItem key={idea.id} value={idea.id}>
+                  <SelectItem key={idea.id} value={idea.id || `idea-${crypto.randomUUID()}`}>
                     {idea.symbol} - {idea.description?.slice(0, 30)}
                     {idea.description && idea.description.length > 30 ? '...' : ''}
                   </SelectItem>
@@ -202,13 +202,14 @@ export function TradeDetailsForm({
         <div className="space-y-2">
           <Label htmlFor="timeframe">Timeframe</Label>
           <Select
-            value={trade.timeframe || ''}
-            onValueChange={(value) => handleChange('timeframe', value)}
+            value={trade.timeframe || 'none'}
+            onValueChange={(value) => handleChange('timeframe', value === 'none' ? undefined : value)}
           >
             <SelectTrigger id="timeframe" className="w-full">
               <SelectValue placeholder="Select timeframe" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="none">None</SelectItem>
               <SelectItem value="m5">5 Minutes (M5)</SelectItem>
               <SelectItem value="m15">15 Minutes (M15)</SelectItem>
               <SelectItem value="H1">1 Hour (H1)</SelectItem>

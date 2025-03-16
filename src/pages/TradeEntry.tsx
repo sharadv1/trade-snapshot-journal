@@ -9,16 +9,39 @@ export default function TradeEntry() {
   const [searchParams] = useSearchParams();
   const ideaId = searchParams.get('ideaId');
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   
   useEffect(() => {
     console.log('TradeEntry mounted. Idea ID from URL:', ideaId);
-    // Scroll to top when component mounts
-    window.scrollTo(0, 0);
-    setIsLoading(false);
+    try {
+      // Scroll to top when component mounts
+      window.scrollTo(0, 0);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error in TradeEntry:', error);
+      setHasError(true);
+      setIsLoading(false);
+      toast.error('There was an error loading the trade form. Please try again.');
+    }
   }, [ideaId]);
 
   if (isLoading) {
     return <div className="p-8 text-center">Loading...</div>;
+  }
+
+  if (hasError) {
+    return (
+      <div className="p-8 text-center">
+        <h2 className="text-2xl font-bold text-destructive mb-4">Error Loading Form</h2>
+        <p className="mb-4">There was a problem loading the trade form.</p>
+        <button 
+          onClick={() => navigate('/')} 
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    );
   }
 
   return (

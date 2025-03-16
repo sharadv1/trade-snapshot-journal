@@ -83,7 +83,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
                   );
                 })
               ) : (
-                <SelectItem value="no-strategies-available">No strategies available</SelectItem>
+                <SelectItem value="default-strategy">Default Strategy</SelectItem>
               )}
             </SelectContent>
           </Select>
