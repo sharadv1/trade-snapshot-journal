@@ -462,33 +462,53 @@ function XIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-function StatsCard({ 
+// Define the missing PerformanceCard component
+interface PerformanceCardProps {
+  title: string;
+  value: number | string;
+  prefix?: string;
+  suffix?: string;
+  status?: 'good' | 'neutral' | 'profit' | 'loss' | 'positive';
+  description?: string;
+}
+
+function PerformanceCard({ 
   title, 
   value, 
-  change, 
-  positive, 
-  icon 
-}: { 
-  title: string;
-  value: string;
-  change: string;
-  positive: boolean;
-  icon: React.ReactNode;
-}) {
+  prefix = '', 
+  suffix = '', 
+  status = 'neutral', 
+  description 
+}: PerformanceCardProps) {
+  // Determine text color based on status
+  const getStatusColor = () => {
+    switch (status) {
+      case 'good':
+      case 'profit':
+      case 'positive':
+        return 'text-profit';
+      case 'loss':
+        return 'text-loss';
+      default:
+        return '';
+    }
+  };
+
+  const displayValue = typeof value === 'number' 
+    ? value.toFixed(2) 
+    : value.toString();
+
   return (
     <Card className="shadow-sm">
       <CardContent className="p-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
-            <p className="text-2xl font-bold">{value}</p>
-          </div>
-          <div className="bg-primary/10 p-2 rounded-full">
-            {icon}
-          </div>
-        </div>
-        <div className={`text-xs mt-2 ${positive ? 'text-profit' : 'text-loss'}`}>
-          {change}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className={`text-2xl font-bold ${getStatusColor()}`}>
+            {prefix}{displayValue}{suffix}
+          </p>
+          {description && (
+            <p className="text-xs text-muted-foreground">{description}</p>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -619,4 +639,37 @@ function calculateSortinoRatio(trades: TradeWithMetrics[]): number {
   // Sortino ratio = (Average Return - Risk Free Rate) / Downside Deviation
   // Assuming risk free rate is 0 for simplicity
   return avgReturn / downsideDeviation;
+}
+
+function StatsCard({ 
+  title, 
+  value, 
+  change, 
+  positive, 
+  icon 
+}: { 
+  title: string;
+  value: string;
+  change: string;
+  positive: boolean;
+  icon: React.ReactNode;
+}) {
+  return (
+    <Card className="shadow-sm">
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+            <p className="text-2xl font-bold">{value}</p>
+          </div>
+          <div className="bg-primary/10 p-2 rounded-full">
+            {icon}
+          </div>
+        </div>
+        <div className={`text-xs mt-2 ${positive ? 'text-profit' : 'text-loss'}`}>
+          {change}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
