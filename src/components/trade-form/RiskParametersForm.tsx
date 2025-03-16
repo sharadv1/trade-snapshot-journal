@@ -53,7 +53,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
         <div className="space-y-2 col-span-2">
           <Label htmlFor="strategy">Strategy</Label>
           <Select 
-            value={trade.strategy || ''}
+            value={trade.strategy || 'default-strategy'}
             onValueChange={(value) => {
               console.log('Selecting strategy:', value);
               handleChange('strategy', value);
@@ -63,13 +63,13 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
               <SelectValue placeholder="Select strategy" />
             </SelectTrigger>
             <SelectContent>
-              {strategies.length > 0 ? (
+              {strategies && strategies.length > 0 ? (
                 strategies.map((strategy) => {
                   // Ensure strategy name is never empty and always a string
                   const strategyName = strategy.name || `strategy-${strategy.id}`;
                   console.log('Rendering strategy item:', strategyName, strategy.id);
                   return (
-                    <SelectItem key={strategy.id} value={strategyName}>
+                    <SelectItem key={strategy.id} value={strategyName || `strategy-${strategy.id}`}>
                       <div className="flex items-center">
                         {strategy.color && (
                           <div 

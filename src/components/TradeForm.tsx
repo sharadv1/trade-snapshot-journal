@@ -8,6 +8,8 @@ import { RiskParametersForm } from './trade-form/RiskParametersForm';
 import { NotesAndImagesForm } from './trade-form/NotesAndImagesForm';
 import { useTradeForm } from './trade-form/useTradeForm';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { toast } from '@/utils/toast';
 
 interface TradeFormProps {
   initialTrade?: Trade;
@@ -35,6 +37,15 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
     pointValue,
   } = useTradeForm(initialTrade, isEditing);
 
+  useEffect(() => {
+    // Validate essential components
+    if (!trade) {
+      console.error('Trade object is undefined or null');
+      toast.error('There was an error loading the trade form');
+      return;
+    }
+  }, [trade]);
+
   console.log('Current trade state:', {
     symbol: trade.symbol,
     direction: trade.direction,
@@ -45,15 +56,20 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Submitting trade form');
-    const success = handleSubmit(e);
-    
-    // If this is an edit and submission was successful, navigate to the trade detail page
-    if (success && isEditing && initialTrade) {
-      navigate(`/trade/${initialTrade.id}`);
-      return;
+    try {
+      const success = handleSubmit(e);
+      
+      // If this is an edit and submission was successful, navigate to the trade detail page
+      if (success && isEditing && initialTrade) {
+        navigate(`/trade/${initialTrade.id}`);
+        return;
+      }
+      
+      // For new trades or if submission failed, navigate as determined by the form handler
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast.error('Failed to submit trade form');
     }
-    
-    // For new trades or if submission failed, navigate as determined by the form handler
   };
 
   return (
