@@ -7,7 +7,7 @@ import { TradeDetailsForm } from './trade-form/TradeDetailsForm';
 import { RiskParametersForm } from './trade-form/RiskParametersForm';
 import { NotesAndImagesForm } from './trade-form/NotesAndImagesForm';
 import { useTradeForm } from './trade-form/useTradeForm';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { toast } from '@/utils/toast';
 
@@ -18,6 +18,7 @@ interface TradeFormProps {
 
 export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const ideaIdFromUrl = searchParams.get('ideaId');
   
@@ -52,6 +53,23 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
     strategy: trade.strategy,
     ideaId: trade.ideaId
   });
+
+  const handleCancel = () => {
+    // If we came from the ideas page (has ideaId), go back to ideas
+    if (ideaIdFromUrl) {
+      navigate('/ideas');
+      return;
+    }
+    
+    // If editing, go back to trade detail
+    if (isEditing && initialTrade) {
+      navigate(`/trade/${initialTrade.id}`);
+      return;
+    }
+    
+    // Default: go to dashboard
+    navigate('/');
+  };
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,10 +148,7 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
           <Button 
             variant="outline" 
             type="button" 
-            onClick={() => isEditing && initialTrade 
-              ? navigate(`/trade/${initialTrade.id}`) 
-              : navigate('/')
-            }
+            onClick={handleCancel}
           >
             Cancel
           </Button>
