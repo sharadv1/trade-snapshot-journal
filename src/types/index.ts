@@ -69,6 +69,8 @@ export interface TradeIdea {
   symbol: string;
   description: string;
   status: 'still valid' | 'invalidated' | 'taken';
+  direction?: 'long' | 'short';
+  images?: string[];
 }
 
 export const COMMON_FUTURES_CONTRACTS = [

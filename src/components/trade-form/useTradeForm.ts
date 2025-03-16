@@ -53,6 +53,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
           ...prev,
           symbol: idea.symbol,
           ideaId: idea.id,
+          direction: idea.direction || 'long',
           notes: prev.notes ? `${prev.notes}\n\nBased on trade idea: ${idea.description}` : `Based on trade idea: ${idea.description}`
         }));
       }

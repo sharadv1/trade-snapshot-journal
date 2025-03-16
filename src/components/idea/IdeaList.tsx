@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, PencilLine, XCircle, CheckCircle, ArrowRight } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Sparkles, PencilLine, XCircle, CheckCircle, ArrowRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TradeIdea } from '@/types';
 import { getIdeas, updateIdea, deleteIdea } from '@/utils/ideaStorage';
@@ -93,6 +93,18 @@ export function IdeaList() {
         return null;
     }
   };
+
+  const renderDirectionBadge = (direction?: 'long' | 'short') => {
+    if (!direction) return null;
+    
+    return direction === 'long' 
+      ? <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center">
+          <ArrowUp className="mr-1 h-3 w-3" /> Long
+        </Badge>
+      : <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 flex items-center">
+          <ArrowDown className="mr-1 h-3 w-3" /> Short
+        </Badge>;
+  };
   
   return (
     <div className="space-y-4">
@@ -110,11 +122,14 @@ export function IdeaList() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {ideas.map((idea) => (
-            <Card key={idea.id} className="overflow-hidden">
+            <Card key={idea.id} className="overflow-hidden flex flex-col">
               <CardHeader className="p-4 pb-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-lg">{idea.symbol}</CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      {idea.symbol}
+                      {renderDirectionBadge(idea.direction)}
+                    </CardTitle>
                     <div className="text-sm text-muted-foreground">
                       {format(new Date(idea.date), 'MMM d, yyyy h:mm a')}
                     </div>
@@ -122,54 +137,67 @@ export function IdeaList() {
                   {renderStatusBadge(idea.status)}
                 </div>
               </CardHeader>
-              <CardContent className="p-4 pt-2">
-                <p className="mb-4 text-sm text-muted-foreground whitespace-pre-wrap">
+              
+              {idea.images && idea.images.length > 0 && (
+                <div className="px-4 pt-2">
+                  <div className="w-full h-32 rounded-md overflow-hidden">
+                    <img 
+                      src={idea.images[0]} 
+                      alt={`${idea.symbol} chart`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <CardContent className="p-4 pt-2 flex-grow">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                   {idea.description || 'No description provided'}
                 </p>
-                
-                <div className="flex flex-wrap gap-2">
-                  {idea.status !== 'still valid' && (
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => toggleStatus(idea, 'still valid')}
-                    >
-                      <CheckCircle className="mr-1 h-4 w-4" />
-                      Mark Valid
-                    </Button>
-                  )}
-                  
-                  {idea.status !== 'invalidated' && (
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => toggleStatus(idea, 'invalidated')}
-                    >
-                      <XCircle className="mr-1 h-4 w-4" />
-                      Invalidate
-                    </Button>
-                  )}
-                  
+              </CardContent>
+              
+              <CardFooter className="p-4 pt-0 flex flex-wrap gap-2">
+                {idea.status !== 'still valid' && (
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => handleEditClick(idea)}
+                    onClick={() => toggleStatus(idea, 'still valid')}
                   >
-                    <PencilLine className="mr-1 h-4 w-4" />
-                    Edit
+                    <CheckCircle className="mr-1 h-4 w-4" />
+                    Mark Valid
                   </Button>
-                  
-                  {idea.status !== 'taken' && (
-                    <Button 
-                      size="sm"
-                      onClick={() => createTradeFromIdea(idea)}
-                    >
-                      <ArrowRight className="mr-1 h-4 w-4" />
-                      Create Trade
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
+                )}
+                
+                {idea.status !== 'invalidated' && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => toggleStatus(idea, 'invalidated')}
+                  >
+                    <XCircle className="mr-1 h-4 w-4" />
+                    Invalidate
+                  </Button>
+                )}
+                
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleEditClick(idea)}
+                >
+                  <PencilLine className="mr-1 h-4 w-4" />
+                  Edit
+                </Button>
+                
+                {idea.status !== 'taken' && (
+                  <Button 
+                    size="sm"
+                    onClick={() => createTradeFromIdea(idea)}
+                  >
+                    <ArrowRight className="mr-1 h-4 w-4" />
+                    Create Trade
+                  </Button>
+                )}
+              </CardFooter>
             </Card>
           ))}
         </div>

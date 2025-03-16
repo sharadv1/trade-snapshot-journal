@@ -6,9 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 import { TradeIdea } from '@/types';
 import { addIdea, updateIdea } from '@/utils/ideaStorage';
 import { toast } from '@/utils/toast';
+import { ImageUpload } from '@/components/ImageUpload';
 
 interface IdeaDialogProps {
   open?: boolean;
@@ -30,12 +33,16 @@ export function IdeaDialog({
     date: new Date().toISOString().slice(0, 16),
     symbol: '',
     description: '',
-    status: 'still valid'
+    status: 'still valid',
+    direction: 'long',
+    images: []
   });
+  const [images, setImages] = useState<string[]>([]);
 
   useEffect(() => {
     if (initialIdea) {
       setIdea(initialIdea);
+      setImages(initialIdea.images || []);
     }
   }, [initialIdea]);
 
@@ -56,6 +63,19 @@ export function IdeaDialog({
     setIdea(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleImageUpload = (base64Image: string) => {
+    const newImages = [...images, base64Image];
+    setImages(newImages);
+    handleChange('images', newImages);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const newImages = [...images];
+    newImages.splice(index, 1);
+    setImages(newImages);
+    handleChange('images', newImages);
+  };
+
   const handleSubmit = () => {
     if (!idea.symbol || !idea.date) {
       toast.error("Please fill in all required fields");
@@ -67,7 +87,8 @@ export function IdeaDialog({
         // Update existing idea
         updateIdea({
           ...initialIdea,
-          ...idea
+          ...idea,
+          images
         } as TradeIdea);
         toast.success("Trade idea updated successfully");
       } else {
@@ -75,6 +96,7 @@ export function IdeaDialog({
         addIdea({
           ...idea,
           id: crypto.randomUUID(),
+          images
         } as TradeIdea);
         toast.success("Trade idea added successfully");
       }
@@ -84,8 +106,11 @@ export function IdeaDialog({
         date: new Date().toISOString().slice(0, 16),
         symbol: '',
         description: '',
-        status: 'still valid'
+        status: 'still valid',
+        direction: 'long',
+        images: []
       });
+      setImages([]);
       
       handleOpenChange(false);
       
@@ -130,6 +155,30 @@ export function IdeaDialog({
           </div>
           
           <div className="space-y-2">
+            <Label>Direction</Label>
+            <RadioGroup
+              value={idea.direction || 'long'}
+              onValueChange={(value) => handleChange('direction', value as 'long' | 'short')}
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="long" id="long" />
+                <Label htmlFor="long" className="flex items-center cursor-pointer">
+                  <ArrowUp className="mr-1 h-4 w-4 text-green-500" />
+                  Long
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="short" id="short" />
+                <Label htmlFor="short" className="flex items-center cursor-pointer">
+                  <ArrowDown className="mr-1 h-4 w-4 text-red-500" />
+                  Short
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+          
+          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
@@ -154,6 +203,15 @@ export function IdeaDialog({
                 <SelectItem value="taken">Taken</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Images</Label>
+            <ImageUpload
+              images={images}
+              onImageUpload={handleImageUpload}
+              onImageRemove={handleRemoveImage}
+            />
           </div>
         </div>
         
