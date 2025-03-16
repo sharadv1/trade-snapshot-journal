@@ -1,14 +1,21 @@
+
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Trade, FuturesContractDetails, COMMON_FUTURES_CONTRACTS } from '@/types';
 import { addTrade, updateTrade } from '@/utils/tradeStorage';
+import { getIdeaById } from '@/utils/ideaStorage';
 import { toast } from '@/utils/toast';
 
 export function useTradeForm(initialTrade?: Trade, isEditing = false) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('details');
   const [images, setImages] = useState<string[]>(initialTrade?.images || []);
 
+  // Parse query params for ideaId
+  const searchParams = new URLSearchParams(location.search);
+  const ideaIdFromUrl = searchParams.get('ideaId');
+  
   const [trade, setTrade] = useState<Partial<Trade>>(
     initialTrade || {
       symbol: '',
@@ -23,7 +30,8 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
       tags: [],
       partialExits: [],
       pspTime: '',
-      timeframe: undefined
+      timeframe: undefined,
+      ideaId: ideaIdFromUrl || undefined
     }
   );
 
@@ -35,6 +43,21 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
       tickValue: 0.01
     }
   );
+
+  // Handle pre-filling from trade idea
+  useEffect(() => {
+    if (!isEditing && ideaIdFromUrl) {
+      const idea = getIdeaById(ideaIdFromUrl);
+      if (idea) {
+        setTrade(prev => ({
+          ...prev,
+          symbol: idea.symbol,
+          ideaId: idea.id,
+          notes: prev.notes ? `${prev.notes}\n\nBased on trade idea: ${idea.description}` : `Based on trade idea: ${idea.description}`
+        }));
+      }
+    }
+  }, [ideaIdFromUrl, isEditing]);
 
   const pointValue = trade.type === 'futures' && contractDetails.tickSize && contractDetails.tickValue
     ? contractDetails.tickValue / contractDetails.tickSize

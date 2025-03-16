@@ -22,6 +22,7 @@ export interface Trade {
   contractDetails?: FuturesContractDetails;
   pspTime?: string; // PSP time in HH:MM AM/PM format
   timeframe?: 'm5' | 'm15' | 'H1' | 'H4' | 'D1' | 'W1' | 'M1';
+  ideaId?: string; // Reference to a trade idea
 }
 
 export interface PartialExit {
@@ -60,6 +61,14 @@ export interface Strategy {
   name: string;
   description?: string;
   color: string;
+}
+
+export interface TradeIdea {
+  id: string;
+  date: string;
+  symbol: string;
+  description: string;
+  status: 'still valid' | 'invalidated' | 'taken';
 }
 
 export const COMMON_FUTURES_CONTRACTS = [

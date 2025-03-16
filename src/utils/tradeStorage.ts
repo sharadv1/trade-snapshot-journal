@@ -2,6 +2,7 @@
 import { Trade, TradeWithMetrics } from '@/types';
 import { calculateTradeMetrics } from './tradeCalculations';
 import { toast } from './toast';
+import { markIdeaAsTaken } from './ideaStorage';
 
 // Local storage keys
 const TRADES_STORAGE_KEY = 'trade-journal-trades';
@@ -137,6 +138,12 @@ export const getTradesSync = (): Trade[] => {
 // Add a new trade
 export const addTrade = async (trade: Trade): Promise<void> => {
   const trades = await getTrades();
+  
+  // If there's an ideaId, mark the idea as taken
+  if (trade.ideaId) {
+    markIdeaAsTaken(trade.ideaId);
+  }
+  
   trades.push(trade);
   await saveTrades(trades);
 };
@@ -147,6 +154,11 @@ export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
   const index = trades.findIndex(trade => trade.id === updatedTrade.id);
   
   if (index !== -1) {
+    // If the idea has changed, mark the new idea as taken
+    if (updatedTrade.ideaId && trades[index].ideaId !== updatedTrade.ideaId) {
+      markIdeaAsTaken(updatedTrade.ideaId);
+    }
+    
     trades[index] = updatedTrade;
     await saveTrades(trades);
   }

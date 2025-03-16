@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart2, Home } from 'lucide-react';
+import { BarChart2, Home, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function Header() {
@@ -20,6 +20,7 @@ export function Header() {
   
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: Home },
+    { name: 'Ideas', path: '/ideas', icon: Sparkles },
     { name: 'Analytics', path: '/analytics', icon: BarChart2 },
   ];
   

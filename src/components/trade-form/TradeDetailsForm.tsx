@@ -2,13 +2,15 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Trade, FuturesContractDetails } from '@/types';
+import { Trade, FuturesContractDetails, TradeIdea } from '@/types';
 import { SymbolSelector } from '@/components/SymbolSelector';
 import { FuturesContractSelector } from '@/components/FuturesContractSelector';
 import { FuturesContractDetails as FuturesDetails } from '@/components/FuturesContractDetails';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { getIdeas } from '@/utils/ideaStorage';
 
 interface TradeDetailsFormProps {
   trade: Partial<Trade>;
@@ -27,6 +29,18 @@ export function TradeDetailsForm({
   pointValue,
   isEditing = false
 }: TradeDetailsFormProps) {
+  const [ideas, setIdeas] = useState<TradeIdea[]>([]);
+  
+  useEffect(() => {
+    // Load valid and taken ideas
+    const allIdeas = getIdeas();
+    const availableIdeas = allIdeas.filter(idea => 
+      idea.status === 'still valid' || 
+      (idea.status === 'taken' && idea.id === trade.ideaId)
+    );
+    setIdeas(availableIdeas);
+  }, [trade.ideaId]);
+  
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -73,6 +87,33 @@ export function TradeDetailsForm({
           pointValue={pointValue}
         />
       )}
+      
+      <div className="space-y-2">
+        <Label htmlFor="ideaId">Trade Idea</Label>
+        <Select 
+          value={trade.ideaId || ''}
+          onValueChange={(value) => handleChange('ideaId', value)}
+        >
+          <SelectTrigger id="ideaId">
+            <SelectValue placeholder="Select a trade idea (optional)" />
+          </SelectTrigger>
+          <SelectContent>
+            {ideas.length === 0 ? (
+              <SelectItem value="" disabled>No available ideas</SelectItem>
+            ) : (
+              <>
+                <SelectItem value="">None</SelectItem>
+                {ideas.map(idea => (
+                  <SelectItem key={idea.id} value={idea.id}>
+                    {idea.symbol} - {idea.description?.slice(0, 30)}
+                    {idea.description && idea.description.length > 30 ? '...' : ''}
+                  </SelectItem>
+                ))}
+              </>
+            )}
+          </SelectContent>
+        </Select>
+      </div>
       
       <div className="space-y-2">
         <Label>Direction</Label>
