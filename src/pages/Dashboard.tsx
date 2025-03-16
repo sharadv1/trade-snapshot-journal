@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, ListChecks, FileBarChart2, Calendar, BarChart, ChevronRight, CheckCircle2, Clock, PieChart } from 'lucide-react';
@@ -22,6 +21,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
+import { TradeWithMetrics } from '@/types';
 
 export default function Dashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -424,13 +424,13 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
               
-              {/* Trade Calendar */}
+              {/* We remove the compact prop from TradePnLCalendar since it doesn't exist in the component */}
               <Card className="shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg font-semibold">Trade Calendar</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <TradePnLCalendar compact={true} />
+                  <TradePnLCalendar />
                 </CardContent>
               </Card>
             </div>
@@ -495,74 +495,18 @@ function StatsCard({
   );
 }
 
-function PerformanceCard({ 
-  title, 
-  value, 
-  prefix = '', 
-  suffix = '', 
-  status = 'neutral',
-  description 
-}: { 
-  title: string;
-  value: number;
-  prefix?: string;
-  suffix?: string;
-  status?: 'good' | 'profit' | 'loss' | 'positive' | 'negative' | 'neutral';
-  description: string;
-}) {
-  const formattedValue = typeof value === 'number' ? value.toFixed(2) : value;
-  
-  let statusIcon = null;
-  let statusClass = '';
-  
-  switch (status) {
-    case 'good':
-      statusIcon = <span className="text-green-500">↑ Good</span>;
-      statusClass = 'text-green-600';
-      break;
-    case 'profit':
-      statusIcon = <span className="text-green-500">↑ Profit</span>;
-      statusClass = 'text-green-600';
-      break;
-    case 'positive':
-      statusIcon = <span className="text-green-500">↗️ Positive</span>;
-      statusClass = 'text-green-600';
-      break;
-    case 'loss':
-      statusIcon = <span className="text-red-500">↓ Loss</span>;
-      statusClass = 'text-red-500';
-      break;
-    case 'negative':
-      statusIcon = <span className="text-red-500">↘️ Negative</span>;
-      statusClass = 'text-red-500';
-      break;
-  }
-  
-  return (
-    <Card className="border shadow-sm">
-      <CardContent className="pt-6">
-        <div className="text-sm font-medium text-muted-foreground mb-1">
-          {title}
-        </div>
-        <div className={`text-2xl font-bold flex items-center gap-1 ${statusClass}`}>
-          {prefix}{formattedValue}{suffix}
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <div className="text-xs text-muted-foreground">
-            {description}
-          </div>
-          <div className="text-xs font-medium">
-            {statusIcon}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+// Fix the TypeScript issues in the generateStrategyPerformance and related functions
+interface StrategyPerformance {
+  name: string;
+  pnl: number;
+  tradeCount: number;
+  winCount: number;
+  winRate: number;
 }
 
-// Helper function to generate sample strategy performance data
-function generateStrategyPerformance(trades: any[]) {
-  const strategies = trades.reduce((acc, trade) => {
+// Helper function to generate sample strategy performance data with proper typing
+function generateStrategyPerformance(trades: TradeWithMetrics[]): StrategyPerformance[] {
+  const strategies = trades.reduce<Record<string, StrategyPerformance>>((acc, trade) => {
     if (!trade.strategy) return acc;
     
     if (!acc[trade.strategy]) {
@@ -570,7 +514,8 @@ function generateStrategyPerformance(trades: any[]) {
         name: trade.strategy,
         pnl: 0,
         tradeCount: 0,
-        winCount: 0
+        winCount: 0,
+        winRate: 0
       };
     }
     
@@ -584,7 +529,7 @@ function generateStrategyPerformance(trades: any[]) {
     }
     
     return acc;
-  }, {} as Record<string, {name: string, pnl: number, tradeCount: number, winCount: number}>);
+  }, {});
   
   return Object.values(strategies)
     .map(strategy => ({
@@ -598,7 +543,7 @@ function generateStrategyPerformance(trades: any[]) {
 }
 
 // Helper functions for calculating dashboard metrics
-function calculateWinRate(trades: any[]): number {
+function calculateWinRate(trades: TradeWithMetrics[]): number {
   const closedTrades = trades.filter(trade => trade.status === 'closed');
   if (closedTrades.length === 0) return 0;
   
@@ -606,13 +551,13 @@ function calculateWinRate(trades: any[]): number {
   return (winningTrades.length / closedTrades.length) * 100;
 }
 
-function calculateTotalPnL(trades: any[]): number {
+function calculateTotalPnL(trades: TradeWithMetrics[]): number {
   return trades
     .filter(trade => trade.status === 'closed')
     .reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
 }
 
-function calculateProfitFactor(trades: any[]): number {
+function calculateProfitFactor(trades: TradeWithMetrics[]): number {
   const closedTrades = trades.filter(trade => trade.status === 'closed');
   
   const grossProfit = closedTrades
@@ -627,7 +572,7 @@ function calculateProfitFactor(trades: any[]): number {
   return grossProfit / grossLoss;
 }
 
-function calculateExpectancy(trades: any[]): number {
+function calculateExpectancy(trades: TradeWithMetrics[]): number {
   const closedTrades = trades.filter(trade => trade.status === 'closed');
   if (closedTrades.length === 0) return 0;
   
@@ -651,7 +596,7 @@ function calculateExpectancy(trades: any[]): number {
   return winRate * rMultiple - (1 - winRate);
 }
 
-function calculateSortinoRatio(trades: any[]): number {
+function calculateSortinoRatio(trades: TradeWithMetrics[]): number {
   const closedTrades = trades.filter(trade => trade.status === 'closed');
   if (closedTrades.length === 0) return 0;
   
