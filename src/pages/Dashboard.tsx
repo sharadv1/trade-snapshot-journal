@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, ListChecks, FileBarChart2, Calendar, Clock, ChevronRight, CheckCircle2, PieChart } from 'lucide-react';
@@ -30,6 +31,14 @@ export default function Dashboard() {
   
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
+  };
+  
+  // Calculate key metrics for consistency across both views
+  const keyMetrics = {
+    winRate: calculateWinRate(trades),
+    netPnL: calculateTotalPnL(trades),
+    expectancy: calculateExpectancy(trades),
+    sortinoRatio: calculateSortinoRatio(trades)
   };
   
   return (
@@ -69,7 +78,26 @@ export default function Dashboard() {
         </TabsList>
         
         <TabsContent value="view1" className="grid gap-6 animate-in fade-in">
-          <TradeMetrics trades={trades} showOnlyKeyMetrics={true} />
+          {/* Key Metrics for View 1 */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <MetricCard 
+              title="Win Rate" 
+              value={`${keyMetrics.winRate.toFixed(1)}%`} 
+            />
+            <MetricCard 
+              title="Net Profit/Loss" 
+              value={formatCurrency(keyMetrics.netPnL)} 
+              className={keyMetrics.netPnL >= 0 ? "text-profit" : "text-loss"}
+            />
+            <MetricCard 
+              title="Expectancy" 
+              value={keyMetrics.expectancy > 0 ? `${keyMetrics.expectancy.toFixed(2)}R` : keyMetrics.expectancy.toFixed(2)}
+            />
+            <MetricCard 
+              title="Sortino Ratio" 
+              value={keyMetrics.sortinoRatio.toFixed(2)} 
+            />
+          </div>
           
           <div className="grid gap-6">
             <div>
@@ -127,32 +155,32 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <PerformanceCard 
                   title="Win Rate" 
-                  value={calculateWinRate(trades)}
+                  value={keyMetrics.winRate}
                   suffix="%"
-                  status={calculateWinRate(trades) > 50 ? "good" : "neutral"}
+                  status={keyMetrics.winRate > 50 ? "good" : "neutral"}
                   description="Based on last 30 days of trading"
                 />
                 
                 <PerformanceCard 
                   title="Profit/Loss" 
-                  value={calculateTotalPnL(trades)}
+                  value={keyMetrics.netPnL}
                   prefix="$"
-                  status={calculateTotalPnL(trades) > 0 ? "profit" : "loss"}
+                  status={keyMetrics.netPnL > 0 ? "profit" : "loss"}
                   description="Month-to-date performance"
                 />
                 
                 <PerformanceCard 
                   title="Expectancy" 
-                  value={calculateExpectancy(trades)}
+                  value={keyMetrics.expectancy}
                   suffix="R"
-                  status={calculateExpectancy(trades) > 1 ? "positive" : "neutral"}
+                  status={keyMetrics.expectancy > 1 ? "positive" : "neutral"}
                   description="Average R multiple per trade"
                 />
                 
                 <PerformanceCard 
                   title="Sortino Ratio" 
-                  value={calculateSortinoRatio(trades)}
-                  status={calculateSortinoRatio(trades) > 2 ? "good" : "neutral"}
+                  value={keyMetrics.sortinoRatio}
+                  status={keyMetrics.sortinoRatio > 2 ? "good" : "neutral"}
                   description="Risk-adjusted return metric"
                 />
               </div>
@@ -286,6 +314,7 @@ function PerformanceCard({
   );
 }
 
+// Updated to calculate expectancy based on R multiples
 function calculateWinRate(trades: TradeWithMetrics[]): number {
   const closedTrades = trades.filter(trade => trade.status === 'closed');
   if (closedTrades.length === 0) return 0;
@@ -300,42 +329,49 @@ function calculateTotalPnL(trades: TradeWithMetrics[]): number {
     .reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
 }
 
-function calculateProfitFactor(trades: TradeWithMetrics[]): number {
-  const closedTrades = trades.filter(trade => trade.status === 'closed');
-  
-  const grossProfit = closedTrades
-    .filter(trade => trade.metrics.profitLoss > 0)
-    .reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
-    
-  const grossLoss = Math.abs(closedTrades
-    .filter(trade => trade.metrics.profitLoss < 0)
-    .reduce((sum, trade) => sum + trade.metrics.profitLoss, 0));
-    
-  if (grossLoss === 0) return grossProfit > 0 ? 999 : 0;
-  return grossProfit / grossLoss;
-}
-
+// Updated Expectancy calculation to correctly handle R multiples
 function calculateExpectancy(trades: TradeWithMetrics[]): number {
   const closedTrades = trades.filter(trade => trade.status === 'closed');
   if (closedTrades.length === 0) return 0;
   
-  const winningTrades = closedTrades.filter(trade => trade.metrics.profitLoss > 0);
-  const losingTrades = closedTrades.filter(trade => trade.metrics.profitLoss < 0);
+  // Get trades with valid risk values
+  const tradesWithRisk = closedTrades.filter(trade => 
+    trade.metrics.riskedAmount && trade.metrics.riskedAmount > 0
+  );
   
-  const winRate = winningTrades.length / closedTrades.length;
-  
-  const avgWin = winningTrades.length > 0
-    ? winningTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0) / winningTrades.length
-    : 0;
+  // If no trades have defined risk, return a simplified calculation
+  if (tradesWithRisk.length === 0) {
+    const winningTrades = closedTrades.filter(trade => trade.metrics.profitLoss > 0);
+    const losingTrades = closedTrades.filter(trade => trade.metrics.profitLoss < 0);
     
-  const avgLoss = losingTrades.length > 0
-    ? Math.abs(losingTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0)) / losingTrades.length
-    : 0;
+    const winRate = winningTrades.length / closedTrades.length;
     
-  if (avgLoss === 0) return winRate > 0 ? 3 : 0;
+    const avgWin = winningTrades.length > 0
+      ? winningTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0) / winningTrades.length
+      : 0;
+      
+    const avgLoss = losingTrades.length > 0
+      ? Math.abs(losingTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0)) / losingTrades.length
+      : 1; // Avoid division by zero
+      
+    // If no losing trades, return a positive value based on win rate
+    if (avgLoss === 0) return winRate * 2;
+    
+    const rMultiple = avgWin / avgLoss;
+    return (winRate * rMultiple) - (1 - winRate);
+  }
   
-  const rMultiple = avgWin / avgLoss;
-  return (winRate * rMultiple) - (1 - winRate);
+  // Calculate properly using R multiples for trades with defined risk
+  let totalRMultiple = 0;
+  
+  for (const trade of tradesWithRisk) {
+    // R multiple = profit or loss divided by risked amount
+    const rMultiple = trade.metrics.profitLoss / trade.metrics.riskedAmount;
+    totalRMultiple += rMultiple;
+  }
+  
+  // Expectancy = Average R multiple
+  return totalRMultiple / tradesWithRisk.length;
 }
 
 function calculateSortinoRatio(trades: TradeWithMetrics[]): number {
@@ -361,4 +397,15 @@ function calculateSortinoRatio(trades: TradeWithMetrics[]): number {
   // Sortino ratio = (Average Return - Risk Free Rate) / Downside Deviation
   // Assuming risk free rate is 0 for simplicity
   return avgReturn / downsideDeviation;
+}
+
+function MetricCard({ title, value, className }: { title: string; value: string; className?: string }) {
+  return (
+    <Card className="shadow-subtle border">
+      <CardContent className="p-6">
+        <div className="text-sm font-medium text-muted-foreground">{title}</div>
+        <div className={`text-2xl font-bold mt-1 ${className}`}>{value}</div>
+      </CardContent>
+    </Card>
+  );
 }

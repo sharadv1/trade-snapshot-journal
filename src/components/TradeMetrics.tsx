@@ -41,8 +41,25 @@ const calculatePerformanceMetrics = (trades: TradeWithMetrics[]) => {
   const averageLoss = losingTrades.length > 0 
     ? -totalLoss / losingTrades.length 
     : 0;
-    
-  const expectancy = (winRate / 100) * averageWin - (1 - winRate / 100) * Math.abs(averageLoss);
+  
+  // Updated Expectancy calculation
+  let expectancy;
+  // Get trades with valid risk values
+  const tradesWithRisk = closedTrades.filter(trade => 
+    trade.metrics.riskedAmount && trade.metrics.riskedAmount > 0
+  );
+  
+  if (tradesWithRisk.length === 0) {
+    expectancy = (winRate / 100) * averageWin - (1 - winRate / 100) * Math.abs(averageLoss);
+  } else {
+    // Calculate using R multiples
+    let totalRMultiple = 0;
+    for (const trade of tradesWithRisk) {
+      const rMultiple = trade.metrics.profitLoss / trade.metrics.riskedAmount;
+      totalRMultiple += rMultiple;
+    }
+    expectancy = tradesWithRisk.length > 0 ? totalRMultiple / tradesWithRisk.length : 0;
+  }
   
   // Calculate Sortino ratio (using 0% as risk-free rate and considering only downside deviation)
   const returns = closedTrades.map(trade => trade.metrics.profitLossPercentage / 100);
@@ -111,13 +128,16 @@ export function TradeMetrics({ trades, showOnlyKeyMetrics = false }: TradeMetric
         {/* Key Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <MetricCard title="Win Rate" value={`${metrics.winRate.toFixed(1)}%`} />
-          <MetricCard title="Profit Factor" value={metrics.profitFactor.toFixed(2)} />
-          <MetricCard title="Sortino Ratio" value={metrics.sortinoRatio.toFixed(2)} />
           <MetricCard 
             title="Net Profit/Loss" 
             value={formatCurrency(metrics.netProfit)} 
             className={metrics.netProfit >= 0 ? "text-profit" : "text-loss"}
           />
+          <MetricCard 
+            title="Expectancy" 
+            value={metrics.expectancy > 0 ? `${metrics.expectancy.toFixed(2)}R` : metrics.expectancy.toFixed(2)} 
+          />
+          <MetricCard title="Sortino Ratio" value={metrics.sortinoRatio.toFixed(2)} />
         </div>
       </div>
     );
@@ -128,13 +148,16 @@ export function TradeMetrics({ trades, showOnlyKeyMetrics = false }: TradeMetric
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <MetricCard title="Win Rate" value={`${metrics.winRate.toFixed(1)}%`} />
-        <MetricCard title="Profit Factor" value={metrics.profitFactor.toFixed(2)} />
-        <MetricCard title="Sortino Ratio" value={metrics.sortinoRatio.toFixed(2)} />
         <MetricCard 
           title="Net Profit/Loss" 
           value={formatCurrency(metrics.netProfit)} 
           className={metrics.netProfit >= 0 ? "text-profit" : "text-loss"}
         />
+        <MetricCard 
+          title="Expectancy" 
+          value={metrics.expectancy > 0 ? `${metrics.expectancy.toFixed(2)}R` : metrics.expectancy.toFixed(2)} 
+        />
+        <MetricCard title="Sortino Ratio" value={metrics.sortinoRatio.toFixed(2)} />
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -218,7 +241,7 @@ export function TradeMetrics({ trades, showOnlyKeyMetrics = false }: TradeMetric
         <MetricCard title="Total Trades" value={metrics.totalTrades.toString()} />
         <MetricCard title="Average Win" value={formatCurrency(metrics.averageWin)} />
         <MetricCard title="Average Loss" value={formatCurrency(Math.abs(metrics.averageLoss))} />
-        <MetricCard title="Expectancy" value={formatCurrency(metrics.expectancy)} />
+        <MetricCard title="Profit Factor" value={metrics.profitFactor.toFixed(2)} />
       </div>
     </div>
   );
