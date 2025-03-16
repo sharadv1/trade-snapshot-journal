@@ -23,7 +23,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
       tags: [],
       partialExits: [],
       pspTime: '',
-      timeframe: ''
+      timeframe: undefined
     }
   );
 
