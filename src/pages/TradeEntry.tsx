@@ -8,15 +8,16 @@ export default function TradeEntry() {
   const [searchParams] = useSearchParams();
   const ideaId = searchParams.get('ideaId');
   
-  // Scroll to top when component mounts
   useEffect(() => {
+    console.log('TradeEntry mounted. Idea ID from URL:', ideaId);
+    // Scroll to top when component mounts
     window.scrollTo(0, 0);
-  }, []);
+  }, [ideaId]);
 
   return (
     <div className="max-w-3xl mx-auto py-8">
       <h1 className="text-3xl font-bold tracking-tight mb-6">
-        Record New Trade
+        Record New Trade {ideaId ? '(From Idea)' : ''}
       </h1>
       <TradeForm />
     </div>

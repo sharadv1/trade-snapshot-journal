@@ -7,7 +7,7 @@ import { TradeDetailsForm } from './trade-form/TradeDetailsForm';
 import { RiskParametersForm } from './trade-form/RiskParametersForm';
 import { NotesAndImagesForm } from './trade-form/NotesAndImagesForm';
 import { useTradeForm } from './trade-form/useTradeForm';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 interface TradeFormProps {
   initialTrade?: Trade;
@@ -16,6 +16,11 @@ interface TradeFormProps {
 
 export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const ideaIdFromUrl = searchParams.get('ideaId');
+  
+  console.log('TradeForm rendering. Idea ID from URL:', ideaIdFromUrl);
+  
   const {
     trade,
     contractDetails,
@@ -30,8 +35,16 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
     pointValue,
   } = useTradeForm(initialTrade, isEditing);
 
+  console.log('Current trade state:', {
+    symbol: trade.symbol,
+    direction: trade.direction,
+    strategy: trade.strategy,
+    ideaId: trade.ideaId
+  });
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Submitting trade form');
     const success = handleSubmit(e);
     
     // If this is an edit and submission was successful, navigate to the trade detail page
@@ -51,7 +64,9 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
           <CardDescription>
             {isEditing 
               ? "Update the details of your existing trade" 
-              : "Enter the details of your new trade"
+              : ideaIdFromUrl 
+                ? "Create a trade based on your idea" 
+                : "Enter the details of your new trade"
             }
           </CardDescription>
         </CardHeader>

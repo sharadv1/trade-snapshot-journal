@@ -16,8 +16,12 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
 
   useEffect(() => {
     // Load strategies from storage
-    setStrategies(getStrategies());
+    const loadedStrategies = getStrategies();
+    console.log('Loaded strategies:', loadedStrategies);
+    setStrategies(loadedStrategies);
   }, []);
+
+  console.log('Current trade strategy:', trade.strategy);
 
   return (
     <div className="space-y-4">
@@ -49,27 +53,35 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
         <div className="space-y-2 col-span-2">
           <Label htmlFor="strategy">Strategy</Label>
           <Select 
-            value={trade.strategy || ''} 
-            onValueChange={(value) => handleChange('strategy', value)}
+            value={trade.strategy || ''}
+            onValueChange={(value) => {
+              console.log('Selecting strategy:', value);
+              handleChange('strategy', value);
+            }}
           >
             <SelectTrigger id="strategy">
               <SelectValue placeholder="Select strategy" />
             </SelectTrigger>
             <SelectContent>
               {strategies.length > 0 ? (
-                strategies.map((strategy) => (
-                  <SelectItem key={strategy.id} value={strategy.name || 'unnamed-strategy'}>
-                    <div className="flex items-center">
-                      {strategy.color && (
-                        <div 
-                          className="w-3 h-3 rounded-full mr-2" 
-                          style={{ backgroundColor: strategy.color }} 
-                        />
-                      )}
-                      {strategy.name}
-                    </div>
-                  </SelectItem>
-                ))
+                strategies.map((strategy) => {
+                  console.log('Rendering strategy item:', strategy.name, strategy.id);
+                  // Ensure strategy name is never empty
+                  const strategyValue = strategy.name || `strategy-${strategy.id}`;
+                  return (
+                    <SelectItem key={strategy.id} value={strategyValue}>
+                      <div className="flex items-center">
+                        {strategy.color && (
+                          <div 
+                            className="w-3 h-3 rounded-full mr-2" 
+                            style={{ backgroundColor: strategy.color }} 
+                          />
+                        )}
+                        {strategy.name || `Unnamed Strategy ${strategy.id.substring(0, 4)}`}
+                      </div>
+                    </SelectItem>
+                  );
+                })
               ) : (
                 <SelectItem value="no-strategies">No strategies available</SelectItem>
               )}
