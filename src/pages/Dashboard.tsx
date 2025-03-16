@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, ListChecks, FileBarChart2, Calendar, BarChart, ChevronRight, CheckCircle2, Clock, PieChart } from 'lucide-react';
+import { Plus, ListChecks, FileBarChart2, Calendar, Clock, ChevronRight, CheckCircle2, PieChart } from 'lucide-react';
 import { TradeMetrics } from '@/components/TradeMetrics';
 import { TradeList } from '@/components/TradeList';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { QuickTradeEntry } from '@/components/QuickTradeEntry';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
+import { CumulativePnLChart } from '@/components/CumulativePnLChart';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -171,14 +171,7 @@ export default function Dashboard() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                      <p>PnL Chart would be displayed here</p>
-                    </div>
-                    <div className="text-right text-sm">
-                      Total P&L: <span className="font-medium text-profit">
-                        {formatCurrency(calculateTotalPnL(trades))}
-                      </span>
-                    </div>
+                    <CumulativePnLChart trades={trades} />
                   </CardContent>
                 </Card>
               </div>
@@ -242,7 +235,6 @@ export default function Dashboard() {
   );
 }
 
-// Define the missing PerformanceCard component
 interface PerformanceCardProps {
   title: string;
   value: number | string;
@@ -260,7 +252,6 @@ function PerformanceCard({
   status = 'neutral', 
   description 
 }: PerformanceCardProps) {
-  // Determine text color based on status
   const getStatusColor = () => {
     switch (status) {
       case 'good':
@@ -295,54 +286,6 @@ function PerformanceCard({
   );
 }
 
-// Fix the TypeScript issues in the generateStrategyPerformance and related functions
-interface StrategyPerformance {
-  name: string;
-  pnl: number;
-  tradeCount: number;
-  winCount: number;
-  winRate: number;
-}
-
-// Helper function to generate sample strategy performance data with proper typing
-function generateStrategyPerformance(trades: TradeWithMetrics[]): StrategyPerformance[] {
-  const strategies = trades.reduce<Record<string, StrategyPerformance>>((acc, trade) => {
-    if (!trade.strategy) return acc;
-    
-    if (!acc[trade.strategy]) {
-      acc[trade.strategy] = {
-        name: trade.strategy,
-        pnl: 0,
-        tradeCount: 0,
-        winCount: 0,
-        winRate: 0
-      };
-    }
-    
-    acc[trade.strategy].tradeCount += 1;
-    
-    if (trade.status === 'closed') {
-      acc[trade.strategy].pnl += trade.metrics.profitLoss;
-      if (trade.metrics.profitLoss > 0) {
-        acc[trade.strategy].winCount += 1;
-      }
-    }
-    
-    return acc;
-  }, {});
-  
-  return Object.values(strategies)
-    .map(strategy => ({
-      ...strategy,
-      winRate: strategy.tradeCount > 0 
-        ? Math.round((strategy.winCount / strategy.tradeCount) * 100) 
-        : 0
-    }))
-    .sort((a, b) => b.pnl - a.pnl)
-    .slice(0, 5);
-}
-
-// Helper functions for calculating dashboard metrics
 function calculateWinRate(trades: TradeWithMetrics[]): number {
   const closedTrades = trades.filter(trade => trade.status === 'closed');
   if (closedTrades.length === 0) return 0;
@@ -389,11 +332,10 @@ function calculateExpectancy(trades: TradeWithMetrics[]): number {
     ? Math.abs(losingTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0)) / losingTrades.length
     : 0;
     
-  if (avgLoss === 0) return 0;
+  if (avgLoss === 0) return winRate > 0 ? 3 : 0;
   
-  // Calculate expectancy as R-multiple
   const rMultiple = avgWin / avgLoss;
-  return winRate * rMultiple - (1 - winRate);
+  return (winRate * rMultiple) - (1 - winRate);
 }
 
 function calculateSortinoRatio(trades: TradeWithMetrics[]): number {
@@ -408,7 +350,7 @@ function calculateSortinoRatio(trades: TradeWithMetrics[]): number {
   
   // Calculate downside deviation (only negative returns)
   const negativeReturns = returns.filter(r => r < 0);
-  if (negativeReturns.length === 0) return avgReturn > 0 ? 999 : 0; // No downside
+  if (negativeReturns.length === 0) return avgReturn > 0 ? 3 : 0;
   
   const downsideDeviation = Math.sqrt(
     negativeReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) / negativeReturns.length
@@ -419,37 +361,4 @@ function calculateSortinoRatio(trades: TradeWithMetrics[]): number {
   // Sortino ratio = (Average Return - Risk Free Rate) / Downside Deviation
   // Assuming risk free rate is 0 for simplicity
   return avgReturn / downsideDeviation;
-}
-
-function StatsCard({ 
-  title, 
-  value, 
-  change, 
-  positive, 
-  icon 
-}: { 
-  title: string;
-  value: string;
-  change: string;
-  positive: boolean;
-  icon: React.ReactNode;
-}) {
-  return (
-    <Card className="shadow-sm">
-      <CardContent className="p-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
-            <p className="text-2xl font-bold">{value}</p>
-          </div>
-          <div className="bg-primary/10 p-2 rounded-full">
-            {icon}
-          </div>
-        </div>
-        <div className={`text-xs mt-2 ${positive ? 'text-profit' : 'text-loss'}`}>
-          {change}
-        </div>
-      </CardContent>
-    </Card>
-  );
 }
