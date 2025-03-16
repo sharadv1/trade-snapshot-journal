@@ -56,19 +56,23 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
               <SelectValue placeholder="Select strategy" />
             </SelectTrigger>
             <SelectContent>
-              {strategies.map((strategy) => (
-                <SelectItem key={strategy.id} value={strategy.name}>
-                  <div className="flex items-center">
-                    {strategy.color && (
-                      <div 
-                        className="w-3 h-3 rounded-full mr-2" 
-                        style={{ backgroundColor: strategy.color }} 
-                      />
-                    )}
-                    {strategy.name}
-                  </div>
-                </SelectItem>
-              ))}
+              {strategies.length > 0 ? (
+                strategies.map((strategy) => (
+                  <SelectItem key={strategy.id} value={strategy.name || 'unnamed-strategy'}>
+                    <div className="flex items-center">
+                      {strategy.color && (
+                        <div 
+                          className="w-3 h-3 rounded-full mr-2" 
+                          style={{ backgroundColor: strategy.color }} 
+                        />
+                      )}
+                      {strategy.name}
+                    </div>
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-strategies">No strategies available</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
