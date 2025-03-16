@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, PencilLine, XCircle, CheckCircle, ArrowRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { Sparkles, PencilLine, ArrowRight, ArrowUp, ArrowDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TradeIdea } from '@/types';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { IdeaDialog } from './IdeaDialog';
 import { toast } from '@/utils/toast';
 import { format } from 'date-fns';
+import { ImageViewerDialog } from '@/components/ImageViewerDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,7 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [ideaToDelete, setIdeaToDelete] = useState<string | null>(null);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
   
   const loadIdeas = () => {
     const loadedIdeas = getIdeas();
@@ -67,18 +69,13 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
     }
   };
   
-  const toggleStatus = (idea: TradeIdea, newStatus: 'still valid' | 'invalidated' | 'taken') => {
-    updateIdea({
-      ...idea,
-      status: newStatus
-    });
-    loadIdeas();
-    toast.success(`Trade idea marked as ${newStatus}`);
+  const createTradeFromIdea = (idea: TradeIdea) => {
+    navigate(`/trade/new?ideaId=${idea.id}`);
   };
   
-  const createTradeFromIdea = (idea: TradeIdea) => {
-    // Fix: Navigate to the correct route for creating a new trade
-    navigate(`/trade/new?ideaId=${idea.id}`);
+  const handleImageClick = (image: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setViewingImage(image);
   };
   
   // Filter and sort ideas
@@ -156,7 +153,7 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
               </CardHeader>
               
               {idea.images && idea.images.length > 0 && (
-                <div className="px-4 pt-2">
+                <div className="px-4 pt-2 cursor-pointer" onClick={(e) => handleImageClick(idea.images[0], e)}>
                   <div className="w-full h-32 rounded-md overflow-hidden">
                     <img 
                       src={idea.images[0]} 
@@ -174,28 +171,6 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
               </CardContent>
               
               <CardFooter className="p-4 pt-0 flex flex-wrap gap-2">
-                {idea.status !== 'still valid' && (
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => toggleStatus(idea, 'still valid')}
-                  >
-                    <CheckCircle className="mr-1 h-4 w-4" />
-                    Mark Valid
-                  </Button>
-                )}
-                
-                {idea.status !== 'invalidated' && (
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => toggleStatus(idea, 'invalidated')}
-                  >
-                    <XCircle className="mr-1 h-4 w-4" />
-                    Invalidate
-                  </Button>
-                )}
-                
                 <Button 
                   size="sm" 
                   variant="outline"
@@ -248,6 +223,15 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Image viewer dialog */}
+      {viewingImage && (
+        <ImageViewerDialog 
+          image={viewingImage} 
+          isOpen={!!viewingImage} 
+          onClose={() => setViewingImage(null)} 
+        />
+      )}
     </div>
   );
 }

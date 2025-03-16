@@ -1,10 +1,12 @@
 
 import { TradeForm } from '@/components/TradeForm';
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function TradeEntry() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const ideaId = searchParams.get('ideaId');
   
   // Scroll to top when component mounts
   useEffect(() => {
