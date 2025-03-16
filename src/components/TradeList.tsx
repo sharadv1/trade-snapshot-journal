@@ -281,14 +281,6 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
                     )}
                   </div>
                 </th>
-                <th className="text-left p-2" onClick={() => handleSort('entryDate')}>
-                  <div className="flex items-center cursor-pointer hover:text-primary transition-colors">
-                    Entry Date
-                    {sortField === 'entryDate' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
-                  </div>
-                </th>
                 <th className="text-left p-2" onClick={() => handleSort('exitDate')}>
                   <div className="flex items-center cursor-pointer hover:text-primary transition-colors">
                     Exit Date
@@ -312,7 +304,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
             <tbody>
               {limitedTrades.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center p-4 text-muted-foreground">
+                  <td colSpan={7} className="text-center p-4 text-muted-foreground">
                     No trades found
                   </td>
                 </tr>
@@ -334,9 +326,6 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
                       {trade.strategy || 'Unspecified'}
                     </td>
                     <td className="p-2">
-                      {format(new Date(trade.entryDate), 'MMM d, yyyy')}
-                    </td>
-                    <td className="p-2">
                       {trade.exitDate 
                         ? format(new Date(trade.exitDate), 'MMM d, yyyy')
                         : '-'
@@ -344,16 +333,13 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
                     </td>
                     <td className="p-2">
                       {trade.status === 'closed' ? (
-                        <div className="flex flex-col">
+                        <div className="flex items-center">
                           <span className={trade.metrics.profitLoss >= 0 ? 'text-profit' : 'text-loss'}>
                             {formatCurrency(trade.metrics.profitLoss)}
-                            <span className="text-xs ml-1">
-                              ({formatPercentage(trade.metrics.profitLossPercentage)})
-                            </span>
                           </span>
                           {trade.metrics.riskRewardRatio && trade.metrics.riskedAmount > 0 && (
-                            <span className={`text-xs ${trade.metrics.profitLoss >= 0 ? 'text-profit' : 'text-loss'}`}>
-                              {trade.metrics.riskRewardRatio.toFixed(2)}R
+                            <span className={`ml-2 ${trade.metrics.profitLoss >= 0 ? 'text-profit' : 'text-loss'}`}>
+                              ({trade.metrics.riskRewardRatio.toFixed(2)}R)
                             </span>
                           )}
                         </div>

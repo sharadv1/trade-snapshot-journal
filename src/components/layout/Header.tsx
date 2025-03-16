@@ -1,9 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart2, Home, Plus } from 'lucide-react';
+import { BarChart2, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 
 export function Header() {
   const location = useLocation();
@@ -54,25 +53,6 @@ export function Header() {
               </Link>
             ))}
           </nav>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            className="hidden md:flex"
-            asChild
-          >
-            <Link to="/trade/new">
-              <Plus className="mr-1 h-4 w-4" />
-              New Trade
-            </Link>
-          </Button>
-          
-          <Button size="icon" className="md:hidden" asChild>
-            <Link to="/trade/new">
-              <Plus className="h-4 w-4" />
-            </Link>
-          </Button>
         </div>
       </div>
     </header>
