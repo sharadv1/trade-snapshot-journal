@@ -6,18 +6,23 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+console.log(`Starting server in ${process.env.NODE_ENV || 'development'} mode`);
+
 // Data file location
 const DATA_DIR = process.env.DATA_DIR || './data';
 const TRADES_FILE = path.join(DATA_DIR, 'trades.json');
 
 // Ensure data directory exists
+console.log(`Ensuring data directory exists: ${DATA_DIR}`);
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
+  console.log(`Created data directory: ${DATA_DIR}`);
 }
 
 // Initialize empty trades file if it doesn't exist
 if (!fs.existsSync(TRADES_FILE)) {
   fs.writeFileSync(TRADES_FILE, JSON.stringify([]));
+  console.log(`Initialized empty trades file: ${TRADES_FILE}`);
 }
 
 // Middlewares
@@ -48,7 +53,7 @@ app.put('/api/trades', (req, res) => {
 
 // Health check endpoint
 app.get('/api/ping', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // For React Router - serve index.html for any unmatched routes
@@ -56,6 +61,19 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-app.listen(PORT, () => {
+// Start the server
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Health check available at http://localhost:${PORT}/api/ping`);
+});
+
+// Handle process termination
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  process.exit(0);
 });
