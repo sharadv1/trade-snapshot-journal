@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, PencilLine, ArrowRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { Sparkles, PencilLine, ArrowRight, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TradeIdea } from '@/types';
@@ -21,6 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilter?: string, sortBy?: string }) {
   const navigate = useNavigate();
@@ -136,61 +142,95 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedIdeas.map((idea) => (
-            <Card key={idea.id} className="overflow-hidden flex flex-col">
-              <CardHeader className="p-4 pb-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      {idea.symbol}
-                      {renderDirectionBadge(idea.direction)}
-                    </CardTitle>
-                    <div className="text-sm text-muted-foreground">
-                      {format(new Date(idea.date), 'MMM d, yyyy h:mm a')}
+            <ContextMenu key={idea.id}>
+              <ContextMenuTrigger>
+                <Card className="overflow-hidden flex flex-col">
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          {idea.symbol}
+                          {renderDirectionBadge(idea.direction)}
+                        </CardTitle>
+                        <div className="text-sm text-muted-foreground">
+                          {format(new Date(idea.date), 'MMM d, yyyy h:mm a')}
+                        </div>
+                      </div>
+                      {renderStatusBadge(idea.status)}
                     </div>
-                  </div>
-                  {renderStatusBadge(idea.status)}
-                </div>
-              </CardHeader>
-              
-              {idea.images && idea.images.length > 0 && (
-                <div className="px-4 pt-2 cursor-pointer" onClick={(e) => handleImageClick(idea.images[0], e)}>
-                  <div className="w-full h-32 rounded-md overflow-hidden">
-                    <img 
-                      src={idea.images[0]} 
-                      alt={`${idea.symbol} chart`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              )}
-              
-              <CardContent className="p-4 pt-2 flex-grow">
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {idea.description || 'No description provided'}
-                </p>
-              </CardContent>
-              
-              <CardFooter className="p-4 pt-0 flex flex-wrap gap-2">
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => handleEditClick(idea)}
-                >
-                  <PencilLine className="mr-1 h-4 w-4" />
+                  </CardHeader>
+                  
+                  {idea.images && idea.images.length > 0 && (
+                    <div className="px-4 pt-2 cursor-pointer" onClick={(e) => handleImageClick(idea.images[0], e)}>
+                      <div className="w-full h-32 rounded-md overflow-hidden">
+                        <img 
+                          src={idea.images[0]} 
+                          alt={`${idea.symbol} chart`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <CardContent className="p-4 pt-2 flex-grow">
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {idea.description || 'No description provided'}
+                    </p>
+                  </CardContent>
+                  
+                  <CardFooter className="p-4 pt-0 flex flex-wrap justify-between">
+                    <div className="flex flex-wrap gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleEditClick(idea)}
+                      >
+                        <PencilLine className="mr-1 h-4 w-4" />
+                        Edit
+                      </Button>
+                      
+                      {idea.status !== 'taken' && (
+                        <Button 
+                          size="sm"
+                          onClick={() => createTradeFromIdea(idea)}
+                        >
+                          <ArrowRight className="mr-1 h-4 w-4" />
+                          Create Trade
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDeleteClick(idea.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem onClick={() => handleEditClick(idea)}>
+                  <PencilLine className="mr-2 h-4 w-4" />
                   Edit
-                </Button>
-                
+                </ContextMenuItem>
                 {idea.status !== 'taken' && (
-                  <Button 
-                    size="sm"
-                    onClick={() => createTradeFromIdea(idea)}
-                  >
-                    <ArrowRight className="mr-1 h-4 w-4" />
+                  <ContextMenuItem onClick={() => createTradeFromIdea(idea)}>
+                    <ArrowRight className="mr-2 h-4 w-4" />
                     Create Trade
-                  </Button>
+                  </ContextMenuItem>
                 )}
-              </CardFooter>
-            </Card>
+                <ContextMenuItem 
+                  onClick={() => handleDeleteClick(idea.id)}
+                  className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           ))}
         </div>
       )}
@@ -219,7 +259,7 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
