@@ -7,10 +7,10 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "8080:3000"
+      - "8080:4000"
     restart: unless-stopped
     environment:
-      - PORT=3000
+      - PORT=4000
       - DATA_DIR=/data
       - NODE_ENV=development
     volumes:

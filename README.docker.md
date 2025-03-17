@@ -26,6 +26,12 @@ This guide explains how to deploy the Trade Snapshot Journal application using D
    - Click "Deploy the stack"
    - Wait for the deployment to complete
 
+5. **Important Note About Files**
+   - When you use the Web Editor method, Portainer will use the Docker image specified in the compose file
+   - The image will be built on the Docker host using the Dockerfile in the current directory
+   - **You must have all project files on your Docker host in the same directory as your docker-compose.yml file**
+   - If you want to deploy directly from GitHub without downloading all files, use Method B below
+
 ### Method B: Deploy using Git Repository
 
 1. **Access your Portainer dashboard**
@@ -45,6 +51,7 @@ This guide explains how to deploy the Trade Snapshot Journal application using D
 4. **Deploy the stack**
    - Click "Deploy the stack"
    - Wait for the deployment to complete
+   - This method automatically pulls all necessary files from your Git repository
 
 ## Troubleshooting Portainer Deployment
 
@@ -60,10 +67,12 @@ If you encounter issues deploying in Portainer:
 
 3. **Port conflicts**
    - If you get a port conflict error, change the `HOST_PORT` in the environment variables
+   - The default internal port is now 4000, but you can expose it on any available host port
 
 4. **Build context issues**
+   - If using the Web Editor method, make sure all project files are available in the same directory on the Docker host
    - If deploying from a Git repository, ensure the Dockerfile is in the repository root
-   - If using Web Editor, check that the image is built correctly
+   - Check that the image is built correctly
 
 ## Option 2: Manual Docker Commands
 
@@ -79,7 +88,7 @@ docker-compose up -d
 
 # Or build and run manually
 docker build -t trade-journal .
-docker run -d -p 8080:3000 -v trade-journal-data:/data --name trade-journal trade-journal
+docker run -d -p 8080:4000 -v trade-journal-data:/data --name trade-journal trade-journal
 ```
 
 ## Accessing Your Application
@@ -120,5 +129,4 @@ You can customize the deployment by setting the following environment variables 
 - `HOST_PORT`: The port on your host machine (default: 8080)
 - `IMAGE_NAME`: Custom image name if building your own image
 - `DATA_DIR`: Location for data storage inside the container (default: /data)
-- `PORT`: Internal application port (default: 3000, usually no need to change)
-
+- `PORT`: Internal application port (default: 4000, usually no need to change)
