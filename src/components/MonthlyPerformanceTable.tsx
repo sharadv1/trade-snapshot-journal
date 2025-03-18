@@ -181,13 +181,34 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
       return monthData;
     });
     
+    // Debug total R value issue
+    console.log('Monthly Performance: Total R before rounding:', categoryTotals.totalR);
+    
+    // The issue is likely due to rounding differences and possible double-counting
+    // Let's directly calculate the total R value from the trades instead
+    let directTotalR = 0;
+    trades.forEach(trade => {
+      if (trade.status === 'closed' && trade.metrics && trade.metrics.riskRewardRatio) {
+        directTotalR += trade.metrics.riskRewardRatio;
+      }
+    });
+    
+    console.log('Monthly Performance: Direct total R from trades:', directTotalR);
+    console.log('Monthly Performance: Monthly data:', monthlyPerformance.map(m => ({
+      month: m.month,
+      rTotal: m.monthlyTotal?.totalR,
+      count: m.monthlyTotal?.count
+    })));
+    
     return {
       monthlyData: monthlyPerformance,
       categories: allCategories,
       totals: {
-        ...categoryTotals,
-        // Fix: Ensure the final total R value is properly formatted with the same precision
-        totalR: parseFloat(categoryTotals.totalR.toFixed(2))
+        totalDollarValue: categoryTotals.totalDollarValue,
+        // Fix: Use the direct calculation instead of accumulated monthly totals
+        // which might have rounding or calculation issues
+        totalR: parseFloat(directTotalR.toFixed(2)),
+        count: categoryTotals.count
       }
     };
   }, [trades]);
