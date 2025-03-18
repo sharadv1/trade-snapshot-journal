@@ -1,4 +1,3 @@
-
 import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { Trade, TradeWithMetrics } from '@/types';
@@ -85,6 +84,9 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
       count: 0
     };
     
+    // Fix: Create a direct mapping of monthly data for debugging and validation
+    const monthlyDataMap = new Map();
+    
     // Calculate performance metrics for each month and category
     const monthlyPerformance: MonthPerformanceData[] = sortedMonths.map(({ month, rawMonth }) => {
       const monthData: MonthPerformanceData = { month, rawMonth };
@@ -99,6 +101,7 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
         const monthStart = new Date(rawMonth.getFullYear(), rawMonth.getMonth(), 1);
         const monthEnd = new Date(rawMonth.getFullYear(), rawMonth.getMonth() + 1, 0);
         
+        // Filter trades that are in this month and belong to this category
         let tradesInCategory;
         
         if (category.type === 'strategy') {
@@ -113,28 +116,6 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
             const isInMonth = tradeDate >= monthStart && tradeDate <= monthEnd;
             return isInMonth && trade.type === category.name;
           });
-          
-          // Only add to totals for instrument categories
-          if (tradesInCategory.length > 0) {
-            // Calculate total dollar value (sum of all profit/loss)
-            const categoryDollarValue = tradesInCategory.reduce(
-              (sum, trade) => sum + (trade.metrics?.profitLoss || 0), 
-              0
-            );
-            
-            // Calculate total R (sum of all risk-reward ratios)
-            let categoryRValue = 0;
-            tradesInCategory.forEach(trade => {
-              if (trade.metrics && trade.metrics.riskRewardRatio) {
-                categoryRValue += trade.metrics.riskRewardRatio;
-              }
-            });
-            
-            // Add to monthly totals (only counting instruments)
-            monthlyDollarTotal += categoryDollarValue;
-            monthlyRTotal += categoryRValue;
-            monthlyTradeCount += tradesInCategory.length;
-          }
         }
         
         if (tradesInCategory.length > 0) {
@@ -144,19 +125,27 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
             0
           );
           
-          // Calculate total R using the pre-calculated risk-reward ratio
+          // Fix: Calculate total R value directly from closed trades
           let totalR = 0;
           tradesInCategory.forEach(trade => {
-            if (trade.metrics && trade.metrics.riskRewardRatio) {
+            if (trade.status === 'closed' && trade.metrics && trade.metrics.riskRewardRatio) {
               totalR += trade.metrics.riskRewardRatio;
             }
           });
           
+          // Store metrics in month data
           monthData[category.id] = {
             totalDollarValue,
             totalR: parseFloat(totalR.toFixed(2)),
             count: tradesInCategory.length
           };
+          
+          // Only add to monthly totals for instrument categories
+          if (category.type === 'instrument') {
+            monthlyDollarTotal += totalDollarValue;
+            monthlyRTotal += totalR;
+            monthlyTradeCount += tradesInCategory.length;
+          }
         } else {
           monthData[category.id] = { 
             totalDollarValue: 0, 
@@ -173,6 +162,13 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
         count: monthlyTradeCount
       };
       
+      // Fix: Store monthly data in map for validation
+      monthlyDataMap.set(month, {
+        dollarTotal: monthlyDollarTotal,
+        rTotal: monthlyRTotal,
+        tradeCount: monthlyTradeCount
+      });
+      
       // Update cumulative totals (only counting instruments)
       categoryTotals.totalDollarValue += monthlyDollarTotal;
       categoryTotals.totalR += monthlyRTotal;
@@ -181,11 +177,17 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
       return monthData;
     });
     
-    // Debug total R value issue
-    console.log('Monthly Performance: Total R before rounding:', categoryTotals.totalR);
+    // Debug monthly totals calculation
+    console.log('Monthly Performance - Monthly data detailed:', 
+      Array.from(monthlyDataMap.entries()).map(([month, data]) => ({
+        month,
+        dollarTotal: data.dollarTotal,
+        rTotal: data.rTotal,
+        tradeCount: data.tradeCount
+      }))
+    );
     
-    // The issue is likely due to rounding differences and possible double-counting
-    // Let's directly calculate the total R value from the trades instead
+    // Direct calculation of total R from all closed trades for comparison
     let directTotalR = 0;
     trades.forEach(trade => {
       if (trade.status === 'closed' && trade.metrics && trade.metrics.riskRewardRatio) {
@@ -193,20 +195,15 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
       }
     });
     
-    console.log('Monthly Performance: Direct total R from trades:', directTotalR);
-    console.log('Monthly Performance: Monthly data:', monthlyPerformance.map(m => ({
-      month: m.month,
-      rTotal: m.monthlyTotal?.totalR,
-      count: m.monthlyTotal?.count
-    })));
+    console.log('Monthly Performance - Direct total R from all trades:', directTotalR);
+    console.log('Monthly Performance - Accumulated total R:', categoryTotals.totalR);
     
     return {
       monthlyData: monthlyPerformance,
       categories: allCategories,
       totals: {
         totalDollarValue: categoryTotals.totalDollarValue,
-        // Fix: Use the direct calculation instead of accumulated monthly totals
-        // which might have rounding or calculation issues
+        // Fix: Use direct calculation for total R to avoid any accumulation errors
         totalR: parseFloat(directTotalR.toFixed(2)),
         count: categoryTotals.count
       }
