@@ -25,6 +25,12 @@ export default function TradeEntry() {
     }
   }, [ideaId]);
 
+  const handleFormError = (error: unknown) => {
+    console.error('TradeEntry form error:', error);
+    setHasError(true);
+    toast.error('There was an error processing your trade. Please try again.');
+  };
+
   if (isLoading) {
     return <div className="p-8 text-center">Loading...</div>;
   }

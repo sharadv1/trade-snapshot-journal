@@ -9,6 +9,7 @@ import { PartialExitForm } from './trade-exit/PartialExitForm';
 import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { DialogTitle } from '@/components/ui/dialog';
+import { useEffect } from 'react';
 
 interface ExitTradeFormProps {
   trade: Trade;
@@ -43,13 +44,25 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
     handlePartialExit
   } = useExitTradeLogic(trade, onUpdate, onClose);
 
+  // Log component initialization
+  useEffect(() => {
+    console.log('ExitTradeForm mounted for trade:', trade.id);
+    return () => {
+      console.log('ExitTradeForm unmounted for trade:', trade.id);
+    };
+  }, [trade.id]);
+
   // Wrapper functions to ensure trade updates are visible immediately
-  const handleSubmitFullExit = async () => {
+  const handleSubmitFullExit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Submitting full exit form');
     await handleFullExit();
     onUpdate(); // Ensure parent component refreshes data
   };
 
-  const handleSubmitPartialExit = async () => {
+  const handleSubmitPartialExit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Submitting partial exit form');
     await handlePartialExit();
     onUpdate(); // Ensure parent component refreshes data
   };
@@ -59,7 +72,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="text-xl">Exit Trade: {trade.symbol}</CardTitle>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={onClose} type="button">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -78,44 +91,49 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
         
         <CardContent className="pt-6">
           <TabsContent value="full" className="space-y-4 mt-0">
-            <FullExitForm 
-              trade={trade}
-              exitPrice={exitPrice}
-              setExitPrice={setExitPrice}
-              exitDate={exitDate}
-              setExitDate={setExitDate}
-              fees={fees}
-              setFees={setFees}
-              notes={notes}
-              setNotes={setNotes}
-            />
+            <form id="full-exit-form" onSubmit={handleSubmitFullExit}>
+              <FullExitForm 
+                trade={trade}
+                exitPrice={exitPrice}
+                setExitPrice={setExitPrice}
+                exitDate={exitDate}
+                setExitDate={setExitDate}
+                fees={fees}
+                setFees={setFees}
+                notes={notes}
+                setNotes={setNotes}
+              />
+            </form>
           </TabsContent>
           
           <TabsContent value="partial" className="space-y-4 mt-0">
-            <PartialExitForm 
-              trade={trade}
-              remainingQuantity={remainingQuantity}
-              partialQuantity={partialQuantity}
-              setPartialQuantity={setPartialQuantity}
-              partialExitPrice={partialExitPrice}
-              setPartialExitPrice={setPartialExitPrice}
-              partialExitDate={partialExitDate}
-              setPartialExitDate={setPartialExitDate}
-              partialFees={partialFees}
-              setPartialFees={setPartialFees}
-              partialNotes={partialNotes}
-              setPartialNotes={setPartialNotes}
-            />
+            <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
+              <PartialExitForm 
+                trade={trade}
+                remainingQuantity={remainingQuantity}
+                partialQuantity={partialQuantity}
+                setPartialQuantity={setPartialQuantity}
+                partialExitPrice={partialExitPrice}
+                setPartialExitPrice={setPartialExitPrice}
+                partialExitDate={partialExitDate}
+                setPartialExitDate={setPartialExitDate}
+                partialFees={partialFees}
+                setPartialFees={setPartialFees}
+                partialNotes={partialNotes}
+                setPartialNotes={setPartialNotes}
+              />
+            </form>
           </TabsContent>
         </CardContent>
       </Tabs>
       
       <CardFooter className="flex justify-between space-x-2 pt-4 border-t">
-        <Button variant="outline" onClick={onClose}>
+        <Button variant="outline" onClick={onClose} type="button">
           Cancel
         </Button>
         <Button 
-          onClick={activeTab === 'full' ? handleSubmitFullExit : handleSubmitPartialExit}
+          type="submit"
+          form={activeTab === 'full' ? 'full-exit-form' : 'partial-exit-form'}
         >
           {activeTab === 'full' ? 'Close Trade' : 'Record Partial Exit'}
         </Button>

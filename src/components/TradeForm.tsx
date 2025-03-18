@@ -73,7 +73,8 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submitting trade form');
+    console.log('Submitting trade form with data:', trade);
+    
     try {
       const success = handleSubmit(e);
       
@@ -91,7 +92,7 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
   };
 
   return (
-    <form onSubmit={onSubmit} className="animate-scale-in">
+    <form onSubmit={onSubmit} className="animate-scale-in" id="trade-form" name="trade-form">
       <Card className="shadow-subtle border">
         <CardHeader>
           <CardTitle>{isEditing ? "Edit Trade" : "New Trade"}</CardTitle>
@@ -152,7 +153,7 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
           >
             Cancel
           </Button>
-          <Button type="submit">
+          <Button type="submit" form="trade-form">
             {isEditing ? "Update Trade" : "Save Trade"}
           </Button>
         </CardFooter>

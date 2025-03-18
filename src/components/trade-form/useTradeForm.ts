@@ -122,6 +122,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Trade form submitted with data:', trade);
     
     if (!trade.symbol || !trade.entryPrice || !trade.quantity) {
       toast.error("Please fill in all required fields");
@@ -139,6 +140,8 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
         contractDetails: trade.type === 'futures' ? contractDetails : undefined
       };
       
+      console.log('Processing trade data before save:', tradeToSave);
+      
       // Update idea status if an idea is associated with this trade
       if (trade.ideaId) {
         markIdeaAsTaken(trade.ideaId);
@@ -150,6 +153,8 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
           ...tradeToSave,
           partialExits: initialTrade.partialExits || [] 
         } as Trade;
+        
+        console.log('Updating existing trade:', updatedTrade);
         updateTrade(updatedTrade);
         toast.success("Trade updated successfully");
       } else {
@@ -158,6 +163,8 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
           id: crypto.randomUUID(),
           partialExits: []
         } as Trade;
+        
+        console.log('Adding new trade:', newTrade);
         addTrade(newTrade);
         toast.success("Trade added successfully");
         navigate('/');
@@ -166,7 +173,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
       return true;
     } catch (error) {
       console.error("Error saving trade:", error);
-      toast.error("Failed to save trade");
+      toast.error("Failed to save trade: " + (error instanceof Error ? error.message : "Unknown error"));
       return false;
     }
   };
