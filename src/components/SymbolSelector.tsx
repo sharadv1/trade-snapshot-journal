@@ -14,13 +14,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { COMMON_FUTURES_CONTRACTS } from '@/types';
+import { getAllSymbols, addCustomSymbol } from '@/utils/symbolStorage';
 
-// Common stock symbols and futures contracts
+// Common stock symbols
 const PRESET_SYMBOLS = [
   // Common stocks
   'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'AMD',
-  // Common futures (using the ones from the futures contracts data)
-  'MES', 'MNQ', 'MYM', 'MGC', 'SIL', 'M6E', 'M6B',
 ];
 
 // Get list of futures symbols from our contracts data
@@ -42,15 +41,8 @@ export function SymbolSelector({
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value || '');
   const [symbols, setSymbols] = useState<string[]>(() => {
-    // Get custom symbols from localStorage or use defaults
-    try {
-      const savedSymbols = localStorage.getItem('customSymbols');
-      const customSymbols = savedSymbols ? JSON.parse(savedSymbols) : [];
-      return [...PRESET_SYMBOLS, ...customSymbols];
-    } catch (error) {
-      console.error('Error loading symbols from localStorage:', error);
-      return PRESET_SYMBOLS;
-    }
+    // Get combined symbols (preset + custom)
+    return getAllSymbols(PRESET_SYMBOLS);
   });
 
   // Filter symbols based on trade type
@@ -58,20 +50,10 @@ export function SymbolSelector({
     ? symbols.filter(s => FUTURES_SYMBOLS.includes(s))
     : symbols;
 
-  const saveSymbol = (symbol: string) => {
-    if (!symbol || symbols.includes(symbol)) return;
-    
-    const newSymbols = [...symbols, symbol];
-    setSymbols(newSymbols);
-    
-    try {
-      // Save to localStorage
-      const customSymbols = newSymbols.filter(s => !PRESET_SYMBOLS.includes(s));
-      localStorage.setItem('customSymbols', JSON.stringify(customSymbols));
-    } catch (error) {
-      console.error('Error saving symbols to localStorage:', error);
-    }
-  };
+  // Refresh symbols when component mounts
+  useEffect(() => {
+    setSymbols(getAllSymbols(PRESET_SYMBOLS));
+  }, []);
 
   const handleSelect = (currentValue: string) => {
     onChange(currentValue);
@@ -86,7 +68,9 @@ export function SymbolSelector({
 
   const handleCreateOption = () => {
     if (inputValue && !symbols.includes(inputValue)) {
-      saveSymbol(inputValue);
+      // Add to storage and update local state
+      const newSymbols = addCustomSymbol(inputValue);
+      setSymbols(getAllSymbols(PRESET_SYMBOLS));
       onChange(inputValue);
       setOpen(false);
     }

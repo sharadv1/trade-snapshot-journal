@@ -185,5 +185,69 @@ export const COMMON_FUTURES_CONTRACTS = [
     exchange: 'CBOT',
     tickSize: 1.00,
     pointValue: 0.50
+  },
+  // Adding additional micro futures
+  {
+    symbol: 'MCL',
+    name: 'Micro Crude Oil',
+    exchange: 'NYMEX',
+    tickSize: 0.01,
+    pointValue: 100
+  },
+  {
+    symbol: 'MGC',
+    name: 'Micro Gold',
+    exchange: 'COMEX',
+    tickSize: 0.10,
+    pointValue: 10
+  },
+  {
+    symbol: 'SIL',
+    name: 'Micro Silver',
+    exchange: 'COMEX',
+    tickSize: 0.005,
+    pointValue: 500
+  },
+  {
+    symbol: 'M6E',
+    name: 'Micro Euro FX',
+    exchange: 'CME',
+    tickSize: 0.00005,
+    pointValue: 12500
+  },
+  {
+    symbol: 'M6B',
+    name: 'Micro British Pound',
+    exchange: 'CME',
+    tickSize: 0.0001,
+    pointValue: 6250
+  },
+  {
+    symbol: 'M6A',
+    name: 'Micro Australian Dollar',
+    exchange: 'CME',
+    tickSize: 0.0001,
+    pointValue: 10000
+  },
+  {
+    symbol: 'M6C',
+    name: 'Micro Canadian Dollar',
+    exchange: 'CME',
+    tickSize: 0.0001,
+    pointValue: 10000
+  },
+  {
+    symbol: 'MBT',
+    name: 'Micro Bitcoin',
+    exchange: 'CME',
+    tickSize: 5.00,
+    pointValue: 0.1
+  },
+  {
+    symbol: 'MET',
+    name: 'Micro Ether',
+    exchange: 'CME',
+    tickSize: 0.25,
+    pointValue: 0.1
   }
 ];

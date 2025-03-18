@@ -1,60 +1,99 @@
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Menu } from "lucide-react";
+import { BarChart, BookOpen, LayoutDashboard, Lightbulb, PlusCircle, Tag } from "lucide-react";
 
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { BarChart2, Home, Sparkles } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sidebar } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 export function Header() {
   const location = useLocation();
-  const [isScrolled, setIsScrolled] = useState(false);
-  
-  // Add scroll event listener
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-  
-  const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: Home },
-    { name: 'Ideas', path: '/ideas', icon: Sparkles },
-    { name: 'Analytics', path: '/analytics', icon: BarChart2 },
-  ];
+  const isMobile = useMobile();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   return (
-    <header 
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out border-b px-6 py-3",
-        isScrolled 
-          ? "glass-effect shadow-subtle" 
-          : "bg-transparent border-transparent"
-      )}
-    >
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center">
-          <h1 className="text-xl font-medium">Trade Journal</h1>
-          <div className="h-4 w-px bg-border mx-4"></div>
-          <nav className="hidden md:flex space-x-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                  location.pathname === item.path
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                <span>{item.name}</span>
-              </Link>
-            ))}
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 items-center">
+        <div className="mr-4 hidden md:flex">
+          <Link to="/" className="mr-6 flex items-center space-x-2">
+            <BarChart className="h-6 w-6" />
+            <span className="hidden font-bold sm:inline-block">
+              Trade Journal
+            </span>
+          </Link>
+          
+          <nav className="flex items-center space-x-6 text-sm font-medium">
+            <Link
+              to="/"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                location.pathname === "/" ? "text-foreground" : "text-foreground/60"
+              )}
+            >
+              Dashboard
+            </Link>
+            <Link
+              to="/trade/new"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                location.pathname === "/trade/new" ? "text-foreground" : "text-foreground/60"
+              )}
+            >
+              Add Trade
+            </Link>
+            <Link
+              to="/analytics"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                location.pathname === "/analytics" ? "text-foreground" : "text-foreground/60"
+              )}
+            >
+              Analytics
+            </Link>
+            <Link
+              to="/ideas"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                location.pathname === "/ideas" ? "text-foreground" : "text-foreground/60"
+              )}
+            >
+              Ideas
+            </Link>
+            <Link
+              to="/strategies"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                location.pathname === "/strategies" ? "text-foreground" : "text-foreground/60"
+              )}
+            >
+              Strategies
+            </Link>
+            <Link
+              to="/symbols"
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                location.pathname === "/symbols" ? "text-foreground" : "text-foreground/60"
+              )}
+            >
+              Symbols
+            </Link>
           </nav>
         </div>
+        
+        {isMobile ? (
+          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="ml-auto md:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0">
+              <Sidebar />
+            </SheetContent>
+          </Sheet>
+        ) : null}
       </div>
     </header>
   );
