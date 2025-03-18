@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -25,7 +26,6 @@ import {
   DialogFooter, 
   DialogHeader, 
   DialogTitle,
-  DialogTrigger,
   DialogClose
 } from '@/components/ui/dialog';
 import { 
@@ -40,34 +40,44 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
-} from '@/components/ui/tabs';
-import { Pencil, Trash, Plus, Info } from 'lucide-react';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Pencil, Trash, Plus, Filter, Tag } from 'lucide-react';
 import { 
-  getCustomSymbols, 
+  getAllSymbols, 
   addCustomSymbol, 
   removeCustomSymbol, 
   updateCustomSymbol,
-  getPresetSymbols
+  SymbolDetails
 } from '@/utils/symbolStorage';
 import { toast } from '@/utils/toast';
 import { COMMON_FUTURES_CONTRACTS } from '@/types';
 
 export default function SymbolManagement() {
-  const [customSymbols, setCustomSymbols] = useState<string[]>([]);
-  const [presetSymbols, setPresetSymbols] = useState<string[]>([]);
+  const [symbols, setSymbols] = useState<SymbolDetails[]>([]);
   const [newSymbol, setNewSymbol] = useState('');
-  const [editSymbol, setEditSymbol] = useState({ original: '', updated: '' });
+  const [newSymbolType, setNewSymbolType] = useState<'equity' | 'futures' | 'option' | 'forex' | 'crypto'>('equity');
+  const [editingSymbol, setEditingSymbol] = useState<SymbolDetails | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('custom');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   
+  // Load all symbols on component mount
   useEffect(() => {
-    setCustomSymbols(getCustomSymbols());
-    setPresetSymbols(getPresetSymbols());
+    setSymbols(getAllSymbols());
   }, []);
+  
+  // Filter symbols based on selected type
+  const filteredSymbols = typeFilter === 'all' 
+    ? symbols 
+    : symbols.filter(symbol => symbol.type === typeFilter);
+  
+  // Get unique symbol types for the filter dropdown
+  const symbolTypes = ['all', ...new Set(symbols.map(symbol => symbol.type))];
   
   const handleAddSymbol = () => {
     if (!newSymbol.trim()) {
@@ -82,51 +92,64 @@ export default function SymbolManagement() {
       return;
     }
     
-    if (presetSymbols.includes(formattedSymbol)) {
-      toast.info(`${formattedSymbol} is already a preset symbol`);
+    if (symbols.some(s => s.symbol === formattedSymbol)) {
+      toast.info(`Symbol ${formattedSymbol} already exists`);
       setNewSymbol('');
       return;
     }
     
-    const updatedSymbols = addCustomSymbol(formattedSymbol);
-    setCustomSymbols(updatedSymbols);
+    const newSymbolDetails: SymbolDetails = {
+      symbol: formattedSymbol,
+      type: newSymbolType
+    };
+    
+    addCustomSymbol(newSymbolDetails);
+    setSymbols(getAllSymbols());
     setNewSymbol('');
     toast.success(`Added symbol: ${formattedSymbol}`);
   };
   
   const handleRemoveSymbol = (symbol: string) => {
-    const updatedSymbols = removeCustomSymbol(symbol);
-    setCustomSymbols(updatedSymbols);
+    removeCustomSymbol(symbol);
+    setSymbols(getAllSymbols());
     toast.success(`Removed symbol: ${symbol}`);
   };
   
-  const openEditDialog = (symbol: string) => {
-    setEditSymbol({ original: symbol, updated: symbol });
+  const openEditDialog = (symbol: SymbolDetails) => {
+    setEditingSymbol(symbol);
     setIsEditDialogOpen(true);
   };
   
   const handleUpdateSymbol = () => {
-    if (!editSymbol.updated.trim()) {
+    if (!editingSymbol) return;
+    
+    if (!editingSymbol.symbol.trim()) {
       toast.error('Symbol cannot be empty');
       return;
     }
     
-    const formattedSymbol = editSymbol.updated.trim().toUpperCase();
+    const formattedSymbol = editingSymbol.symbol.trim().toUpperCase();
     
     if (!/^[A-Z0-9.\-_^]+$/.test(formattedSymbol)) {
       toast.error('Symbol contains invalid characters');
       return;
     }
     
-    if (presetSymbols.includes(formattedSymbol)) {
-      toast.info(`${formattedSymbol} is already a preset symbol`);
-      return;
-    }
+    // Create updated symbol details
+    const updatedSymbolDetails: SymbolDetails = {
+      symbol: formattedSymbol,
+      type: editingSymbol.type
+    };
     
-    const updatedSymbols = updateCustomSymbol(editSymbol.original, formattedSymbol);
-    setCustomSymbols(updatedSymbols);
+    // Original symbol for comparison
+    const originalSymbol = symbols.find(s => s.symbol === editingSymbol.symbol)?.symbol || '';
+    
+    // Update the symbol
+    updateCustomSymbol(originalSymbol, updatedSymbolDetails);
+    setSymbols(getAllSymbols());
     setIsEditDialogOpen(false);
-    toast.success(`Updated symbol: ${editSymbol.original} to ${formattedSymbol}`);
+    
+    toast.success(`Updated symbol: ${originalSymbol} to ${formattedSymbol}`);
   };
   
   return (
@@ -135,132 +158,148 @@ export default function SymbolManagement() {
         <CardHeader>
           <CardTitle>Symbol Management</CardTitle>
           <CardDescription>
-            Add, edit, or remove custom symbols for your trades
+            Add, edit, or remove symbols for your trades
           </CardDescription>
         </CardHeader>
         
         <CardContent>
-          <div className="flex items-end gap-4 mb-6">
-            <div className="flex-1 space-y-2">
+          <div className="flex flex-col md:flex-row items-end gap-4 mb-6">
+            <div className="w-full md:flex-1 space-y-2">
               <Label htmlFor="newSymbol">New Symbol</Label>
               <Input
                 id="newSymbol"
                 value={newSymbol}
                 onChange={(e) => setNewSymbol(e.target.value)}
-                placeholder="Enter stock or futures symbol"
+                placeholder="Enter symbol (e.g., AAPL, ES)"
               />
             </div>
-            <Button onClick={handleAddSymbol} className="flex gap-2">
+            
+            <div className="w-full md:w-1/4 space-y-2">
+              <Label htmlFor="symbolType">Symbol Type</Label>
+              <Select 
+                value={newSymbolType} 
+                onValueChange={(value: any) => setNewSymbolType(value)}
+              >
+                <SelectTrigger id="symbolType">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="equity">Equity</SelectItem>
+                  <SelectItem value="futures">Futures</SelectItem>
+                  <SelectItem value="option">Option</SelectItem>
+                  <SelectItem value="forex">Forex</SelectItem>
+                  <SelectItem value="crypto">Crypto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <Button onClick={handleAddSymbol} className="w-full md:w-auto flex gap-2">
               <Plus className="h-4 w-4" />
               Add Symbol
             </Button>
           </div>
           
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="custom">Custom Symbols</TabsTrigger>
-              <TabsTrigger value="preset">Preset Symbols</TabsTrigger>
-            </TabsList>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium">Symbols</h3>
             
-            <TabsContent value="custom">
-              {customSymbols.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Symbol</TableHead>
-                      <TableHead className="w-28">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {customSymbols.map((symbol) => (
-                      <TableRow key={symbol}>
-                        <TableCell className="font-medium">{symbol}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => openEditDialog(symbol)}
-                            >
-                              <Pencil className="h-4 w-4" />
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select 
+                value={typeFilter} 
+                onValueChange={setTypeFilter}
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {symbolTypes
+                    .filter(type => type !== 'all')
+                    .map(type => (
+                      <SelectItem key={type} value={type}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {filteredSymbols.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Symbol</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="w-28">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredSymbols.map((symbol) => (
+                  <TableRow key={symbol.symbol}>
+                    <TableCell className="font-medium">
+                      {symbol.symbol}
+                      {symbol.isPreset && (
+                        <Badge variant="outline" className="ml-2">
+                          Preset
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {symbol.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => openEditDialog(symbol)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <Trash className="h-4 w-4" />
                             </Button>
-                            
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <Trash className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Symbol</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to remove {symbol}? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    onClick={() => handleRemoveSymbol(symbol)}
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  No custom symbols added yet. Add your first symbol above.
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="preset">
-              <div className="bg-muted/30 p-4 rounded-lg mb-4 flex items-start gap-3">
-                <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-muted-foreground">
-                  Preset symbols are built into the application and cannot be modified or deleted. 
-                  They include common stocks and futures contracts.
-                </p>
-              </div>
-              
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Symbol</TableHead>
-                    <TableHead>Type</TableHead>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Symbol</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to remove {symbol.symbol}? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleRemoveSymbol(symbol.symbol)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {presetSymbols.map((symbol) => {
-                    const isFutures = symbol.startsWith('ES') || 
-                                     symbol.startsWith('NQ') || 
-                                     symbol.startsWith('MES') || 
-                                     symbol.startsWith('MNQ') ||
-                                     COMMON_FUTURES_CONTRACTS.some(contract => contract.symbol === symbol);
-                    
-                    return (
-                      <TableRow key={symbol}>
-                        <TableCell className="font-medium">{symbol}</TableCell>
-                        <TableCell>{isFutures ? 'Futures' : 'Equity'}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TabsContent>
-          </Tabs>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No symbols found with the selected filter.
+            </div>
+          )}
         </CardContent>
         
         <CardFooter className="flex justify-between border-t pt-6">
           <div className="text-sm text-muted-foreground">
-            {customSymbols.length} custom and {presetSymbols.length} preset symbols available
+            {symbols.length} symbols available ({symbols.filter(s => s.isPreset).length} preset, {symbols.filter(s => !s.isPreset).length} custom)
           </div>
         </CardFooter>
       </Card>
@@ -270,7 +309,7 @@ export default function SymbolManagement() {
           <DialogHeader>
             <DialogTitle>Edit Symbol</DialogTitle>
             <DialogDescription>
-              Update the symbol name. This will affect future trades using this symbol.
+              Update the symbol name and type. This will affect future trades using this symbol.
             </DialogDescription>
           </DialogHeader>
           
@@ -279,9 +318,28 @@ export default function SymbolManagement() {
               <Label htmlFor="symbolEdit">Symbol</Label>
               <Input
                 id="symbolEdit"
-                value={editSymbol.updated}
-                onChange={(e) => setEditSymbol({ ...editSymbol, updated: e.target.value })}
+                value={editingSymbol?.symbol || ''}
+                onChange={(e) => setEditingSymbol(prev => prev ? {...prev, symbol: e.target.value} : null)}
               />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="symbolTypeEdit">Symbol Type</Label>
+              <Select 
+                value={editingSymbol?.type} 
+                onValueChange={(value: any) => setEditingSymbol(prev => prev ? {...prev, type: value} : null)}
+              >
+                <SelectTrigger id="symbolTypeEdit">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="equity">Equity</SelectItem>
+                  <SelectItem value="futures">Futures</SelectItem>
+                  <SelectItem value="option">Option</SelectItem>
+                  <SelectItem value="forex">Forex</SelectItem>
+                  <SelectItem value="crypto">Crypto</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           

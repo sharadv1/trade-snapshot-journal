@@ -14,10 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { COMMON_FUTURES_CONTRACTS } from '@/types';
-import { getAllSymbols, addCustomSymbol } from '@/utils/symbolStorage';
-
-// Get list of futures symbols from our contracts data
-const FUTURES_SYMBOLS = COMMON_FUTURES_CONTRACTS.map(contract => contract.symbol);
+import { getAllSymbols, addCustomSymbol, SymbolDetails } from '@/utils/symbolStorage';
 
 interface SymbolSelectorProps {
   value: string;
@@ -34,14 +31,14 @@ export function SymbolSelector({
 }: SymbolSelectorProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value || '');
-  const [symbols, setSymbols] = useState<string[]>(() => {
+  const [symbols, setSymbols] = useState<SymbolDetails[]>(() => {
     // Get combined symbols (preset + custom)
     return getAllSymbols();
   });
 
   // Filter symbols based on trade type
   const filteredSymbols = tradeType === 'futures' 
-    ? symbols.filter(s => FUTURES_SYMBOLS.includes(s))
+    ? symbols.filter(s => s.type === 'futures')
     : symbols;
 
   // Refresh symbols when component mounts
@@ -52,18 +49,26 @@ export function SymbolSelector({
   const handleSelect = (currentValue: string) => {
     onChange(currentValue);
     
-    // Auto-select futures type if a futures symbol is selected
-    if (FUTURES_SYMBOLS.includes(currentValue) && onTypeChange) {
-      onTypeChange('futures');
+    // Find the selected symbol to get its type
+    const selectedSymbol = symbols.find(s => s.symbol === currentValue);
+    
+    // Auto-select type if a symbol with specific type is selected
+    if (selectedSymbol && onTypeChange) {
+      if (selectedSymbol.type === 'futures' || selectedSymbol.type === 'equity' || selectedSymbol.type === 'option') {
+        onTypeChange(selectedSymbol.type);
+      }
     }
     
     setOpen(false);
   };
 
   const handleCreateOption = () => {
-    if (inputValue && !symbols.includes(inputValue)) {
+    if (inputValue && !symbols.some(s => s.symbol === inputValue)) {
       // Add to storage and update local state
-      const newSymbols = addCustomSymbol(inputValue);
+      const newSymbols = addCustomSymbol({
+        symbol: inputValue,
+        type: tradeType // Default to current tradeType
+      });
       setSymbols(getAllSymbols());
       onChange(inputValue);
       setOpen(false);
@@ -106,19 +111,22 @@ export function SymbolSelector({
               </div>
             </CommandEmpty>
             <CommandGroup>
-              {filteredSymbols.map((symbol) => (
+              {filteredSymbols.map((symbolData) => (
                 <CommandItem
-                  key={symbol}
-                  value={symbol}
+                  key={symbolData.symbol}
+                  value={symbolData.symbol}
                   onSelect={(currentValue) => handleSelect(currentValue)}
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === symbol ? "opacity-100" : "opacity-0"
+                      value === symbolData.symbol ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {symbol}
+                  {symbolData.symbol}
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {symbolData.type}
+                  </span>
                 </CommandItem>
               ))}
             </CommandGroup>
