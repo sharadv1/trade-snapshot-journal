@@ -1,3 +1,4 @@
+
 import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { Trade, TradeWithMetrics } from '@/types';
@@ -183,7 +184,11 @@ export function MonthlyPerformanceTable({ trades, isLoading = false }: MonthlyPe
     return {
       monthlyData: monthlyPerformance,
       categories: allCategories,
-      totals: categoryTotals
+      totals: {
+        ...categoryTotals,
+        // Fix: Ensure the final total R value is properly formatted with the same precision
+        totalR: parseFloat(categoryTotals.totalR.toFixed(2))
+      }
     };
   }, [trades]);
 
