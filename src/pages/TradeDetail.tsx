@@ -559,34 +559,38 @@ export default function TradeDetail() {
                     </div>
                   </div>
                   
-                  {trade.metrics.riskRewardRatio && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-muted/50 p-3 rounded-md">
-                        <div className="text-xs text-muted-foreground">Risk</div>
-                        <div className="font-medium mt-1">
-                          {formatCurrency(trade.metrics.riskedAmount || 0)}
+                  {trade.metrics.riskedAmount && (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-muted/50 p-3 rounded-md">
+                          <div className="text-xs text-muted-foreground">Risk</div>
+                          <div className="font-medium mt-1">
+                            {formatCurrency(trade.metrics.riskedAmount || 0)}
+                          </div>
                         </div>
+                        
+                        {trade.metrics.maxPotentialGain && (
+                          <div className="bg-muted/50 p-3 rounded-md">
+                            <div className="text-xs text-muted-foreground">Potential Gain</div>
+                            <div className="font-medium mt-1">
+                              {formatCurrency(trade.metrics.maxPotentialGain)}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      
-                      <div className="bg-muted/50 p-3 rounded-md">
-                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Ratio className="h-3 w-3" />
-                          R:R Ratio
-                        </div>
-                        <div className="font-medium mt-1">
-                          {trade.metrics.riskRewardRatio.toFixed(2)}:1
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
-                  {trade.metrics.maxPotentialGain && (
-                    <div className="bg-muted/50 p-3 rounded-md">
-                      <div className="text-xs text-muted-foreground">Potential Gain</div>
-                      <div className="font-medium mt-1">
-                        {formatCurrency(trade.metrics.maxPotentialGain)}
-                      </div>
-                    </div>
+                      {trade.metrics.riskRewardRatio && (
+                        <div className="bg-muted/50 p-3 rounded-md">
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Ratio className="h-3 w-3" />
+                            R:R Ratio
+                          </div>
+                          <div className="font-medium mt-1">
+                            {trade.metrics.riskRewardRatio.toFixed(2)}:1
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               ) : (
@@ -602,36 +606,37 @@ export default function TradeDetail() {
                   </div>
                   
                   {trade.metrics.riskedAmount && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-muted/50 p-3 rounded-md">
-                        <div className="text-xs text-muted-foreground">Risk</div>
-                        <div className="font-medium mt-1">
-                          {formatCurrency(trade.metrics.riskedAmount)}
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-muted/50 p-3 rounded-md">
+                          <div className="text-xs text-muted-foreground">Risk</div>
+                          <div className="font-medium mt-1">
+                            {formatCurrency(trade.metrics.riskedAmount)}
+                          </div>
                         </div>
+                        
+                        {trade.metrics.maxPotentialGain && (
+                          <div className="bg-muted/50 p-3 rounded-md">
+                            <div className="text-xs text-muted-foreground">Potential Gain</div>
+                            <div className="font-medium mt-1">
+                              {formatCurrency(trade.metrics.maxPotentialGain)}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      
-                      <div className="bg-muted/50 p-3 rounded-md">
-                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Ratio className="h-3 w-3" />
-                          R:R Ratio
-                        </div>
-                        <div className="font-medium mt-1">
-                          {trade.metrics.riskRewardRatio 
-                            ? `${trade.metrics.riskRewardRatio.toFixed(2)}:1`
-                            : 'Not set'
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
-                  {trade.metrics.maxPotentialGain && (
-                    <div className="bg-muted/50 p-3 rounded-md">
-                      <div className="text-xs text-muted-foreground">Potential Gain</div>
-                      <div className="font-medium mt-1">
-                        {formatCurrency(trade.metrics.maxPotentialGain)}
-                      </div>
-                    </div>
+                      {trade.metrics.riskRewardRatio && (
+                        <div className="bg-muted/50 p-3 rounded-md">
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Ratio className="h-3 w-3" />
+                            R:R Ratio
+                          </div>
+                          <div className="font-medium mt-1">
+                            {trade.metrics.riskRewardRatio.toFixed(2)}:1
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
