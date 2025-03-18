@@ -132,7 +132,8 @@ export function calculateTradeMetrics(trade: Trade): TradeWithMetrics['metrics']
       calculationExplanation += `Total risk: ${riskPerUnit} × ${trade.quantity} = $${riskedAmount.toFixed(2)}\n\n`;
     }
     
-    if (trade.takeProfit) {
+    // For open trades, calculate potential R:R based on take profit
+    if (trade.status === 'open' && trade.takeProfit) {
       const rewardPerUnit = Math.abs(trade.takeProfit - trade.entryPrice);
       
       if (trade.type === 'futures') {
@@ -143,7 +144,7 @@ export function calculateTradeMetrics(trade: Trade): TradeWithMetrics['metrics']
       
       riskRewardRatio = riskedAmount > 0 ? maxPotentialGain / riskedAmount : 0;
       
-      calculationExplanation += `Reward calculation:\n`;
+      calculationExplanation += `Potential Reward calculation:\n`;
       calculationExplanation += `Take profit: ${trade.takeProfit}\n`;
       calculationExplanation += `Reward per unit: ${rewardPerUnit.toFixed(2)}\n`;
       
@@ -152,6 +153,31 @@ export function calculateTradeMetrics(trade: Trade): TradeWithMetrics['metrics']
         calculationExplanation += `Max potential gain: ${rewardPerUnit} × ${pointValue} × ${trade.quantity} = $${maxPotentialGain.toFixed(2)}\n\n`;
       } else {
         calculationExplanation += `Max potential gain: ${rewardPerUnit} × ${trade.quantity} = $${maxPotentialGain.toFixed(2)}\n\n`;
+      }
+      
+      calculationExplanation += `Risk-reward ratio: ${riskRewardRatio.toFixed(2)}:1`;
+    } 
+    // For closed trades, calculate actual R:R based on exit price
+    else if (trade.status === 'closed' && weightedExitPrice) {
+      const actualRewardPerUnit = Math.abs(weightedExitPrice - trade.entryPrice);
+      
+      if (trade.type === 'futures') {
+        maxPotentialGain = actualRewardPerUnit * pointValue * trade.quantity;
+      } else {
+        maxPotentialGain = actualRewardPerUnit * trade.quantity;
+      }
+      
+      riskRewardRatio = riskedAmount > 0 ? maxPotentialGain / riskedAmount : 0;
+      
+      calculationExplanation += `Actual Reward calculation:\n`;
+      calculationExplanation += `Exit price (weighted avg): ${weightedExitPrice.toFixed(2)}\n`;
+      calculationExplanation += `Reward per unit: ${actualRewardPerUnit.toFixed(2)}\n`;
+      
+      if (trade.type === 'futures') {
+        calculationExplanation += `Point value: ${pointValue}\n`;
+        calculationExplanation += `Actual gain: ${actualRewardPerUnit} × ${pointValue} × ${trade.quantity} = $${maxPotentialGain.toFixed(2)}\n\n`;
+      } else {
+        calculationExplanation += `Actual gain: ${actualRewardPerUnit} × ${trade.quantity} = $${maxPotentialGain.toFixed(2)}\n\n`;
       }
       
       calculationExplanation += `Risk-reward ratio: ${riskRewardRatio.toFixed(2)}:1`;
