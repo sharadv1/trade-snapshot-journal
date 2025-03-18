@@ -21,6 +21,36 @@ export interface SymbolDetails {
   isPreset?: boolean;
 }
 
+/**
+ * Gets the description/meaning of a symbol
+ * @param symbol Symbol to get meaning for
+ * @returns Description or name of the symbol
+ */
+export function getSymbolMeaning(symbol: string): string | null {
+  // Check futures contracts first
+  const futuresContract = COMMON_FUTURES_CONTRACTS.find(
+    contract => contract.symbol === symbol
+  );
+  
+  if (futuresContract) {
+    return futuresContract.name;
+  }
+  
+  // Known equity symbols
+  const equityMeanings: Record<string, string> = {
+    'AAPL': 'Apple Inc.',
+    'MSFT': 'Microsoft Corporation',
+    'GOOGL': 'Alphabet Inc. (Google)',
+    'AMZN': 'Amazon.com Inc.',
+    'META': 'Meta Platforms Inc. (Facebook)',
+    'TSLA': 'Tesla Inc.',
+    'NVDA': 'NVIDIA Corporation',
+    'AMD': 'Advanced Micro Devices Inc.',
+  };
+  
+  return equityMeanings[symbol] || null;
+}
+
 // Get all preset symbols (including futures)
 export function getPresetSymbols(): SymbolDetails[] {
   // Get futures symbols from the common contracts

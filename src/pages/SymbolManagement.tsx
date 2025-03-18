@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -46,14 +45,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash, Plus, Filter, Tag } from 'lucide-react';
+import { Pencil, Trash, Plus, Filter, Tag, Info } from 'lucide-react';
 import { 
   getAllSymbols, 
   addCustomSymbol, 
   removeCustomSymbol, 
   updateCustomSymbol,
-  SymbolDetails
+  SymbolDetails,
+  getSymbolMeaning
 } from '@/utils/symbolStorage';
 import { toast } from '@/utils/toast';
 import { COMMON_FUTURES_CONTRACTS } from '@/types';
@@ -78,6 +84,24 @@ export default function SymbolManagement() {
   
   // Get unique symbol types for the filter dropdown
   const symbolTypes = ['all', ...new Set(symbols.map(symbol => symbol.type))];
+  
+  // Get badge color based on symbol type
+  const getTypeColor = (type: string): string => {
+    switch(type) {
+      case 'equity':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'futures':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'option':
+        return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'forex':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'crypto':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
   
   const handleAddSymbol = () => {
     if (!newSymbol.trim()) {
@@ -154,16 +178,16 @@ export default function SymbolManagement() {
   
   return (
     <div className="container mx-auto py-6 space-y-6 animate-fade-in">
-      <Card className="shadow-md">
-        <CardHeader className="bg-muted/30 border-b rounded-t-lg">
-          <CardTitle className="text-2xl font-semibold">Symbol Management</CardTitle>
+      <Card className="shadow-md border-t-4 border-t-primary">
+        <CardHeader className="bg-gradient-to-r from-slate-100 to-slate-50 border-b rounded-t-lg">
+          <CardTitle className="text-2xl font-semibold text-primary">Symbol Management</CardTitle>
           <CardDescription className="text-base">
             Add, edit, or remove symbols for your trades
           </CardDescription>
         </CardHeader>
         
         <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row items-end gap-4 mb-6 p-4 bg-background border rounded-lg shadow-sm">
+          <div className="flex flex-col md:flex-row items-end gap-4 mb-6 p-5 bg-background border rounded-lg shadow-sm">
             <div className="w-full md:flex-1 space-y-2">
               <Label htmlFor="newSymbol" className="font-medium">Symbol</Label>
               <Input
@@ -201,9 +225,9 @@ export default function SymbolManagement() {
           </div>
           
           <div className="flex items-center justify-between mb-4 mt-8 border-b pb-3">
-            <h3 className="text-lg font-medium">Symbols</h3>
+            <h3 className="text-lg font-medium text-primary">Symbols</h3>
             
-            <div className="flex items-center space-x-2 bg-background rounded-md px-2 py-1">
+            <div className="flex items-center space-x-2 bg-background rounded-md px-3 py-1 border">
               <Filter className="h-4 w-4 text-muted-foreground mr-1" />
               <Select 
                 value={typeFilter} 
@@ -218,7 +242,6 @@ export default function SymbolManagement() {
                     .filter(type => type !== 'all')
                     .map(type => (
                       <SelectItem key={type} value={type}>
-                        {/* Fix: Safely handle potentially undefined type string */}
                         {typeof type === 'string' ? type.charAt(0).toUpperCase() + type.slice(1) : type}
                       </SelectItem>
                     ))
@@ -234,16 +257,21 @@ export default function SymbolManagement() {
                 <TableHeader className="bg-muted/30">
                   <TableRow>
                     <TableHead className="font-semibold">Symbol</TableHead>
+                    <TableHead className="font-semibold">Name/Meaning</TableHead>
                     <TableHead className="font-semibold">Type</TableHead>
                     <TableHead className="w-28 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSymbols.map((symbol) => (
+                  {filteredSymbols.map((symbol) => {
+                    const meaning = getSymbolMeaning(symbol.symbol);
+                    return (
                     <TableRow key={symbol.symbol} className="hover:bg-muted/20">
-                      <TableCell className="font-medium">
+                      <TableCell>
                         <div className="flex items-center">
-                          <span className="mr-2 font-mono">{symbol.symbol}</span>
+                          <span className="mr-2 font-mono text-lg font-bold text-gray-800">
+                            {symbol.symbol}
+                          </span>
                           {symbol.isPreset && (
                             <Badge variant="secondary" className="text-xs font-normal">
                               Preset
@@ -252,34 +280,62 @@ export default function SymbolManagement() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="capitalize bg-background">
+                        {meaning ? (
+                          <span className="text-gray-700">{meaning}</span>
+                        ) : (
+                          <span className="text-gray-400 italic">No description available</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline" 
+                          className={`capitalize ${getTypeColor(symbol.type)}`}
+                        >
                           <Tag className="h-3 w-3 mr-1" />
                           {symbol.type}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => openEditDialog(symbol)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => openEditDialog(symbol)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit symbol</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                           
                           <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash className="h-4 w-4" />
-                                <span className="sr-only">Delete</span>
-                              </Button>
-                            </AlertDialogTrigger>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertDialogTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    >
+                                      <Trash className="h-4 w-4" />
+                                      <span className="sr-only">Delete</span>
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete symbol</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Symbol</AlertDialogTitle>
@@ -301,7 +357,7 @@ export default function SymbolManagement() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                 </TableBody>
               </Table>
             </div>
@@ -312,7 +368,7 @@ export default function SymbolManagement() {
           )}
         </CardContent>
         
-        <CardFooter className="flex justify-between border-t p-6 bg-muted/10">
+        <CardFooter className="flex justify-between border-t p-6 bg-gradient-to-r from-slate-50 to-white">
           <div className="text-sm text-muted-foreground">
             {symbols.length} symbols available ({symbols.filter(s => s.isPreset).length} preset, {symbols.filter(s => !s.isPreset).length} custom)
           </div>
