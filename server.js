@@ -10,8 +10,18 @@ const { fileURLToPath } = require('url');
 console.log(`Starting server in ${process.env.NODE_ENV || 'development'} mode`);
 
 // Handle __dirname in ES module and CommonJS environments
-const __filename = typeof __filename !== 'undefined' ? __filename : fileURLToPath(import.meta.url);
-const __dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(__filename);
+let __dirname;
+try {
+  // Check if we're in ES module context
+  if (typeof __dirname === 'undefined') {
+    // For ESM
+    const __filename = fileURLToPath(import.meta.url);
+    __dirname = path.dirname(__filename);
+  }
+} catch (error) {
+  // We're in CommonJS, __dirname is already defined
+  console.log('Running in CommonJS mode');
+}
 
 // Data file location
 const DATA_DIR = process.env.DATA_DIR || './data';
@@ -63,7 +73,13 @@ app.get('/api/ping', (req, res) => {
 
 // For React Router - serve index.html for any unmatched routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  const indexPath = path.join(__dirname || process.cwd(), 'dist', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    console.error(`Index file not found at: ${indexPath}`);
+    res.status(404).send('Application index file not found');
+  }
 });
 
 // Start the server

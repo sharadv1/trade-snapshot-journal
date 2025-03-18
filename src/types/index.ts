@@ -159,6 +159,42 @@ export const COMMON_FUTURES_CONTRACTS = [
     pointValue: 12500000
   },
   {
+    symbol: '6B',
+    name: 'British Pound',
+    exchange: 'CME',
+    tickSize: 0.0001,
+    pointValue: 62500
+  },
+  {
+    symbol: '6A',
+    name: 'Australian Dollar',
+    exchange: 'CME',
+    tickSize: 0.0001,
+    pointValue: 100000
+  },
+  {
+    symbol: '6C',
+    name: 'Canadian Dollar',
+    exchange: 'CME',
+    tickSize: 0.0001,
+    pointValue: 100000
+  },
+  {
+    symbol: 'BTC',
+    name: 'Bitcoin',
+    exchange: 'CME',
+    tickSize: 5.00,
+    pointValue: 5
+  },
+  {
+    symbol: 'ETH',
+    name: 'Ether',
+    exchange: 'CME',
+    tickSize: 0.25,
+    pointValue: 50
+  },
+  // Micro futures contracts
+  {
     symbol: 'MES',
     name: 'Micro E-mini S&P 500',
     exchange: 'CME',
@@ -186,7 +222,6 @@ export const COMMON_FUTURES_CONTRACTS = [
     tickSize: 1.00,
     pointValue: 0.50
   },
-  // Adding additional micro futures
   {
     symbol: 'MCL',
     name: 'Micro Crude Oil',
@@ -237,6 +272,13 @@ export const COMMON_FUTURES_CONTRACTS = [
     pointValue: 10000
   },
   {
+    symbol: 'M6J',
+    name: 'Micro Japanese Yen',
+    exchange: 'CME',
+    tickSize: 0.000001,
+    pointValue: 1250000
+  },
+  {
     symbol: 'MBT',
     name: 'Micro Bitcoin',
     exchange: 'CME',
@@ -249,5 +291,19 @@ export const COMMON_FUTURES_CONTRACTS = [
     exchange: 'CME',
     tickSize: 0.25,
     pointValue: 0.1
+  },
+  {
+    symbol: 'QC',
+    name: 'E-mini Copper',
+    exchange: 'COMEX',
+    tickSize: 0.0005,
+    pointValue: 12500
+  },
+  {
+    symbol: 'MQC',
+    name: 'Micro Copper',
+    exchange: 'COMEX',
+    tickSize: 0.0005,
+    pointValue: 1250
   }
 ];

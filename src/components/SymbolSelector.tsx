@@ -1,5 +1,5 @@
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Command,
@@ -15,12 +15,6 @@ import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { COMMON_FUTURES_CONTRACTS } from '@/types';
 import { getAllSymbols, addCustomSymbol } from '@/utils/symbolStorage';
-
-// Common stock symbols
-const PRESET_SYMBOLS = [
-  // Common stocks
-  'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'AMD',
-];
 
 // Get list of futures symbols from our contracts data
 const FUTURES_SYMBOLS = COMMON_FUTURES_CONTRACTS.map(contract => contract.symbol);
@@ -42,7 +36,7 @@ export function SymbolSelector({
   const [inputValue, setInputValue] = useState(value || '');
   const [symbols, setSymbols] = useState<string[]>(() => {
     // Get combined symbols (preset + custom)
-    return getAllSymbols(PRESET_SYMBOLS);
+    return getAllSymbols();
   });
 
   // Filter symbols based on trade type
@@ -52,7 +46,7 @@ export function SymbolSelector({
 
   // Refresh symbols when component mounts
   useEffect(() => {
-    setSymbols(getAllSymbols(PRESET_SYMBOLS));
+    setSymbols(getAllSymbols());
   }, []);
 
   const handleSelect = (currentValue: string) => {
@@ -70,7 +64,7 @@ export function SymbolSelector({
     if (inputValue && !symbols.includes(inputValue)) {
       // Add to storage and update local state
       const newSymbols = addCustomSymbol(inputValue);
-      setSymbols(getAllSymbols(PRESET_SYMBOLS));
+      setSymbols(getAllSymbols());
       onChange(inputValue);
       setOpen(false);
     }

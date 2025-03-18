@@ -40,20 +40,34 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Pencil, Trash, Plus } from 'lucide-react';
-import { getCustomSymbols, addCustomSymbol, removeCustomSymbol, updateCustomSymbol } from '@/utils/symbolStorage';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from '@/components/ui/tabs';
+import { Pencil, Trash, Plus, Info } from 'lucide-react';
+import { 
+  getCustomSymbols, 
+  addCustomSymbol, 
+  removeCustomSymbol, 
+  updateCustomSymbol,
+  getPresetSymbols
+} from '@/utils/symbolStorage';
 import { toast } from '@/utils/toast';
 
 export default function SymbolManagement() {
-  const [symbols, setSymbols] = useState<string[]>([]);
+  const [customSymbols, setCustomSymbols] = useState<string[]>([]);
+  const [presetSymbols, setPresetSymbols] = useState<string[]>([]);
   const [newSymbol, setNewSymbol] = useState('');
   const [editSymbol, setEditSymbol] = useState({ original: '', updated: '' });
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('custom');
   
   // Load symbols on component mount
   useEffect(() => {
-    const customSymbols = getCustomSymbols();
-    setSymbols(customSymbols);
+    setCustomSymbols(getCustomSymbols());
+    setPresetSymbols(getPresetSymbols());
   }, []);
   
   // Add a new symbol
@@ -72,8 +86,15 @@ export default function SymbolManagement() {
       return;
     }
     
+    // Check if symbol already exists in preset symbols
+    if (presetSymbols.includes(formattedSymbol)) {
+      toast.info(`${formattedSymbol} is already a preset symbol`);
+      setNewSymbol('');
+      return;
+    }
+    
     const updatedSymbols = addCustomSymbol(formattedSymbol);
-    setSymbols(updatedSymbols);
+    setCustomSymbols(updatedSymbols);
     setNewSymbol('');
     toast.success(`Added symbol: ${formattedSymbol}`);
   };
@@ -81,7 +102,7 @@ export default function SymbolManagement() {
   // Remove a symbol
   const handleRemoveSymbol = (symbol: string) => {
     const updatedSymbols = removeCustomSymbol(symbol);
-    setSymbols(updatedSymbols);
+    setCustomSymbols(updatedSymbols);
     toast.success(`Removed symbol: ${symbol}`);
   };
   
@@ -107,8 +128,14 @@ export default function SymbolManagement() {
       return;
     }
     
+    // Check if updated symbol is a preset
+    if (presetSymbols.includes(formattedSymbol)) {
+      toast.info(`${formattedSymbol} is already a preset symbol`);
+      return;
+    }
+    
     const updatedSymbols = updateCustomSymbol(editSymbol.original, formattedSymbol);
-    setSymbols(updatedSymbols);
+    setCustomSymbols(updatedSymbols);
     setIsEditDialogOpen(false);
     toast.success(`Updated symbol: ${editSymbol.original} to ${formattedSymbol}`);
   };
@@ -140,67 +167,111 @@ export default function SymbolManagement() {
             </Button>
           </div>
           
-          {symbols.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Symbol</TableHead>
-                  <TableHead className="w-28">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {symbols.map((symbol) => (
-                  <TableRow key={symbol}>
-                    <TableCell className="font-medium">{symbol}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => openEditDialog(symbol)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <Trash className="h-4 w-4" />
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="custom">Custom Symbols</TabsTrigger>
+              <TabsTrigger value="preset">Preset Symbols</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="custom">
+              {customSymbols.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Symbol</TableHead>
+                      <TableHead className="w-28">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customSymbols.map((symbol) => (
+                      <TableRow key={symbol}>
+                        <TableCell className="font-medium">{symbol}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => openEditDialog(symbol)}
+                            >
+                              <Pencil className="h-4 w-4" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Symbol</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to remove {symbol}? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => handleRemoveSymbol(symbol)}
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Symbol</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to remove {symbol}? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleRemoveSymbol(symbol)}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No custom symbols added yet. Add your first symbol above.
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="preset">
+              <div className="bg-muted/30 p-4 rounded-lg mb-4 flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-muted-foreground">
+                  Preset symbols are built into the application and cannot be modified or deleted. 
+                  They include common stocks and futures contracts.
+                </p>
+              </div>
+              
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Symbol</TableHead>
+                    <TableHead>Type</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No custom symbols added yet. Add your first symbol above.
-            </div>
-          )}
+                </TableHeader>
+                <TableBody>
+                  {presetSymbols.map((symbol) => {
+                    const isFutures = symbol.startsWith('ES') || 
+                                     symbol.startsWith('NQ') || 
+                                     symbol.startsWith('MES') || 
+                                     symbol.startsWith('MNQ') ||
+                                     COMMON_FUTURES_CONTRACTS.some(contract => contract.symbol === symbol);
+                    
+                    return (
+                      <TableRow key={symbol}>
+                        <TableCell className="font-medium">{symbol}</TableCell>
+                        <TableCell>{isFutures ? 'Futures' : 'Equity'}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </Tabs>
         </CardContent>
         
         <CardFooter className="flex justify-between border-t pt-6">
           <div className="text-sm text-muted-foreground">
-            {symbols.length} custom symbol{symbols.length !== 1 ? 's' : ''} configured
+            {customSymbols.length} custom and {presetSymbols.length} preset symbols available
           </div>
         </CardFooter>
       </Card>

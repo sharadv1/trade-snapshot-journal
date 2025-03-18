@@ -1,5 +1,21 @@
 
 // Custom user symbols storage utility
+import { COMMON_FUTURES_CONTRACTS } from '@/types';
+
+// Default preset symbols that should be in the system 
+const PRESET_SYMBOLS = [
+  // Common stocks
+  'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'AMD',
+];
+
+// Get all preset symbols (including futures)
+export function getPresetSymbols(): string[] {
+  // Get futures symbols from the common contracts
+  const futuresSymbols = COMMON_FUTURES_CONTRACTS.map(contract => contract.symbol);
+  
+  // Combine stock and futures preset symbols
+  return [...PRESET_SYMBOLS, ...futuresSymbols];
+}
 
 /**
  * Retrieves custom symbols from localStorage
@@ -92,10 +108,12 @@ export function updateCustomSymbol(oldSymbol: string, newSymbol: string): string
 
 /**
  * Gets all symbols (preset and custom)
- * @param presetSymbols Array of preset symbols
  * @returns Combined array of preset and custom symbols
  */
-export function getAllSymbols(presetSymbols: string[]): string[] {
+export function getAllSymbols(): string[] {
+  const presetSymbols = getPresetSymbols();
   const customSymbols = getCustomSymbols();
+  
+  // Filter out duplicates by creating a combined array with unique values
   return [...presetSymbols, ...customSymbols.filter(s => !presetSymbols.includes(s))];
 }

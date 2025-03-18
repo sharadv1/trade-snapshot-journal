@@ -4,7 +4,9 @@ import { COMMON_FUTURES_CONTRACTS } from '@/types';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -32,17 +34,35 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
     }
   };
 
+  // Group contracts by type for better organization
+  const standardContracts = COMMON_FUTURES_CONTRACTS.filter(c => !c.symbol.startsWith('M'));
+  const microContracts = COMMON_FUTURES_CONTRACTS.filter(c => c.symbol.startsWith('M'));
+
   return (
     <Select value={currentValue} onValueChange={handleSelect}>
       <SelectTrigger>
         <SelectValue placeholder="Select a contract" />
       </SelectTrigger>
       <SelectContent>
-        {COMMON_FUTURES_CONTRACTS.map((contract) => (
-          <SelectItem key={contract.symbol} value={contract.symbol}>
-            {contract.symbol} - {contract.name}
-          </SelectItem>
-        ))}
+        <SelectGroup>
+          <SelectLabel>Standard Contracts</SelectLabel>
+          {standardContracts
+            .filter(c => !c.symbol.startsWith('M'))
+            .map((contract) => (
+              <SelectItem key={contract.symbol} value={contract.symbol}>
+                {contract.symbol} - {contract.name}
+              </SelectItem>
+            ))}
+        </SelectGroup>
+        
+        <SelectGroup>
+          <SelectLabel>Micro Contracts</SelectLabel>
+          {microContracts.map((contract) => (
+            <SelectItem key={contract.symbol} value={contract.symbol}>
+              {contract.symbol} - {contract.name}
+            </SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   );
