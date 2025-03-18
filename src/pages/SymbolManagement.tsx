@@ -217,7 +217,8 @@ export default function SymbolManagement() {
                     .filter(type => type !== 'all')
                     .map(type => (
                       <SelectItem key={type} value={type}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                        {/* Fix: Safely handle potentially undefined type string */}
+                        {typeof type === 'string' ? type.charAt(0).toUpperCase() + type.slice(1) : type}
                       </SelectItem>
                     ))
                   }
@@ -354,3 +355,4 @@ export default function SymbolManagement() {
     </div>
   );
 }
+
