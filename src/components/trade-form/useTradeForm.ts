@@ -6,17 +6,29 @@ import { addTrade, updateTrade } from '@/utils/tradeStorage';
 import { getIdeaById, markIdeaAsTaken } from '@/utils/ideaStorage';
 import { toast } from '@/utils/toast';
 
-export function useTradeForm(initialTrade?: Trade, isEditing = false) {
+// Simple UUID generator that doesn't rely on crypto.randomUUID
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, 
+          v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaIdFromProps?: string | null) {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('details');
   const [images, setImages] = useState<string[]>(initialTrade?.images || []);
 
-  // Parse query params for ideaId
-  const searchParams = new URLSearchParams(location.search);
-  const ideaIdFromUrl = searchParams.get('ideaId');
+  // Get ideaId from props first, then fallback to URL params
+  let ideaId = ideaIdFromProps;
+  if (!ideaId) {
+    const searchParams = new URLSearchParams(location.search);
+    ideaId = searchParams.get('ideaId');
+  }
   
-  console.log('useTradeForm initializing with ideaId:', ideaIdFromUrl);
+  console.log('useTradeForm initializing with ideaId:', ideaId);
   
   const [trade, setTrade] = useState<Partial<Trade>>(
     initialTrade || {
@@ -34,7 +46,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
       partialExits: [],
       pspTime: '',
       timeframe: undefined,
-      ideaId: ideaIdFromUrl || undefined
+      ideaId: ideaId || undefined
     }
   );
 
@@ -49,9 +61,9 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
 
   // Handle pre-filling from trade idea
   useEffect(() => {
-    if (!isEditing && ideaIdFromUrl) {
-      console.log('Loading idea data for ID:', ideaIdFromUrl);
-      const idea = getIdeaById(ideaIdFromUrl);
+    if (!isEditing && ideaId) {
+      console.log('Loading idea data for ID:', ideaId);
+      const idea = getIdeaById(ideaId);
       if (idea) {
         console.log('Idea found:', idea);
         setTrade(prev => ({
@@ -62,10 +74,10 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
           notes: prev.notes ? `${prev.notes}\n\nBased on trade idea: ${idea.description}` : `Based on trade idea: ${idea.description}`
         }));
       } else {
-        console.log('No idea found for ID:', ideaIdFromUrl);
+        console.log('No idea found for ID:', ideaId);
       }
     }
-  }, [ideaIdFromUrl, isEditing]);
+  }, [ideaId, isEditing]);
 
   const pointValue = trade.type === 'futures' && contractDetails.tickSize && contractDetails.tickValue
     ? contractDetails.tickValue / contractDetails.tickSize
@@ -160,14 +172,13 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false) {
       } else {
         const newTrade = {
           ...tradeToSave,
-          id: crypto.randomUUID(),
+          id: generateUUID(), // Use our custom UUID generator instead of crypto.randomUUID()
           partialExits: []
         } as Trade;
         
         console.log('Adding new trade:', newTrade);
         addTrade(newTrade);
         toast.success("Trade added successfully");
-        navigate('/');
       }
       
       return true;

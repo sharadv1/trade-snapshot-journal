@@ -13,6 +13,15 @@ import { addIdea, updateIdea } from '@/utils/ideaStorage';
 import { toast } from '@/utils/toast';
 import { ImageUpload } from '@/components/ImageUpload';
 
+// Simple UUID generator that doesn't rely on crypto.randomUUID
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, 
+          v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 interface IdeaDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -76,7 +85,9 @@ export function IdeaDialog({
     handleChange('images', newImages);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
     if (!idea.symbol || !idea.date) {
       toast.error("Please fill in all required fields");
       return;
@@ -95,7 +106,7 @@ export function IdeaDialog({
         // Add new idea
         addIdea({
           ...idea,
-          id: crypto.randomUUID(),
+          id: generateUUID(), // Use our custom UUID generator
           images
         } as TradeIdea);
         toast.success("Trade idea added successfully");
@@ -132,7 +143,7 @@ export function IdeaDialog({
           <DialogTitle>{initialIdea ? 'Edit Trade Idea' : 'Add Trade Idea'}</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="date">Date</Label>
             <Input
@@ -140,6 +151,7 @@ export function IdeaDialog({
               type="datetime-local"
               value={idea.date}
               onChange={(e) => handleChange('date', e.target.value)}
+              required
             />
           </div>
           
@@ -147,6 +159,7 @@ export function IdeaDialog({
             <Label htmlFor="symbol">Symbol <span className="text-destructive">*</span></Label>
             <Input
               id="symbol"
+              name="symbol"
               type="text"
               value={idea.symbol}
               onChange={(e) => handleChange('symbol', e.target.value.toUpperCase())}
@@ -182,6 +195,7 @@ export function IdeaDialog({
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
+              name="description"
               value={idea.description || ''}
               onChange={(e) => handleChange('description', e.target.value)}
               rows={3}
@@ -213,16 +227,16 @@ export function IdeaDialog({
               onImageRemove={handleRemoveImage}
             />
           </div>
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit}>
-            {initialIdea ? 'Update' : 'Add'} Idea
-          </Button>
-        </DialogFooter>
+          
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => handleOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              {initialIdea ? 'Update' : 'Add'} Idea
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

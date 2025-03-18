@@ -14,15 +14,18 @@ import { toast } from '@/utils/toast';
 interface TradeFormProps {
   initialTrade?: Trade;
   isEditing?: boolean;
+  onSuccess?: () => void;
+  onError?: (error: unknown) => void;
+  ideaId?: string | null;
 }
 
-export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
+export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError, ideaId }: TradeFormProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const ideaIdFromUrl = searchParams.get('ideaId');
+  const ideaIdFromProps = ideaId || searchParams.get('ideaId');
   
-  console.log('TradeForm rendering. Idea ID from URL:', ideaIdFromUrl);
+  console.log('TradeForm rendering. Idea ID from props or URL:', ideaIdFromProps);
   
   const {
     trade,
@@ -32,11 +35,12 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
     images,
     handleChange,
     handleTypeChange,
+    handleContractDetailsChange,
     handleImageUpload,
     handleRemoveImage,
     handleSubmit,
     pointValue,
-  } = useTradeForm(initialTrade, isEditing);
+  } = useTradeForm(initialTrade, isEditing, ideaIdFromProps);
 
   useEffect(() => {
     // Validate essential components
@@ -56,7 +60,7 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
 
   const handleCancel = () => {
     // If we came from the ideas page (has ideaId), go back to ideas
-    if (ideaIdFromUrl) {
+    if (ideaIdFromProps) {
       navigate('/ideas');
       return;
     }
@@ -78,16 +82,27 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
     try {
       const success = handleSubmit(e);
       
-      // If this is an edit and submission was successful, navigate to the trade detail page
-      if (success && isEditing && initialTrade) {
-        navigate(`/trade/${initialTrade.id}`);
-        return;
+      if (success) {
+        // Call the onSuccess callback if provided
+        if (onSuccess) {
+          onSuccess();
+        } else if (isEditing && initialTrade) {
+          // If this is an edit and submission was successful, navigate to the trade detail page
+          navigate(`/trade/${initialTrade.id}`);
+        } else {
+          // Default success behavior
+          toast.success('Trade saved successfully!');
+          navigate('/');
+        }
       }
-      
-      // For new trades or if submission failed, navigate as determined by the form handler
     } catch (error) {
       console.error('Error submitting form:', error);
-      toast.error('Failed to submit trade form');
+      // Call the onError callback if provided
+      if (onError) {
+        onError(error);
+      } else {
+        toast.error('Failed to submit trade form');
+      }
     }
   };
 
@@ -99,7 +114,7 @@ export function TradeForm({ initialTrade, isEditing = false }: TradeFormProps) {
           <CardDescription>
             {isEditing 
               ? "Update the details of your existing trade" 
-              : ideaIdFromUrl 
+              : ideaIdFromProps 
                 ? "Create a trade based on your idea" 
                 : "Enter the details of your new trade"
             }
