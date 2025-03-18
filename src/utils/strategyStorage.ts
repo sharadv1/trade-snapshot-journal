@@ -1,3 +1,4 @@
+
 import { Strategy, Trade } from '@/types';
 import { toast } from './toast';
 import { getTradesSync, updateTrade } from './tradeStorage';
@@ -29,7 +30,13 @@ export function initializeStrategies(): Strategy[] {
     return DEFAULT_STRATEGIES;
   }
   
-  return JSON.parse(storedStrategies);
+  try {
+    return JSON.parse(storedStrategies);
+  } catch (error) {
+    console.error('Error parsing stored strategies:', error);
+    localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(DEFAULT_STRATEGIES));
+    return DEFAULT_STRATEGIES;
+  }
 }
 
 // Get all strategies
@@ -40,7 +47,12 @@ export function getStrategies(): Strategy[] {
     return initializeStrategies();
   }
   
-  return JSON.parse(storedStrategies);
+  try {
+    return JSON.parse(storedStrategies);
+  } catch (error) {
+    console.error('Error parsing stored strategies:', error);
+    return initializeStrategies();
+  }
 }
 
 // Add a new strategy
@@ -69,7 +81,11 @@ export function updateStrategy(updatedStrategy: Strategy): Strategy {
   
   // Get the original strategy to check if name changed
   const originalStrategy = strategies.find(s => s.id === updatedStrategy.id);
-  const nameChanged = originalStrategy && originalStrategy.name !== updatedStrategy.name;
+  if (!originalStrategy) {
+    throw new Error(`Strategy with ID "${updatedStrategy.id}" not found`);
+  }
+  
+  const nameChanged = originalStrategy.name !== updatedStrategy.name;
   
   // Check if updated name conflicts with another strategy
   const nameConflict = strategies.some(
@@ -89,7 +105,7 @@ export function updateStrategy(updatedStrategy: Strategy): Strategy {
   localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
   
   // If name has changed, update all trades using this strategy
-  if (nameChanged && originalStrategy) {
+  if (nameChanged) {
     try {
       const trades = getTradesSync();
       let updatedCount = 0;
