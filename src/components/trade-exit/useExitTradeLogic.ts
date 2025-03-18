@@ -40,7 +40,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
     }
   }, [trade, remainingQuantity]);
   
-  const handleFullExit = () => {
+  const handleFullExit = async () => {
     if (!exitPrice) {
       toast.error("Please enter an exit price");
       return;
@@ -77,6 +77,13 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       
       updateTrade(updatedTrade);
       toast.success("Trade closed successfully");
+      
+      // Dispatch a storage event to ensure updates are detected
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'trade-journal-trades',
+        newValue: JSON.stringify(localStorage.getItem('trade-journal-trades'))
+      }));
+      
       onUpdate();
       onClose();
     } catch (error) {
@@ -85,7 +92,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
     }
   };
 
-  const handlePartialExit = () => {
+  const handlePartialExit = async () => {
     if (!partialExitPrice) {
       toast.error("Please enter an exit price");
       return;
@@ -105,7 +112,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       }
       
       const newPartialExit: PartialExit = {
-        id: crypto.randomUUID(),
+        id: crypto.randomUUID ? crypto.randomUUID() : generateUUID(),
         exitDate: partialExitDate,
         exitPrice: partialExitPrice,
         quantity: partialQuantity,
@@ -135,6 +142,13 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       }
       
       updateTrade(updatedTrade);
+      
+      // Dispatch a storage event to ensure updates are detected
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'trade-journal-trades',
+        newValue: JSON.stringify(localStorage.getItem('trade-journal-trades'))
+      }));
+      
       toast.success("Partial exit recorded successfully");
       onUpdate();
       onClose();
@@ -143,6 +157,15 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       toast.error("Failed to record partial exit");
     }
   };
+
+  // Simple UUID generator that doesn't rely on crypto.randomUUID
+  function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, 
+            v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
 
   return {
     activeTab,

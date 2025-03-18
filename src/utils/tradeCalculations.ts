@@ -158,7 +158,7 @@ export function calculateTradeMetrics(trade: Trade): TradeWithMetrics['metrics']
       calculationExplanation += `Risk-reward ratio: ${riskRewardRatio.toFixed(2)}:1`;
     } 
     // For closed trades, calculate actual R:R based on exit price
-    else if (trade.status === 'closed' && weightedExitPrice) {
+    else if ((trade.status === 'closed' || totalExitedQuantity > 0) && weightedExitPrice) {
       const actualRewardPerUnit = Math.abs(weightedExitPrice - trade.entryPrice);
       
       if (trade.type === 'futures') {
