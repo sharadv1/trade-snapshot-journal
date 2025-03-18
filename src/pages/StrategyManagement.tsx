@@ -86,20 +86,22 @@ export default function StrategyManagement() {
         return;
       }
 
-      addStrategy({
+      const addedStrategy = addStrategy({
         name: newStrategy.name,
-        description: newStrategy.description,
-        color: newStrategy.color,
+        description: newStrategy.description || '',
+        color: newStrategy.color || '#000000',
       });
 
-      toast.success('Strategy added successfully');
-      setDialogOpen(false);
-      setNewStrategy({
-        name: '',
-        description: '',
-        color: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
-      });
-      loadStrategies();
+      if (addedStrategy) {
+        toast.success('Strategy added successfully');
+        setDialogOpen(false);
+        setNewStrategy({
+          name: '',
+          description: '',
+          color: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
+        });
+        loadStrategies();
+      }
     } catch (error) {
       toast.error((error as Error).message || 'Failed to add strategy');
     }
@@ -116,17 +118,19 @@ export default function StrategyManagement() {
       const originalStrategy = strategies.find(s => s.id === editingStrategy.id);
       const nameChanged = originalStrategy && originalStrategy.name !== editingStrategy.name;
 
-      updateStrategy(editingStrategy);
+      const updatedStrategy = updateStrategy(editingStrategy);
       
-      if (nameChanged) {
-        toast.success('Strategy updated and trade references updated');
-      } else {
-        toast.success('Strategy updated successfully');
+      if (updatedStrategy) {
+        if (nameChanged) {
+          toast.success('Strategy updated and trade references updated');
+        } else {
+          toast.success('Strategy updated successfully');
+        }
+        
+        setDialogOpen(false);
+        setEditingStrategy(null);
+        loadStrategies();
       }
-      
-      setDialogOpen(false);
-      setEditingStrategy(null);
-      loadStrategies();
     } catch (error) {
       toast.error((error as Error).message || 'Failed to update strategy');
     }
@@ -217,7 +221,7 @@ export default function StrategyManagement() {
   };
 
   const openEditDialog = (strategy: Strategy) => {
-    setEditingStrategy(strategy);
+    setEditingStrategy({ ...strategy });
     setDialogOpen(true);
   };
 
@@ -452,7 +456,7 @@ export default function StrategyManagement() {
             <Button variant="outline" onClick={handleDialogClose}>
               Cancel
             </Button>
-            <Button onClick={editingStrategy ? handleUpdateStrategy : handleAddStrategy}>
+            <Button type="button" onClick={editingStrategy ? handleUpdateStrategy : handleAddStrategy}>
               {editingStrategy ? 'Update' : 'Add'}
             </Button>
           </DialogFooter>
