@@ -18,14 +18,18 @@ export default function TradeEdit() {
   
   const loadTradeData = () => {
     if (!id) {
+      console.error('No trade ID provided in URL');
+      toast.error('No trade ID found');
       navigate('/');
       return;
     }
     
+    console.log('Loading trade data for ID:', id);
     const tradeData = getTradeById(id);
     if (tradeData) {
       setTrade(tradeData);
     } else {
+      console.error('Trade not found with ID:', id);
       toast.error('Trade not found');
       navigate('/');
     }

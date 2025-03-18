@@ -21,7 +21,9 @@ function App() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/trade/new" element={<TradeEntry />} />
           <Route path="/trade/:id" element={<TradeDetail />} />
+          {/* Supporting both URL patterns for edit: */}
           <Route path="/trade/:id/edit" element={<TradeEdit />} />
+          <Route path="/trade/edit/:id" element={<TradeEdit />} />
           <Route path="/ideas" element={<Ideas />} />
           <Route path="/strategies" element={<StrategyManagement />} />
           <Route path="/symbols" element={<SymbolManagement />} />
