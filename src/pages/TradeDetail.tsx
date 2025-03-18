@@ -32,6 +32,7 @@ import { PartialExitsList } from '@/components/PartialExitsList';
 import { FuturesContractDetails } from '@/components/FuturesContractDetails';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
 import { NotesAndImagesForm } from '@/components/trade-form/NotesAndImagesForm';
+import { cn } from '@/lib/utils';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -578,6 +579,15 @@ export default function TradeDetail() {
                       </div>
                     </div>
                   )}
+
+                  {trade.metrics.maxPotentialGain && (
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <div className="text-xs text-muted-foreground">Potential Gain</div>
+                      <div className="font-medium mt-1">
+                        {formatCurrency(trade.metrics.maxPotentialGain)}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -611,6 +621,15 @@ export default function TradeDetail() {
                             : 'Not set'
                           }
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {trade.metrics.maxPotentialGain && (
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <div className="text-xs text-muted-foreground">Potential Gain</div>
+                      <div className="font-medium mt-1">
+                        {formatCurrency(trade.metrics.maxPotentialGain)}
                       </div>
                     </div>
                   )}
