@@ -61,7 +61,12 @@ export function useMonthlyPerformanceData(trades: TradeWithMetrics[]): MonthlyPe
       .sort((a, b) => a[1].getTime() - b[1].getTime())
       .map(([monthYear, date]) => ({ 
         month: monthYear, 
-        rawMonth: date 
+        rawMonth: date,
+        monthlyTotal: {
+          totalDollarValue: 0,
+          totalR: 0,
+          count: 0
+        }
       }));
     
     // Create categories for both strategies and instruments
@@ -87,8 +92,8 @@ export function useMonthlyPerformanceData(trades: TradeWithMetrics[]): MonthlyPe
     const monthlyDataMap = new Map();
     
     // Calculate performance metrics for each month and category
-    const monthlyPerformance = sortedMonths.map(({ month, rawMonth }) => {
-      const monthData: MonthPerformanceData = { month, rawMonth };
+    const monthlyPerformance = sortedMonths.map(({ month, rawMonth, monthlyTotal }) => {
+      const monthData: MonthPerformanceData = { month, rawMonth, monthlyTotal };
       
       // Monthly totals for all categories combined - only tracking instruments
       let monthlyDollarTotal = 0;
@@ -218,5 +223,5 @@ function calculateTotalDollarValue(trades: TradeWithMetrics[]): number {
 }
 
 function calculateTotalTradeCount(trades: TradeWithMetrics[]): number {
-  return trades.filter(trade => trade.type !== 'strategy').length;
+  return trades.length;
 }

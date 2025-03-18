@@ -24,7 +24,9 @@ export default function Dashboard() {
     winRate: calculateWinRate(trades),
     netPnL: calculateTotalPnL(trades),
     expectancy: calculateExpectancy(trades),
-    sortinoRatio: calculateSortinoRatio(trades)
+    sortinoRatio: calculateSortinoRatio(trades),
+    avgWin: calculateAverageWin(trades),
+    avgLoss: calculateAverageLoss(trades)
   };
   
   return (
@@ -62,7 +64,19 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <MetricCard 
             title="Win Rate" 
-            value={`${keyMetrics.winRate.toFixed(1)}%`} 
+            value={`${keyMetrics.winRate.toFixed(1)}%`}
+            subStats={[
+              {
+                label: "Avg Win",
+                value: formatCurrency(keyMetrics.avgWin),
+                className: "text-profit"
+              },
+              {
+                label: "Avg Loss",
+                value: formatCurrency(Math.abs(keyMetrics.avgLoss)),
+                className: "text-loss"
+              }
+            ]}
           />
           <MetricCard 
             title="Net Profit/Loss" 
@@ -125,6 +139,26 @@ function calculateTotalPnL(trades: TradeWithMetrics[]): number {
     .reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
 }
 
+function calculateAverageWin(trades: TradeWithMetrics[]): number {
+  const winningTrades = trades
+    .filter(trade => trade.status === 'closed' && trade.metrics.profitLoss > 0);
+  
+  if (winningTrades.length === 0) return 0;
+  
+  const totalWins = winningTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
+  return totalWins / winningTrades.length;
+}
+
+function calculateAverageLoss(trades: TradeWithMetrics[]): number {
+  const losingTrades = trades
+    .filter(trade => trade.status === 'closed' && trade.metrics.profitLoss < 0);
+  
+  if (losingTrades.length === 0) return 0;
+  
+  const totalLosses = losingTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
+  return totalLosses / losingTrades.length;
+}
+
 function calculateExpectancy(trades: TradeWithMetrics[]): number {
   const closedTrades = trades.filter(trade => trade.status === 'closed');
   if (closedTrades.length === 0) return 0;
@@ -183,12 +217,36 @@ function calculateSortinoRatio(trades: TradeWithMetrics[]): number {
   return avgReturn / downsideDeviation;
 }
 
-function MetricCard({ title, value, className }: { title: string; value: string; className?: string }) {
+interface SubStat {
+  label: string;
+  value: string;
+  className?: string;
+}
+
+interface MetricCardProps {
+  title: string;
+  value: string;
+  className?: string;
+  subStats?: SubStat[];
+}
+
+function MetricCard({ title, value, className, subStats }: MetricCardProps) {
   return (
     <Card className="shadow-subtle border">
       <CardContent className="p-6">
         <div className="text-sm font-medium text-muted-foreground">{title}</div>
         <div className={`text-2xl font-bold mt-1 ${className}`}>{value}</div>
+        
+        {subStats && subStats.length > 0 && (
+          <div className="mt-2 space-y-1 text-sm">
+            {subStats.map((stat, index) => (
+              <div key={index} className="flex justify-between">
+                <span className="text-muted-foreground">{stat.label}:</span>
+                <span className={stat.className}>{stat.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
