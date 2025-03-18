@@ -5,14 +5,14 @@ import { COMMON_FUTURES_CONTRACTS } from '@/types';
 // Default preset symbols that should be in the system 
 const PRESET_SYMBOLS = [
   // Common stocks with their types
-  { symbol: 'AAPL', type: 'equity' },
-  { symbol: 'MSFT', type: 'equity' },
-  { symbol: 'GOOGL', type: 'equity' },
-  { symbol: 'AMZN', type: 'equity' },
-  { symbol: 'META', type: 'equity' },
-  { symbol: 'TSLA', type: 'equity' },
-  { symbol: 'NVDA', type: 'equity' },
-  { symbol: 'AMD', type: 'equity' },
+  { symbol: 'AAPL', type: 'equity' as const },
+  { symbol: 'MSFT', type: 'equity' as const },
+  { symbol: 'GOOGL', type: 'equity' as const },
+  { symbol: 'AMZN', type: 'equity' as const },
+  { symbol: 'META', type: 'equity' as const },
+  { symbol: 'TSLA', type: 'equity' as const },
+  { symbol: 'NVDA', type: 'equity' as const },
+  { symbol: 'AMD', type: 'equity' as const },
 ];
 
 export interface SymbolDetails {
@@ -26,7 +26,7 @@ export function getPresetSymbols(): SymbolDetails[] {
   // Get futures symbols from the common contracts
   const futuresSymbols = COMMON_FUTURES_CONTRACTS.map(contract => ({
     symbol: contract.symbol,
-    type: 'futures',
+    type: 'futures' as const,
     isPreset: true
   }));
   
