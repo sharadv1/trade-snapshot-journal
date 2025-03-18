@@ -8,6 +8,9 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
+// Define the app version - this can be updated for each release
+export const APP_VERSION = "1.0.0";
+
 export function Header() {
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -19,7 +22,7 @@ export function Header() {
           <Link to="/" className="mr-6 flex items-center space-x-2">
             <BarChart className="h-6 w-6" />
             <span className="hidden font-bold sm:inline-block">
-              Trade Journal
+              Trade Journal <span className="text-xs font-normal text-muted-foreground">v{APP_VERSION}</span>
             </span>
           </Link>
         </div>

@@ -57,6 +57,10 @@ export function getStrategies(): Strategy[] {
 
 // Add a new strategy
 export function addStrategy(strategy: Omit<Strategy, 'id'>): Strategy {
+  if (!strategy || !strategy.name) {
+    throw new Error("Strategy name is required");
+  }
+
   const strategies = getStrategies();
   
   // Check if name already exists
@@ -64,19 +68,35 @@ export function addStrategy(strategy: Omit<Strategy, 'id'>): Strategy {
     throw new Error(`Strategy with name "${strategy.name}" already exists`);
   }
   
+  // Generate a UUID for the new strategy
+  const newId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+  
   const newStrategy: Strategy = {
     ...strategy,
-    id: crypto.randomUUID()
+    id: newId,
+    // Ensure description is not undefined
+    description: strategy.description || '',
+    // Ensure color has a valid format
+    color: strategy.color || ('#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'))
   };
   
   const updatedStrategies = [...strategies, newStrategy];
-  localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
   
-  return newStrategy;
+  try {
+    localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
+    return newStrategy;
+  } catch (error) {
+    console.error('Error saving strategy:', error);
+    throw new Error('Failed to save strategy to local storage');
+  }
 }
 
 // Update an existing strategy
 export function updateStrategy(updatedStrategy: Strategy): Strategy {
+  if (!updatedStrategy || !updatedStrategy.id || !updatedStrategy.name) {
+    throw new Error("Invalid strategy data");
+  }
+
   const strategies = getStrategies();
   
   // Get the original strategy to check if name changed
@@ -99,38 +119,48 @@ export function updateStrategy(updatedStrategy: Strategy): Strategy {
   
   // Update the strategy in our strategies array
   const updatedStrategies = strategies.map(s => 
-    s.id === updatedStrategy.id ? updatedStrategy : s
+    s.id === updatedStrategy.id ? {
+      ...updatedStrategy,
+      // Ensure we always have required fields
+      description: updatedStrategy.description || '',
+      color: updatedStrategy.color || originalStrategy.color
+    } : s
   );
   
-  localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
+  try {
+    localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
   
-  // If name has changed, update all trades using this strategy
-  if (nameChanged) {
-    try {
-      const trades = getTradesSync();
-      let updatedCount = 0;
-      
-      trades.forEach(trade => {
-        if (trade.strategy === originalStrategy.name) {
-          const updatedTrade = {
-            ...trade,
-            strategy: updatedStrategy.name
-          };
-          updateTrade(updatedTrade);
-          updatedCount++;
+    // If name has changed, update all trades using this strategy
+    if (nameChanged) {
+      try {
+        const trades = getTradesSync();
+        let updatedCount = 0;
+        
+        trades.forEach(trade => {
+          if (trade.strategy === originalStrategy.name) {
+            const updatedTrade = {
+              ...trade,
+              strategy: updatedStrategy.name
+            };
+            updateTrade(updatedTrade);
+            updatedCount++;
+          }
+        });
+        
+        if (updatedCount > 0) {
+          console.log(`Updated strategy name in ${updatedCount} trades`);
         }
-      });
-      
-      if (updatedCount > 0) {
-        console.log(`Updated strategy name in ${updatedCount} trades`);
+      } catch (error) {
+        console.error('Error updating trades with new strategy name:', error);
+        toast.error('Strategy updated but failed to update some trades');
       }
-    } catch (error) {
-      console.error('Error updating trades with new strategy name:', error);
-      toast.error('Strategy updated but failed to update some trades');
     }
-  }
   
-  return updatedStrategy;
+    return updatedStrategy;
+  } catch (error) {
+    console.error('Error updating strategy:', error);
+    throw new Error('Failed to update strategy in local storage');
+  }
 }
 
 // Check if a strategy is in use by any trades
@@ -169,9 +199,13 @@ export function deleteStrategy(strategyId: string): boolean {
     return false;
   }
   
-  localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
-  
-  return true;
+  try {
+    localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
+    return true;
+  } catch (error) {
+    console.error('Error deleting strategy:', error);
+    throw new Error('Failed to delete strategy from local storage');
+  }
 }
 
 // Get all strategy names as an array (for dropdowns, etc.)
