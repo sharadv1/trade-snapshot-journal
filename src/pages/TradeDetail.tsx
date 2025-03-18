@@ -736,10 +736,6 @@ export default function TradeDetail() {
   );
 }
 
-function cn(...classes: (string | undefined | null | false)[]) {
-  return classes.filter(Boolean).join(' ');
-}
-
 function calculateHoldTime(entryDate: string, exitDate: string): string {
   const entry = new Date(entryDate);
   const exit = new Date(exitDate);
