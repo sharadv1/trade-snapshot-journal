@@ -14,6 +14,22 @@ export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
   const trades = getTradesWithMetrics();
 
+  // Count trades by timeframe for display purposes
+  const timeframeCount = trades.reduce((acc, trade) => {
+    if (trade.timeframe) {
+      const tf = trade.timeframe.toLowerCase();
+      acc[tf] = (acc[tf] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  const has15mTrades = Object.keys(timeframeCount).some(tf => tf.toLowerCase() === '15m');
+  const has1hTrades = Object.keys(timeframeCount).some(tf => tf.toLowerCase() === '1h');
+
+  console.log('Analytics - Available timeframes:', timeframeCount);
+  console.log('Analytics - Has 15m trades:', has15mTrades);
+  console.log('Analytics - Has 1h trades:', has1hTrades);
+
   const handleAddDummyTrades = () => {
     addDummyTrades();
     setRefreshKey(prev => prev + 1);
@@ -54,8 +70,13 @@ export default function Analytics() {
           <div className="w-full">
             <h2 className="text-2xl font-bold tracking-tight mb-4">
               Day of Week Performance (15m & 1h Timeframes)
+              {(!has15mTrades && !has1hTrades) && (
+                <span className="block text-sm font-normal text-muted-foreground mt-1">
+                  No trades with 15m or 1h timeframes. Add trades with these timeframes to see data.
+                </span>
+              )}
             </h2>
-            <DayOfWeekPerformance trades={trades} timeframes={['15m', '1h']} key={refreshKey} />
+            <DayOfWeekPerformance trades={trades} timeframes={['15m', '1h']} key={`day-${refreshKey}`} />
           </div>
           
           <div className="w-full">

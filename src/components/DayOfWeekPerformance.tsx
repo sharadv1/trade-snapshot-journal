@@ -19,13 +19,26 @@ interface DayOfWeekPerformanceProps {
 }
 
 export function DayOfWeekPerformance({ trades, timeframes = ['15m', '1h'] }: DayOfWeekPerformanceProps) {
+  console.log('DayOfWeek - All trades:', trades.length);
+  
   // Filter trades by timeframe if specified
   const filteredTrades = timeframes 
-    ? trades.filter(trade => trade.timeframe && timeframes.includes(trade.timeframe))
+    ? trades.filter(trade => {
+        // Log each trade's timeframe for debugging
+        console.log('Trade timeframe:', trade.timeframe);
+        // Check if the trade has a timeframe, and if it matches one of the specified timeframes
+        // Handle both lowercase and uppercase variations of timeframes
+        return trade.timeframe && timeframes.some(tf => 
+          trade.timeframe?.toLowerCase() === tf.toLowerCase()
+        );
+      })
     : trades;
+  
+  console.log('DayOfWeek - Filtered by timeframe:', filteredTrades.length);
   
   // Get only closed trades
   const closedTrades = filteredTrades.filter(trade => trade.status === 'closed');
+  console.log('DayOfWeek - Closed trades:', closedTrades.length);
   
   // Initialize data for each day of week
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -40,11 +53,14 @@ export function DayOfWeekPerformance({ trades, timeframes = ['15m', '1h'] }: Day
     if (trade.entryDate) {
       const entryDate = new Date(trade.entryDate);
       const dayName = daysOfWeek[entryDate.getDay()];
+      console.log(`Trade assigned to ${dayName}:`, trade.symbol, trade.timeframe);
       
       dayPnL[dayName].pnl += trade.metrics.profitLoss;
       dayPnL[dayName].count += 1;
     }
   });
+  
+  console.log('DayOfWeek - PnL data:', dayPnL);
   
   // Prepare data for chart
   const chartData = Object.entries(dayPnL)
