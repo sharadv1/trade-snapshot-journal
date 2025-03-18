@@ -23,12 +23,34 @@ export default function Analytics() {
     return acc;
   }, {} as Record<string, number>);
 
-  const has15mTrades = Object.keys(timeframeCount).some(tf => tf.toLowerCase() === '15m');
-  const has1hTrades = Object.keys(timeframeCount).some(tf => tf.toLowerCase() === '1h');
+  // Check for timeframes in various formats
+  const timeframeFormats = {
+    '15m': ['15m', 'm15'],
+    '1h': ['1h', 'h1']
+  };
+  
+  const has15mTrades = trades.some(trade => 
+    trade.timeframe && 
+    timeframeFormats['15m'].some(format => 
+      trade.timeframe?.toLowerCase() === format
+    )
+  );
+  
+  const has1hTrades = trades.some(trade => 
+    trade.timeframe && 
+    timeframeFormats['1h'].some(format => 
+      trade.timeframe?.toLowerCase() === format
+    )
+  );
 
   console.log('Analytics - Available timeframes:', timeframeCount);
   console.log('Analytics - Has 15m trades:', has15mTrades);
   console.log('Analytics - Has 1h trades:', has1hTrades);
+  console.log('Analytics - Trades with timeframes:', trades.map(t => ({ 
+    symbol: t.symbol, 
+    timeframe: t.timeframe,
+    status: t.status
+  })));
 
   const handleAddDummyTrades = () => {
     addDummyTrades();
@@ -76,7 +98,11 @@ export default function Analytics() {
                 </span>
               )}
             </h2>
-            <DayOfWeekPerformance trades={trades} timeframes={['15m', '1h']} key={`day-${refreshKey}`} />
+            <DayOfWeekPerformance 
+              trades={trades} 
+              timeframes={['15m', '1h', 'm15', 'h1', 'M15', 'H1']} 
+              key={`day-${refreshKey}`} 
+            />
           </div>
           
           <div className="w-full">

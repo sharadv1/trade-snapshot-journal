@@ -20,21 +20,51 @@ interface DayOfWeekPerformanceProps {
 
 export function DayOfWeekPerformance({ trades, timeframes = ['15m', '1h'] }: DayOfWeekPerformanceProps) {
   console.log('DayOfWeek - All trades:', trades.length);
+  console.log('DayOfWeek - Looking for timeframes:', timeframes);
   
   // Filter trades by timeframe if specified
   const filteredTrades = timeframes 
     ? trades.filter(trade => {
         // Log each trade's timeframe for debugging
         console.log('Trade timeframe:', trade.timeframe);
-        // Check if the trade has a timeframe, and if it matches one of the specified timeframes
-        // Handle both lowercase and uppercase variations of timeframes
-        return trade.timeframe && timeframes.some(tf => 
-          trade.timeframe?.toLowerCase() === tf.toLowerCase()
-        );
+        
+        if (!trade.timeframe) return false;
+        
+        // Normalize timeframes for comparison
+        const normalizedTradeTimeframe = trade.timeframe.toLowerCase();
+        
+        // Check multiple possible formats (m15/15m, h1/1h, etc.)
+        return timeframes.some(tf => {
+          const normalizedTf = tf.toLowerCase();
+          
+          // Check for direct match
+          if (normalizedTradeTimeframe === normalizedTf) return true;
+          
+          // Check for reversed format (m15 vs 15m, h1 vs 1h)
+          if (normalizedTf.startsWith('m') && normalizedTradeTimeframe.endsWith('m')) {
+            // m15 vs 15m
+            const minutes = normalizedTf.substring(1);
+            if (normalizedTradeTimeframe.startsWith(minutes)) return true;
+          } else if (normalizedTf.endsWith('m') && normalizedTradeTimeframe.startsWith('m')) {
+            // 15m vs m15
+            const minutes = normalizedTf.substring(0, normalizedTf.length - 1);
+            if (normalizedTradeTimeframe.endsWith(minutes)) return true;
+          } else if (normalizedTf.startsWith('h') && normalizedTradeTimeframe.endsWith('h')) {
+            // h1 vs 1h
+            const hours = normalizedTf.substring(1);
+            if (normalizedTradeTimeframe.startsWith(hours)) return true;
+          } else if (normalizedTf.endsWith('h') && normalizedTradeTimeframe.startsWith('h')) {
+            // 1h vs h1
+            const hours = normalizedTf.substring(0, normalizedTf.length - 1);
+            if (normalizedTradeTimeframe.endsWith(hours)) return true;
+          }
+          
+          return false;
+        });
       })
     : trades;
   
-  console.log('DayOfWeek - Filtered by timeframe:', filteredTrades.length);
+  console.log('DayOfWeek - Filtered by timeframe:', filteredTrades.length, filteredTrades.map(t => t.timeframe));
   
   // Get only closed trades
   const closedTrades = filteredTrades.filter(trade => trade.status === 'closed');

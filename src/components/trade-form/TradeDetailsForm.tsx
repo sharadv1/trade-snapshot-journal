@@ -211,12 +211,12 @@ export function TradeDetailsForm({
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
               <SelectItem value="m5">5 Minutes (M5)</SelectItem>
-              <SelectItem value="m15">15 Minutes (M15)</SelectItem>
-              <SelectItem value="H1">1 Hour (H1)</SelectItem>
-              <SelectItem value="H4">4 Hours (H4)</SelectItem>
-              <SelectItem value="D1">Daily (D1)</SelectItem>
-              <SelectItem value="W1">Weekly (W1)</SelectItem>
-              <SelectItem value="M1">Monthly (M1)</SelectItem>
+              <SelectItem value="15m">15 Minutes (M15)</SelectItem>
+              <SelectItem value="1h">1 Hour (H1)</SelectItem>
+              <SelectItem value="4h">4 Hours (H4)</SelectItem>
+              <SelectItem value="d1">Daily (D1)</SelectItem>
+              <SelectItem value="w1">Weekly (W1)</SelectItem>
+              <SelectItem value="m1">Monthly (M1)</SelectItem>
             </SelectContent>
           </Select>
         </div>
