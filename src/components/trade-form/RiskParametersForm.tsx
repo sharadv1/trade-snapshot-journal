@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trade, Strategy } from '@/types';
 import { getStrategies } from '@/utils/strategyStorage';
+import { Target, TrendingDown, TrendingUp, Ratio } from 'lucide-react';
 
 interface RiskParametersFormProps {
   trade: Partial<Trade>;
@@ -13,6 +14,7 @@ interface RiskParametersFormProps {
 
 export function RiskParametersForm({ trade, handleChange }: RiskParametersFormProps) {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null);
 
   useEffect(() => {
     // Load strategies from storage
@@ -21,13 +23,33 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
     setStrategies(loadedStrategies);
   }, []);
 
+  // Calculate risk-reward ratio when stopLoss or takeProfit changes
+  useEffect(() => {
+    if (trade.stopLoss && trade.takeProfit && trade.entryPrice) {
+      const riskPerUnit = Math.abs(trade.entryPrice - trade.stopLoss);
+      const rewardPerUnit = Math.abs(trade.takeProfit - trade.entryPrice);
+      
+      if (riskPerUnit > 0) {
+        const ratio = rewardPerUnit / riskPerUnit;
+        setRiskRewardRatio(ratio);
+      } else {
+        setRiskRewardRatio(null);
+      }
+    } else {
+      setRiskRewardRatio(null);
+    }
+  }, [trade.stopLoss, trade.takeProfit, trade.entryPrice]);
+
   console.log('Current trade strategy:', trade.strategy);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="stopLoss">Stop Loss Price</Label>
+          <Label htmlFor="stopLoss" className="flex items-center gap-1">
+            <TrendingDown className="h-4 w-4 text-loss" />
+            Stop Loss Price
+          </Label>
           <Input 
             id="stopLoss" 
             type="number" 
@@ -39,7 +61,10 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="takeProfit">Take Profit Price</Label>
+          <Label htmlFor="takeProfit" className="flex items-center gap-1">
+            <TrendingUp className="h-4 w-4 text-profit" />
+            Take Profit Price
+          </Label>
           <Input 
             id="takeProfit" 
             type="number" 
@@ -49,6 +74,16 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
             onChange={(e) => handleChange('takeProfit', parseFloat(e.target.value))}
           />
         </div>
+        
+        {riskRewardRatio !== null && (
+          <div className="col-span-2 bg-muted/30 p-3 rounded-md flex items-center">
+            <Ratio className="h-5 w-5 mr-2 text-primary" />
+            <div>
+              <span className="font-medium">Risk-Reward Ratio: </span>
+              <span className="font-mono">{riskRewardRatio.toFixed(2)}:1</span>
+            </div>
+          </div>
+        )}
         
         <div className="space-y-2 col-span-2">
           <Label htmlFor="strategy">Strategy</Label>
@@ -91,7 +126,10 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
       </div>
       
       <div className="border rounded-md p-4 bg-muted/30">
-        <h3 className="text-sm font-medium mb-2">Risk Management</h3>
+        <h3 className="text-sm font-medium mb-2 flex items-center">
+          <Target className="h-4 w-4 mr-2" />
+          Risk Management
+        </h3>
         <p className="text-sm text-muted-foreground">
           Setting a stop loss and take profit helps you maintain discipline and automatically calculates your risk-to-reward ratio.
         </p>
