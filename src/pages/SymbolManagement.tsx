@@ -153,34 +153,35 @@ export default function SymbolManagement() {
   };
   
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Symbol Management</CardTitle>
-          <CardDescription>
+    <div className="container mx-auto py-6 space-y-6 animate-fade-in">
+      <Card className="shadow-md">
+        <CardHeader className="bg-muted/30 border-b rounded-t-lg">
+          <CardTitle className="text-2xl font-semibold">Symbol Management</CardTitle>
+          <CardDescription className="text-base">
             Add, edit, or remove symbols for your trades
           </CardDescription>
         </CardHeader>
         
-        <CardContent>
-          <div className="flex flex-col md:flex-row items-end gap-4 mb-6">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-end gap-4 mb-6 p-4 bg-background border rounded-lg shadow-sm">
             <div className="w-full md:flex-1 space-y-2">
-              <Label htmlFor="newSymbol">New Symbol</Label>
+              <Label htmlFor="newSymbol" className="font-medium">Symbol</Label>
               <Input
                 id="newSymbol"
                 value={newSymbol}
                 onChange={(e) => setNewSymbol(e.target.value)}
                 placeholder="Enter symbol (e.g., AAPL, ES)"
+                className="w-full"
               />
             </div>
             
             <div className="w-full md:w-1/4 space-y-2">
-              <Label htmlFor="symbolType">Symbol Type</Label>
+              <Label htmlFor="symbolType" className="font-medium">Type</Label>
               <Select 
                 value={newSymbolType} 
                 onValueChange={(value: any) => setNewSymbolType(value)}
               >
-                <SelectTrigger id="symbolType">
+                <SelectTrigger id="symbolType" className="w-full">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -193,22 +194,22 @@ export default function SymbolManagement() {
               </Select>
             </div>
             
-            <Button onClick={handleAddSymbol} className="w-full md:w-auto flex gap-2">
+            <Button onClick={handleAddSymbol} className="w-full md:w-auto gap-2 bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4" />
               Add Symbol
             </Button>
           </div>
           
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 mt-8 border-b pb-3">
             <h3 className="text-lg font-medium">Symbols</h3>
             
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center space-x-2 bg-background rounded-md px-2 py-1">
+              <Filter className="h-4 w-4 text-muted-foreground mr-1" />
               <Select 
                 value={typeFilter} 
                 onValueChange={setTypeFilter}
               >
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-[150px] border-none shadow-none bg-transparent h-8 px-1">
                   <SelectValue placeholder="Filter by type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -228,77 +229,90 @@ export default function SymbolManagement() {
           </div>
           
           {filteredSymbols.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Symbol</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="w-28">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSymbols.map((symbol) => (
-                  <TableRow key={symbol.symbol}>
-                    <TableCell className="font-medium">
-                      {symbol.symbol}
-                      {symbol.isPreset && (
-                        <Badge variant="outline" className="ml-2">
-                          Preset
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {symbol.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => openEditDialog(symbol)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Symbol</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to remove {symbol.symbol}? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => handleRemoveSymbol(symbol.symbol)}
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
+            <div className="border rounded-lg overflow-hidden bg-card">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow>
+                    <TableHead className="font-semibold">Symbol</TableHead>
+                    <TableHead className="font-semibold">Type</TableHead>
+                    <TableHead className="w-28 text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredSymbols.map((symbol) => (
+                    <TableRow key={symbol.symbol} className="hover:bg-muted/20">
+                      <TableCell className="font-medium">
+                        <div className="flex items-center">
+                          <span className="mr-2 font-mono">{symbol.symbol}</span>
+                          {symbol.isPreset && (
+                            <Badge variant="secondary" className="text-xs font-normal">
+                              Preset
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize bg-background">
+                          <Tag className="h-3 w-3 mr-1" />
+                          {symbol.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => openEditDialog(symbol)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                          </Button>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash className="h-4 w-4" />
+                                <span className="sr-only">Delete</span>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Symbol</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to remove <span className="font-mono font-bold">{symbol.symbol}</span>? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleRemoveSymbol(symbol.symbol)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-12 text-muted-foreground border rounded-lg bg-muted/10">
               No symbols found with the selected filter.
             </div>
           )}
         </CardContent>
         
-        <CardFooter className="flex justify-between border-t pt-6">
+        <CardFooter className="flex justify-between border-t p-6 bg-muted/10">
           <div className="text-sm text-muted-foreground">
             {symbols.length} symbols available ({symbols.filter(s => s.isPreset).length} preset, {symbols.filter(s => !s.isPreset).length} custom)
           </div>
@@ -306,7 +320,7 @@ export default function SymbolManagement() {
       </Card>
       
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Symbol</DialogTitle>
             <DialogDescription>
@@ -316,16 +330,17 @@ export default function SymbolManagement() {
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="symbolEdit">Symbol</Label>
+              <Label htmlFor="symbolEdit" className="font-medium">Symbol</Label>
               <Input
                 id="symbolEdit"
                 value={editingSymbol?.symbol || ''}
                 onChange={(e) => setEditingSymbol(prev => prev ? {...prev, symbol: e.target.value} : null)}
+                className="font-mono"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="symbolTypeEdit">Symbol Type</Label>
+              <Label htmlFor="symbolTypeEdit" className="font-medium">Symbol Type</Label>
               <Select 
                 value={editingSymbol?.type} 
                 onValueChange={(value: any) => setEditingSymbol(prev => prev ? {...prev, type: value} : null)}
@@ -344,7 +359,7 @@ export default function SymbolManagement() {
             </div>
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
@@ -355,4 +370,3 @@ export default function SymbolManagement() {
     </div>
   );
 }
-
