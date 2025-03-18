@@ -8,6 +8,7 @@ import { toast } from '@/utils/toast';
 import { TradeMetrics } from '@/components/TradeMetrics';
 import { MonthlyPerformanceTable } from '@/components/MonthlyPerformanceTable';
 import { DataTransferControls } from '@/components/DataTransferControls';
+import { DayOfWeekPerformance } from '@/components/DayOfWeekPerformance';
 
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -48,6 +49,13 @@ export default function Analytics() {
             <div className="h-[500px]">
               <CumulativePnLChart trades={trades} key={refreshKey} />
             </div>
+          </div>
+          
+          <div className="w-full">
+            <h2 className="text-2xl font-bold tracking-tight mb-4">
+              Day of Week Performance (15m & 1h Timeframes)
+            </h2>
+            <DayOfWeekPerformance trades={trades} timeframes={['15m', '1h']} key={refreshKey} />
           </div>
           
           <div className="w-full">
