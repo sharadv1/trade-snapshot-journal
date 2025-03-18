@@ -12,6 +12,15 @@ A comprehensive trading journal application that helps you track and analyze you
 - Fully private - all data stays on your local machine
 - Export/import functionality to save your data between browsers or devices
 
+## Versioning
+
+The app follows semantic versioning (MAJOR.MINOR.PATCH):
+- MAJOR: Breaking changes that require user action
+- MINOR: New features with backward compatibility
+- PATCH: Bug fixes and minor updates
+
+The current version can be found in the app header. When contributing, please increment the version number in `src/components/layout/Header.tsx` according to the type of change before pushing to the git repository.
+
 ## How to Run Locally
 
 ### Option 1: Quick Setup (Recommended)

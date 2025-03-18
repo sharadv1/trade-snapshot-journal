@@ -8,8 +8,12 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
-// Define the app version - this can be updated for each release
-export const APP_VERSION = "1.0.0";
+// Define the app version - increment this before pushing changes to git
+// Format: MAJOR.MINOR.PATCH
+// MAJOR: Breaking changes
+// MINOR: New features, no breaking changes
+// PATCH: Bug fixes and minor updates
+export const APP_VERSION = "1.0.1";
 
 export function Header() {
   const isMobile = useIsMobile();
