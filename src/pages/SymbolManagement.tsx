@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -55,6 +54,7 @@ import {
   getPresetSymbols
 } from '@/utils/symbolStorage';
 import { toast } from '@/utils/toast';
+import { COMMON_FUTURES_CONTRACTS } from '@/types';
 
 export default function SymbolManagement() {
   const [customSymbols, setCustomSymbols] = useState<string[]>([]);
@@ -64,29 +64,24 @@ export default function SymbolManagement() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('custom');
   
-  // Load symbols on component mount
   useEffect(() => {
     setCustomSymbols(getCustomSymbols());
     setPresetSymbols(getPresetSymbols());
   }, []);
   
-  // Add a new symbol
   const handleAddSymbol = () => {
     if (!newSymbol.trim()) {
       toast.error('Symbol cannot be empty');
       return;
     }
     
-    // Convert to uppercase
     const formattedSymbol = newSymbol.trim().toUpperCase();
     
-    // Validate symbol (only allow letters, numbers, and some special characters)
     if (!/^[A-Z0-9.\-_^]+$/.test(formattedSymbol)) {
       toast.error('Symbol contains invalid characters');
       return;
     }
     
-    // Check if symbol already exists in preset symbols
     if (presetSymbols.includes(formattedSymbol)) {
       toast.info(`${formattedSymbol} is already a preset symbol`);
       setNewSymbol('');
@@ -99,36 +94,30 @@ export default function SymbolManagement() {
     toast.success(`Added symbol: ${formattedSymbol}`);
   };
   
-  // Remove a symbol
   const handleRemoveSymbol = (symbol: string) => {
     const updatedSymbols = removeCustomSymbol(symbol);
     setCustomSymbols(updatedSymbols);
     toast.success(`Removed symbol: ${symbol}`);
   };
   
-  // Open edit dialog for a symbol
   const openEditDialog = (symbol: string) => {
     setEditSymbol({ original: symbol, updated: symbol });
     setIsEditDialogOpen(true);
   };
   
-  // Update a symbol
   const handleUpdateSymbol = () => {
     if (!editSymbol.updated.trim()) {
       toast.error('Symbol cannot be empty');
       return;
     }
     
-    // Convert to uppercase
     const formattedSymbol = editSymbol.updated.trim().toUpperCase();
     
-    // Validate symbol
     if (!/^[A-Z0-9.\-_^]+$/.test(formattedSymbol)) {
       toast.error('Symbol contains invalid characters');
       return;
     }
     
-    // Check if updated symbol is a preset
     if (presetSymbols.includes(formattedSymbol)) {
       toast.info(`${formattedSymbol} is already a preset symbol`);
       return;
@@ -276,7 +265,6 @@ export default function SymbolManagement() {
         </CardFooter>
       </Card>
       
-      {/* Edit Symbol Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
