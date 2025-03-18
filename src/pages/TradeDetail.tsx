@@ -15,7 +15,8 @@ import {
   SplitSquareVertical,
   Calculator,
   Clock,
-  Timer
+  Timer,
+  Ratio
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -567,7 +568,10 @@ export default function TradeDetail() {
                       </div>
                       
                       <div className="bg-muted/50 p-3 rounded-md">
-                        <div className="text-xs text-muted-foreground">R:R Ratio</div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Ratio className="h-3 w-3" />
+                          R:R Ratio
+                        </div>
                         <div className="font-medium mt-1">
                           {trade.metrics.riskRewardRatio.toFixed(2)}:1
                         </div>
@@ -597,10 +601,13 @@ export default function TradeDetail() {
                       </div>
                       
                       <div className="bg-muted/50 p-3 rounded-md">
-                        <div className="text-xs text-muted-foreground">Potential Gain</div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Ratio className="h-3 w-3" />
+                          R:R Ratio
+                        </div>
                         <div className="font-medium mt-1">
-                          {trade.metrics.maxPotentialGain 
-                            ? formatCurrency(trade.metrics.maxPotentialGain)
+                          {trade.metrics.riskRewardRatio 
+                            ? `${trade.metrics.riskRewardRatio.toFixed(2)}:1`
                             : 'Not set'
                           }
                         </div>
