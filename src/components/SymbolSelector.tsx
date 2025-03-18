@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { COMMON_FUTURES_CONTRACTS } from '@/types';
-import { getAllSymbols, addCustomSymbol, SymbolDetails } from '@/utils/symbolStorage';
+import { getAllSymbols, addCustomSymbol, SymbolDetails, getSymbolMeaning } from '@/utils/symbolStorage';
 
 interface SymbolSelectorProps {
   value: string;
@@ -111,24 +111,29 @@ export function SymbolSelector({
               </div>
             </CommandEmpty>
             <CommandGroup>
-              {filteredSymbols.map((symbolData) => (
-                <CommandItem
-                  key={symbolData.symbol}
-                  value={symbolData.symbol}
-                  onSelect={(currentValue) => handleSelect(currentValue)}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === symbolData.symbol ? "opacity-100" : "opacity-0"
+              {filteredSymbols.map((symbolData) => {
+                const meaning = getSymbolMeaning(symbolData.symbol);
+                return (
+                  <CommandItem
+                    key={symbolData.symbol}
+                    value={symbolData.symbol}
+                    onSelect={(currentValue) => handleSelect(currentValue)}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === symbolData.symbol ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <span className="font-mono font-medium">{symbolData.symbol}</span>
+                    {meaning && (
+                      <span className="ml-2 text-xs text-muted-foreground truncate max-w-[150px]">
+                        {meaning}
+                      </span>
                     )}
-                  />
-                  {symbolData.symbol}
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    {symbolData.type}
-                  </span>
-                </CommandItem>
-              ))}
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>

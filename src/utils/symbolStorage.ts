@@ -1,4 +1,3 @@
-
 // Custom user symbols storage utility
 import { COMMON_FUTURES_CONTRACTS } from '@/types';
 
@@ -19,6 +18,7 @@ export interface SymbolDetails {
   symbol: string;
   type: 'equity' | 'futures' | 'option' | 'forex' | 'crypto';
   isPreset?: boolean;
+  meaning?: string; // Adding support for custom meanings
 }
 
 /**
@@ -27,7 +27,14 @@ export interface SymbolDetails {
  * @returns Description or name of the symbol
  */
 export function getSymbolMeaning(symbol: string): string | null {
-  // Check futures contracts first
+  // First check if there's a custom meaning
+  const customSymbols = getCustomSymbols();
+  const customSymbol = customSymbols.find(s => s.symbol === symbol);
+  if (customSymbol && customSymbol.meaning) {
+    return customSymbol.meaning;
+  }
+  
+  // Then check futures contracts
   const futuresContract = COMMON_FUTURES_CONTRACTS.find(
     contract => contract.symbol === symbol
   );
@@ -134,10 +141,10 @@ export function updateCustomSymbol(oldSymbol: string, newSymbolDetails: SymbolDe
   
   const symbols = getCustomSymbols();
   
-  // If no change in the symbol, just update the type
+  // If no change in the symbol, just update the type and meaning
   if (oldSymbol === newSymbolDetails.symbol) {
     const newSymbols = symbols.map(s => 
-      s.symbol === oldSymbol ? { ...s, type: newSymbolDetails.type } : s
+      s.symbol === oldSymbol ? { ...s, type: newSymbolDetails.type, meaning: newSymbolDetails.meaning } : s
     );
     try {
       localStorage.setItem('customSymbols', JSON.stringify(newSymbols));

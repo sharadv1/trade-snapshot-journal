@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -68,6 +69,7 @@ export default function SymbolManagement() {
   const [symbols, setSymbols] = useState<SymbolDetails[]>([]);
   const [newSymbol, setNewSymbol] = useState('');
   const [newSymbolType, setNewSymbolType] = useState<'equity' | 'futures' | 'option' | 'forex' | 'crypto'>('equity');
+  const [newSymbolMeaning, setNewSymbolMeaning] = useState('');
   const [editingSymbol, setEditingSymbol] = useState<SymbolDetails | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -124,12 +126,14 @@ export default function SymbolManagement() {
     
     const newSymbolDetails: SymbolDetails = {
       symbol: formattedSymbol,
-      type: newSymbolType
+      type: newSymbolType,
+      meaning: newSymbolMeaning.trim() || undefined
     };
     
     addCustomSymbol(newSymbolDetails);
     setSymbols(getAllSymbols());
     setNewSymbol('');
+    setNewSymbolMeaning('');
     toast.success(`Added symbol: ${formattedSymbol}`);
   };
   
@@ -140,7 +144,11 @@ export default function SymbolManagement() {
   };
   
   const openEditDialog = (symbol: SymbolDetails) => {
-    setEditingSymbol(symbol);
+    const meaning = getSymbolMeaning(symbol.symbol);
+    setEditingSymbol({
+      ...symbol,
+      meaning: symbol.meaning || meaning || ''
+    });
     setIsEditDialogOpen(true);
   };
   
@@ -162,7 +170,8 @@ export default function SymbolManagement() {
     // Create updated symbol details
     const updatedSymbolDetails: SymbolDetails = {
       symbol: formattedSymbol,
-      type: editingSymbol.type
+      type: editingSymbol.type,
+      meaning: editingSymbol.meaning?.trim() || undefined
     };
     
     // Original symbol for comparison
@@ -187,7 +196,7 @@ export default function SymbolManagement() {
         </CardHeader>
         
         <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row items-end gap-4 mb-6 p-5 bg-background border rounded-lg shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-end gap-4 mb-6 p-5 bg-background border rounded-lg shadow-sm">
             <div className="w-full md:flex-1 space-y-2">
               <Label htmlFor="newSymbol" className="font-medium">Symbol</Label>
               <Input
@@ -216,6 +225,17 @@ export default function SymbolManagement() {
                   <SelectItem value="crypto">Crypto</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            
+            <div className="w-full md:flex-1 space-y-2">
+              <Label htmlFor="symbolMeaning" className="font-medium">Name/Meaning</Label>
+              <Input
+                id="symbolMeaning"
+                value={newSymbolMeaning}
+                onChange={(e) => setNewSymbolMeaning(e.target.value)}
+                placeholder="Custom name or description (optional)"
+                className="w-full"
+              />
             </div>
             
             <Button onClick={handleAddSymbol} className="w-full md:w-auto gap-2 bg-primary hover:bg-primary/90">
@@ -268,16 +288,9 @@ export default function SymbolManagement() {
                     return (
                     <TableRow key={symbol.symbol} className="hover:bg-muted/20">
                       <TableCell>
-                        <div className="flex items-center">
-                          <span className="mr-2 font-mono text-lg font-bold text-gray-800">
-                            {symbol.symbol}
-                          </span>
-                          {symbol.isPreset && (
-                            <Badge variant="secondary" className="text-xs font-normal">
-                              Preset
-                            </Badge>
-                          )}
-                        </div>
+                        <span className="font-mono text-lg font-bold text-gray-800">
+                          {symbol.symbol}
+                        </span>
                       </TableCell>
                       <TableCell>
                         {meaning ? (
@@ -380,7 +393,7 @@ export default function SymbolManagement() {
           <DialogHeader>
             <DialogTitle>Edit Symbol</DialogTitle>
             <DialogDescription>
-              Update the symbol name and type. This will affect future trades using this symbol.
+              Update the symbol name, type, and meaning. This will affect future trades using this symbol.
             </DialogDescription>
           </DialogHeader>
           
@@ -412,6 +425,16 @@ export default function SymbolManagement() {
                   <SelectItem value="crypto">Crypto</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="symbolMeaningEdit" className="font-medium">Name/Meaning</Label>
+              <Input
+                id="symbolMeaningEdit"
+                value={editingSymbol?.meaning || ''}
+                onChange={(e) => setEditingSymbol(prev => prev ? {...prev, meaning: e.target.value} : null)}
+                placeholder="Custom name or description (optional)"
+              />
             </div>
           </div>
           
