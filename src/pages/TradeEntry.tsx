@@ -31,6 +31,12 @@ export default function TradeEntry() {
     toast.error('There was an error processing your trade. Please try again.');
   };
 
+  const handleFormSuccess = () => {
+    console.log('Trade saved successfully');
+    toast.success('Trade saved successfully!');
+    navigate('/');
+  };
+
   if (isLoading) {
     return <div className="p-8 text-center">Loading...</div>;
   }
@@ -55,7 +61,11 @@ export default function TradeEntry() {
       <h1 className="text-3xl font-bold tracking-tight mb-6">
         Record New Trade {ideaId ? '(From Idea)' : ''}
       </h1>
-      <TradeForm />
+      <TradeForm 
+        onSuccess={handleFormSuccess}
+        onError={handleFormError}
+        ideaId={ideaId}
+      />
     </div>
   );
 }

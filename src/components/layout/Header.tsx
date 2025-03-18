@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 // MAJOR: Breaking changes
 // MINOR: New features, no breaking changes
 // PATCH: Bug fixes and minor updates
-export const APP_VERSION = "1.0.1";
+export const APP_VERSION = "1.0.2";
 
 export function Header() {
   const isMobile = useIsMobile();
