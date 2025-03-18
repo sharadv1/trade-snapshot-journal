@@ -23,31 +23,36 @@ export const DEFAULT_STRATEGIES: Strategy[] = [
 
 // Initialize strategies with defaults if none exist
 export function initializeStrategies(): Strategy[] {
-  const storedStrategies = localStorage.getItem(STRATEGIES_STORAGE_KEY);
-  
-  if (!storedStrategies) {
-    localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(DEFAULT_STRATEGIES));
-    return DEFAULT_STRATEGIES;
-  }
-  
   try {
+    const storedStrategies = localStorage.getItem(STRATEGIES_STORAGE_KEY);
+    
+    if (!storedStrategies) {
+      localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(DEFAULT_STRATEGIES));
+      return DEFAULT_STRATEGIES;
+    }
+    
     return JSON.parse(storedStrategies);
   } catch (error) {
-    console.error('Error parsing stored strategies:', error);
-    localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(DEFAULT_STRATEGIES));
+    console.error('Error initializing strategies:', error);
+    // If there's an error, reset to defaults
+    try {
+      localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(DEFAULT_STRATEGIES));
+    } catch (storageError) {
+      console.error('Error setting localStorage:', storageError);
+    }
     return DEFAULT_STRATEGIES;
   }
 }
 
 // Get all strategies
 export function getStrategies(): Strategy[] {
-  const storedStrategies = localStorage.getItem(STRATEGIES_STORAGE_KEY);
-  
-  if (!storedStrategies) {
-    return initializeStrategies();
-  }
-  
   try {
+    const storedStrategies = localStorage.getItem(STRATEGIES_STORAGE_KEY);
+    
+    if (!storedStrategies) {
+      return initializeStrategies();
+    }
+    
     return JSON.parse(storedStrategies);
   } catch (error) {
     console.error('Error parsing stored strategies:', error);
@@ -84,6 +89,7 @@ export function addStrategy(strategy: Omit<Strategy, 'id'>): Strategy {
   
   try {
     localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
+    console.log('Strategy added successfully:', newStrategy);
     return newStrategy;
   } catch (error) {
     console.error('Error saving strategy:', error);
@@ -129,6 +135,7 @@ export function updateStrategy(updatedStrategy: Strategy): Strategy {
   
   try {
     localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
+    console.log('Strategy updated successfully:', updatedStrategy);
   
     // If name has changed, update all trades using this strategy
     if (nameChanged) {

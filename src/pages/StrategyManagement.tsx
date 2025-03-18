@@ -63,7 +63,6 @@ export default function StrategyManagement() {
     color: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
   });
 
-  // Load strategies on mount
   useEffect(() => {
     loadStrategies();
   }, []);
@@ -79,7 +78,9 @@ export default function StrategyManagement() {
     }
   };
 
-  const handleAddStrategy = () => {
+  const handleAddStrategy = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
     try {
       if (!newStrategy.name) {
         toast.error('Strategy name is required');
@@ -107,14 +108,15 @@ export default function StrategyManagement() {
     }
   };
 
-  const handleUpdateStrategy = () => {
+  const handleUpdateStrategy = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
     try {
       if (!editingStrategy || !editingStrategy.name) {
         toast.error('Strategy name is required');
         return;
       }
 
-      // Check if the name has changed from the original
       const originalStrategy = strategies.find(s => s.id === editingStrategy.id);
       const nameChanged = originalStrategy && originalStrategy.name !== editingStrategy.name;
 
@@ -152,7 +154,6 @@ export default function StrategyManagement() {
       return;
     }
 
-    // Check if any selected strategies are in use
     const nonDeletableStrategies: string[] = [];
 
     selectedStrategies.forEach(id => {
@@ -169,7 +170,6 @@ export default function StrategyManagement() {
       return;
     }
 
-    // Delete all selected strategies
     let deleteCount = 0;
     selectedStrategies.forEach(id => {
       try {
@@ -202,10 +202,8 @@ export default function StrategyManagement() {
 
   const toggleAllStrategies = () => {
     if (selectedStrategies.length === strategies.length) {
-      // If all strategies are selected, deselect all
       setSelectedStrategies([]);
     } else {
-      // Otherwise, select all strategies
       setSelectedStrategies(strategies.map(s => s.id));
     }
   };
@@ -373,7 +371,6 @@ export default function StrategyManagement() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Strategy Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -387,11 +384,12 @@ export default function StrategyManagement() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
+          <form onSubmit={editingStrategy ? handleUpdateStrategy : handleAddStrategy} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="strategy-name">Strategy Name</Label>
               <Input
                 id="strategy-name"
+                name="strategy-name"
                 placeholder="Enter strategy name"
                 value={editingStrategy ? editingStrategy.name : newStrategy.name}
                 onChange={(e) => {
@@ -401,6 +399,7 @@ export default function StrategyManagement() {
                     setNewStrategy({...newStrategy, name: e.target.value});
                   }
                 }}
+                required
               />
             </div>
             
@@ -408,6 +407,7 @@ export default function StrategyManagement() {
               <Label htmlFor="strategy-description">Description (Optional)</Label>
               <Textarea
                 id="strategy-description"
+                name="strategy-description"
                 placeholder="Describe your strategy"
                 value={editingStrategy ? editingStrategy.description || '' : newStrategy.description || ''}
                 onChange={(e) => {
@@ -424,7 +424,8 @@ export default function StrategyManagement() {
               <Label htmlFor="strategy-color">Color</Label>
               <div className="flex items-center space-x-2">
                 <Input
-                  id="strategy-color"
+                  id="strategy-color-picker"
+                  name="strategy-color-picker"
                   type="color"
                   className="w-12 h-10 p-1"
                   value={editingStrategy ? editingStrategy.color : newStrategy.color}
@@ -437,6 +438,8 @@ export default function StrategyManagement() {
                   }}
                 />
                 <Input
+                  id="strategy-color"
+                  name="strategy-color"
                   type="text"
                   value={editingStrategy ? editingStrategy.color : newStrategy.color}
                   onChange={(e) => {
@@ -450,20 +453,19 @@ export default function StrategyManagement() {
                 />
               </div>
             </div>
-          </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={handleDialogClose}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={editingStrategy ? handleUpdateStrategy : handleAddStrategy}>
-              {editingStrategy ? 'Update' : 'Add'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={handleDialogClose}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingStrategy ? 'Update' : 'Add'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Delete Confirmation Dialog */}
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
