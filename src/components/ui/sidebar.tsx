@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
@@ -720,97 +721,6 @@ const SidebarMenuSubButton = React.forwardRef<
   )
 })
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
-
-export function Sidebar({
-  className,
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLElement>) {
-  const pathname = window.location.pathname;
-  const isActive = (path: string) => pathname === path;
-  
-  return (
-    <aside
-      className={cn(
-        "group/sidebar fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col bg-background transition-all duration-300 ease-in-out data-[collapsed=true]:w-16 print:hidden",
-        className
-      )}
-      {...props}
-    >
-      <nav className="flex flex-col gap-4 p-4">
-        <Link
-          to="/"
-          className={cn(
-            "flex h-10 items-center gap-2 rounded-md px-3 text-sm font-medium",
-            isActive("/") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          )}
-        >
-          <LayoutDashboard className="h-5 w-5" />
-          <span className="group-data-[collapsed=true]/sidebar:hidden">Dashboard</span>
-        </Link>
-        <Link
-          to="/trade/new"
-          className={cn(
-            "flex h-10 items-center gap-2 rounded-md px-3 text-sm font-medium",
-            isActive("/trade/new") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          )}
-        >
-          <PlusCircle className="h-5 w-5" />
-          <span className="group-data-[collapsed=true]/sidebar:hidden">Add Trade</span>
-        </Link>
-        <Link
-          to="/analytics"
-          className={cn(
-            "flex h-10 items-center gap-2 rounded-md px-3 text-sm font-medium",
-            isActive("/analytics") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          )}
-        >
-          <BarChart className="h-5 w-5" />
-          <span className="group-data-[collapsed=true]/sidebar:hidden">Analytics</span>
-        </Link>
-        <Link
-          to="/ideas"
-          className={cn(
-            "flex h-10 items-center gap-2 rounded-md px-3 text-sm font-medium",
-            isActive("/ideas") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          )}
-        >
-          <Lightbulb className="h-5 w-5" />
-          <span className="group-data-[collapsed=true]/sidebar:hidden">Ideas</span>
-        </Link>
-        <Link
-          to="/strategies"
-          className={cn(
-            "flex h-10 items-center gap-2 rounded-md px-3 text-sm font-medium",
-            isActive("/strategies") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          )}
-        >
-          <BookOpen className="h-5 w-5" />
-          <span className="group-data-[collapsed=true]/sidebar:hidden">Strategies</span>
-        </Link>
-        <Link
-          to="/symbols"
-          className={cn(
-            "flex h-10 items-center gap-2 rounded-md px-3 text-sm font-medium",
-            isActive("/symbols") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          )}
-        >
-          <Tag className="h-5 w-5" />
-          <span className="group-data-[collapsed=true]/sidebar:hidden">Symbols</span>
-        </Link>
-      </nav>
-      
-      <div
-        className={cn(
-          "flex flex-col gap-4 p-4",
-          className
-        )}
-      >
-        {children}
-      </div>
-    </aside>
-  );
-}
 
 export {
   Sidebar,
