@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
@@ -8,7 +9,7 @@ import TradeEdit from '@/pages/TradeEdit';
 import Ideas from '@/pages/Ideas';
 import StrategyManagement from '@/pages/StrategyManagement';
 import NotFound from '@/pages/NotFound';
-import Layout from '@/components/layout/Layout';
+import { Layout } from '@/components/layout/Layout';
 import SymbolManagement from '@/pages/SymbolManagement';
 
 function App() {
@@ -32,4 +33,3 @@ function App() {
 }
 
 export default App;
-

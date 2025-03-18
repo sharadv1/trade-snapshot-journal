@@ -1,16 +1,18 @@
+
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { BarChart, BookOpen, LayoutDashboard, Lightbulb, PlusCircle, Tag } from "lucide-react";
 
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export function Header() {
   const location = useLocation();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   return (
