@@ -35,7 +35,10 @@ COPY --from=builder /app/server.js ./server.js
 RUN mkdir -p /data
 
 # Expose port for the backend
-EXPOSE 3000
+EXPOSE 4000
+
+# Set Node.js to use CommonJS modules
+ENV NODE_OPTIONS="--experimental-modules"
 
 # Start the Node.js server
 CMD ["node", "server.js"]

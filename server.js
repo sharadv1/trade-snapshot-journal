@@ -5,8 +5,13 @@ const path = require('path');
 const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 4000;
+const { fileURLToPath } = require('url');
 
 console.log(`Starting server in ${process.env.NODE_ENV || 'development'} mode`);
+
+// Handle __dirname in ES module and CommonJS environments
+const __filename = typeof __filename !== 'undefined' ? __filename : fileURLToPath(import.meta.url);
+const __dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(__filename);
 
 // Data file location
 const DATA_DIR = process.env.DATA_DIR || './data';
