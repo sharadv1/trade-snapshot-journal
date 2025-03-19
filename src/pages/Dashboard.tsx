@@ -23,6 +23,9 @@ export default function Dashboard() {
   // Calculate key metrics for the dashboard
   const keyMetrics = {
     winRate: calculateWinRate(trades),
+    totalTrades: trades.filter(trade => trade.status === 'closed').length,
+    totalWins: trades.filter(trade => trade.status === 'closed' && trade.metrics.profitLoss > 0).length,
+    totalLosses: trades.filter(trade => trade.status === 'closed' && trade.metrics.profitLoss <= 0).length,
     netPnL: calculateTotalPnL(trades),
     expectancy: calculateExpectancy(trades),
     sortinoRatio: calculateSortinoRatio(trades),
@@ -63,11 +66,23 @@ export default function Dashboard() {
       
       <div className="animate-in fade-in">
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricCard 
-            title="Win Rate" 
-            value={`${keyMetrics.winRate.toFixed(1)}%`}
+            title="Expectancy" 
+            value={keyMetrics.expectancy > 0 ? `${keyMetrics.expectancy.toFixed(2)}R` : keyMetrics.expectancy.toFixed(2)}
             subStats={[
+              {
+                label: "Win Rate",
+                value: `${keyMetrics.winRate.toFixed(1)}%`
+              },
+              {
+                label: "Total Trades",
+                value: keyMetrics.totalTrades.toString()
+              },
+              {
+                label: "Wins / Losses",
+                value: `${keyMetrics.totalWins} / ${keyMetrics.totalLosses}`
+              },
               {
                 label: "Avg Win",
                 value: formatCurrency(keyMetrics.avgWin),
@@ -85,10 +100,6 @@ export default function Dashboard() {
             value={formatCurrency(keyMetrics.netPnL)} 
             subValue={`${keyMetrics.totalR > 0 ? '+' : ''}${keyMetrics.totalR.toFixed(2)}R`}
             className={keyMetrics.netPnL >= 0 ? "text-profit" : "text-loss"}
-          />
-          <MetricCard 
-            title="Expectancy" 
-            value={keyMetrics.expectancy > 0 ? `${keyMetrics.expectancy.toFixed(2)}R` : keyMetrics.expectancy.toFixed(2)}
           />
           <MetricCard 
             title="Sortino Ratio" 
