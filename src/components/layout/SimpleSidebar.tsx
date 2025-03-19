@@ -3,10 +3,12 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { BarChart, BookOpen, LayoutDashboard, Lightbulb, PlusCircle, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useValidIdeasCount } from '@/hooks/useValidIdeasCount';
 
 export function SimpleSidebar() {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
+  const validIdeasCount = useValidIdeasCount();
   
   return (
     <aside className="group/sidebar hidden md:flex flex-col w-[220px] border-r bg-background transition-all duration-300 ease-in-out print:hidden">
@@ -49,7 +51,7 @@ export function SimpleSidebar() {
           )}
         >
           <Lightbulb className="h-5 w-5" />
-          <span>Ideas</span>
+          <span>Ideas {validIdeasCount > 0 && `(${validIdeasCount})`}</span>
         </Link>
         <Link
           to="/strategies"
