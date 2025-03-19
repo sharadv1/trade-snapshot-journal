@@ -74,10 +74,8 @@ export const restoreServerConnection = (): void => {
             console.log('Auto-connected to server');
             // Force a sync to get latest data
             syncWithServer();
-            // Also sync ideas
-            import('@/utils/ideaStorage').then(module => {
-              module.syncIdeasWithServer();
-            });
+            // Also sync all other data types
+            syncAllData();
           }
         });
     }
@@ -91,15 +89,34 @@ export const restoreServerConnection = (): void => {
         console.log('Restored server connection to:', savedServerUrl);
         // Force a sync to get latest data
         syncWithServer();
-        // Also sync ideas
-        import('@/utils/ideaStorage').then(module => {
-          module.syncIdeasWithServer();
-        });
+        // Also sync all other data types
+        syncAllData();
       }
     })
     .catch(err => {
       console.error('Failed to restore server connection:', err);
     });
+};
+
+// Sync all data types with the server
+export const syncAllData = async (): Promise<void> => {
+  // Import all sync functions
+  const { syncIdeasWithServer } = await import('@/utils/ideaStorage');
+  const { syncStrategiesWithServer } = await import('@/utils/strategyStorage');
+  const { syncSymbolsWithServer } = await import('@/utils/symbolStorage');
+
+  try {
+    // Sync trades
+    await syncWithServer();
+    // Sync ideas
+    await syncIdeasWithServer();
+    // Sync strategies
+    await syncStrategiesWithServer();
+    // Sync symbols
+    await syncSymbolsWithServer();
+  } catch (error) {
+    console.error('Error syncing all data types:', error);
+  }
 };
 
 // Force sync with server (pull server data)

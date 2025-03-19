@@ -20,6 +20,8 @@ import {
   syncWithServer
 } from '@/utils/storage/serverSync';
 import { syncIdeasWithServer } from '@/utils/ideaStorage';
+import { syncStrategiesWithServer } from '@/utils/strategyStorage';
+import { syncSymbolsWithServer } from '@/utils/symbolStorage';
 import { toast } from '@/utils/toast';
 import {
   Tooltip,
@@ -79,6 +81,11 @@ export function ServerSyncConfig() {
       await syncWithServer();
       // Sync ideas
       await syncIdeasWithServer();
+      // Sync strategies
+      await syncStrategiesWithServer();
+      // Sync symbols
+      await syncSymbolsWithServer();
+      
       toast.success('Successfully synced all data with server');
     } catch (error) {
       console.error('Error syncing data:', error);
@@ -121,7 +128,7 @@ export function ServerSyncConfig() {
           <DialogHeader>
             <DialogTitle>Trade Server Configuration</DialogTitle>
             <DialogDescription>
-              Configure your server to sync trades and ideas across all browsers and devices.
+              Configure your server to sync trades, ideas, strategies and symbols across all browsers and devices.
               {isConnected && (
                 <div className="mt-2 text-green-500 text-sm">
                   Connected to: {getServerUrl()}

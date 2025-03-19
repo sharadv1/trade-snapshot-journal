@@ -1,5 +1,8 @@
+
 // Custom user symbols storage utility
 import { COMMON_FUTURES_CONTRACTS } from '@/types';
+import { isUsingServerSync, getServerUrl } from './storage/serverSync';
+import { toast } from './toast';
 
 // Default preset symbols that should be in the system 
 const PRESET_SYMBOLS = [
@@ -13,6 +16,8 @@ const PRESET_SYMBOLS = [
   { symbol: 'NVDA', type: 'equity' as const },
   { symbol: 'AMD', type: 'equity' as const },
 ];
+
+const CUSTOM_SYMBOLS_KEY = 'customSymbols';
 
 export interface SymbolDetails {
   symbol: string;
@@ -77,13 +82,87 @@ export function getPresetSymbols(): SymbolDetails[] {
   return [...stockSymbols, ...futuresSymbols];
 }
 
+// Save custom symbols to storage (localStorage and server)
+const saveCustomSymbols = (symbols: SymbolDetails[]): void => {
+  try {
+    // Always save to localStorage as a fallback
+    localStorage.setItem(CUSTOM_SYMBOLS_KEY, JSON.stringify(symbols));
+    
+    // If server sync is enabled, also save to server
+    if (isUsingServerSync() && getServerUrl()) {
+      const serverUrl = `${getServerUrl().replace(/\/trades$/, '')}/symbols`;
+      console.log('Saving custom symbols to server:', serverUrl);
+      
+      fetch(serverUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(symbols),
+      })
+      .then(response => {
+        if (!response.ok) {
+          console.error('Error saving symbols to server:', response.statusText);
+          toast.error('Failed to sync symbols with server');
+        } else {
+          console.log('Symbols synced with server successfully');
+        }
+      })
+      .catch(error => {
+        console.error('Error syncing symbols with server:', error);
+        toast.error('Server sync failed for symbols, but saved locally');
+      });
+    }
+    
+    // Dispatch a storage event to notify other tabs
+    window.dispatchEvent(new Event('storage'));
+  } catch (error) {
+    console.error('Error saving symbols:', error);
+    toast.error('Failed to save symbols');
+  }
+};
+
+// Sync symbols with server (force pull)
+export const syncSymbolsWithServer = async (): Promise<boolean> => {
+  if (!isUsingServerSync() || !getServerUrl()) {
+    return false;
+  }
+  
+  try {
+    const serverUrl = `${getServerUrl().replace(/\/trades$/, '')}/symbols`;
+    console.log('Syncing symbols with server at:', serverUrl);
+    const response = await fetch(serverUrl);
+    
+    if (response.ok) {
+      const serverSymbols = await response.json();
+      localStorage.setItem(CUSTOM_SYMBOLS_KEY, JSON.stringify(serverSymbols));
+      window.dispatchEvent(new Event('storage'));
+      console.log('Symbols synced with server successfully');
+      return true;
+    } else {
+      console.error('Server returned an error status when syncing symbols', response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error syncing symbols with server:', error);
+    return false;
+  }
+};
+
 /**
  * Retrieves custom symbols from localStorage
  * @returns Array of custom symbols
  */
 export function getCustomSymbols(): SymbolDetails[] {
   try {
-    const savedSymbols = localStorage.getItem('customSymbols');
+    // If server sync is enabled, try to sync first
+    if (isUsingServerSync()) {
+      syncSymbolsWithServer().catch(error => {
+        console.error('Error syncing symbols:', error);
+      });
+    }
+
+    const savedSymbols = localStorage.getItem(CUSTOM_SYMBOLS_KEY);
     return savedSymbols ? JSON.parse(savedSymbols) : [];
   } catch (error) {
     console.error('Error loading symbols from localStorage:', error);
@@ -104,7 +183,7 @@ export function addCustomSymbol(symbolDetails: SymbolDetails): SymbolDetails[] {
   
   const newSymbols = [...symbols, symbolDetails];
   try {
-    localStorage.setItem('customSymbols', JSON.stringify(newSymbols));
+    saveCustomSymbols(newSymbols);
     return newSymbols;
   } catch (error) {
     console.error('Error saving symbols to localStorage:', error);
@@ -122,7 +201,7 @@ export function removeCustomSymbol(symbol: string): SymbolDetails[] {
   const newSymbols = symbols.filter(s => s.symbol !== symbol);
   
   try {
-    localStorage.setItem('customSymbols', JSON.stringify(newSymbols));
+    saveCustomSymbols(newSymbols);
     return newSymbols;
   } catch (error) {
     console.error('Error saving symbols to localStorage:', error);
@@ -147,7 +226,7 @@ export function updateCustomSymbol(oldSymbol: string, newSymbolDetails: SymbolDe
       s.symbol === oldSymbol ? { ...s, type: newSymbolDetails.type, meaning: newSymbolDetails.meaning } : s
     );
     try {
-      localStorage.setItem('customSymbols', JSON.stringify(newSymbols));
+      saveCustomSymbols(newSymbols);
       return newSymbols;
     } catch (error) {
       console.error('Error saving symbols to localStorage:', error);
@@ -160,7 +239,7 @@ export function updateCustomSymbol(oldSymbol: string, newSymbolDetails: SymbolDe
     // Remove old symbol only
     const newSymbols = symbols.filter(s => s.symbol !== oldSymbol);
     try {
-      localStorage.setItem('customSymbols', JSON.stringify(newSymbols));
+      saveCustomSymbols(newSymbols);
       return newSymbols;
     } catch (error) {
       console.error('Error saving symbols to localStorage:', error);
@@ -173,7 +252,7 @@ export function updateCustomSymbol(oldSymbol: string, newSymbolDetails: SymbolDe
     s.symbol === oldSymbol ? newSymbolDetails : s
   );
   try {
-    localStorage.setItem('customSymbols', JSON.stringify(newSymbols));
+    saveCustomSymbols(newSymbols);
     return newSymbols;
   } catch (error) {
     console.error('Error saving symbols to localStorage:', error);

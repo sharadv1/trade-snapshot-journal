@@ -27,6 +27,8 @@ try {
 const DATA_DIR = process.env.DATA_DIR || "./data";
 const TRADES_FILE = path.join(DATA_DIR, "trades.json");
 const IDEAS_FILE = path.join(DATA_DIR, "ideas.json");
+const STRATEGIES_FILE = path.join(DATA_DIR, "strategies.json");
+const SYMBOLS_FILE = path.join(DATA_DIR, "symbols.json");
 
 // Ensure data directory exists
 console.log(`Ensuring data directory exists: ${DATA_DIR}`);
@@ -35,7 +37,7 @@ if (!fs.existsSync(DATA_DIR)) {
     console.log(`Created data directory: ${DATA_DIR}`);
 }
 
-// Initialize empty trades and ideas files if they don't exist
+// Initialize empty files if they don't exist
 if (!fs.existsSync(TRADES_FILE)) {
     fs.writeFileSync(TRADES_FILE, JSON.stringify([]));
     console.log(`Initialized empty trades file: ${TRADES_FILE}`);
@@ -44,6 +46,16 @@ if (!fs.existsSync(TRADES_FILE)) {
 if (!fs.existsSync(IDEAS_FILE)) {
     fs.writeFileSync(IDEAS_FILE, JSON.stringify([]));
     console.log(`Initialized empty ideas file: ${IDEAS_FILE}`);
+}
+
+if (!fs.existsSync(STRATEGIES_FILE)) {
+    fs.writeFileSync(STRATEGIES_FILE, JSON.stringify([]));
+    console.log(`Initialized empty strategies file: ${STRATEGIES_FILE}`);
+}
+
+if (!fs.existsSync(SYMBOLS_FILE)) {
+    fs.writeFileSync(SYMBOLS_FILE, JSON.stringify([]));
+    console.log(`Initialized empty symbols file: ${SYMBOLS_FILE}`);
 }
 
 // Middlewares
@@ -90,6 +102,48 @@ app.put("/api/ideas", (req, res) => {
     } catch (error) {
         console.error("Error writing ideas:", error);
         res.status(500).json({ error: "Failed to save ideas data" });
+    }
+});
+
+// API Routes for strategies
+app.get("/api/strategies", (req, res) => {
+    try {
+        const strategiesData = fs.readFileSync(STRATEGIES_FILE, "utf8");
+        res.json(JSON.parse(strategiesData));
+    } catch (error) {
+        console.error("Error reading strategies:", error);
+        res.status(500).json({ error: "Failed to read strategies data" });
+    }
+});
+
+app.put("/api/strategies", (req, res) => {
+    try {
+        fs.writeFileSync(STRATEGIES_FILE, JSON.stringify(req.body));
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error writing strategies:", error);
+        res.status(500).json({ error: "Failed to save strategies data" });
+    }
+});
+
+// API Routes for symbols
+app.get("/api/symbols", (req, res) => {
+    try {
+        const symbolsData = fs.readFileSync(SYMBOLS_FILE, "utf8");
+        res.json(JSON.parse(symbolsData));
+    } catch (error) {
+        console.error("Error reading symbols:", error);
+        res.status(500).json({ error: "Failed to read symbols data" });
+    }
+});
+
+app.put("/api/symbols", (req, res) => {
+    try {
+        fs.writeFileSync(SYMBOLS_FILE, JSON.stringify(req.body));
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error writing symbols:", error);
+        res.status(500).json({ error: "Failed to save symbols data" });
     }
 });
 

@@ -2,6 +2,7 @@
 import { Strategy, Trade } from '@/types';
 import { toast } from './toast';
 import { getTradesSync, updateTrade } from './tradeStorage';
+import { isUsingServerSync, getServerUrl } from './storage/serverSync';
 
 const STRATEGIES_STORAGE_KEY = 'trading-journal-strategies';
 
@@ -21,13 +22,80 @@ export const DEFAULT_STRATEGIES: Strategy[] = [
   { id: '12', name: 'Technical Pattern', description: 'Trading based on chart patterns', color: '#3F51B5' },
 ];
 
+// Save strategies to storage (localStorage and server)
+const saveStrategies = (strategies: Strategy[]): void => {
+  try {
+    // Always save to localStorage as a fallback
+    localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(strategies));
+    
+    // If server sync is enabled, also save to server
+    if (isUsingServerSync() && getServerUrl()) {
+      const serverUrl = `${getServerUrl().replace(/\/trades$/, '')}/strategies`;
+      console.log('Saving strategies to server:', serverUrl);
+      
+      fetch(serverUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(strategies),
+      })
+      .then(response => {
+        if (!response.ok) {
+          console.error('Error saving strategies to server:', response.statusText);
+          toast.error('Failed to sync strategies with server');
+        } else {
+          console.log('Strategies synced with server successfully');
+        }
+      })
+      .catch(error => {
+        console.error('Error syncing strategies with server:', error);
+        toast.error('Server sync failed for strategies, but saved locally');
+      });
+    }
+    
+    // Dispatch a storage event to notify other tabs
+    window.dispatchEvent(new Event('storage'));
+  } catch (error) {
+    console.error('Error saving strategies:', error);
+    toast.error('Failed to save strategies');
+  }
+};
+
+// Sync strategies with server (force pull)
+export const syncStrategiesWithServer = async (): Promise<boolean> => {
+  if (!isUsingServerSync() || !getServerUrl()) {
+    return false;
+  }
+  
+  try {
+    const serverUrl = `${getServerUrl().replace(/\/trades$/, '')}/strategies`;
+    console.log('Syncing strategies with server at:', serverUrl);
+    const response = await fetch(serverUrl);
+    
+    if (response.ok) {
+      const serverStrategies = await response.json();
+      localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(serverStrategies));
+      window.dispatchEvent(new Event('storage'));
+      console.log('Strategies synced with server successfully');
+      return true;
+    } else {
+      console.error('Server returned an error status when syncing strategies', response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error syncing strategies with server:', error);
+    return false;
+  }
+};
+
 // Initialize strategies with defaults if none exist
 export function initializeStrategies(): Strategy[] {
   try {
     const storedStrategies = localStorage.getItem(STRATEGIES_STORAGE_KEY);
     
     if (!storedStrategies) {
-      localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(DEFAULT_STRATEGIES));
+      saveStrategies(DEFAULT_STRATEGIES);
       return DEFAULT_STRATEGIES;
     }
     
@@ -36,7 +104,7 @@ export function initializeStrategies(): Strategy[] {
     console.error('Error initializing strategies:', error);
     // If there's an error, reset to defaults
     try {
-      localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(DEFAULT_STRATEGIES));
+      saveStrategies(DEFAULT_STRATEGIES);
     } catch (storageError) {
       console.error('Error setting localStorage:', storageError);
     }
@@ -47,6 +115,13 @@ export function initializeStrategies(): Strategy[] {
 // Get all strategies
 export function getStrategies(): Strategy[] {
   try {
+    // If server sync is enabled, try to sync first
+    if (isUsingServerSync()) {
+      syncStrategiesWithServer().catch(error => {
+        console.error('Error syncing strategies:', error);
+      });
+    }
+
     const storedStrategies = localStorage.getItem(STRATEGIES_STORAGE_KEY);
     
     if (!storedStrategies) {
@@ -88,7 +163,7 @@ export function addStrategy(strategy: Omit<Strategy, 'id'>): Strategy {
   const updatedStrategies = [...strategies, newStrategy];
   
   try {
-    localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
+    saveStrategies(updatedStrategies);
     console.log('Strategy added successfully:', newStrategy);
     return newStrategy;
   } catch (error) {
@@ -134,7 +209,7 @@ export function updateStrategy(updatedStrategy: Strategy): Strategy {
   );
   
   try {
-    localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
+    saveStrategies(updatedStrategies);
     console.log('Strategy updated successfully:', updatedStrategy);
   
     // If name has changed, update all trades using this strategy
@@ -207,7 +282,7 @@ export function deleteStrategy(strategyId: string): boolean {
   }
   
   try {
-    localStorage.setItem(STRATEGIES_STORAGE_KEY, JSON.stringify(updatedStrategies));
+    saveStrategies(updatedStrategies);
     return true;
   } catch (error) {
     console.error('Error deleting strategy:', error);
