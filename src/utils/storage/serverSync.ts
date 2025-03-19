@@ -1,6 +1,9 @@
 
 import { toast } from '@/utils/toast';
-import { setServerSync, SERVER_URL_KEY } from './storageCore';
+import { setServerSync, SERVER_URL_KEY, isUsingServerSync } from './storageCore';
+
+// Re-export the isUsingServerSync function
+export { isUsingServerSync };
 
 // Initialize server connection
 export const initializeServerSync = (url: string): Promise<boolean> => {
