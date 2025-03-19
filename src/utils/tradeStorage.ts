@@ -20,7 +20,8 @@ export const initializeServerSync = (url: string): Promise<boolean> => {
   serverUrl = url;
   
   if (serverUrl) {
-    return fetch(`${serverUrl}/ping`)
+    // Fixed the ping endpoint to match server implementation
+    return fetch(`${serverUrl.replace('/trades', '')}/ping`)
       .then(response => {
         if (response.ok) {
           console.log('Successfully connected to trade server');

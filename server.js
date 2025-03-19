@@ -1,3 +1,4 @@
+
 import express from "express";
 import fs from "fs";
 import path from "path";
@@ -65,7 +66,7 @@ app.put("/api/trades", (req, res) => {
     }
 });
 
-// Health check endpoint
+// Health check endpoint - Changed to match what the client expects
 app.get("/api/ping", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
 });

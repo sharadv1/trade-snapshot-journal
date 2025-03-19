@@ -38,6 +38,26 @@ export function ServerSyncConfig() {
     const savedUrl = localStorage.getItem('trade-journal-server-url');
     if (savedUrl) {
       setServerUrl(savedUrl);
+    } else {
+      // Auto-set URL if we're likely running in Docker
+      const origin = window.location.origin;
+      // If not a localhost dev server, try to auto-connect
+      if (origin !== 'http://localhost:3000' && origin !== 'http://localhost:5173' && origin !== 'http://127.0.0.1:5173') {
+        const apiUrl = `${origin}/api/trades`;
+        setServerUrl(apiUrl);
+        console.log('Auto-configured Docker server URL:', apiUrl);
+        
+        // Auto-connect to the server
+        setTimeout(() => {
+          configureServerConnection(apiUrl)
+            .then(success => {
+              setIsConnected(success);
+              if (success) {
+                console.log('Auto-connected to server');
+              }
+            });
+        }, 500);
+      }
     }
     
     // Try to restore connection
