@@ -1,38 +1,44 @@
-
 import { toast } from '@/utils/toast';
-import { setServerSync, SERVER_URL_KEY, isUsingServerSync } from './storageCore';
+import { setServerSync, SERVER_URL_KEY, isUsingServerSync, getServerUrl } from './storageCore';
 
 // Re-export the isUsingServerSync function
-export { isUsingServerSync };
+export { isUsingServerSync, getServerUrl };
 
 // Initialize server connection
 export const initializeServerSync = (url: string): Promise<boolean> => {
-  if (url) {
-    // Fixed the ping endpoint to match server implementation
-    return fetch(`${url.replace('/trades', '')}/ping`)
-      .then(response => {
-        if (response.ok) {
-          console.log('Successfully connected to trade server');
-          setServerSync(true, url);
-          toast.success('Connected to trade server successfully');
-          return true;
-        } else {
-          console.error('Server returned an error status', response.status);
-          setServerSync(false, '');
-          toast.error('Failed to connect to trade server');
-          return false;
-        }
-      })
-      .catch(error => {
-        console.error('Error connecting to trade server:', error);
-        setServerSync(false, '');
-        toast.error('Cannot reach trade server, using local storage only');
-        return false;
-      });
+  if (!url) {
+    setServerSync(false, '');
+    return Promise.resolve(false);
   }
+
+  console.log('Attempting to connect to server at:', url);
   
-  setServerSync(false, '');
-  return Promise.resolve(false);
+  // Extract base URL for the ping endpoint (removing /trades if present)
+  const baseUrl = url.replace(/\/trades$/, '');
+  const pingUrl = `${baseUrl}/api/ping`;
+  
+  console.log('Pinging server at:', pingUrl);
+  
+  return fetch(pingUrl)
+    .then(response => {
+      if (response.ok) {
+        console.log('Successfully connected to trade server');
+        setServerSync(true, url);
+        toast.success('Connected to trade server successfully');
+        return true;
+      } else {
+        console.error('Server returned an error status', response.status);
+        setServerSync(false, '');
+        toast.error('Failed to connect to trade server');
+        return false;
+      }
+    })
+    .catch(error => {
+      console.error('Error connecting to trade server:', error);
+      setServerSync(false, '');
+      toast.error('Cannot reach trade server, using local storage only');
+      return false;
+    });
 };
 
 // Configure server connection
@@ -51,17 +57,40 @@ export const configureServerConnection = async (url: string): Promise<boolean> =
 // On app initialization, try to restore server connection
 export const restoreServerConnection = (): void => {
   const savedServerUrl = localStorage.getItem(SERVER_URL_KEY);
-  if (savedServerUrl) {
-    initializeServerSync(savedServerUrl)
-      .then(success => {
-        if (success) {
-          console.log('Restored server connection to:', savedServerUrl);
-        }
-      })
-      .catch(err => {
-        console.error('Failed to restore server connection:', err);
-      });
+  
+  // If no saved URL but running in Docker container, try to auto-configure
+  if (!savedServerUrl) {
+    const origin = window.location.origin;
+    // If not a localhost dev server, try to auto-connect
+    if (origin !== 'http://localhost:3000' && 
+        origin !== 'http://localhost:5173' && 
+        origin !== 'http://127.0.0.1:5173') {
+      const apiUrl = `${origin}/api/trades`;
+      console.log('Auto-configuring Docker server URL:', apiUrl);
+      configureServerConnection(apiUrl)
+        .then(success => {
+          if (success) {
+            console.log('Auto-connected to server');
+            // Force a sync to get latest data
+            syncWithServer();
+          }
+        });
+    }
+    return;
   }
+  
+  // Otherwise use the saved server URL
+  initializeServerSync(savedServerUrl)
+    .then(success => {
+      if (success) {
+        console.log('Restored server connection to:', savedServerUrl);
+        // Force a sync to get latest data
+        syncWithServer();
+      }
+    })
+    .catch(err => {
+      console.error('Failed to restore server connection:', err);
+    });
 };
 
 // Force sync with server (pull server data)
@@ -73,6 +102,7 @@ export const syncWithServer = async (): Promise<boolean> => {
   }
   
   try {
+    console.log('Syncing with server at:', serverUrl);
     const response = await fetch(serverUrl);
     if (response.ok) {
       const serverTrades = await response.json();

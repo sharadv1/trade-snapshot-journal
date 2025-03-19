@@ -66,7 +66,7 @@ app.put("/api/trades", (req, res) => {
     }
 });
 
-// Health check endpoint - Changed to match what the client expects
+// Health check endpoint
 app.get("/api/ping", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
 });

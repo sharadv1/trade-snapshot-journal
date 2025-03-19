@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +15,8 @@ import {
 import { Cloud, CloudOff, RefreshCw, InfoIcon } from 'lucide-react';
 import { 
   configureServerConnection, 
-  isUsingServerSync, 
+  isUsingServerSync,
+  getServerUrl,
   syncWithServer
 } from '@/utils/storage/serverSync';
 import { toast } from '@/utils/toast';
@@ -33,33 +35,24 @@ export function ServerSyncConfig() {
   
   // Load saved server URL on component mount
   useEffect(() => {
-    const savedUrl = localStorage.getItem('trade-journal-server-url');
-    if (savedUrl) {
-      setServerUrl(savedUrl);
-    } else {
-      // Auto-set URL if we're likely running in Docker
-      const origin = window.location.origin;
-      // If not a localhost dev server, try to auto-connect
-      if (origin !== 'http://localhost:3000' && origin !== 'http://localhost:5173' && origin !== 'http://127.0.0.1:5173') {
-        const apiUrl = `${origin}/api/trades`;
-        setServerUrl(apiUrl);
-        console.log('Auto-configured Docker server URL:', apiUrl);
-        
-        // Auto-connect to the server
-        setTimeout(() => {
-          configureServerConnection(apiUrl)
-            .then(success => {
-              setIsConnected(success);
-              if (success) {
-                console.log('Auto-connected to server');
-              }
-            });
-        }, 500);
-      }
-    }
+    const savedUrl = localStorage.getItem('trade-journal-server-url') || '';
+    setServerUrl(savedUrl);
     
     // Check connection status
     setIsConnected(isUsingServerSync());
+    
+    // If not connected but we're likely running in Docker, auto-set URL
+    if (!isUsingServerSync()) {
+      const origin = window.location.origin;
+      // If not a localhost dev server, try to auto-configure
+      if (origin !== 'http://localhost:3000' && 
+          origin !== 'http://localhost:5173' && 
+          origin !== 'http://127.0.0.1:5173') {
+        const apiUrl = `${origin}/api/trades`;
+        setServerUrl(apiUrl);
+        console.log('Auto-configured Docker server URL:', apiUrl);
+      }
+    }
   }, []);
   
   const handleSaveConfig = async () => {
@@ -70,6 +63,8 @@ export function ServerSyncConfig() {
       
       if (success) {
         setIsOpen(false);
+        // Force a sync to get latest data
+        await syncWithServer();
       }
     } finally {
       setIsSyncing(false);
@@ -87,7 +82,9 @@ export function ServerSyncConfig() {
 
   const handleUseDocker = () => {
     // Use the Docker API endpoint URL
-    setServerUrl(window.location.origin + '/api/trades');
+    const apiUrl = window.location.origin + '/api/trades';
+    setServerUrl(apiUrl);
+    toast.info('Docker API URL configured. Click "Save & Connect" to connect.');
   };
   
   return (
@@ -113,6 +110,11 @@ export function ServerSyncConfig() {
             <DialogTitle>Trade Server Configuration</DialogTitle>
             <DialogDescription>
               Configure your server to sync trades across all browsers and devices.
+              {isConnected && (
+                <div className="mt-2 text-green-500 text-sm">
+                  Connected to: {getServerUrl()}
+                </div>
+              )}
             </DialogDescription>
           </DialogHeader>
           
@@ -146,7 +148,7 @@ export function ServerSyncConfig() {
                 onChange={(e) => setServerUrl(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                If using the Docker deployment, use the API endpoint URL
+                For Docker deployment, use: {window.location.origin}/api/trades
               </p>
             </div>
           </div>
@@ -158,6 +160,7 @@ export function ServerSyncConfig() {
                 setServerUrl('');
                 configureServerConnection('');
                 setIsConnected(false);
+                setIsOpen(false);
               }}
             >
               Disable Sync

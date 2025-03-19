@@ -47,6 +47,7 @@ export const saveTrades = async (trades: Trade[]): Promise<void> => {
     // If server sync is enabled, also save to server
     if (useServerSync && serverUrl) {
       try {
+        console.log('Saving trades to server:', serverUrl);
         const response = await fetch(serverUrl, {
           method: 'PUT',
           headers: {
@@ -82,6 +83,7 @@ export const getTrades = async (): Promise<Trade[]> => {
     // Try to get from server first if server sync is enabled
     if (useServerSync && serverUrl) {
       try {
+        console.log('Attempting to load trades from server:', serverUrl);
         const response = await fetch(serverUrl);
         if (response.ok) {
           const serverTrades = await response.json();
