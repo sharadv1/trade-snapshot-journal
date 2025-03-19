@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, ListChecks } from 'lucide-react';
@@ -26,7 +27,8 @@ export default function Dashboard() {
     expectancy: calculateExpectancy(trades),
     sortinoRatio: calculateSortinoRatio(trades),
     avgWin: calculateAverageWin(trades),
-    avgLoss: calculateAverageLoss(trades)
+    avgLoss: calculateAverageLoss(trades),
+    totalR: calculateTotalR(trades)
   };
   
   return (
@@ -81,6 +83,7 @@ export default function Dashboard() {
           <MetricCard 
             title="Net Profit/Loss" 
             value={formatCurrency(keyMetrics.netPnL)} 
+            subValue={`${keyMetrics.totalR > 0 ? '+' : ''}${keyMetrics.totalR.toFixed(2)}R`}
             className={keyMetrics.netPnL >= 0 ? "text-profit" : "text-loss"}
           />
           <MetricCard 
@@ -137,6 +140,12 @@ function calculateTotalPnL(trades: TradeWithMetrics[]): number {
   return trades
     .filter(trade => trade.status === 'closed')
     .reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
+}
+
+function calculateTotalR(trades: TradeWithMetrics[]): number {
+  return trades
+    .filter(trade => trade.status === 'closed' && trade.metrics.riskRewardRatio !== undefined)
+    .reduce((sum, trade) => sum + (trade.metrics.riskRewardRatio || 0), 0);
 }
 
 function calculateAverageWin(trades: TradeWithMetrics[]): number {
@@ -226,16 +235,24 @@ interface SubStat {
 interface MetricCardProps {
   title: string;
   value: string;
+  subValue?: string;
   className?: string;
   subStats?: SubStat[];
 }
 
-function MetricCard({ title, value, className, subStats }: MetricCardProps) {
+function MetricCard({ title, value, subValue, className, subStats }: MetricCardProps) {
   return (
     <Card className="shadow-subtle border">
       <CardContent className="p-6">
         <div className="text-sm font-medium text-muted-foreground">{title}</div>
-        <div className={`text-2xl font-bold mt-1 ${className}`}>{value}</div>
+        <div className={`text-2xl font-bold mt-1 ${className}`}>
+          {value}
+          {subValue && (
+            <div className={`text-sm font-medium mt-0.5 ${className}`}>
+              {subValue}
+            </div>
+          )}
+        </div>
         
         {subStats && subStats.length > 0 && (
           <div className="mt-2 space-y-1 text-sm">
