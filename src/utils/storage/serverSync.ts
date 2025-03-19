@@ -1,3 +1,4 @@
+
 import { toast } from '@/utils/toast';
 import { setServerSync, SERVER_URL_KEY, isUsingServerSync, getServerUrl } from './storageCore';
 
@@ -73,6 +74,10 @@ export const restoreServerConnection = (): void => {
             console.log('Auto-connected to server');
             // Force a sync to get latest data
             syncWithServer();
+            // Also sync ideas
+            import('@/utils/ideaStorage').then(module => {
+              module.syncIdeasWithServer();
+            });
           }
         });
     }
@@ -86,6 +91,10 @@ export const restoreServerConnection = (): void => {
         console.log('Restored server connection to:', savedServerUrl);
         // Force a sync to get latest data
         syncWithServer();
+        // Also sync ideas
+        import('@/utils/ideaStorage').then(module => {
+          module.syncIdeasWithServer();
+        });
       }
     })
     .catch(err => {
@@ -102,17 +111,17 @@ export const syncWithServer = async (): Promise<boolean> => {
   }
   
   try {
-    console.log('Syncing with server at:', serverUrl);
+    console.log('Syncing trades with server at:', serverUrl);
     const response = await fetch(serverUrl);
     if (response.ok) {
       const serverTrades = await response.json();
       localStorage.setItem('trade-journal-trades', JSON.stringify(serverTrades));
       window.dispatchEvent(new Event('storage'));
-      toast.success('Successfully synced with server');
+      console.log('Successfully synced trades with server');
       return true;
     } else {
       console.error('Server returned an error status', response.status);
-      toast.error('Failed to sync with server');
+      toast.error('Failed to sync trades with server');
       return false;
     }
   } catch (error) {

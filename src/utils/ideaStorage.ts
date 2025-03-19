@@ -1,11 +1,12 @@
 
 import { TradeIdea } from '@/types';
 import { toast } from './toast';
+import { isUsingServerSync, getServerUrl } from './storage/serverSync';
 
 // Local storage key
 const IDEAS_STORAGE_KEY = 'trade-journal-ideas';
 
-// Get ideas from storage
+// Get ideas from storage (localStorage and/or server)
 export const getIdeas = (): TradeIdea[] => {
   try {
     const ideasJson = localStorage.getItem(IDEAS_STORAGE_KEY);
@@ -18,10 +19,38 @@ export const getIdeas = (): TradeIdea[] => {
   }
 };
 
-// Save ideas to storage
+// Save ideas to storage (localStorage and/or server)
 export const saveIdeas = (ideas: TradeIdea[]): void => {
   try {
+    // Always save to localStorage as a fallback
     localStorage.setItem(IDEAS_STORAGE_KEY, JSON.stringify(ideas));
+    
+    // If server sync is enabled, also save to server
+    if (isUsingServerSync() && getServerUrl()) {
+      const serverUrl = `${getServerUrl().replace(/\/trades$/, '')}/ideas`;
+      console.log('Saving ideas to server:', serverUrl);
+      
+      fetch(serverUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(ideas),
+      })
+      .then(response => {
+        if (!response.ok) {
+          console.error('Error saving ideas to server:', response.statusText);
+          toast.error('Failed to sync ideas with server');
+        } else {
+          console.log('Ideas synced with server successfully');
+        }
+      })
+      .catch(error => {
+        console.error('Error syncing ideas with server:', error);
+        toast.error('Server sync failed for ideas, but saved locally');
+      });
+    }
+    
     // Dispatch a storage event to notify other tabs
     window.dispatchEvent(new Event('storage'));
   } catch (error) {
@@ -69,5 +98,32 @@ export const markIdeaAsTaken = (ideaId: string): void => {
       ...idea,
       status: 'taken'
     });
+  }
+};
+
+// Sync ideas with server (force pull)
+export const syncIdeasWithServer = async (): Promise<boolean> => {
+  if (!isUsingServerSync() || !getServerUrl()) {
+    return false;
+  }
+  
+  try {
+    const serverUrl = `${getServerUrl().replace(/\/trades$/, '')}/ideas`;
+    console.log('Syncing ideas with server at:', serverUrl);
+    const response = await fetch(serverUrl);
+    
+    if (response.ok) {
+      const serverIdeas = await response.json();
+      localStorage.setItem(IDEAS_STORAGE_KEY, JSON.stringify(serverIdeas));
+      window.dispatchEvent(new Event('storage'));
+      console.log('Ideas synced with server successfully');
+      return true;
+    } else {
+      console.error('Server returned an error status when syncing ideas', response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error syncing ideas with server:', error);
+    return false;
   }
 };

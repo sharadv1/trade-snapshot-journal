@@ -26,6 +26,7 @@ try {
 // Data file location
 const DATA_DIR = process.env.DATA_DIR || "./data";
 const TRADES_FILE = path.join(DATA_DIR, "trades.json");
+const IDEAS_FILE = path.join(DATA_DIR, "ideas.json");
 
 // Ensure data directory exists
 console.log(`Ensuring data directory exists: ${DATA_DIR}`);
@@ -34,10 +35,15 @@ if (!fs.existsSync(DATA_DIR)) {
     console.log(`Created data directory: ${DATA_DIR}`);
 }
 
-// Initialize empty trades file if it doesn't exist
+// Initialize empty trades and ideas files if they don't exist
 if (!fs.existsSync(TRADES_FILE)) {
     fs.writeFileSync(TRADES_FILE, JSON.stringify([]));
     console.log(`Initialized empty trades file: ${TRADES_FILE}`);
+}
+
+if (!fs.existsSync(IDEAS_FILE)) {
+    fs.writeFileSync(IDEAS_FILE, JSON.stringify([]));
+    console.log(`Initialized empty ideas file: ${IDEAS_FILE}`);
 }
 
 // Middlewares
@@ -45,7 +51,7 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" })); // For handling large requests with images
 app.use(express.static("dist")); // Serve static files
 
-// API Routes
+// API Routes for trades
 app.get("/api/trades", (req, res) => {
     try {
         const tradesData = fs.readFileSync(TRADES_FILE, "utf8");
@@ -63,6 +69,27 @@ app.put("/api/trades", (req, res) => {
     } catch (error) {
         console.error("Error writing trades:", error);
         res.status(500).json({ error: "Failed to save trades data" });
+    }
+});
+
+// API Routes for ideas
+app.get("/api/ideas", (req, res) => {
+    try {
+        const ideasData = fs.readFileSync(IDEAS_FILE, "utf8");
+        res.json(JSON.parse(ideasData));
+    } catch (error) {
+        console.error("Error reading ideas:", error);
+        res.status(500).json({ error: "Failed to read ideas data" });
+    }
+});
+
+app.put("/api/ideas", (req, res) => {
+    try {
+        fs.writeFileSync(IDEAS_FILE, JSON.stringify(req.body));
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error writing ideas:", error);
+        res.status(500).json({ error: "Failed to save ideas data" });
     }
 });
 
