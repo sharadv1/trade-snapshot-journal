@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,9 +15,8 @@ import { Cloud, CloudOff, RefreshCw, InfoIcon } from 'lucide-react';
 import { 
   configureServerConnection, 
   isUsingServerSync, 
-  syncWithServer, 
-  restoreServerConnection 
-} from '@/utils/tradeStorage';
+  syncWithServer
+} from '@/utils/storage/serverSync';
 import { toast } from '@/utils/toast';
 import {
   Tooltip,
@@ -59,9 +57,6 @@ export function ServerSyncConfig() {
         }, 500);
       }
     }
-    
-    // Try to restore connection
-    restoreServerConnection();
     
     // Check connection status
     setIsConnected(isUsingServerSync());
