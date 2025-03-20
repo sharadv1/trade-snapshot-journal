@@ -83,7 +83,7 @@ export function getPresetSymbols(): SymbolDetails[] {
 }
 
 // Save custom symbols to storage (localStorage and server)
-const saveCustomSymbols = (symbols: SymbolDetails[]): void => {
+export const saveCustomSymbols = (symbols: SymbolDetails[]): void => {
   try {
     // Always save to localStorage as a fallback
     localStorage.setItem(CUSTOM_SYMBOLS_KEY, JSON.stringify(symbols));

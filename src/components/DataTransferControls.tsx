@@ -48,6 +48,7 @@ export const DataTransferControls = ({ onImportComplete }: DataTransferControlsP
         size="sm"
         onClick={handleExport}
         className="flex items-center gap-1"
+        title="Export trades, ideas, strategies and symbols"
       >
         <Download className="h-4 w-4" />
         <span>Export</span>
@@ -59,6 +60,7 @@ export const DataTransferControls = ({ onImportComplete }: DataTransferControlsP
         onClick={handleImportClick}
         disabled={isImporting}
         className="flex items-center gap-1"
+        title="Import trades, ideas, strategies and symbols"
       >
         <Upload className="h-4 w-4" />
         <span>{isImporting ? 'Importing...' : 'Import'}</span>
