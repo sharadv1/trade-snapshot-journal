@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, PencilLine, ArrowRight, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { Sparkles, PencilLine, ArrowRight, ArrowUp, ArrowDown, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TradeIdea } from '@/types';
@@ -36,10 +36,18 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [ideaToDelete, setIdeaToDelete] = useState<string | null>(null);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [displayedImageIndexes, setDisplayedImageIndexes] = useState<Record<string, number>>({});
   
   const loadIdeas = () => {
     const loadedIdeas = getIdeas();
     setIdeas(loadedIdeas);
+    
+    // Initialize the displayed image index for each idea
+    const initialDisplayIndexes: Record<string, number> = {};
+    loadedIdeas.forEach(idea => {
+      initialDisplayIndexes[idea.id] = 0;
+    });
+    setDisplayedImageIndexes(initialDisplayIndexes);
   };
   
   useEffect(() => {
@@ -84,6 +92,20 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
     setViewingImage(image);
   };
   
+  const changeDisplayedImage = (ideaId: string, index: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    
+    setDisplayedImageIndexes(prev => ({
+      ...prev,
+      [ideaId]: index
+    }));
+  };
+  
+  const handleThumbnailClick = (ideaId: string, index: number, image: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    changeDisplayedImage(ideaId, index, e);
+  };
+  
   // Filter and sort ideas
   const filteredIdeas = ideas.filter(idea => {
     if (statusFilter === 'all') return true;
@@ -126,6 +148,87 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
         </Badge>;
   };
   
+  const renderImageGallery = (idea: TradeIdea) => {
+    if (!idea.images || idea.images.length === 0) return null;
+    
+    const currentImageIndex = displayedImageIndexes[idea.id] || 0;
+    const currentImage = idea.images[currentImageIndex];
+    
+    return (
+      <div className="px-4 pt-2">
+        {/* Main image */}
+        <div 
+          className="w-full h-32 rounded-md overflow-hidden relative cursor-pointer group"
+          onClick={(e) => handleImageClick(currentImage, e)}
+        >
+          <img 
+            src={currentImage} 
+            alt={`${idea.symbol} chart`}
+            className="w-full h-full object-cover"
+          />
+          
+          {idea.images.length > 1 && (
+            <>
+              {/* Navigation arrows */}
+              <div className="absolute inset-0 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity px-1">
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-6 w-6 rounded-full bg-black/50 text-white hover:bg-black/70"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newIndex = (currentImageIndex - 1 + idea.images.length) % idea.images.length;
+                    changeDisplayedImage(idea.id, newIndex, e);
+                  }}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-6 w-6 rounded-full bg-black/50 text-white hover:bg-black/70"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newIndex = (currentImageIndex + 1) % idea.images.length;
+                    changeDisplayedImage(idea.id, newIndex, e);
+                  }}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Image counter */}
+              <div className="absolute bottom-1 right-1 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                {currentImageIndex + 1}/{idea.images.length}
+              </div>
+            </>
+          )}
+        </div>
+        
+        {/* Thumbnails row */}
+        {idea.images.length > 1 && (
+          <div className="flex mt-2 gap-1 overflow-x-auto pb-1">
+            {idea.images.map((image, idx) => (
+              <button
+                key={idx}
+                className={`w-10 h-10 rounded overflow-hidden flex-shrink-0 border-2 ${
+                  idx === currentImageIndex ? 'border-primary' : 'border-transparent'
+                }`}
+                onClick={(e) => handleThumbnailClick(idea.id, idx, image, e)}
+              >
+                <img 
+                  src={image} 
+                  alt={`Thumbnail ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+  
   return (
     <div className="space-y-4">
       {ideas.length === 0 ? (
@@ -160,17 +263,7 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
                     </div>
                   </CardHeader>
                   
-                  {idea.images && idea.images.length > 0 && (
-                    <div className="px-4 pt-2 cursor-pointer" onClick={(e) => handleImageClick(idea.images[0], e)}>
-                      <div className="w-full h-32 rounded-md overflow-hidden">
-                        <img 
-                          src={idea.images[0]} 
-                          alt={`${idea.symbol} chart`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </div>
-                  )}
+                  {idea.images && idea.images.length > 0 && renderImageGallery(idea)}
                   
                   <CardContent className="p-4 pt-2 flex-grow">
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">
