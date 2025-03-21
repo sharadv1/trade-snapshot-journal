@@ -1,7 +1,7 @@
 
 import { Strategy, Trade } from '@/types';
 import { toast } from './toast';
-import { getTradesSync, updateTrade } from './tradeStorage';
+import { getTradesSync, updateTrade } from '@/utils/tradeStorage';
 import { isUsingServerSync, getServerUrl } from './storage/serverSync';
 
 const STRATEGIES_STORAGE_KEY = 'trading-journal-strategies';

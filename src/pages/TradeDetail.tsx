@@ -285,7 +285,7 @@ export default function TradeDetail() {
               
               {/* Metrics Tab */}
               <TabsContent value="metrics" className="space-y-6 mt-0">
-                <TradeMetrics trade={trade} />
+                <TradeMetrics trades={[trade]} />
               </TabsContent>
               
               {/* Notes & Images Tab */}
@@ -376,9 +376,9 @@ export default function TradeDetail() {
       
       {/* Exit Trade Form Dialog */}
       <ExitTradeForm
-        trade={trade}
-        open={exitFormOpen}
-        onOpenChange={setExitFormOpen}
+        tradeId={trade.id}
+        isOpen={exitFormOpen}
+        setIsOpen={setExitFormOpen}
         onSuccess={handleExitSuccess}
       />
       
@@ -395,7 +395,7 @@ export default function TradeDetail() {
           open={ideaDialogOpen}
           onOpenChange={setIdeaDialogOpen}
           initialIdea={tradeIdea}
-          readOnly={true}
+          mode="view"
         />
       )}
     </div>

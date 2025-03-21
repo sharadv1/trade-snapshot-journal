@@ -1,10 +1,17 @@
-
-import { getTrades, saveTrades, getTradesSync } from './tradeStorage';
+import { getTrades, saveTrades, getTradesSync } from '@/utils/tradeStorage';
 import { getIdeas, saveIdeas } from './ideaStorage';
-import { getStrategies, saveStrategies } from './strategyStorage';
+import { getStrategies } from './strategyStorage';
 import { getAllSymbols, saveCustomSymbols } from './symbolStorage';
-import { Trade, TradeIdea, Strategy, SymbolDetails } from '@/types';
+import { Trade, TradeIdea, Strategy } from '@/types';
 import { toast } from './toast';
+
+interface SymbolDetails {
+  symbol: string;
+  name: string;
+  exchange?: string;
+  isPreset?: boolean;
+  type?: string;
+}
 
 interface ExportData {
   trades: Trade[];
@@ -248,3 +255,14 @@ function deduplicateItems<T>(
   
   return { newItems, duplicates };
 }
+
+const saveStrategies = (strategies: Strategy[]): void => {
+  try {
+    localStorage.setItem('trading-journal-strategies', JSON.stringify(strategies));
+    // Dispatch a storage event to notify other tabs
+    window.dispatchEvent(new Event('storage'));
+  } catch (error) {
+    console.error('Error saving strategies:', error);
+    toast.error('Failed to save strategies');
+  }
+};
