@@ -28,6 +28,7 @@ interface IdeaDialogProps {
   initialIdea?: TradeIdea;
   onIdeaAdded?: () => void;
   trigger?: React.ReactNode;
+  mode?: 'edit' | 'view' | 'add';
 }
 
 export function IdeaDialog({ 
@@ -35,7 +36,8 @@ export function IdeaDialog({
   onOpenChange, 
   initialIdea, 
   onIdeaAdded,
-  trigger 
+  trigger,
+  mode = 'add'
 }: IdeaDialogProps) {
   const [isOpen, setIsOpen] = useState(open || false);
   const [idea, setIdea] = useState<Partial<TradeIdea>>({
@@ -47,6 +49,8 @@ export function IdeaDialog({
     images: []
   });
   const [images, setImages] = useState<string[]>([]);
+  
+  const isReadOnly = mode === 'view';
 
   useEffect(() => {
     if (initialIdea) {
@@ -140,7 +144,9 @@ export function IdeaDialog({
       
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{initialIdea ? 'Edit Trade Idea' : 'Add Trade Idea'}</DialogTitle>
+          <DialogTitle>
+            {mode === 'view' ? 'View Trade Idea' : mode === 'edit' ? 'Edit Trade Idea' : 'Add Trade Idea'}
+          </DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
@@ -152,6 +158,7 @@ export function IdeaDialog({
               value={idea.date}
               onChange={(e) => handleChange('date', e.target.value)}
               required
+              disabled={isReadOnly}
             />
           </div>
           
@@ -164,6 +171,7 @@ export function IdeaDialog({
               value={idea.symbol}
               onChange={(e) => handleChange('symbol', e.target.value.toUpperCase())}
               required
+              disabled={isReadOnly}
             />
           </div>
           
@@ -173,6 +181,7 @@ export function IdeaDialog({
               value={idea.direction || 'long'}
               onValueChange={(value) => handleChange('direction', value as 'long' | 'short')}
               className="flex space-x-4"
+              disabled={isReadOnly}
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="long" id="long" />
@@ -199,6 +208,7 @@ export function IdeaDialog({
               value={idea.description || ''}
               onChange={(e) => handleChange('description', e.target.value)}
               rows={3}
+              disabled={isReadOnly}
             />
           </div>
           
@@ -207,6 +217,7 @@ export function IdeaDialog({
             <Select
               value={idea.status || 'still valid'}
               onValueChange={(value) => handleChange('status', value)}
+              disabled={isReadOnly}
             >
               <SelectTrigger id="status">
                 <SelectValue placeholder="Select status" />
@@ -215,6 +226,7 @@ export function IdeaDialog({
                 <SelectItem value="still valid">Still Valid</SelectItem>
                 <SelectItem value="invalidated">Invalidated</SelectItem>
                 <SelectItem value="taken">Taken</SelectItem>
+                <SelectItem value="missed">Missed</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -225,17 +237,28 @@ export function IdeaDialog({
               images={images}
               onImageUpload={handleImageUpload}
               onImageRemove={handleRemoveImage}
+              readOnly={isReadOnly}
             />
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" type="button" onClick={() => handleOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              {initialIdea ? 'Update' : 'Add'} Idea
-            </Button>
-          </DialogFooter>
+          {!isReadOnly && (
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => handleOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {initialIdea ? 'Update' : 'Add'} Idea
+              </Button>
+            </DialogFooter>
+          )}
+          
+          {isReadOnly && (
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => handleOpenChange(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          )}
         </form>
       </DialogContent>
     </Dialog>

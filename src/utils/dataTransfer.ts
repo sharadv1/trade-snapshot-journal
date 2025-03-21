@@ -1,286 +1,334 @@
-import { getTrades, saveTrades, getTradesSync } from '@/utils/tradeStorage';
-import { getIdeas, saveIdeas } from './ideaStorage';
+import { Trade, COMMON_FUTURES_CONTRACTS, Strategy, TradeIdea } from '@/types';
+import { getTrades, saveTrades, getTradesSync } from '@/utils/storage/storageCore';
 import { getStrategies } from './strategyStorage';
-import { getAllSymbols, saveCustomSymbols, SymbolDetails as StorageSymbolDetails } from './symbolStorage';
-import { Trade, TradeIdea, Strategy } from '@/types';
-import { toast } from './toast';
+import { saveStrategies } from './strategyStorage'; 
+import { getAllSymbols, addCustomSymbol } from './symbolStorage';
 
+// Define a local interface that matches what we're actually using
 interface SymbolDetails {
   symbol: string;
-  name: string;
-  exchange?: string;
-  isPreset?: boolean;
-  type?: string;
+  type?: 'equity' | 'futures' | 'option';
+  description?: string;
 }
 
-interface ExportData {
+export interface ImportData {
   trades: Trade[];
-  ideas: TradeIdea[];
   strategies: Strategy[];
   symbols: SymbolDetails[];
-  version: string;
+  ideas: TradeIdea[];
 }
 
-/**
- * Exports all data (trades, ideas, strategies, symbols) as a JSON file that downloads to the user's device
- */
-export const exportTradesToFile = (): void => {
+// Export all data
+export const exportAllData = async (): Promise<ImportData> => {
+  const trades = await getTrades();
+  const strategies = getStrategies();
+  const symbols = getAllSymbols();
+  const ideas = localStorage.getItem('tradeIdeas') ? 
+    JSON.parse(localStorage.getItem('tradeIdeas') || '[]') : [];
+  
+  return {
+    trades,
+    strategies,
+    symbols,
+    ideas
+  };
+};
+
+// Import all data
+export const importAllData = async (data: ImportData): Promise<boolean> => {
   try {
-    const trades = getTradesSync();
-    const ideas = getIdeas();
-    const strategies = getStrategies();
-    const allSymbols = getAllSymbols().filter(s => !s.isPreset);
-    
-    // Convert symbols to the export format
-    const symbols: SymbolDetails[] = allSymbols.map(s => ({
-      symbol: s.symbol,
-      name: s.name || s.symbol, // Ensure name is present
-      exchange: s.exchange,
-      isPreset: s.isPreset,
-      type: s.type
-    }));
-    
-    if (trades.length === 0 && ideas.length === 0 && 
-        strategies.length === 0 && symbols.length === 0) {
-      toast.warning('No data to export');
-      return;
+    // Validate data structure
+    if (!data.trades || !Array.isArray(data.trades)) {
+      throw new Error('Invalid trades data');
     }
     
-    // Create an export data object that includes all data types
-    const exportData: ExportData = {
-      trades,
-      ideas,
-      strategies,
-      symbols,
-      version: '1.0'  // Export format version for future compatibility
-    };
+    // Import trades
+    await saveTrades(data.trades);
     
-    // Create a JSON blob with the export data
-    const dataJson = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([dataJson], { type: 'application/json' });
+    // Import strategies
+    if (data.strategies && Array.isArray(data.strategies)) {
+      saveStrategies(data.strategies);
+    }
     
-    // Create a download link and trigger a download
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    const timestamp = new Date().toISOString().split('T')[0];
+    // Import symbols
+    if (data.symbols && Array.isArray(data.symbols)) {
+      data.symbols.forEach(symbol => {
+        if (symbol.symbol) {
+          addCustomSymbol({
+            symbol: symbol.symbol,
+            type: symbol.type
+          });
+        }
+      });
+    }
     
-    link.href = url;
-    link.download = `trade-journal-backup-${timestamp}.json`;
-    document.body.appendChild(link);
-    link.click();
-    
-    // Clean up
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    const itemCounts = [
-      trades.length > 0 ? `${trades.length} trades` : null,
-      ideas.length > 0 ? `${ideas.length} ideas` : null,
-      strategies.length > 0 ? `${strategies.length} strategies` : null,
-      symbols.length > 0 ? `${symbols.length} custom symbols` : null
-    ].filter(Boolean).join(', ');
-    
-    toast.success(`Exported ${itemCounts} successfully`);
-  } catch (error) {
-    console.error('Error exporting data:', error);
-    toast.error('Failed to export data');
-  }
-};
-
-/**
- * Imports data from a JSON file with deduplication
- * @param file The JSON file containing the export data
- * @returns A promise that resolves when the import is complete
- */
-export const importTradesFromFile = (file: File): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = async (event) => {
-      try {
-        if (!event.target || typeof event.target.result !== 'string') {
-          throw new Error('Failed to read file');
-        }
-        
-        // Try to parse as new format first
-        let importedData: ExportData;
-        try {
-          importedData = JSON.parse(event.target.result) as ExportData;
-        } catch (parseError) {
-          // Legacy format might just be an array of trades
-          const legacyTrades = JSON.parse(event.target.result) as Trade[];
-          if (Array.isArray(legacyTrades)) {
-            importedData = {
-              trades: legacyTrades,
-              ideas: [],
-              strategies: [],
-              symbols: [],
-              version: 'legacy'
-            };
-          } else {
-            throw new Error('Invalid file format');
-          }
-        }
-        
-        // Statistics for user feedback
-        const stats = {
-          trades: { imported: 0, duplicates: 0 },
-          ideas: { imported: 0, duplicates: 0 },
-          strategies: { imported: 0, duplicates: 0 },
-          symbols: { imported: 0, duplicates: 0 }
-        };
-        
-        // Import trades with deduplication
-        if (Array.isArray(importedData.trades)) {
-          const existingTrades = getTradesSync();
-          const { newItems: newTrades, duplicates: tradeDuplicates } = 
-            deduplicateItems(existingTrades, importedData.trades, 'id');
-          
-          if (newTrades.length > 0) {
-            await saveTrades([...existingTrades, ...newTrades]);
-            stats.trades.imported = newTrades.length;
-          }
-          stats.trades.duplicates = tradeDuplicates;
-        }
-        
-        // Import ideas with deduplication
-        if (Array.isArray(importedData.ideas)) {
-          const existingIdeas = getIdeas();
-          const { newItems: newIdeas, duplicates: ideaDuplicates } = 
-            deduplicateItems(existingIdeas, importedData.ideas, 'id');
-          
-          if (newIdeas.length > 0) {
-            saveIdeas([...existingIdeas, ...newIdeas]);
-            stats.ideas.imported = newIdeas.length;
-          }
-          stats.ideas.duplicates = ideaDuplicates;
-        }
-        
-        // Import strategies with deduplication
-        if (Array.isArray(importedData.strategies)) {
-          const existingStrategies = getStrategies();
-          const { newItems: newStrategies, duplicates: strategyDuplicates } = 
-            deduplicateItems(existingStrategies, importedData.strategies, 'id');
-          
-          if (newStrategies.length > 0) {
-            saveStrategies([...existingStrategies, ...newStrategies]);
-            stats.strategies.imported = newStrategies.length;
-          }
-          stats.strategies.duplicates = strategyDuplicates;
-        }
-        
-        // Import custom symbols with deduplication
-        if (Array.isArray(importedData.symbols)) {
-          const existingSymbols = getAllSymbols().filter(s => !s.isPreset);
-          const { newItems: newSymbolsRaw, duplicates: symbolDuplicates } = 
-            deduplicateItems(existingSymbols, importedData.symbols as any, 'symbol');
-          
-          // Convert to the correct type
-          const newSymbols: StorageSymbolDetails[] = newSymbolsRaw.map(s => ({
-            symbol: s.symbol,
-            name: s.name || s.symbol,
-            exchange: s.exchange,
-            isPreset: s.isPreset,
-            type: (s.type as any) || 'equity'
-          }));
-          
-          if (newSymbols.length > 0) {
-            saveCustomSymbols([...existingSymbols, ...newSymbols]);
-            stats.symbols.imported = newSymbols.length;
-          }
-          stats.symbols.duplicates = symbolDuplicates;
-        }
-        
-        // Show success message with counts
-        const successParts = [];
-        
-        if (stats.trades.imported > 0) {
-          successParts.push(`${stats.trades.imported} trades`);
-        }
-        if (stats.ideas.imported > 0) {
-          successParts.push(`${stats.ideas.imported} ideas`);
-        }
-        if (stats.strategies.imported > 0) {
-          successParts.push(`${stats.strategies.imported} strategies`);
-        }
-        if (stats.symbols.imported > 0) {
-          successParts.push(`${stats.symbols.imported} symbols`);
-        }
-        
-        const totalImported = stats.trades.imported + stats.ideas.imported + 
-                              stats.strategies.imported + stats.symbols.imported;
-        const totalDuplicates = stats.trades.duplicates + stats.ideas.duplicates + 
-                                stats.strategies.duplicates + stats.symbols.duplicates;
-        
-        if (totalImported === 0) {
-          if (totalDuplicates > 0) {
-            toast.info(`All ${totalDuplicates} items already exist in your journal`);
-          } else {
-            toast.warning('No data was imported (empty file or format error)');
-          }
-        } else {
-          if (totalDuplicates > 0) {
-            toast.success(`Imported ${successParts.join(', ')} (${totalDuplicates} duplicates skipped)`);
-          } else {
-            toast.success(`Imported ${successParts.join(', ')}`);
-          }
-        }
-        
-        resolve();
-      } catch (error) {
-        console.error('Error importing data:', error);
-        toast.error('Failed to import data: ' + (error instanceof Error ? error.message : 'Unknown error'));
-        reject(error);
-      }
-    };
-    
-    reader.onerror = () => {
-      toast.error('Error reading file');
-      reject(new Error('Error reading file'));
-    };
-    
-    reader.readAsText(file);
-  });
-};
-
-/**
- * Generic function to deduplicate items by ID
- * @param existingItems Array of existing items
- * @param importedItems Array of imported items
- * @param idField Field to use for identification (default: 'id')
- * @returns Object containing new items and count of duplicates
- */
-function deduplicateItems<T>(
-  existingItems: T[], 
-  importedItems: T[], 
-  idField: keyof T = 'id' as keyof T
-): { 
-  newItems: T[], 
-  duplicates: number 
-} {
-  const existingIds = new Set(existingItems.map(item => item[idField]));
-  let duplicates = 0;
-  
-  const newItems = importedItems.filter(importedItem => {
-    // Check if the ID already exists
-    if (existingIds.has(importedItem[idField])) {
-      duplicates++;
-      return false;
+    // Import ideas
+    if (data.ideas && Array.isArray(data.ideas)) {
+      localStorage.setItem('tradeIdeas', JSON.stringify(data.ideas));
     }
     
     return true;
+  } catch (error) {
+    console.error('Error importing data:', error);
+    return false;
+  }
+};
+
+// Generate some demo data
+export const generateDemoData = async (): Promise<boolean> => {
+  const demoTrades: Trade[] = [
+    {
+      id: 'demo-trade-1',
+      symbol: 'AAPL',
+      direction: 'long',
+      type: 'equity',
+      status: 'open',
+      entryDate: new Date().toISOString(),
+      entryPrice: 150.00,
+      quantity: 10,
+      strategy: 'Trend Following',
+      tags: ['tech', 'long-term'],
+      images: [],
+      partialExits: []
+    },
+    {
+      id: 'demo-trade-2',
+      symbol: 'TSLA',
+      direction: 'short',
+      type: 'equity',
+      status: 'closed',
+      entryDate: new Date(new Date().setDate(new Date().getDate() - 7)).toISOString(),
+      entryPrice: 800.00,
+      exitDate: new Date().toISOString(),
+      exitPrice: 750.00,
+      quantity: 5,
+      strategy: 'Mean Reversion',
+      tags: ['auto', 'short-term'],
+      images: [],
+      partialExits: []
+    },
+    {
+      id: 'demo-trade-3',
+      symbol: 'ES',
+      direction: 'long',
+      type: 'futures',
+      status: 'open',
+      entryDate: new Date().toISOString(),
+      entryPrice: 4200.00,
+      quantity: 2,
+      strategy: 'Breakout',
+      tags: ['index', 'day-trade'],
+      images: [],
+      partialExits: []
+    }
+  ];
+  
+  const demoStrategies: Strategy[] = [
+    {
+      id: 'strategy-1',
+      name: 'Trend Following',
+      description: 'Following established market trends',
+      color: '#4CAF50'
+    },
+    {
+      id: 'strategy-2',
+      name: 'Mean Reversion',
+      description: 'Trading price returns to the mean',
+      color: '#F44336'
+    },
+    {
+      id: 'strategy-3',
+      name: 'Breakout',
+      description: 'Trading breakouts from consolidation patterns',
+      color: '#2196F3'
+    }
+  ];
+  
+  const demoSymbols: SymbolDetails[] = [
+    {
+      symbol: 'AAPL',
+      type: 'equity',
+      description: 'Apple Inc.'
+    },
+    {
+      symbol: 'TSLA',
+      type: 'equity',
+      description: 'Tesla, Inc.'
+    },
+    {
+      symbol: 'ES',
+      type: 'futures',
+      description: 'E-mini S&P 500'
+    }
+  ];
+  
+  const demoIdeas: TradeIdea[] = [
+    {
+      id: 'idea-1',
+      date: new Date().toISOString(),
+      symbol: 'GOOGL',
+      description: 'Potential long position based on upcoming product launch',
+      status: 'still valid',
+      direction: 'long',
+      images: []
+    },
+    {
+      id: 'idea-2',
+      date: new Date().toISOString(),
+      symbol: 'AMZN',
+      description: 'Short position due to disappointing earnings report',
+      status: 'invalidated',
+      direction: 'short',
+      images: []
+    }
+  ];
+  
+  try {
+    await saveTrades(demoTrades);
+    saveStrategies(demoStrategies);
+    
+    demoSymbols.forEach(symbol => {
+      addCustomSymbol({
+        symbol: symbol.symbol,
+        type: symbol.type
+      });
+    });
+    
+    localStorage.setItem('tradeIdeas', JSON.stringify(demoIdeas));
+    
+    return true;
+  } catch (error) {
+    console.error('Error generating demo data:', error);
+    return false;
+  }
+};
+
+// Function to parse CSV data
+export const parseCSVData = (csvText: string): any[] => {
+  const rows: any[] = [];
+  const lines = csvText.trim().split('\n');
+  const headers = lines[0].split(',').map(header => header.trim());
+  
+  for (let i = 1; i < lines.length; i++) {
+    const data: { [key: string]: string } = {};
+    const values = lines[i].split(',').map(value => value.trim());
+    
+    if (values.length !== headers.length) {
+      console.warn(`Skipping row ${i + 1} due to inconsistent number of columns`);
+      continue;
+    }
+    
+    for (let j = 0; j < headers.length; j++) {
+      data[headers[j]] = values[j];
+    }
+    
+    rows.push(data);
+  }
+  
+  return rows;
+};
+
+// Import trades from CSV
+export const importTradesFromCSV = async (csvText: string): Promise<boolean> => {
+  try {
+    const parsedData = parseCSVData(csvText);
+    
+    const trades: Trade[] = parsedData.map(item => ({
+      id: item.id || `trade-${crypto.randomUUID()}`,
+      symbol: item.symbol || '',
+      direction: (item.direction === 'long' || item.direction === 'short') ? item.direction : 'long',
+      type: (item.type === 'equity' || item.type === 'futures' || item.type === 'option') ? item.type : 'equity',
+      status: (item.status === 'open' || item.status === 'closed') ? item.status : 'open',
+      entryDate: item.entryDate || new Date().toISOString(),
+      entryPrice: parseFloat(item.entryPrice || '0'),
+      exitDate: item.exitDate || undefined,
+      exitPrice: item.exitPrice ? parseFloat(item.exitPrice) : undefined,
+      quantity: parseInt(item.quantity || '1', 10),
+      fees: item.fees ? parseFloat(item.fees) : undefined,
+      stopLoss: item.stopLoss ? parseFloat(item.stopLoss) : undefined,
+      takeProfit: item.takeProfit ? parseFloat(item.takeProfit) : undefined,
+      strategy: item.strategy || undefined,
+      notes: item.notes || undefined,
+      tags: item.tags ? item.tags.split(';').map(tag => tag.trim()) : [],
+      images: item.images ? item.images.split(';').map(image => image.trim()) : [],
+      partialExits: item.partialExits ? JSON.parse(item.partialExits) : [],
+      contractDetails: item.contractDetails ? JSON.parse(item.contractDetails) : undefined,
+      pspTime: item.pspTime || undefined,
+      timeframe: item.timeframe || undefined,
+      ideaId: item.ideaId || undefined,
+      grade: item.grade || undefined
+    }));
+    
+    await saveTrades(trades);
+    
+    return true;
+  } catch (error) {
+    console.error('Error importing trades from CSV:', error);
+    return false;
+  }
+};
+
+// Export trades to CSV
+export const exportTradesToCSV = async (): Promise<string> => {
+  const trades = await getTrades();
+  
+  const headers = [
+    'id', 'symbol', 'direction', 'type', 'status', 'entryDate', 'entryPrice',
+    'exitDate', 'exitPrice', 'quantity', 'fees', 'stopLoss', 'takeProfit',
+    'strategy', 'notes', 'tags', 'images', 'partialExits', 'contractDetails',
+    'pspTime', 'timeframe', 'ideaId', 'grade'
+  ];
+  
+  const csvRows = [
+    headers.join(',')
+  ];
+  
+  trades.forEach(trade => {
+    const values = [
+      trade.id,
+      trade.symbol,
+      trade.direction,
+      trade.type,
+      trade.status,
+      trade.entryDate,
+      trade.entryPrice,
+      trade.exitDate || '',
+      trade.exitPrice || '',
+      trade.quantity,
+      trade.fees || '',
+      trade.stopLoss || '',
+      trade.takeProfit || '',
+      trade.strategy || '',
+      trade.notes || '',
+      trade.tags ? trade.tags.join(';') : '',
+      trade.images ? trade.images.join(';') : '',
+      trade.partialExits ? JSON.stringify(trade.partialExits) : '',
+      trade.contractDetails ? JSON.stringify(trade.contractDetails) : '',
+      trade.pspTime || '',
+      trade.timeframe || '',
+      trade.ideaId || '',
+      trade.grade || ''
+    ];
+    
+    csvRows.push(values.map(value => `"${value}"`).join(','));
   });
   
-  return { newItems, duplicates };
-}
+  const csvContent = csvRows.join('\n');
+  
+  return csvContent;
+};
 
-const saveStrategies = (strategies: Strategy[]): void => {
+// Reset all data
+export const resetAllData = async (): Promise<boolean> => {
   try {
-    localStorage.setItem('trading-journal-strategies', JSON.stringify(strategies));
-    // Dispatch a storage event to notify other tabs
-    window.dispatchEvent(new Event('storage'));
+    localStorage.removeItem('trades');
+    localStorage.removeItem('tradeStrategies');
+    localStorage.removeItem('customSymbols');
+    localStorage.removeItem('tradeIdeas');
+    
+    return true;
   } catch (error) {
-    console.error('Error saving strategies:', error);
-    toast.error('Failed to save strategies');
+    console.error('Error resetting data:', error);
+    return false;
   }
 };

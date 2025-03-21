@@ -28,6 +28,7 @@ export function IdeaFilters({
             <SelectItem value="still valid">Still Valid</SelectItem>
             <SelectItem value="invalidated">Invalidated</SelectItem>
             <SelectItem value="taken">Taken</SelectItem>
+            <SelectItem value="missed">Missed</SelectItem>
           </SelectContent>
         </Select>
       </div>

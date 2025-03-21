@@ -1,3 +1,4 @@
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -98,7 +99,7 @@ export function TradeDetailsForm({
           </SelectTrigger>
           <SelectContent>
             {ideas.length === 0 ? (
-              <SelectItem value="no-available" disabled>No available ideas</SelectItem>
+              <SelectItem value="no-available">No available ideas</SelectItem>
             ) : (
               <>
                 <SelectItem value="none">None</SelectItem>
@@ -135,14 +136,14 @@ export function TradeDetailsForm({
       <div className="space-y-2">
         <Label htmlFor="grade">Trade Grade</Label>
         <Select 
-          value={trade.grade || ''}
-          onValueChange={(value) => handleChange('grade', value || undefined)}
+          value={trade.grade || 'no-grade'}
+          onValueChange={(value) => handleChange('grade', value === 'no-grade' ? undefined : value)}
         >
           <SelectTrigger id="grade">
             <SelectValue placeholder="Select a grade (optional)" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">None</SelectItem>
+            <SelectItem value="no-grade">None</SelectItem>
             <SelectItem value="A">A - Excellent</SelectItem>
             <SelectItem value="B">B - Good</SelectItem>
             <SelectItem value="C">C - Average</SelectItem>
@@ -230,9 +231,9 @@ export function TradeDetailsForm({
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
               <SelectItem value="m5">5 Minutes (M5)</SelectItem>
-              <SelectItem value="15m">15 Minutes (M15)</SelectItem>
-              <SelectItem value="1h">1 Hour (H1)</SelectItem>
-              <SelectItem value="4h">4 Hours (H4)</SelectItem>
+              <SelectItem value="m15">15 Minutes (M15)</SelectItem>
+              <SelectItem value="h1">1 Hour (H1)</SelectItem>
+              <SelectItem value="h4">4 Hours (H4)</SelectItem>
               <SelectItem value="d1">Daily (D1)</SelectItem>
               <SelectItem value="w1">Weekly (W1)</SelectItem>
               <SelectItem value="m1">Monthly (M1)</SelectItem>
