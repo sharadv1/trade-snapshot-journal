@@ -1,7 +1,7 @@
 import { getTrades, saveTrades, getTradesSync } from '@/utils/tradeStorage';
 import { getIdeas, saveIdeas } from './ideaStorage';
 import { getStrategies } from './strategyStorage';
-import { getAllSymbols, saveCustomSymbols } from './symbolStorage';
+import { getAllSymbols, saveCustomSymbols, SymbolDetails as StorageSymbolDetails } from './symbolStorage';
 import { Trade, TradeIdea, Strategy } from '@/types';
 import { toast } from './toast';
 
@@ -29,7 +29,16 @@ export const exportTradesToFile = (): void => {
     const trades = getTradesSync();
     const ideas = getIdeas();
     const strategies = getStrategies();
-    const symbols = getAllSymbols().filter(s => !s.isPreset); // Only export custom symbols
+    const allSymbols = getAllSymbols().filter(s => !s.isPreset);
+    
+    // Convert symbols to the export format
+    const symbols: SymbolDetails[] = allSymbols.map(s => ({
+      symbol: s.symbol,
+      name: s.name || s.symbol, // Ensure name is present
+      exchange: s.exchange,
+      isPreset: s.isPreset,
+      type: s.type
+    }));
     
     if (trades.length === 0 && ideas.length === 0 && 
         strategies.length === 0 && symbols.length === 0) {
@@ -163,8 +172,17 @@ export const importTradesFromFile = (file: File): Promise<void> => {
         // Import custom symbols with deduplication
         if (Array.isArray(importedData.symbols)) {
           const existingSymbols = getAllSymbols().filter(s => !s.isPreset);
-          const { newItems: newSymbols, duplicates: symbolDuplicates } = 
-            deduplicateItems(existingSymbols, importedData.symbols, 'symbol');
+          const { newItems: newSymbolsRaw, duplicates: symbolDuplicates } = 
+            deduplicateItems(existingSymbols, importedData.symbols as any, 'symbol');
+          
+          // Convert to the correct type
+          const newSymbols: StorageSymbolDetails[] = newSymbolsRaw.map(s => ({
+            symbol: s.symbol,
+            name: s.name || s.symbol,
+            exchange: s.exchange,
+            isPreset: s.isPreset,
+            type: (s.type as any) || 'equity'
+          }));
           
           if (newSymbols.length > 0) {
             saveCustomSymbols([...existingSymbols, ...newSymbols]);

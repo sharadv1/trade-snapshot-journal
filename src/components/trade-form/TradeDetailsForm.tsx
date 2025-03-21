@@ -1,4 +1,3 @@
-
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -131,6 +130,26 @@ export function TradeDetailsForm({
             <Label htmlFor="short" className="cursor-pointer">Short</Label>
           </div>
         </RadioGroup>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="grade">Trade Grade</Label>
+        <Select 
+          value={trade.grade || ''}
+          onValueChange={(value) => handleChange('grade', value || undefined)}
+        >
+          <SelectTrigger id="grade">
+            <SelectValue placeholder="Select a grade (optional)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">None</SelectItem>
+            <SelectItem value="A">A - Excellent</SelectItem>
+            <SelectItem value="B">B - Good</SelectItem>
+            <SelectItem value="C">C - Average</SelectItem>
+            <SelectItem value="D">D - Poor</SelectItem>
+            <SelectItem value="F">F - Failed</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Separator />

@@ -83,6 +83,9 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
       const success = handleSubmit(e);
       
       if (success) {
+        // Dispatch a storage event to notify other components to refresh
+        window.dispatchEvent(new Event('storage'));
+        
         // Call the onSuccess callback if provided
         if (onSuccess) {
           onSuccess();

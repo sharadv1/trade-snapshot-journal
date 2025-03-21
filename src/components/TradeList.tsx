@@ -7,7 +7,7 @@ import { TradeWithMetrics } from '@/types';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
 import { format, parse, isValid } from 'date-fns';
 import { formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
-import { Filter, ChevronUp, ChevronDown, Clock, CheckCircle, Trophy, X as XIcon, Gauge } from 'lucide-react';
+import { Filter, ChevronUp, ChevronDown, Clock, CheckCircle, Trophy, X as XIcon, Gauge, Award } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
   Select,
@@ -181,6 +181,25 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     return filteredTrades;
   }, [filteredTrades, limit]);
   
+  // Helper to render grade badge
+  const renderGradeBadge = (grade?: string) => {
+    if (!grade) return null;
+    
+    const gradeColors: Record<string, string> = {
+      'A': 'bg-green-100 text-green-800',
+      'B': 'bg-blue-100 text-blue-800',
+      'C': 'bg-yellow-100 text-yellow-800',
+      'D': 'bg-orange-100 text-orange-800',
+      'F': 'bg-red-100 text-red-800'
+    };
+    
+    return (
+      <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${gradeColors[grade] || 'bg-gray-100'}`}>
+        <Award className="h-3 w-3 mr-1" /> {grade}
+      </div>
+    );
+  };
+  
   return (
     <Card className="shadow-subtle border">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -338,6 +357,14 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
                     )}
                   </div>
                 </th>
+                <th className="text-left p-2" onClick={() => handleSort('grade')}>
+                  <div className="flex items-center cursor-pointer hover:text-primary transition-colors">
+                    Grade
+                    {sortField === 'grade' && (
+                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
+                    )}
+                  </div>
+                </th>
                 <th className="text-left p-2" onClick={() => handleSort('exitDate')}>
                   <div className="flex items-center cursor-pointer hover:text-primary transition-colors">
                     Exit Date
@@ -361,7 +388,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
             <tbody>
               {limitedTrades.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center p-4 text-muted-foreground">
+                  <td colSpan={8} className="text-center p-4 text-muted-foreground">
                     No trades found
                   </td>
                 </tr>
@@ -381,6 +408,9 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
                     </td>
                     <td className="p-2">
                       {trade.strategy || 'Unspecified'}
+                    </td>
+                    <td className="p-2">
+                      {renderGradeBadge(trade.grade)}
                     </td>
                     <td className="p-2">
                       {trade.exitDate 

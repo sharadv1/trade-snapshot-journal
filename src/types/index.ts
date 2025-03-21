@@ -1,4 +1,3 @@
-
 export interface Trade {
   id: string;
   symbol: string;
@@ -23,6 +22,7 @@ export interface Trade {
   pspTime?: string; // PSP time in HH:MM AM/PM format
   timeframe?: 'm5' | 'm15' | 'H1' | 'H4' | 'D1' | 'W1' | 'M1';
   ideaId?: string; // Reference to a trade idea
+  grade?: 'A' | 'B' | 'C' | 'D' | 'F'; // Added grade field
 }
 
 export interface PartialExit {
@@ -68,7 +68,7 @@ export interface TradeIdea {
   date: string;
   symbol: string;
   description: string;
-  status: 'still valid' | 'invalidated' | 'taken';
+  status: 'still valid' | 'invalidated' | 'taken' | 'missed';  // Added 'missed' status
   direction?: 'long' | 'short';
   images?: string[];
 }
