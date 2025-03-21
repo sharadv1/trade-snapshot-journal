@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { TradeWithMetrics } from '@/types';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
 import { format, parse, isValid } from 'date-fns';
 import { formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
-import { Filter, ChevronUp, ChevronDown, Clock, CheckCircle, Trophy, X as XIcon } from 'lucide-react';
+import { Filter, ChevronUp, ChevronDown, Clock, CheckCircle, Trophy, X as XIcon, Gauge } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
   Select,
@@ -34,6 +35,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [strategyFilter, setStrategyFilter] = useState<string>('all');
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
+  const [tradeStatus, setTradeStatus] = useState<'open' | 'closed' | 'all'>(statusFilter);
   
   const availableStrategies = useMemo(() => {
     const strategies = new Set<string>();
@@ -63,12 +65,17 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [initialTrades]);
   
+  // Update tradeStatus if statusFilter prop changes
+  useEffect(() => {
+    setTradeStatus(statusFilter);
+  }, [statusFilter]);
+  
   const filteredTrades = useMemo(() => {
     let filteredResults = [...trades];
     
-    if (statusFilter === 'open') {
+    if (tradeStatus === 'open') {
       filteredResults = filteredResults.filter(trade => trade.status === 'open');
-    } else if (statusFilter === 'closed') {
+    } else if (tradeStatus === 'closed') {
       filteredResults = filteredResults.filter(trade => trade.status === 'closed');
     }
     
@@ -135,7 +142,18 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     });
     
     return filteredResults;
-  }, [trades, sortField, sortDirection, strategyFilter, resultFilter, dateParam, statusFilter]);
+  }, [trades, sortField, sortDirection, strategyFilter, resultFilter, dateParam, tradeStatus]);
+  
+  // Calculate total open risk for all open trades
+  const totalOpenRisk = useMemo(() => {
+    const openTrades = trades.filter(trade => trade.status === 'open');
+    return openTrades.reduce((total, trade) => {
+      if (trade.metrics.riskedAmount) {
+        return total + trade.metrics.riskedAmount;
+      }
+      return total;
+    }, 0);
+  }, [trades]);
   
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -169,6 +187,45 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
         <CardTitle className="text-xl">Trades</CardTitle>
         
         <div className="flex items-center gap-2">
+          {/* Show total open risk when viewing open trades */}
+          {tradeStatus === 'open' && totalOpenRisk > 0 && (
+            <div className="mr-2 flex items-center">
+              <Gauge className="h-4 w-4 mr-1.5 text-orange-500" />
+              <span className="font-medium mr-1">Total Risk:</span>
+              <span className="text-orange-600">{formatCurrency(totalOpenRisk)}</span>
+            </div>
+          )}
+          
+          {/* Quick filter buttons for trade status */}
+          <div className="flex mr-2">
+            <Button 
+              variant={tradeStatus === 'all' ? 'default' : 'outline'} 
+              size="sm"
+              className="rounded-r-none border-r-0"
+              onClick={() => setTradeStatus('all')}
+            >
+              All
+            </Button>
+            <Button 
+              variant={tradeStatus === 'open' ? 'default' : 'outline'} 
+              size="sm"
+              className="rounded-none border-x-0"
+              onClick={() => setTradeStatus('open')}
+            >
+              <Clock className="h-4 w-4 mr-1" />
+              Open
+            </Button>
+            <Button 
+              variant={tradeStatus === 'closed' ? 'default' : 'outline'} 
+              size="sm"
+              className="rounded-l-none border-l-0"
+              onClick={() => setTradeStatus('closed')}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Closed
+            </Button>
+          </div>
+          
           {hasFilters && (
             <Button variant="outline" size="sm" onClick={resetFilters}>
               Clear Filters
@@ -344,7 +401,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
                           )}
                         </div>
                       ) : (
-                        '-'
+                        trade.metrics.riskedAmount ? formatCurrency(trade.metrics.riskedAmount) : '-'
                       )}
                     </td>
                     <td className="p-2">

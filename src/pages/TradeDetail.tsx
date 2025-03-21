@@ -1,762 +1,403 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState, useCallback } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 import { 
-  ArrowDown, 
-  ArrowLeft, 
-  ArrowUp, 
-  Calendar, 
-  CircleDollarSign, 
-  Edit3, 
-  Hash, 
-  LineChart, 
-  Target, 
-  Trash2,
-  CircleCheck,
-  SplitSquareVertical,
-  Calculator,
-  Clock,
-  Timer,
-  Ratio
-} from 'lucide-react';
+  Card, CardContent, CardDescription, CardFooter, 
+  CardHeader, CardTitle 
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog';
-import { TradeWithMetrics } from '@/types';
-import { deleteTrade, getTradeById } from '@/utils/tradeStorage';
-import { calculateTradeMetrics, formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
-import { toast } from '@/utils/toast';
+import { 
+  Clock, CheckCircle, Trash2, PenLine, AlertCircle, 
+  ArrowUpRight, ChevronLeft, ImageIcon, Sparkles, Link as LinkIcon 
+} from 'lucide-react';
+import { 
+  AlertDialog, AlertDialogAction, AlertDialogCancel, 
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter, 
+  AlertDialogHeader, AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
+import { TradeMetrics } from '@/components/TradeMetrics';
 import { ExitTradeForm } from '@/components/ExitTradeForm';
-import { PartialExitsList } from '@/components/PartialExitsList';
-import { FuturesContractDetails } from '@/components/FuturesContractDetails';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
-import { NotesAndImagesForm } from '@/components/trade-form/NotesAndImagesForm';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { getTradeById, deleteTrade, getTradeIdea } from '@/utils/tradeOperations';
+import { toast } from '@/utils/toast';
+import { Trade } from '@/types';
+import { IdeaDialog } from '@/components/idea/IdeaDialog';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [trade, setTrade] = useState<TradeWithMetrics | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [exitFormOpen, setExitFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
-  const [exitDialogOpen, setExitDialogOpen] = useState(false);
-  const [showCalculations, setShowCalculations] = useState(false);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [currentImage, setCurrentImage] = useState('');
+  const [ideaDialogOpen, setIdeaDialogOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [viewingImage, setViewingImage] = useState<string | null>(null);
-
-  const loadTradeData = () => {
-    if (!id) return;
-    
-    const tradeData = getTradeById(id);
-    if (tradeData) {
-      const metrics = calculateTradeMetrics(tradeData);
-      setTrade({ ...tradeData, metrics });
-      setRefreshKey(prev => prev + 1);
-    } else {
-      toast.error('Trade not found');
-      navigate('/');
-    }
-  };
   
-  useEffect(() => {
-    loadTradeData();
-    
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'trade-journal-trades') {
-        loadTradeData();
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    
-    const intervalId = setInterval(loadTradeData, 1000);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(intervalId);
-    };
-  }, [id, navigate]);
+  const trade = id ? getTradeById(id) : null;
+  const tradeIdea = trade?.ideaId ? getTradeIdea(trade.ideaId) : null;
   
-  const handleDeleteTrade = () => {
-    if (!trade) return;
-    
-    if (confirm('Are you sure you want to delete this trade?')) {
-      deleteTrade(trade.id);
+  const handleDeleteTrade = async () => {
+    if (id) {
+      await deleteTrade(id);
       toast.success('Trade deleted successfully');
       navigate('/');
     }
   };
+  
+  const handleImageClick = (imageSrc: string) => {
+    setCurrentImage(imageSrc);
+    setImageViewerOpen(true);
+  };
 
-  const handleExitDialogClose = () => {
-    setExitDialogOpen(false);
-    loadTradeData();
+  const handleExitSuccess = () => {
+    setExitFormOpen(false);
+    setRefreshKey(prev => prev + 1); // Force refresh
+    
+    // If we just closed the trade, show the metrics tab
+    if (trade?.status === 'open') {
+      setActiveTab('metrics');
+    }
+    
+    toast.success('Trade updated successfully');
   };
   
-  const handleTradeUpdate = () => {
-    loadTradeData();
-  };
-
-  const toggleCalculations = () => {
-    setShowCalculations(!showCalculations);
-  };
-
   if (!trade) {
     return (
-      <div className="py-8 text-center">
-        <p>Loading trade details...</p>
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+        <h2 className="text-lg font-medium mb-2">Trade not found</h2>
+        <p className="text-muted-foreground mb-6">
+          The trade you are looking for doesn't exist or has been deleted.
+        </p>
+        <Button asChild>
+          <Link to="/">Go back to dashboard</Link>
+        </Button>
       </div>
     );
   }
-
-  const totalExitedQuantity = (trade.partialExits || []).reduce(
-    (total, exit) => total + exit.quantity, 
-    0
-  );
   
-  const remainingQuantity = trade.quantity - totalExitedQuantity;
-
-  const displayExitPrice = trade.metrics.weightedExitPrice || trade.exitPrice;
-  const displayExitDate = trade.metrics.latestExitDate || trade.exitDate;
-
   return (
-    <div className="py-8 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-        <div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mb-3"
-            asChild
-          >
-            <Link to="/">
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Back to Journal
-            </Link>
-          </Button>
-          
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">
-              {trade.symbol}
-            </h1>
-            <div className={cn(
-              "p-2 rounded",
-              trade.direction === 'long'
-                ? "bg-profit/10 text-profit"
-                : "bg-loss/10 text-loss"
-            )}>
-              {trade.direction === 'long' ? (
-                <ArrowUp className="h-5 w-5" />
-              ) : (
-                <ArrowDown className="h-5 w-5" />
-              )}
-            </div>
-            <span className={cn(
-              "px-2 py-0.5 rounded-full text-sm",
-              trade.status === 'open'
-                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                : "bg-muted text-muted-foreground"
-            )}>
-              {trade.status === 'open' ? 'Open' : 'Closed'}
-            </span>
-          </div>
-          
-          <div className="text-muted-foreground mt-1">
-            {trade.type.charAt(0).toUpperCase() + trade.type.slice(1)} • {trade.quantity} {trade.type === 'futures' ? 'contracts' : 'shares'}
-          </div>
-        </div>
+    <div className="space-y-6 pb-8" key={refreshKey}>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/">
+            <ChevronLeft className="mr-1 h-4 w-4" />
+            Back to dashboard
+          </Link>
+        </Button>
         
-        <div className="flex items-center gap-2">
-          {trade.status === 'open' && remainingQuantity > 0 && (
-            <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="default" size="sm">
-                  <CircleCheck className="mr-1 h-4 w-4" />
-                  Exit Position
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md p-0">
-                <DialogTitle className="sr-only">Exit Position</DialogTitle>
-                <ExitTradeForm 
-                  trade={trade} 
-                  onClose={handleExitDialogClose}
-                  onUpdate={handleTradeUpdate}
-                />
-              </DialogContent>
-            </Dialog>
-          )}
-          
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
-            asChild
-          >
-            <Link to={`/trade/edit/${trade.id}`}>
-              <Edit3 className="mr-1 h-4 w-4" />
-              Edit
-            </Link>
-          </Button>
-          
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDeleteTrade}
+            onClick={() => setDeleteDialogOpen(true)}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="mr-1 h-4 w-4" />
             Delete
           </Button>
+          
+          {trade.status === 'open' ? (
+            <Button size="sm" onClick={() => setExitFormOpen(true)}>
+              <CheckCircle className="mr-1 h-4 w-4" />
+              Close Trade
+            </Button>
+          ) : null}
+          
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/trade/${id}/edit`}>
+              <PenLine className="mr-1 h-4 w-4" />
+              Edit
+            </Link>
+          </Button>
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="notes">Notes & Images</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="details" className="mt-4">
-              <Card className="shadow-subtle border">
-                <CardContent className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground flex items-center">
-                          <Calendar className="mr-1.5 h-4 w-4" />
-                          Entry Date & Time
-                        </h3>
-                        <p className="mt-1">
-                          {new Date(trade.entryDate).toLocaleString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground flex items-center">
-                          <CircleDollarSign className="mr-1.5 h-4 w-4" />
-                          Entry Price
-                        </h3>
-                        <p className="mt-1 font-mono">
-                          {formatCurrency(trade.entryPrice)}
-                        </p>
-                      </div>
-                      
-                      {trade.stopLoss && (
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground flex items-center">
-                            <Target className="mr-1.5 h-4 w-4 text-loss" />
-                            Stop Loss
-                          </h3>
-                          <p className="mt-1 font-mono text-loss">
-                            {formatCurrency(trade.stopLoss)}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {trade.strategy && (
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground">
-                            Strategy
-                          </h3>
-                          <p className="mt-1">
-                            {trade.strategy}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {trade.pspTime && (
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground flex items-center">
-                            <Clock className="mr-1.5 h-4 w-4" />
-                            PSP Time
-                          </h3>
-                          <p className="mt-1">
-                            {trade.pspTime.includes('AM') || trade.pspTime.includes('PM') 
-                              ? trade.pspTime 
-                              : `${trade.pspTime} ${parseInt(trade.pspTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}`}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {trade.timeframe && (
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground flex items-center">
-                            <Timer className="mr-1.5 h-4 w-4" />
-                            Timeframe
-                          </h3>
-                          <p className="mt-1">
-                            {trade.timeframe === 'm5' && '5 Minutes (M5)'}
-                            {trade.timeframe === 'm15' && '15 Minutes (M15)'}
-                            {trade.timeframe === 'H1' && '1 Hour (H1)'}
-                            {trade.timeframe === 'H4' && '4 Hours (H4)'}
-                            {trade.timeframe === 'D1' && 'Daily (D1)'}
-                            {trade.timeframe === 'W1' && 'Weekly (W1)'}
-                            {trade.timeframe === 'M1' && 'Monthly (M1)'}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {trade.status === 'closed' && displayExitDate && (
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground flex items-center">
-                            <Calendar className="mr-1.5 h-4 w-4" />
-                            Exit Date & Time
-                          </h3>
-                          <p className="mt-1">
-                            {new Date(displayExitDate).toLocaleString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                            {trade.partialExits && trade.partialExits.length > 1 && (
-                              <span className="text-xs ml-2 text-muted-foreground">(latest exit)</span>
-                            )}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {(trade.status === 'closed' || totalExitedQuantity > 0) && displayExitPrice && (
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground flex items-center">
-                            <CircleDollarSign className="mr-1.5 h-4 w-4" />
-                            {trade.partialExits && trade.partialExits.length > 1 ? 'Avg. Exit Price' : 'Exit Price'}
-                          </h3>
-                          <p className="mt-1 font-mono">
-                            {formatCurrency(displayExitPrice)}
-                            {trade.partialExits && trade.partialExits.length > 1 && (
-                              <span className="text-xs ml-2 text-muted-foreground">(weighted avg.)</span>
-                            )}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {trade.takeProfit && (
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground flex items-center">
-                            <Target className="mr-1.5 h-4 w-4 text-profit" />
-                            Take Profit
-                          </h3>
-                          <p className="mt-1 font-mono text-profit">
-                            {formatCurrency(trade.takeProfit)}
-                          </p>
-                        </div>
-                      )}
-                      
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground flex items-center">
-                          <Hash className="mr-1.5 h-4 w-4" />
-                          Quantity
-                        </h3>
-                        <p className="mt-1">
-                          {trade.quantity} {trade.type === 'futures' ? 'contracts' : 'shares'}
-                          {trade.partialExits && trade.partialExits.length > 0 && (
-                            <span className="text-sm text-muted-foreground ml-2">
-                              ({remainingQuantity} remaining)
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {trade.type === 'futures' && trade.contractDetails && (
-                    <>
-                      <Separator />
-                      
-                      <div>
-                        <h3 className="text-sm font-medium mb-3">Contract Details</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="bg-muted/50 p-3 rounded-md">
-                            <h4 className="text-xs text-muted-foreground mb-1">Exchange</h4>
-                            <p className="font-medium">{trade.contractDetails.exchange}</p>
-                          </div>
-                          
-                          <div className="bg-muted/50 p-3 rounded-md">
-                            <h4 className="text-xs text-muted-foreground mb-1">Contract Size</h4>
-                            <p className="font-medium">{trade.contractDetails.contractSize}</p>
-                          </div>
-                          
-                          <div className="bg-muted/50 p-3 rounded-md">
-                            <h4 className="text-xs text-muted-foreground mb-1">Tick Size</h4>
-                            <p className="font-medium">{trade.contractDetails.tickSize}</p>
-                          </div>
-                          
-                          <div className="bg-muted/50 p-3 rounded-md">
-                            <h4 className="text-xs text-muted-foreground mb-1">Tick Value</h4>
-                            <p className="font-medium">${trade.contractDetails.tickValue}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  
-                  {(trade.status === 'closed' || (trade.partialExits && trade.partialExits.length > 0)) && (
-                    <>
-                      <Separator />
-                      
-                      <div>
-                        <h3 className="text-sm font-medium mb-3">Performance</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="bg-muted/50 p-3 rounded-md">
-                            <h4 className="text-xs text-muted-foreground mb-1">P&L</h4>
-                            <p className={cn(
-                              "font-mono font-medium",
-                              trade.metrics.profitLoss >= 0 ? "text-profit" : "text-loss"
-                            )}>
-                              {formatCurrency(trade.metrics.profitLoss)}
-                            </p>
-                          </div>
-                          
-                          <div className="bg-muted/50 p-3 rounded-md">
-                            <h4 className="text-xs text-muted-foreground mb-1">P&L %</h4>
-                            <p className={cn(
-                              "font-mono font-medium",
-                              trade.metrics.profitLossPercentage >= 0 ? "text-profit" : "text-loss"
-                            )}>
-                              {trade.metrics.profitLossPercentage >= 0 ? '+' : ''}
-                              {formatPercentage(trade.metrics.profitLossPercentage)}
-                            </p>
-                          </div>
-                          
-                          {trade.metrics.riskRewardRatio && (
-                            <div className="bg-muted/50 p-3 rounded-md">
-                              <h4 className="text-xs text-muted-foreground mb-1">R:R Ratio</h4>
-                              <p className="font-mono font-medium">
-                                {trade.metrics.riskRewardRatio.toFixed(2)}
-                              </p>
-                            </div>
-                          )}
-                          
-                          {trade.metrics.riskedAmount && (
-                            <div className="bg-muted/50 p-3 rounded-md">
-                              <h4 className="text-xs text-muted-foreground mb-1">Risk Amount</h4>
-                              <p className="font-mono font-medium">
-                                {formatCurrency(trade.metrics.riskedAmount)}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  
-                  {trade.metrics.riskedAmount && trade.metrics.calculationExplanation && (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <h3 className="text-sm font-medium">Risk/Reward Calculation</h3>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={toggleCalculations} 
-                          className="flex items-center gap-1"
-                        >
-                          <Calculator className="h-4 w-4" />
-                          {showCalculations ? 'Hide Calculations' : 'Show Calculations'}
-                        </Button>
-                      </div>
-                      
-                      {showCalculations && (
-                        <div className="bg-muted/30 p-4 rounded-md font-mono text-sm whitespace-pre-wrap">
-                          {trade.metrics.calculationExplanation}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              {trade.partialExits && trade.partialExits.length > 0 && (
-                <div className="mt-6">
-                  <PartialExitsList 
-                    trade={trade} 
-                    onUpdate={handleTradeUpdate} 
-                  />
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="notes" className="mt-4">
-              <Card className="shadow-subtle border">
-                <CardHeader>
-                  <CardTitle className="text-lg">Notes & Images</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-8">
-                    <div className="space-y-2">
-                      <h3 className="text-base font-medium">Trade Notes</h3>
-                      {trade.notes ? (
-                        <div className="whitespace-pre-wrap mt-2 p-4 bg-muted/30 rounded-md">
-                          {trade.notes}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground italic">
-                          No notes were added for this trade.
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <h3 className="text-base font-medium">Trade Images</h3>
-                      {trade.images && trade.images.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                          {trade.images.map((image, index) => (
-                            <div
-                              key={index}
-                              className="block border rounded-md overflow-hidden hover:shadow-elevated transition-all cursor-pointer"
-                              onClick={() => setViewingImage(image)}
-                            >
-                              <img 
-                                src={image} 
-                                alt={`Trade image ${index + 1}`} 
-                                className="w-full h-auto object-cover"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground italic">
-                          No images were added for this trade.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-        
-        <div className="space-y-6">
-          <Card className="shadow-subtle border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Trade Metrics</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {trade.status === 'closed' || (trade.partialExits && trade.partialExits.length > 0) ? (
-                <div className="space-y-3">
-                  <div className={cn(
-                    "py-6 px-4 rounded-md text-center",
-                    trade.metrics.profitLoss >= 0 
-                      ? "bg-profit/10 text-profit" 
-                      : "bg-loss/10 text-loss"
-                  )}>
-                    <div className="text-sm font-medium">Profit / Loss</div>
-                    <div className="text-2xl font-bold mt-1">
-                      {formatCurrency(trade.metrics.profitLoss)}
-                    </div>
-                    <div className="text-sm">
-                      {trade.metrics.profitLossPercentage >= 0 ? '+' : ''}
-                      {formatPercentage(trade.metrics.profitLossPercentage)}
-                    </div>
-                  </div>
-                  
-                  {trade.metrics.riskedAmount && (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-muted/50 p-3 rounded-md">
-                          <div className="text-xs text-muted-foreground">Risk</div>
-                          <div className="font-medium mt-1">
-                            {formatCurrency(trade.metrics.riskedAmount || 0)}
-                          </div>
-                        </div>
-                        
-                        {trade.metrics.maxPotentialGain && (
-                          <div className="bg-muted/50 p-3 rounded-md">
-                            <div className="text-xs text-muted-foreground">Potential Gain</div>
-                            <div className="font-medium mt-1">
-                              {formatCurrency(trade.metrics.maxPotentialGain)}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {trade.metrics.riskRewardRatio && (
-                        <div className="bg-muted/50 p-3 rounded-md">
-                          <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Ratio className="h-3 w-3" />
-                            R:R Ratio
-                          </div>
-                          <div className="font-medium mt-1">
-                            {trade.metrics.riskRewardRatio.toFixed(2)}:1
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="py-6 px-4 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-center">
-                    <div className="text-sm font-medium">Open Position</div>
-                    <div className="text-2xl font-bold mt-1">
-                      {formatCurrency(trade.entryPrice * trade.quantity)}
-                    </div>
-                    <div className="text-sm">
-                      {trade.quantity} × {formatCurrency(trade.entryPrice)}
-                    </div>
-                  </div>
-                  
-                  {trade.metrics.riskedAmount && (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-muted/50 p-3 rounded-md">
-                          <div className="text-xs text-muted-foreground">Risk</div>
-                          <div className="font-medium mt-1">
-                            {formatCurrency(trade.metrics.riskedAmount)}
-                          </div>
-                        </div>
-                        
-                        {trade.metrics.maxPotentialGain && (
-                          <div className="bg-muted/50 p-3 rounded-md">
-                            <div className="text-xs text-muted-foreground">Potential Gain</div>
-                            <div className="font-medium mt-1">
-                              {formatCurrency(trade.metrics.maxPotentialGain)}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {trade.metrics.riskRewardRatio && (
-                        <div className="bg-muted/50 p-3 rounded-md">
-                          <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Ratio className="h-3 w-3" />
-                            R:R Ratio
-                          </div>
-                          <div className="font-medium mt-1">
-                            {trade.metrics.riskRewardRatio.toFixed(2)}:1
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-              
-              <Button className="w-full" variant="outline" asChild>
-                <Link to={`/trade/edit/${trade.id}`}>
-                  <Edit3 className="mr-1 h-4 w-4" />
-                  Edit Trade
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-subtle border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Trade Statistics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Entry Date:</span>
-                  <span>
-                    {new Date(trade.entryDate).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
-                  </span>
-                </div>
-                
-                {trade.status === 'closed' && trade.exitDate && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Exit Date:</span>
-                    <span>
-                      {new Date(trade.exitDate).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </span>
-                  </div>
-                )}
-                
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Trade Type:</span>
-                  <span>
-                    {trade.type.charAt(0).toUpperCase() + trade.type.slice(1)}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Direction:</span>
-                  <span className={trade.direction === 'long' ? 'text-profit' : 'text-loss'}>
-                    {trade.direction.charAt(0).toUpperCase() + trade.direction.slice(1)}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Quantity:</span>
-                  <span>
-                    {trade.quantity}
-                    {trade.partialExits && trade.partialExits.length > 0 && (
-                      <span className="text-muted-foreground ml-1">
-                        ({remainingQuantity} remaining)
-                      </span>
+      <div className="grid gap-6">
+        <Card className="border shadow-sm animate-in fade-in">
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3">
+                  <CardTitle className="text-2xl">
+                    {trade.symbol}
+                  </CardTitle>
+                  <Badge
+                    variant="outline"
+                    className={
+                      trade.direction === 'long'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }
+                  >
+                    {trade.direction.toUpperCase()}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className={
+                      trade.status === 'open'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-green-100 text-green-800'
+                    }
+                  >
+                    {trade.status === 'open' ? (
+                      <Clock className="mr-1 h-3 w-3 inline" />
+                    ) : (
+                      <CheckCircle className="mr-1 h-3 w-3 inline" />
                     )}
-                  </span>
+                    {trade.status === 'open' ? 'Open' : 'Closed'}
+                  </Badge>
                 </div>
-                
-                {trade.fees !== undefined && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Fees:</span>
-                    <span>{formatCurrency(trade.fees)}</span>
-                  </div>
-                )}
-                
-                {trade.status === 'closed' && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Hold Time:</span>
+                <CardDescription className="mt-1.5">
+                  <span>
+                    Entered on{' '}
+                    {format(new Date(trade.entryDate), 'MMMM d, yyyy')}
+                  </span>
+                  {trade.exitDate && (
                     <span>
-                      {trade.exitDate 
-                        ? calculateHoldTime(trade.entryDate, trade.exitDate)
-                        : 'N/A'
-                      }
+                      {' • '}
+                      Exited on{' '}
+                      {format(new Date(trade.exitDate), 'MMMM d, yyyy')}
                     </span>
+                  )}
+                </CardDescription>
+                
+                {/* Add linked idea if it exists */}
+                {tradeIdea && (
+                  <div className="mt-2 text-sm">
+                    <div 
+                      className="flex items-center text-primary cursor-pointer hover:underline" 
+                      onClick={() => setIdeaDialogOpen(true)}
+                    >
+                      <Sparkles className="h-3.5 w-3.5 mr-1" />
+                      <span>Based on idea: {tradeIdea.symbol} {tradeIdea.direction?.toUpperCase()}</span>
+                      <LinkIcon className="h-3 w-3 ml-1.5" />
+                    </div>
                   </div>
                 )}
               </div>
+            </div>
+          </CardHeader>
+          
+          <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab}>
+            <div className="px-6">
+              <TabsList className="w-full grid grid-cols-3">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="metrics">Metrics</TabsTrigger>
+                <TabsTrigger value="notes">
+                  Notes & Images
+                  {trade.images && trade.images.length > 0 && (
+                    <span className="ml-2 flex h-3 w-3 items-center justify-center">
+                      <span className="relative inline-flex h-3 w-3">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-primary/20 opacity-75 animate-ping"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                      </span>
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <CardContent className="mt-4">
+              {/* Details Tab */}
+              <TabsContent value="details" className="space-y-6 mt-0">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-medium">Trade Details</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Symbol
+                        </div>
+                        <div className="font-bold">{trade.symbol}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Direction
+                        </div>
+                        <div className="font-bold">{trade.direction}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Type
+                        </div>
+                        <div className="font-bold">{trade.type}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Strategy
+                        </div>
+                        <div className="font-bold">{trade.strategy || '-'}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Entry Price
+                        </div>
+                        <div className="font-bold">{trade.entryPrice}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Quantity
+                        </div>
+                        <div className="font-bold">{trade.quantity}</div>
+                      </div>
+                      {trade.exitPrice && (
+                        <>
+                          <div>
+                            <div className="text-sm font-medium text-muted-foreground">
+                              Exit Price
+                            </div>
+                            <div className="font-bold">{trade.exitPrice}</div>
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-muted-foreground">
+                              Fees
+                            </div>
+                            <div className="font-bold">{trade.fees || 0}</div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-medium">Risk Parameters</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Stop Loss
+                        </div>
+                        <div className="font-bold">{trade.stopLoss || '-'}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Take Profit
+                        </div>
+                        <div className="font-bold">{trade.takeProfit || '-'}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              {/* Metrics Tab */}
+              <TabsContent value="metrics" className="space-y-6 mt-0">
+                <TradeMetrics trade={trade} />
+              </TabsContent>
+              
+              {/* Notes & Images Tab */}
+              <TabsContent value="notes" className="mt-0">
+                <div className="space-y-6">
+                  {/* Notes Section */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Notes</h3>
+                    <div className="prose prose-sm max-w-none">
+                      {trade.notes ? (
+                        <div className="whitespace-pre-wrap rounded-md border p-4">
+                          {trade.notes}
+                        </div>
+                      ) : (
+                        <div className="text-muted-foreground italic">
+                          No notes for this trade.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Images Section */}
+                  {trade.images && trade.images.length > 0 ? (
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Images</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {trade.images.map((image, index) => (
+                          <div
+                            key={index}
+                            className="relative aspect-[4/3] cursor-pointer overflow-hidden rounded-md border"
+                            onClick={() => handleImageClick(image)}
+                          >
+                            <img
+                              src={image}
+                              alt={`Trade chart ${index + 1}`}
+                              className="h-full w-full object-cover transition-transform hover:scale-105"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Images</h3>
+                      <div className="text-muted-foreground italic flex items-center justify-center p-8 border rounded-md">
+                        <ImageIcon className="mr-2 h-4 w-4" />
+                        No images for this trade.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
             </CardContent>
-          </Card>
-        </div>
+            
+            <CardFooter className="flex justify-end border-t pt-6">
+              {trade.status === 'open' && activeTab === 'details' && (
+                <Button onClick={() => setExitFormOpen(true)}>
+                  <CheckCircle className="mr-1 h-4 w-4" />
+                  Close Trade
+                </Button>
+              )}
+            </CardFooter>
+          </Tabs>
+        </Card>
       </div>
       
-      {viewingImage && (
-        <ImageViewerDialog 
-          image={viewingImage} 
-          isOpen={!!viewingImage} 
-          onClose={() => setViewingImage(null)} 
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this
+              trade and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTrade}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Exit Trade Form Dialog */}
+      <ExitTradeForm
+        trade={trade}
+        open={exitFormOpen}
+        onOpenChange={setExitFormOpen}
+        onSuccess={handleExitSuccess}
+      />
+      
+      {/* Image Viewer Dialog */}
+      <ImageViewerDialog
+        image={currentImage}
+        isOpen={imageViewerOpen}
+        onClose={() => setImageViewerOpen(false)}
+      />
+      
+      {/* Idea Viewer Dialog */}
+      {tradeIdea && (
+        <IdeaDialog
+          open={ideaDialogOpen}
+          onOpenChange={setIdeaDialogOpen}
+          initialIdea={tradeIdea}
+          readOnly={true}
         />
       )}
     </div>
   );
-}
-
-function calculateHoldTime(entryDate: string, exitDate: string): string {
-  const entry = new Date(entryDate);
-  const exit = new Date(exitDate);
-  
-  const diffMs = exit.getTime() - entry.getTime();
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  
-  if (diffMinutes < 60) {
-    return `${diffMinutes} min${diffMinutes !== 1 ? 's' : ''}`;
-  }
-  
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) {
-    return `${diffHours} hour${diffHours !== 1 ? 's' : ''}`;
-  }
-  
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
 }

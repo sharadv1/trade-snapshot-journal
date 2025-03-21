@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, PencilLine, ArrowRight, ArrowUp, ArrowDown, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sparkles, PencilLine, ArrowRight, ArrowUp, ArrowDown, Trash2, ChevronLeft, ChevronRight, Link as LinkIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TradeIdea } from '@/types';
@@ -11,6 +11,7 @@ import { IdeaDialog } from './IdeaDialog';
 import { toast } from '@/utils/toast';
 import { format } from 'date-fns';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
+import { getTradeById } from '@/utils/tradeStorage';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -104,6 +105,14 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
   const handleThumbnailClick = (ideaId: string, index: number, image: string, e: React.MouseEvent) => {
     e.stopPropagation();
     changeDisplayedImage(ideaId, index, e);
+  };
+  
+  // Find the trade ID for a taken idea
+  const findTradeForIdea = (ideaId: string): string | null => {
+    // Search through all trades to find the one associated with this idea
+    const allTrades = getTradeById(ideaId);
+    if (allTrades) return allTrades.id;
+    return null;
   };
   
   // Filter and sort ideas
@@ -269,6 +278,20 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                       {idea.description || 'No description provided'}
                     </p>
+                    
+                    {/* Add trade link for taken ideas */}
+                    {idea.status === 'taken' && (
+                      <div 
+                        className="mt-3 text-sm text-primary font-medium flex items-center cursor-pointer hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/trade/${idea.id}`);
+                        }}
+                      >
+                        <LinkIcon className="h-3.5 w-3.5 mr-1.5" />
+                        View associated trade
+                      </div>
+                    )}
                   </CardContent>
                   
                   <CardFooter className="p-4 pt-0 flex flex-wrap justify-between">
@@ -313,6 +336,12 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
                   <ContextMenuItem onClick={() => createTradeFromIdea(idea)}>
                     <ArrowRight className="mr-2 h-4 w-4" />
                     Create Trade
+                  </ContextMenuItem>
+                )}
+                {idea.status === 'taken' && (
+                  <ContextMenuItem onClick={() => navigate(`/trade/${idea.id}`)}>
+                    <LinkIcon className="mr-2 h-4 w-4" />
+                    View Trade
                   </ContextMenuItem>
                 )}
                 <ContextMenuItem 
