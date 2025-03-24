@@ -2,14 +2,13 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { exportTradesToFile, importTradesFromFile } from '@/utils/dataTransfer';
-import { FileDown, FileUp, ListChecks, FileBox } from 'lucide-react';
+import { FileDown, FileUp, FileBox } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Tooltip,
@@ -55,6 +54,7 @@ export const DataExportImport = ({ onImportComplete }: DataExportImportProps) =>
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+      setIsDialogOpen(false);
     }
   };
   
@@ -104,7 +104,7 @@ export const DataExportImport = ({ onImportComplete }: DataExportImportProps) =>
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept=".json"
+          accept=".csv,.json"
           className="hidden"
         />
       </div>

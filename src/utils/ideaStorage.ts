@@ -1,6 +1,7 @@
 
 import { TradeIdea } from '@/types';
 import { toast } from './toast';
+import { isUsingServerSync, getServerUrl } from './storage/serverSync';
 
 // Local storage key
 const IDEAS_STORAGE_KEY = 'trade-journal-ideas';
@@ -75,5 +76,33 @@ export const markIdeaAsTaken = (ideaId: string): void => {
       ...idea,
       status: 'taken'
     });
+  }
+};
+
+// Sync ideas with server (for server sync implementation)
+export const syncIdeasWithServer = async (): Promise<boolean> => {
+  if (!isUsingServerSync() || !getServerUrl()) {
+    return false;
+  }
+  
+  try {
+    const serverUrl = `${getServerUrl().replace(/\/trades$/, '')}/ideas`;
+    console.log('Syncing ideas with server at:', serverUrl);
+    const response = await fetch(serverUrl);
+    
+    if (response.ok) {
+      const serverIdeas = await response.json();
+      localStorage.setItem(IDEAS_STORAGE_KEY, JSON.stringify(serverIdeas));
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(IDEAS_UPDATED_EVENT);
+      console.log('Ideas synced with server successfully');
+      return true;
+    } else {
+      console.error('Server returned an error status when syncing ideas', response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error syncing ideas with server:', error);
+    return false;
   }
 };

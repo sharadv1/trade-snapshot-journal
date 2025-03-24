@@ -70,7 +70,7 @@ export const DataTransferControls = ({ onImportComplete }: DataTransferControlsP
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
-        accept=".json"
+        accept=".csv,.json"
         className="hidden"
       />
     </div>

@@ -1,17 +1,20 @@
+
 import { Trade } from '@/types';
 import { getTrades, saveTrades, getTradesSync } from './storage/storageCore';
 import { getStrategies } from './strategyStorage';
-import { getSymbols, saveSymbols } from './symbolStorage';
+import { getAllSymbols, saveCustomSymbols } from './symbolStorage';
 
 // Create a local interface for SymbolDetails to avoid type conflicts
 interface SymbolDetails {
-  id: string;
+  id?: string;
   symbol: string;
-  name: string;
-  type: "equity" | "futures" | "option";
+  name?: string;
+  type: "equity" | "futures" | "option" | "forex" | "crypto";
   sector?: string;
   exchange?: string;
   contractSize?: number;
+  meaning?: string;
+  isPreset?: boolean;
 }
 
 // Helper function to save strategies
@@ -27,22 +30,20 @@ export const exportTradesToCSV = async (): Promise<string> => {
 
   // Headers
   csvRows.push([
-    "id", "date", "symbol", "entryPrice", "exitPrice", "positionSize", "notes",
-    "strategy", "outcome", "setup", "tags", "ideaId"
+    "id", "symbol", "entryPrice", "exitPrice", "quantity", "notes",
+    "strategy", "grade", "tags", "ideaId"
   ].join(','));
 
   for (const trade of trades) {
     const values = [
       trade.id,
-      trade.date,
       trade.symbol,
       trade.entryPrice,
       trade.exitPrice,
-      trade.positionSize,
+      trade.quantity,
       `"${(trade.notes || '').replace(/"/g, '""')}"`, // Escape double quotes
       trade.strategy,
-      trade.outcome,
-      trade.setup,
+      trade.grade || "",
       trade.tags ? `"${trade.tags.join(';')}"` : "",
       trade.ideaId || ""
     ];
@@ -76,7 +77,7 @@ export const importTradesFromCSV = async (csvData: string): Promise<void> => {
       switch (header) {
         case 'entryPrice':
         case 'exitPrice':
-        case 'positionSize':
+        case 'quantity':
           trade[header] = parseFloat(value);
           break;
         case 'tags':
@@ -91,15 +92,46 @@ export const importTradesFromCSV = async (csvData: string): Promise<void> => {
   await saveTrades(trades);
 };
 
-// Added aliases for backward compatibility
-export const exportTradesToFile = exportTradesToCSV;
-export const importTradesFromFile = importTradesFromCSV;
+// Parse CSV file content to string
+export const parseCsvFile = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+};
+
+// Updated functions to handle CSV files
+export const exportTradesToFile = async (): Promise<void> => {
+  try {
+    const csvUrl = await exportTradesToCSV();
+    const link = document.createElement('a');
+    link.href = csvUrl;
+    link.download = `trade-journal-export-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error('Error exporting trades:', error);
+  }
+};
+
+export const importTradesFromFile = async (file: File): Promise<void> => {
+  try {
+    const csvContent = await parseCsvFile(file);
+    await importTradesFromCSV(csvContent);
+    window.dispatchEvent(new Event('storage'));
+  } catch (error) {
+    console.error('Error importing trades:', error);
+  }
+};
 
 // Export data function
 export const exportData = () => {
   const trades = getTradesSync();
   const strategies = getStrategies();
-  const symbols = getSymbols();
+  const symbols = getAllSymbols();
 
   const exportData = {
     trades,
@@ -125,7 +157,7 @@ export const importData = (jsonData: string) => {
     }
     
     if (data.symbols) {
-      saveSymbols(data.symbols as SymbolDetails[]);
+      saveCustomSymbols(data.symbols as SymbolDetails[]);
     }
     
     return true;
