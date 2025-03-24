@@ -4,20 +4,23 @@ import { useState, useEffect } from 'react';
 import { toast } from '@/utils/toast';
 import { calculateTradeMetrics } from '@/utils/tradeCalculations';
 import { getTradeById, deleteTrade } from '@/utils/tradeStorage';
-import { Trade, PartialExit } from '@/types';
+import { Trade, PartialExit, TradeMetrics } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
-import { TradeMetrics } from '@/components/TradeMetrics';
+import { TradeMetrics as TradeMetricsComponent } from '@/components/TradeMetrics';
 import { PartialExitsList } from '@/components/PartialExitsList';
 import { ExitTradeForm } from '@/components/ExitTradeForm';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getTradeIdea } from '@/utils/tradeOperations';
 import { ArrowLeft, AlertTriangle, ArrowUpRight, PenSquare, Trash2, CircleDollarSign, ImageIcon, Lightbulb } from 'lucide-react';
-import { useMonthlyPerformanceData } from '@/hooks/useMonthlyPerformanceData';
+
+// Changed from useMonthlyPerformanceData import to useMonthlyPerformanceData hook import
+// This fixes the 'updateData' property not found error
+import { useMonthlyPerformanceData as useMonthlyPerformanceDataHook } from '@/hooks/useMonthlyPerformanceData';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +31,13 @@ export default function TradeDetail() {
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const { updateData } = useMonthlyPerformanceData();
+  
+  // Fix: Pass an empty array to the hook to initialize it
+  // We just need access to the updateData function
+  const { updateData } = useMonthlyPerformanceDataHook([]);
+  
+  // Local state for calculated metrics
+  const [metrics, setMetrics] = useState<TradeMetrics | null>(null);
   
   // Load trade data
   useEffect(() => {
@@ -42,6 +51,8 @@ export default function TradeDetail() {
       const tradeData = getTradeById(id);
       if (tradeData) {
         setTrade(tradeData);
+        // Calculate metrics and store them in state
+        setMetrics(calculateTradeMetrics(tradeData));
       } else {
         toast.error('Trade not found');
         navigate('/');
@@ -61,6 +72,8 @@ export default function TradeDetail() {
       const updatedTrade = getTradeById(id as string);
       if (updatedTrade) {
         setTrade(updatedTrade);
+        // Recalculate metrics
+        setMetrics(calculateTradeMetrics(updatedTrade));
         toast.success('Trade exited successfully');
         // Trigger an update of the monthly performance data
         updateData();
@@ -115,7 +128,9 @@ export default function TradeDetail() {
     );
   }
 
-  const metrics = calculateTradeMetrics(trade);
+  // Use the metrics from state rather than calculating inline
+  const tradeMetrics = metrics || calculateTradeMetrics(trade);
+  
   const isFullyExited = trade.status === 'closed' || 
     (trade.partialExits && trade.partialExits.reduce((acc, exit) => acc + exit.quantity, 0) === trade.quantity);
   
@@ -200,7 +215,8 @@ export default function TradeDetail() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TradeMetrics trades={[trade]} />
+            {/* Fix: Cast trade to TradeWithMetrics[] for TradeMetricsComponent */}
+            <TradeMetricsComponent trades={[{ ...trade, metrics: tradeMetrics }]} />
             
             <div className="space-y-4">
               <div>
@@ -240,22 +256,22 @@ export default function TradeDetail() {
             </div>
           </div>
           
-          {trade.status === 'closed' && metrics && (
+          {trade.status === 'closed' && tradeMetrics && (
             <div className="mt-6 p-4 bg-muted rounded-md">
               <h3 className="font-medium mb-2">Results</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">P&L</p>
-                  <p className={`text-lg font-medium ${metrics.profitLoss > 0 ? 'text-green-600' : metrics.profitLoss < 0 ? 'text-red-600' : ''}`}>
-                    ${metrics.profitLoss.toFixed(2)}
+                  <p className={`text-lg font-medium ${tradeMetrics.profitLoss > 0 ? 'text-green-600' : tradeMetrics.profitLoss < 0 ? 'text-red-600' : ''}`}>
+                    ${tradeMetrics.profitLoss.toFixed(2)}
                   </p>
                 </div>
                 
-                {metrics.riskRewardRatio !== undefined && (
+                {tradeMetrics.riskRewardRatio !== undefined && (
                   <div>
                     <p className="text-sm text-muted-foreground">R Multiple</p>
-                    <p className={`text-lg font-medium ${metrics.riskRewardRatio > 0 ? 'text-green-600' : metrics.riskRewardRatio < 0 ? 'text-red-600' : ''}`}>
-                      {metrics.riskRewardRatio.toFixed(2)}R
+                    <p className={`text-lg font-medium ${tradeMetrics.riskRewardRatio > 0 ? 'text-green-600' : tradeMetrics.riskRewardRatio < 0 ? 'text-red-600' : ''}`}>
+                      {tradeMetrics.riskRewardRatio.toFixed(2)}R
                     </p>
                   </div>
                 )}
