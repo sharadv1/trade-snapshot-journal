@@ -1,11 +1,12 @@
 
 import { TradeIdea } from '@/types';
 
-export interface IdeaFormData extends Partial<TradeIdea> {
+export interface IdeaFormData {
+  id?: string;
   date: string;
   symbol: string;
   description: string;
-  status: string;
+  status: 'still valid' | 'invalidated' | 'taken' | 'missed';
   direction: 'long' | 'short';
   images: string[];
 }

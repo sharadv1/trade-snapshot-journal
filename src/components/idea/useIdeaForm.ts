@@ -27,7 +27,12 @@ export function useIdeaForm({
 
   useEffect(() => {
     if (initialIdea) {
-      setIdea(initialIdea);
+      // Convert TradeIdea to IdeaFormData, ensuring required fields have default values
+      setIdea({
+        ...initialIdea,
+        direction: initialIdea.direction || 'long',
+        images: initialIdea.images || []
+      });
       setImages(initialIdea.images || []);
     }
   }, [initialIdea]);
