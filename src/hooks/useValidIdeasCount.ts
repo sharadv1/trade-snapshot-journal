@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { getIdeas, syncIdeasWithServer } from '@/utils/ideaStorage';
-import { isUsingServerSync } from '@/utils/storage/serverSync';
+import { getIdeas } from '@/utils/ideaStorage';
 
 export function useValidIdeasCount() {
   const [validIdeasCount, setValidIdeasCount] = useState<number>(0);
@@ -13,20 +12,8 @@ export function useValidIdeasCount() {
       setValidIdeasCount(validIdeas.length);
     };
 
-    // If server sync is enabled, sync ideas first
-    const syncAndCount = async () => {
-      if (isUsingServerSync()) {
-        try {
-          await syncIdeasWithServer();
-        } catch (error) {
-          console.error('Error syncing ideas:', error);
-        }
-      }
-      countValidIdeas();
-    };
-
     // Initial count
-    syncAndCount();
+    countValidIdeas();
 
     // Listen for storage events to update the count when ideas change
     const handleStorageChange = () => {
@@ -34,8 +21,12 @@ export function useValidIdeasCount() {
     };
 
     window.addEventListener('storage', handleStorageChange);
+    // Also listen to our custom storage event for same-window updates
+    window.addEventListener('ideas-updated', handleStorageChange);
+    
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('ideas-updated', handleStorageChange);
     };
   }, []);
 

@@ -35,7 +35,7 @@ export default function TradeDetail() {
   const [currentImage, setCurrentImage] = useState('');
   const [ideaDialogOpen, setIdeaDialogOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
   const [isViewingIdea, setIsViewingIdea] = useState(false);
   
   const trade = id ? getTradeById(id) : null;
@@ -103,7 +103,7 @@ export default function TradeDetail() {
           </Button>
           
           {trade.status === 'open' ? (
-            <Button size="sm" onClick={() => setIsExitModalOpen(true)}>
+            <Button size="sm" onClick={() => setIsExitDialogOpen(true)}>
               <CheckCircle className="mr-1 h-4 w-4" />
               Close Trade
             </Button>
@@ -287,11 +287,7 @@ export default function TradeDetail() {
               
               {/* Metrics Tab */}
               <TabsContent value="metrics" className="space-y-6 mt-0">
-                {trade && (
-                  <TradeMetrics 
-                    trades={[trade]} 
-                  />
-                )}
+                <TradeMetrics trades={[trade]} />
               </TabsContent>
               
               {/* Notes & Images Tab */}
@@ -348,7 +344,7 @@ export default function TradeDetail() {
             
             <CardFooter className="flex justify-end border-t pt-6">
               {trade.status === 'open' && activeTab === 'details' && (
-                <Button onClick={() => setIsExitModalOpen(true)}>
+                <Button onClick={() => setIsExitDialogOpen(true)}>
                   <CheckCircle className="mr-1 h-4 w-4" />
                   Close Trade
                 </Button>
@@ -381,10 +377,10 @@ export default function TradeDetail() {
       </AlertDialog>
       
       {/* Exit Trade Form Dialog */}
-      <ExitTradeForm
-        trade={trade}
-        open={isExitModalOpen}
-        onOpenChange={setIsExitModalOpen}
+      <ExitTradeForm 
+        trade={trade} 
+        isOpen={isExitDialogOpen}
+        onOpenChange={setIsExitDialogOpen}
         onSuccess={handleExitSuccess}
       />
       
@@ -398,8 +394,8 @@ export default function TradeDetail() {
       {/* Idea Viewer Dialog */}
       {tradeIdea && (
         <IdeaDialog
-          open={isViewingIdea}
-          onOpenChange={setIsViewingIdea}
+          open={isIdeaDialogOpen}
+          onOpenChange={setIsIdeaDialogOpen}
           initialIdea={tradeIdea}
           mode="view"
         />
@@ -407,3 +403,4 @@ export default function TradeDetail() {
     </>
   );
 }
+

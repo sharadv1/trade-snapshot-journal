@@ -1,4 +1,3 @@
-
 import { Strategy } from '@/types';
 import { getTradesSync } from '@/utils/storage/storageCore';
 
@@ -16,6 +15,10 @@ export const getStrategies = (): Strategy[] => {
     console.error('Error parsing strategies:', error);
     return getDefaultStrategies();
   }
+};
+
+export const syncStrategiesWithServer = async (): Promise<boolean> => {
+  return true;
 };
 
 export const saveStrategies = (strategies: Strategy[]): void => {
@@ -53,6 +56,10 @@ export const getStrategyById = (strategyId: string): Strategy | undefined => {
 export const getStrategyUsage = (strategyId: string): number => {
   const trades = getTradesSync();
   return trades.filter(t => t.strategy === strategyId).length;
+};
+
+export const isStrategyInUse = (strategyId: string): boolean => {
+  return getStrategyUsage(strategyId) > 0;
 };
 
 export const getDefaultStrategies = (): Strategy[] => {

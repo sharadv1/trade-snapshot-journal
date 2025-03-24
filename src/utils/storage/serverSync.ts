@@ -1,4 +1,3 @@
-
 import { toast } from '@/utils/toast';
 import { setServerSync, SERVER_URL_KEY, isUsingServerSync, getServerUrl } from './storageCore';
 
@@ -99,24 +98,34 @@ export const restoreServerConnection = (): void => {
 };
 
 // Sync all data types with the server
-export const syncAllData = async (): Promise<void> => {
-  // Import all sync functions
-  const { syncIdeasWithServer } = await import('@/utils/ideaStorage');
-  const { syncStrategiesWithServer } = await import('@/utils/strategyStorage');
-  const { syncSymbolsWithServer } = await import('@/utils/symbolStorage');
-
+export const syncAllData = async (): Promise<boolean> => {
+  let success = true;
+  
   try {
-    // Sync trades
-    await syncWithServer();
-    // Sync ideas
-    await syncIdeasWithServer();
-    // Sync strategies
-    await syncStrategiesWithServer();
-    // Sync symbols
-    await syncSymbolsWithServer();
+    // Import all sync functions
+    const { syncIdeasWithServer } = await import('@/utils/ideaStorage');
+    const { syncStrategiesWithServer } = await import('@/utils/strategyStorage');
+    const { syncSymbolsWithServer } = await import('@/utils/symbolStorage');
+
+    try {
+      // Sync trades
+      await syncWithServer();
+      // Sync ideas
+      await syncIdeasWithServer();
+      // Use the function we added to strategyStorage.ts
+      const strategiesSuccess = await strategyStorage.syncStrategiesWithServer();
+      success = success && strategiesSuccess;
+      // Sync symbols
+      await syncSymbolsWithServer();
+    } catch (error) {
+      console.error('Error during full sync:', error);
+      success = false;
+    }
   } catch (error) {
     console.error('Error syncing all data types:', error);
   }
+  
+  return success;
 };
 
 // Force sync with server (pull server data)

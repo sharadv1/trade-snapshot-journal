@@ -1,43 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Strategy } from '@/types';
-import { 
-  getStrategies, 
-  addStrategy, 
-  updateStrategy, 
-  deleteStrategy, 
-  isStrategyInUse 
-} from '@/utils/strategyStorage';
-import { toast } from '@/utils/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
+import { Plus, Pencil, Trash } from 'lucide-react';
+import { toast } from '@/utils/toast';
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,441 +24,288 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, CheckSquare } from 'lucide-react';
+} from "@/components/ui/alert-dialog"
+import { Strategy } from '@/types';
+import { getStrategies, addStrategy, updateStrategy, deleteStrategy, isStrategyInUse } from '@/utils/strategyStorage';
+
+const getRandomColor = () => {
+  const letters = '0123456789ABCDEF';
+  let color = '#';
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+};
 
 export default function StrategyManagement() {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
-  const [selectedStrategies, setSelectedStrategies] = useState<string[]>([]);
-  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
-  const [newStrategy, setNewStrategy] = useState<Partial<Strategy>>({
+  const [isAdding, setIsAdding] = useState(false);
+  const [newStrategy, setNewStrategy] = useState({
     name: '',
     description: '',
-    color: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
+    color: getRandomColor()
   });
+  const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
+  const [updatedStrategy, setUpdatedStrategy] = useState<Strategy>({
+    id: '',
+    name: '',
+    description: '',
+    color: ''
+  });
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [strategyToDelete, setStrategyToDelete] = useState<string | null>(null);
+  const [isDeleteDisabled, setIsDeleteDisabled] = useState(false);
 
   useEffect(() => {
-    loadStrategies();
-  }, []);
-
-  const loadStrategies = () => {
-    try {
+    const loadStrategies = () => {
       const loadedStrategies = getStrategies();
       setStrategies(loadedStrategies);
-      setSelectedStrategies([]);
-    } catch (error) {
-      console.error('Failed to load strategies:', error);
-      toast.error('Failed to load strategies');
-    }
-  };
+    };
 
-  const handleAddStrategy = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    
-    try {
-      if (!newStrategy.name) {
-        toast.error('Strategy name is required');
-        return;
-      }
+    loadStrategies();
 
-      const addedStrategy = addStrategy({
-        name: newStrategy.name,
-        description: newStrategy.description || '',
-        color: newStrategy.color || '#000000',
-      });
-
-      if (addedStrategy) {
-        toast.success('Strategy added successfully');
-        setDialogOpen(false);
-        setNewStrategy({
-          name: '',
-          description: '',
-          color: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
-        });
-        loadStrategies();
-      }
-    } catch (error) {
-      toast.error((error as Error).message || 'Failed to add strategy');
-    }
-  };
-
-  const handleUpdateStrategy = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    
-    try {
-      if (!editingStrategy || !editingStrategy.name) {
-        toast.error('Strategy name is required');
-        return;
-      }
-
-      const originalStrategy = strategies.find(s => s.id === editingStrategy.id);
-      const nameChanged = originalStrategy && originalStrategy.name !== editingStrategy.name;
-
-      const updatedStrategy = updateStrategy(editingStrategy);
-      
-      if (updatedStrategy) {
-        if (nameChanged) {
-          toast.success('Strategy updated and trade references updated');
-        } else {
-          toast.success('Strategy updated successfully');
-        }
-        
-        setDialogOpen(false);
-        setEditingStrategy(null);
-        loadStrategies();
-      }
-    } catch (error) {
-      toast.error((error as Error).message || 'Failed to update strategy');
-    }
-  };
-
-  const handleDeleteStrategy = (strategyId: string) => {
-    try {
-      deleteStrategy(strategyId);
-      toast.success('Strategy deleted successfully');
+    // Listen for storage events to refresh the list
+    const handleStorageChange = () => {
       loadStrategies();
-    } catch (error) {
-      toast.error((error as Error).message || 'Failed to delete strategy');
-    }
-  };
+    };
 
-  const handleBulkDelete = () => {
-    if (selectedStrategies.length === 0) {
-      toast.error('No strategies selected');
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  const handleAddStrategy = () => {
+    if (!newStrategy.name || !newStrategy.color) {
+      toast.error("Strategy name and color are required");
       return;
     }
-
-    const nonDeletableStrategies: string[] = [];
-
-    selectedStrategies.forEach(id => {
-      const strategy = strategies.find(s => s.id === id);
-      if (!strategy) return;
-      
-      if (isStrategyInUse(id)) {
-        nonDeletableStrategies.push(strategy.name);
-      }
-    });
-
-    if (nonDeletableStrategies.length > 0) {
-      toast.error(`Cannot delete strategies in use: ${nonDeletableStrategies.join(', ')}`);
-      return;
-    }
-
-    let deleteCount = 0;
-    selectedStrategies.forEach(id => {
-      try {
-        const result = deleteStrategy(id);
-        if (result) deleteCount++;
-      } catch (error) {
-        console.error(`Failed to delete strategy ${id}:`, error);
-      }
-    });
-
-    if (deleteCount > 0) {
-      toast.success(`Successfully deleted ${deleteCount} strategies`);
-      loadStrategies();
-    } else {
-      toast.error('No strategies were deleted');
-    }
-
-    setBulkDeleteDialogOpen(false);
-  };
-
-  const toggleStrategySelection = (strategyId: string) => {
-    setSelectedStrategies(prev => {
-      if (prev.includes(strategyId)) {
-        return prev.filter(id => id !== strategyId);
-      } else {
-        return [...prev, strategyId];
-      }
-    });
-  };
-
-  const toggleAllStrategies = () => {
-    if (selectedStrategies.length === strategies.length) {
-      setSelectedStrategies([]);
-    } else {
-      setSelectedStrategies(strategies.map(s => s.id));
-    }
-  };
-
-  const openAddDialog = () => {
-    setEditingStrategy(null);
+    
+    const strategy: Strategy = {
+      id: `strategy-${generateUUID()}`, // Add ID
+      name: newStrategy.name,
+      description: newStrategy.description,
+      color: newStrategy.color
+    };
+    
+    addStrategy(strategy);
+    toast.success("Strategy added successfully");
+    
+    // Reset form
     setNewStrategy({
       name: '',
       description: '',
-      color: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
+      color: getRandomColor()
     });
-    setDialogOpen(true);
+    
+    setIsAdding(false);
   };
 
-  const openEditDialog = (strategy: Strategy) => {
-    setEditingStrategy({ ...strategy });
-    setDialogOpen(true);
+  const handleEditClick = (strategy: Strategy) => {
+    setEditingStrategy(strategy);
+    setUpdatedStrategy({ ...strategy });
   };
 
-  const handleDialogClose = () => {
-    setDialogOpen(false);
+  const handleUpdateStrategy = () => {
+    if (!updatedStrategy.name || !updatedStrategy.color) {
+      toast.error("Strategy name and color are required");
+      return;
+    }
+
+    if (updatedStrategy.id) {
+      updateStrategy(updatedStrategy);
+      toast.success("Strategy updated successfully");
+    }
+
     setEditingStrategy(null);
-    setNewStrategy({
+    setUpdatedStrategy({
+      id: '',
       name: '',
       description: '',
-      color: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
+      color: ''
     });
   };
 
-  const allStrategiesSelected = selectedStrategies.length === strategies.length && strategies.length > 0;
+  const handleDeleteClick = (strategyId: string) => {
+    setStrategyToDelete(strategyId);
+    setDeleteConfirmOpen(true);
+    setIsDeleteDisabled(isStrategyInUse(strategyId));
+  };
+
+  const confirmDelete = () => {
+    if (strategyToDelete) {
+      deleteStrategy(strategyToDelete);
+      toast.success("Strategy deleted successfully");
+    }
+    setStrategyToDelete(null);
+    setDeleteConfirmOpen(false);
+  };
+
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, 
+            v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
 
   return (
-    <div className="space-y-8 pb-10">
-      <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-1">
-            Strategy Management
-          </h1>
-          <p className="text-muted-foreground">
-            Add, edit, and delete your trading strategies
-          </p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-2">
-          {selectedStrategies.length > 0 && (
-            <Button 
-              variant="destructive" 
-              onClick={() => setBulkDeleteDialogOpen(true)}
-            >
-              <Trash2 className="mr-1 h-4 w-4" />
-              Delete Selected ({selectedStrategies.length})
+    <div className="container mx-auto py-10">
+      <h1 className="text-3xl font-bold tracking-tight mb-6">Strategy Management</h1>
+
+      {/* Add Strategy Section */}
+      {!isAdding ? (
+        <Button onClick={() => setIsAdding(true)} className="mb-4">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Strategy
+        </Button>
+      ) : (
+        <div className="mb-6 p-4 border rounded-md">
+          <h2 className="text-xl font-semibold mb-4">Add New Strategy</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Name</Label>
+              <Input
+                type="text"
+                id="name"
+                value={newStrategy.name}
+                onChange={(e) => setNewStrategy({ ...newStrategy, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="color">Color</Label>
+              <Input
+                type="color"
+                id="color"
+                value={newStrategy.color}
+                onChange={(e) => setNewStrategy({ ...newStrategy, color: e.target.value })}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={newStrategy.description}
+                onChange={(e) => setNewStrategy({ ...newStrategy, description: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setIsAdding(false)}>
+              Cancel
             </Button>
-          )}
-          <Button onClick={openAddDialog}>
-            <Plus className="mr-1 h-4 w-4" />
-            Add Strategy
-          </Button>
+            <Button onClick={handleAddStrategy}>Add Strategy</Button>
+          </div>
         </div>
+      )}
+
+      {/* Strategy Table */}
+      <div className="overflow-x-auto">
+        <Table>
+          <TableCaption>A list of your trade strategies.</TableCaption>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[200px]">Name</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Color</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {strategies.map((strategy) => (
+              <TableRow key={strategy.id}>
+                <TableCell className="font-medium">{strategy.name}</TableCell>
+                <TableCell>{strategy.description}</TableCell>
+                <TableCell>
+                  <div
+                    className="w-6 h-6 rounded-full"
+                    style={{ backgroundColor: strategy.color }}
+                  ></div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditClick(strategy)}
+                    disabled={editingStrategy !== null}
+                    className="mr-2"
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleDeleteClick(strategy.id)}
+                    disabled={isDeleteDisabled}
+                  >
+                    <Trash className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Trading Strategies</CardTitle>
-          <CardDescription>
-            Manage the strategies you use in your trading journal
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead style={{ width: '50px' }}>
-                  <div className="flex items-center">
-                    <Checkbox 
-                      checked={allStrategiesSelected} 
-                      onCheckedChange={toggleAllStrategies}
-                      disabled={strategies.length === 0}
-                    />
-                  </div>
-                </TableHead>
-                <TableHead style={{ width: '50px' }}>Color</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead style={{ width: '100px' }}>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {strategies.map((strategy) => (
-                <TableRow key={strategy.id}>
-                  <TableCell>
-                    <Checkbox 
-                      checked={selectedStrategies.includes(strategy.id)}
-                      onCheckedChange={() => toggleStrategySelection(strategy.id)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div 
-                      className="w-6 h-6 rounded-full" 
-                      style={{ backgroundColor: strategy.color }}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{strategy.name}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {strategy.description || 'No description'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => openEditDialog(strategy)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Strategy</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete the strategy "{strategy.name}"?
-                              {isStrategyInUse(strategy.id) && (
-                                <p className="mt-2 text-destructive">
-                                  This strategy is currently in use by existing trades and cannot be deleted.
-                                </p>
-                              )}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              disabled={isStrategyInUse(strategy.id)}
-                              onClick={() => handleDeleteStrategy(strategy.id)}
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-
-              {strategies.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                    No strategies found. Add a strategy to get started.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingStrategy ? 'Edit Strategy' : 'Add Strategy'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingStrategy 
-                ? 'Update the details of your trading strategy'
-                : 'Enter the details of your new trading strategy'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={editingStrategy ? handleUpdateStrategy : handleAddStrategy} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="strategy-name">Strategy Name</Label>
-              <Input
-                id="strategy-name"
-                name="strategy-name"
-                placeholder="Enter strategy name"
-                value={editingStrategy ? editingStrategy.name : newStrategy.name}
-                onChange={(e) => {
-                  if (editingStrategy) {
-                    setEditingStrategy({...editingStrategy, name: e.target.value});
-                  } else {
-                    setNewStrategy({...newStrategy, name: e.target.value});
-                  }
-                }}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="strategy-description">Description (Optional)</Label>
-              <Textarea
-                id="strategy-description"
-                name="strategy-description"
-                placeholder="Describe your strategy"
-                value={editingStrategy ? editingStrategy.description || '' : newStrategy.description || ''}
-                onChange={(e) => {
-                  if (editingStrategy) {
-                    setEditingStrategy({...editingStrategy, description: e.target.value});
-                  } else {
-                    setNewStrategy({...newStrategy, description: e.target.value});
-                  }
-                }}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="strategy-color">Color</Label>
-              <div className="flex items-center space-x-2">
+      {/* Edit Strategy Modal */}
+      {editingStrategy && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-md shadow-lg w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Edit Strategy</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-name">Name</Label>
                 <Input
-                  id="strategy-color-picker"
-                  name="strategy-color-picker"
-                  type="color"
-                  className="w-12 h-10 p-1"
-                  value={editingStrategy ? editingStrategy.color : newStrategy.color}
-                  onChange={(e) => {
-                    if (editingStrategy) {
-                      setEditingStrategy({...editingStrategy, color: e.target.value});
-                    } else {
-                      setNewStrategy({...newStrategy, color: e.target.value});
-                    }
-                  }}
-                />
-                <Input
-                  id="strategy-color"
-                  name="strategy-color"
                   type="text"
-                  value={editingStrategy ? editingStrategy.color : newStrategy.color}
-                  onChange={(e) => {
-                    if (editingStrategy) {
-                      setEditingStrategy({...editingStrategy, color: e.target.value});
-                    } else {
-                      setNewStrategy({...newStrategy, color: e.target.value});
-                    }
-                  }}
-                  placeholder="#RRGGBB"
+                  id="edit-name"
+                  value={updatedStrategy.name}
+                  onChange={(e) => setUpdatedStrategy({ ...updatedStrategy, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-color">Color</Label>
+                <Input
+                  type="color"
+                  id="edit-color"
+                  value={updatedStrategy.color}
+                  onChange={(e) => setUpdatedStrategy({ ...updatedStrategy, color: e.target.value })}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={updatedStrategy.description}
+                  onChange={(e) => setUpdatedStrategy({ ...updatedStrategy, description: e.target.value })}
                 />
               </div>
             </div>
-          
-            <DialogFooter>
-              <Button variant="outline" type="button" onClick={handleDialogClose}>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setEditingStrategy(null)}>
                 Cancel
               </Button>
-              <Button type="submit">
-                {editingStrategy ? 'Update' : 'Add'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <Button onClick={handleUpdateStrategy}>Update Strategy</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Bulk Delete Strategies</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedStrategies.length} selected strategies?
-              This action cannot be undone.
+              This will permanently delete this strategy. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleBulkDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete Selected
+            <AlertDialogAction onClick={confirmDelete} disabled={isDeleteDisabled} className={isDeleteDisabled ? "cursor-not-allowed" : ""}>
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

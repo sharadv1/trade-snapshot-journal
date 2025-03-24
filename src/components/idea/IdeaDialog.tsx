@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -237,7 +236,7 @@ export function IdeaDialog({
               images={images}
               onImageUpload={handleImageUpload}
               onImageRemove={handleRemoveImage}
-              readOnly={isReadOnly}
+              disabled={isReadOnly}
             />
           </div>
           
