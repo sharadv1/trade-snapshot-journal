@@ -1,434 +1,402 @@
 
+import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { 
-  Calendar, 
-  Clock, 
-  PencilLine, 
-  Trash2, 
-  ArrowUp, 
-  ArrowDown,
-  ArrowLeft,
-  DollarSign,
-  Link as LinkIcon,
-  Upload
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { format } from 'date-fns';
-import { ExitTradeForm } from '@/components/ExitTradeForm';
-import { PartialExitsList } from '@/components/PartialExitsList';
-import { TradeMetrics } from '@/components/TradeMetrics';
-import { getTradeById, deleteTrade } from '@/utils/storage/tradeOperations';
-import { getIdeaById } from '@/utils/ideaStorage';
-import { useToast } from '@/hooks/use-toast';
-import { Trade } from '@/types';
+import { toast } from '@/utils/toast';
 import { calculateTradeMetrics } from '@/utils/tradeCalculations';
+import { getTradeById, deleteTrade } from '@/utils/tradeStorage';
+import { Trade, PartialExit } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
+import { TradeMetrics } from '@/components/TradeMetrics';
+import { PartialExitsList } from '@/components/PartialExitsList';
+import { ExitTradeForm } from '@/components/ExitTradeForm';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { getTradeIdea } from '@/utils/tradeOperations';
+import { ArrowLeft, AlertTriangle, ArrowUpRight, PenSquare, Trash2, CircleDollarSign, ImageIcon, Lightbulb } from 'lucide-react';
+import { useMonthlyPerformanceData } from '@/hooks/useMonthlyPerformanceData';
 
 export default function TradeDetail() {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { toast } = useToast();
-  
+  const navigate = useNavigate();
   const [trade, setTrade] = useState<Trade | null>(null);
-  const [tradeIdea, setTradeIdea] = useState<any | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [exitFormOpen, setExitFormOpen] = useState(false);
-  const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const { updateData } = useMonthlyPerformanceData();
   
   // Load trade data
   useEffect(() => {
-    if (id) {
-      const loadedTrade = getTradeById(id);
-      if (loadedTrade) {
-        setTrade(loadedTrade);
-        
-        // Load associated idea if exists
-        if (loadedTrade.ideaId) {
-          const idea = getIdeaById(loadedTrade.ideaId);
-          setTradeIdea(idea);
-        }
+    if (!id) {
+      toast.error('No trade ID provided');
+      navigate('/');
+      return;
+    }
+    
+    try {
+      const tradeData = getTradeById(id);
+      if (tradeData) {
+        setTrade(tradeData);
       } else {
-        toast({
-          title: "Trade not found",
-          description: "The trade you're looking for doesn't exist or has been deleted.",
-          variant: "destructive"
-        });
+        toast.error('Trade not found');
         navigate('/');
       }
+    } catch (error) {
+      console.error('Error loading trade:', error);
+      toast.error('Error loading trade details');
+      navigate('/');
+    } finally {
+      setIsLoading(false);
     }
-  }, [id, navigate, toast]);
-  
-  // Handle trade not found
-  if (!trade) {
+  }, [id, navigate]);
+
+  const handleTradeExit = () => {
+    try {
+      // Refresh the trade data
+      const updatedTrade = getTradeById(id as string);
+      if (updatedTrade) {
+        setTrade(updatedTrade);
+        toast.success('Trade exited successfully');
+        // Trigger an update of the monthly performance data
+        updateData();
+      }
+    } catch (error) {
+      console.error('Error refreshing trade after exit:', error);
+      toast.error('Error refreshing trade data');
+    }
+    
+    setIsExitDialogOpen(false);
+  };
+
+  const handleDeleteTrade = async () => {
+    try {
+      await deleteTrade(id as string);
+      toast.success('Trade deleted successfully');
+      navigate('/');
+      updateData();
+    } catch (error) {
+      console.error('Error deleting trade:', error);
+      toast.error('Error deleting trade');
+    }
+  };
+
+  const viewImage = (index: number) => {
+    setCurrentImageIndex(index);
+    setIsImageDialogOpen(true);
+  };
+
+  const relatedIdea = trade?.ideaId ? getTradeIdea(trade.ideaId) : null;
+
+  // Add loading state
+  if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh]">
-        <h2 className="text-2xl font-bold mb-4">Trade Not Found</h2>
-        <p className="mb-8 text-muted-foreground">
-          The trade you're looking for could not be found or has been deleted.
-        </p>
-        <Button onClick={() => navigate('/')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Return to Dashboard
-        </Button>
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="text-center">Loading trade details...</div>
       </div>
     );
   }
+
+  // Add error state if no trade was found
+  if (!trade) {
+    return (
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Trade Not Found</h1>
+          <p className="mb-4">The trade you're looking for doesn't exist or has been deleted.</p>
+          <Button onClick={() => navigate('/')}>Return to Dashboard</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const metrics = calculateTradeMetrics(trade);
+  const isFullyExited = trade.status === 'closed' || 
+    (trade.partialExits && trade.partialExits.reduce((acc, exit) => acc + exit.quantity, 0) === trade.quantity);
   
-  const tradeMetrics = calculateTradeMetrics(trade);
-  const isOpenTrade = !trade.exitDate;
-  
-  // Delete the trade
-  const handleDeleteTrade = async () => {
-    if (id) {
-      await deleteTrade(id);
-      toast({
-        title: "Trade deleted",
-        description: "The trade has been permanently deleted."
-      });
-      navigate('/');
-    }
+  // Format date for display
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString();
   };
-  
-  // Format account size for display
-  const formatCurrency = (value: number | undefined) => {
-    if (value === undefined) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(value);
-  };
-  
-  // Get appropriate status badge
-  const getStatusBadge = () => {
-    if (isOpenTrade) {
-      return <Badge className="bg-blue-500">Open</Badge>;
-    }
-    
-    if (tradeMetrics.profitLoss > 0) {
-      return <Badge className="bg-green-500">Win</Badge>;
-    } else if (tradeMetrics.profitLoss < 0) {
-      return <Badge className="bg-red-500">Loss</Badge>;
-    } else {
-      return <Badge className="bg-yellow-500">Breakeven</Badge>;
-    }
-  };
-  
-  // Handle view image click
-  const handleImageClick = (image: string) => {
-    setViewingImage(image);
-  };
-  
+
   return (
-    <div className="space-y-8 pb-16">
-      {/* Back button and trade header */}
-      <div>
-        <Button 
-          variant="ghost" 
-          className="mb-6 -ml-2" 
-          onClick={() => navigate('/')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Dashboard
+    <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
+      {/* Header with back button */}
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="flex items-center gap-1">
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back</span>
         </Button>
         
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center">
-              {trade.direction === 'long' ? (
-                <ArrowUp className="mr-2 h-6 w-6 text-green-500" />
-              ) : (
-                <ArrowDown className="mr-2 h-6 w-6 text-red-500" />
-              )}
-              {trade.symbol}
-              <span className="ml-3">{getStatusBadge()}</span>
-            </h1>
-            
-            <div className="flex flex-wrap gap-2 mt-2 text-muted-foreground">
-              <div className="flex items-center">
-                <Calendar className="mr-1 h-4 w-4" />
-                {format(new Date(trade.entryDate), 'MMM d, yyyy')}
-              </div>
-              <div className="flex items-center">
-                <Clock className="mr-1 h-4 w-4" />
-                {format(new Date(trade.entryDate), 'h:mm a')}
-              </div>
-              {trade.strategy && (
-                <Badge variant="outline" className="ml-1">
-                  {trade.strategy}
-                </Badge>
-              )}
-            </div>
-            
-            {tradeIdea && (
-              <div 
-                className="mt-2 text-primary flex items-center cursor-pointer hover:underline"
-                onClick={() => navigate(`/ideas?id=${tradeIdea.id}`)}
-              >
-                <LinkIcon className="mr-1.5 h-3.5 w-3.5" />
-                View associated idea
-              </div>
-            )}
-          </div>
+        <div className="flex gap-2">
+          {!isFullyExited && (
+            <Button 
+              onClick={() => setIsExitDialogOpen(true)}
+              variant="outline"
+              className="flex items-center gap-1"
+            >
+              <CircleDollarSign className="h-4 w-4" />
+              <span>Exit Trade</span>
+            </Button>
+          )}
           
-          <div className="flex flex-wrap gap-2">
+          <Button 
+            onClick={() => navigate(`/trade/${id}/edit`)}
+            variant="outline" 
+            className="flex items-center gap-1"
+          >
+            <PenSquare className="h-4 w-4" />
+            <span>Edit</span>
+          </Button>
+          
+          <AlertDialogTrigger asChild>
             <Button 
               variant="outline" 
-              onClick={() => navigate(`/trade/${id}/edit`)}
+              className="flex items-center gap-1 text-destructive hover:bg-destructive/10"
+              onClick={() => setIsDeleteDialogOpen(true)}
             >
-              <PencilLine className="mr-1.5 h-4 w-4" />
-              Edit
+              <Trash2 className="h-4 w-4" />
+              <span>Delete</span>
             </Button>
-            
-            {isOpenTrade && (
-              <Button onClick={() => setExitFormOpen(true)}>
-                Close Trade
-              </Button>
-            )}
-            
-            <Button 
-              variant="outline" 
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => setConfirmOpen(true)}
-            >
-              <Trash2 className="mr-1.5 h-4 w-4" />
-              Delete
-            </Button>
-          </div>
+          </AlertDialogTrigger>
         </div>
       </div>
       
-      {/* Trade metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <TradeMetrics trade={trade} />
+      {/* Trade title and badges */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {trade.symbol} {trade.direction === 'long' ? 'Long' : 'Short'}
+          {trade.type === 'futures' && ' (Futures)'}
+        </h1>
+        
+        <div className="flex flex-wrap gap-2 mt-2">
+          <Badge variant={trade.status === 'open' ? 'default' : 'secondary'}>
+            {trade.status === 'open' ? 'Open' : 'Closed'}
+          </Badge>
+          
+          <Badge variant="outline">
+            {trade.strategy}
+          </Badge>
+          
+          {trade.tags && trade.tags.map((tag, index) => (
+            <Badge key={index} variant="outline">
+              {tag}
+            </Badge>
+          ))}
+        </div>
       </div>
       
-      {/* Trade details */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Trade Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-1.5">
-              <h3 className="font-medium text-sm text-muted-foreground">Direction</h3>
-              <div className="font-medium flex items-center">
-                {trade.direction === 'long' ? (
-                  <>
-                    <ArrowUp className="mr-1.5 h-4 w-4 text-green-500" />
-                    Long
-                  </>
-                ) : (
-                  <>
-                    <ArrowDown className="mr-1.5 h-4 w-4 text-red-500" />
-                    Short
-                  </>
+      {/* Trade metrics card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Trade Metrics</CardTitle>
+          <CardDescription>Key performance indicators for this trade</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <TradeMetrics trades={[trade]} />
+            
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium">Entry</h3>
+                <p className="text-lg">
+                  {trade.entryPrice?.toFixed(2)} on {formatDate(trade.entryDate)}
+                </p>
+              </div>
+              
+              {trade.exitPrice && (
+                <div>
+                  <h3 className="text-sm font-medium">Exit</h3>
+                  <p className="text-lg">
+                    {trade.exitPrice.toFixed(2)} on {formatDate(trade.exitDate)}
+                  </p>
+                </div>
+              )}
+              
+              <div>
+                <h3 className="text-sm font-medium">Quantity</h3>
+                <p className="text-lg">{trade.quantity}</p>
+              </div>
+              
+              {trade.stopLoss && (
+                <div>
+                  <h3 className="text-sm font-medium">Stop Loss</h3>
+                  <p className="text-lg">{trade.stopLoss.toFixed(2)}</p>
+                </div>
+              )}
+              
+              {trade.targetPrice && (
+                <div>
+                  <h3 className="text-sm font-medium">Target</h3>
+                  <p className="text-lg">{trade.targetPrice.toFixed(2)}</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {trade.status === 'closed' && metrics && (
+            <div className="mt-6 p-4 bg-muted rounded-md">
+              <h3 className="font-medium mb-2">Results</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">P&L</p>
+                  <p className={`text-lg font-medium ${metrics.profitLoss > 0 ? 'text-green-600' : metrics.profitLoss < 0 ? 'text-red-600' : ''}`}>
+                    ${metrics.profitLoss.toFixed(2)}
+                  </p>
+                </div>
+                
+                {metrics.rMultiple !== undefined && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">R Multiple</p>
+                    <p className={`text-lg font-medium ${metrics.rMultiple > 0 ? 'text-green-600' : metrics.rMultiple < 0 ? 'text-red-600' : ''}`}>
+                      {metrics.rMultiple.toFixed(2)}R
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
-            
-            <div className="space-y-1.5">
-              <h3 className="font-medium text-sm text-muted-foreground">Symbol</h3>
-              <div className="font-medium">{trade.symbol}</div>
+          )}
+          
+          {trade.notes && (
+            <div className="mt-6">
+              <h3 className="font-medium mb-2">Notes</h3>
+              <p className="whitespace-pre-line">{trade.notes}</p>
             </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-1.5">
-                <h3 className="font-medium text-sm text-muted-foreground">Entry Price</h3>
-                <div className="font-medium">{formatCurrency(trade.entryPrice)}</div>
-              </div>
-              
-              <div className="space-y-1.5">
-                <h3 className="font-medium text-sm text-muted-foreground">Position Size</h3>
-                <div className="font-medium">{trade.positionSize}</div>
-              </div>
-              
-              <div className="space-y-1.5">
-                <h3 className="font-medium text-sm text-muted-foreground">Stop Loss</h3>
-                <div className="font-medium">
-                  {trade.stopLoss ? formatCurrency(trade.stopLoss) : '—'}
-                </div>
-              </div>
-              
-              <div className="space-y-1.5">
-                <h3 className="font-medium text-sm text-muted-foreground">Take Profit</h3>
-                <div className="font-medium">
-                  {trade.takeProfit ? formatCurrency(trade.takeProfit) : '—'}
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-1.5">
-              <h3 className="font-medium text-sm text-muted-foreground">Setup</h3>
-              <div className="whitespace-pre-wrap">
-                {trade.setup || '—'}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
+          )}
+        </CardContent>
+      </Card>
+      
+      {/* Partial exits list */}
+      {trade.partialExits && trade.partialExits.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Notes & Images</CardTitle>
+            <CardTitle>Partial Exits</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-1.5">
-              <h3 className="font-medium text-sm text-muted-foreground">Notes</h3>
-              <div className="whitespace-pre-wrap">
-                {trade.notes || '—'}
-              </div>
-            </div>
-            
-            {trade.images && trade.images.length > 0 && (
-              <div className="space-y-1.5">
-                <h3 className="font-medium text-sm text-muted-foreground">Images</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {trade.images.map((image, index) => (
-                    <div 
-                      key={index}
-                      className="aspect-square rounded-md overflow-hidden border cursor-pointer"
-                      onClick={() => handleImageClick(image)}
-                    >
-                      <img 
-                        src={image} 
-                        alt={`Trade image ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+          <CardContent>
+            <PartialExitsList 
+              trade={trade}
+              allowEditing={false}
+            />
           </CardContent>
         </Card>
-      </div>
+      )}
       
-      {/* Exit details section */}
-      {trade.exitDate && (
+      {/* Related ideas */}
+      {relatedIdea && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Exit Details</CardTitle>
+            <div>
+              <CardTitle>Related Idea</CardTitle>
+              <CardDescription>This trade was based on a saved idea</CardDescription>
+            </div>
+            <Lightbulb className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-4">
-              <div className="space-y-1.5">
-                <h3 className="font-medium text-sm text-muted-foreground">Exit Date</h3>
-                <div className="font-medium">
-                  {format(new Date(trade.exitDate), 'MMM d, yyyy')}
-                </div>
+          <CardContent>
+            <div className="flex flex-col space-y-2">
+              <div>
+                <span className="text-sm text-muted-foreground">Symbol</span>
+                <p className="font-medium">{relatedIdea.symbol}</p>
               </div>
-              
-              <div className="space-y-1.5">
-                <h3 className="font-medium text-sm text-muted-foreground">Exit Price</h3>
-                <div className="font-medium">
-                  {formatCurrency(trade.exitPrice || 0)}
-                </div>
+              <div>
+                <span className="text-sm text-muted-foreground">Direction</span>
+                <p className="font-medium capitalize">{relatedIdea.direction}</p>
               </div>
-              
-              <div className="space-y-1.5">
-                <h3 className="font-medium text-sm text-muted-foreground">P&L</h3>
-                <div className={`font-medium ${
-                  tradeMetrics.profitLoss > 0 
-                    ? 'text-green-600' 
-                    : tradeMetrics.profitLoss < 0 
-                    ? 'text-red-600' 
-                    : ''
-                }`}>
-                  {tradeMetrics.profitLossFormatted}
+              {relatedIdea.notes && (
+                <div>
+                  <span className="text-sm text-muted-foreground">Notes</span>
+                  <p className="whitespace-pre-line">{relatedIdea.notes}</p>
                 </div>
-              </div>
-              
-              <div className="space-y-1.5">
-                <h3 className="font-medium text-sm text-muted-foreground">R Multiple</h3>
-                <div className={`font-medium ${
-                  tradeMetrics.rMultiple > 0 
-                    ? 'text-green-600' 
-                    : tradeMetrics.rMultiple < 0 
-                    ? 'text-red-600' 
-                    : ''
-                }`}>
-                  {tradeMetrics.rMultiple ? `${tradeMetrics.rMultiple.toFixed(2)}R` : '—'}
-                </div>
-              </div>
+              )}
+              <Button 
+                variant="outline" 
+                className="w-full mt-2" 
+                onClick={() => navigate('/ideas')}
+              >
+                View All Ideas
+              </Button>
             </div>
-            
-            <div className="space-y-1.5">
-              <h3 className="font-medium text-sm text-muted-foreground">Exit Notes</h3>
-              <div className="whitespace-pre-wrap">
-                {trade.exitNotes || '—'}
-              </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Images */}
+      {trade.images && trade.images.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Trade Images</CardTitle>
+              <CardDescription>Screenshots and charts for this trade</CardDescription>
             </div>
-            
-            {/* Partial exits, if any */}
-            {trade.partialExits && trade.partialExits.length > 0 && (
-              <div className="pt-4">
-                <h3 className="font-medium mb-2">Partial Exits</h3>
-                <Separator className="mb-4" />
-                <PartialExitsList 
-                  partialExits={trade.partialExits}
-                  entryPrice={trade.entryPrice || 0}
-                  tradeId={trade.id}
-                />
-              </div>
-            )}
+            <ImageIcon className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {trade.images.map((image, index) => (
+                <div 
+                  key={index} 
+                  className="aspect-square border rounded overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => viewImage(index)}
+                >
+                  <img 
+                    src={image} 
+                    alt={`Trade image ${index + 1}`} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
       
       {/* Delete confirmation dialog */}
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Trade</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this trade. This action cannot be undone.
+              Are you sure you want to delete this trade? This action cannot be undone and all data including images will be permanently lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteTrade} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeleteTrade}
+            >
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Exit Trade Modal */}
-      {exitFormOpen && (
-        <ExitTradeForm 
-          trade={trade} 
-          onOpenChange={setExitFormOpen}
-          onSuccess={() => {
-            setExitFormOpen(false);
-            // Reload trade data after exiting
-            const updatedTrade = getTradeById(id || '');
-            if (updatedTrade) {
-              setTrade(updatedTrade);
-            }
-          }}
+      {/* Image viewer dialog */}
+      {trade.images && trade.images.length > 0 && (
+        <ImageViewerDialog
+          images={trade.images}
+          currentIndex={currentImageIndex}
+          isOpen={isImageDialogOpen}
+          onOpenChange={setIsImageDialogOpen}
+          onIndexChange={setCurrentImageIndex}
         />
       )}
       
-      {/* Image viewer dialog */}
-      {viewingImage && (
-        <ImageViewerDialog 
-          image={viewingImage} 
-          isOpen={!!viewingImage} 
-          onClose={() => setViewingImage(null)} 
-        />
-      )}
+      {/* Exit trade dialog */}
+      <Dialog open={isExitDialogOpen} onOpenChange={setIsExitDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <ExitTradeForm 
+            trade={trade}
+            onClose={() => setIsExitDialogOpen(false)}
+            onUpdate={handleTradeExit}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

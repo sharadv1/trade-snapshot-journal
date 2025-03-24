@@ -28,7 +28,7 @@ export function ImageUpload({
     }
   };
 
-  const processImageFile = (file: File) => {
+  const processImageFile = useCallback((file: File) => {
     setUploading(true);
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -41,7 +41,7 @@ export function ImageUpload({
       setUploading(false);
     };
     reader.readAsDataURL(file);
-  };
+  }, [onImageUpload]);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -125,7 +125,7 @@ export function ImageUpload({
           >
             <Upload className="h-6 w-6 mb-1 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">
-              {uploading ? 'Uploading...' : 'Drag or click'}
+              {uploading ? 'Uploading...' : 'Drop image here'}
             </span>
           </div>
         )}
