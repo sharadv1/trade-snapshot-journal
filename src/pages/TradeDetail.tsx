@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from '@/utils/toast';
@@ -18,18 +17,13 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getTradeIdea } from '@/utils/tradeOperations';
 import { ArrowLeft, AlertTriangle, ArrowUpRight, PenSquare, Trash2, CircleDollarSign, ImageIcon, Lightbulb } from 'lucide-react';
 
-// Create a small hook to just handle the updateData functionality
-// This separates it from the full useMonthlyPerformanceData hook
 import { useState as useUpdateState, useCallback } from 'react';
 
-// Custom hook to trigger monthly performance data updates
 function useMonthlyPerformanceUpdater() {
   const [updateCounter, setUpdateCounter] = useUpdateState(0);
   
-  // Function to trigger an update by incrementing a counter
   const updateData = useCallback(() => {
     setUpdateCounter(prev => prev + 1);
-    // Dispatch a storage event to notify other components
     window.dispatchEvent(new Event('storage'));
   }, []);
   
@@ -46,13 +40,10 @@ export default function TradeDetail() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Use the simpler updater hook
   const { updateData } = useMonthlyPerformanceUpdater();
   
-  // Local state for calculated metrics
   const [metrics, setMetrics] = useState<TradeMetrics | null>(null);
-  
-  // Load trade data
+
   useEffect(() => {
     if (!id) {
       toast.error('No trade ID provided');
@@ -64,7 +55,6 @@ export default function TradeDetail() {
       const tradeData = getTradeById(id);
       if (tradeData) {
         setTrade(tradeData);
-        // Calculate metrics and store them in state
         setMetrics(calculateTradeMetrics(tradeData));
       } else {
         toast.error('Trade not found');
@@ -81,14 +71,11 @@ export default function TradeDetail() {
 
   const handleTradeExit = () => {
     try {
-      // Refresh the trade data
       const updatedTrade = getTradeById(id as string);
       if (updatedTrade) {
         setTrade(updatedTrade);
-        // Recalculate metrics
         setMetrics(calculateTradeMetrics(updatedTrade));
         toast.success('Trade exited successfully');
-        // Trigger an update of the monthly performance data
         updateData();
       }
     } catch (error) {
@@ -118,7 +105,6 @@ export default function TradeDetail() {
 
   const relatedIdea = trade?.ideaId ? getTradeIdea(trade.ideaId) : null;
 
-  // Add loading state
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto py-8 px-4">
@@ -127,7 +113,6 @@ export default function TradeDetail() {
     );
   }
 
-  // Add error state if no trade was found
   if (!trade) {
     return (
       <div className="max-w-4xl mx-auto py-8 px-4">
@@ -141,7 +126,6 @@ export default function TradeDetail() {
     );
   }
 
-  // Create a trade with metrics for the TradeMetricsComponent
   const tradeWithMetrics = {
     ...trade,
     metrics: metrics || calculateTradeMetrics(trade)
@@ -150,7 +134,6 @@ export default function TradeDetail() {
   const isFullyExited = trade.status === 'closed' || 
     (trade.partialExits && trade.partialExits.reduce((acc, exit) => acc + exit.quantity, 0) === trade.quantity);
   
-  // Format date for display
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString();
@@ -158,7 +141,6 @@ export default function TradeDetail() {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
-      {/* Header with back button */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={() => navigate(-1)} className="flex items-center gap-1">
           <ArrowLeft className="h-4 w-4" />
@@ -186,20 +168,17 @@ export default function TradeDetail() {
             <span>Edit</span>
           </Button>
           
-          <AlertDialogTrigger asChild>
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-1 text-destructive hover:bg-destructive/10"
-              onClick={() => setIsDeleteDialogOpen(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span>Delete</span>
-            </Button>
-          </AlertDialogTrigger>
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-1 text-destructive hover:bg-destructive/10"
+            onClick={() => setIsDeleteDialogOpen(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span>Delete</span>
+          </Button>
         </div>
       </div>
       
-      {/* Trade title and badges */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
           {trade.symbol} {trade.direction === 'long' ? 'Long' : 'Short'}
@@ -223,7 +202,6 @@ export default function TradeDetail() {
         </div>
       </div>
       
-      {/* Trade metrics card */}
       <Card>
         <CardHeader>
           <CardTitle>Trade Metrics</CardTitle>
@@ -231,7 +209,6 @@ export default function TradeDetail() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Fixed: Pass the properly formed tradeWithMetrics array */}
             <TradeMetricsComponent trades={[tradeWithMetrics]} />
             
             <div className="space-y-4">
@@ -304,7 +281,6 @@ export default function TradeDetail() {
         </CardContent>
       </Card>
       
-      {/* Partial exits list */}
       {trade.partialExits && trade.partialExits.length > 0 && (
         <Card>
           <CardHeader>
@@ -314,13 +290,12 @@ export default function TradeDetail() {
             <PartialExitsList 
               trade={trade}
               allowEditing={false}
-              onUpdate={() => {}} // Dummy function for read-only mode
+              onUpdate={() => {}}
             />
           </CardContent>
         </Card>
       )}
       
-      {/* Related ideas */}
       {relatedIdea && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -358,7 +333,6 @@ export default function TradeDetail() {
         </Card>
       )}
       
-      {/* Images */}
       {trade.images && trade.images.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -388,7 +362,6 @@ export default function TradeDetail() {
         </Card>
       )}
       
-      {/* Delete confirmation dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -409,7 +382,6 @@ export default function TradeDetail() {
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Image viewer dialog */}
       {trade.images && trade.images.length > 0 && isImageDialogOpen && (
         <ImageViewerDialog
           image={trade.images[currentImageIndex]}
@@ -418,7 +390,6 @@ export default function TradeDetail() {
         />
       )}
       
-      {/* Exit trade dialog */}
       <Dialog open={isExitDialogOpen} onOpenChange={setIsExitDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <ExitTradeForm 
@@ -431,3 +402,4 @@ export default function TradeDetail() {
     </div>
   );
 }
+
