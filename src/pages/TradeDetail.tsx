@@ -231,10 +231,10 @@ export default function TradeDetail() {
                 </div>
               )}
               
-              {trade.targetPrice && (
+              {trade.takeProfit && (
                 <div>
                   <h3 className="text-sm font-medium">Target</h3>
-                  <p className="text-lg">{trade.targetPrice.toFixed(2)}</p>
+                  <p className="text-lg">{trade.takeProfit.toFixed(2)}</p>
                 </div>
               )}
             </div>
@@ -251,11 +251,11 @@ export default function TradeDetail() {
                   </p>
                 </div>
                 
-                {metrics.rMultiple !== undefined && (
+                {metrics.riskRewardRatio !== undefined && (
                   <div>
                     <p className="text-sm text-muted-foreground">R Multiple</p>
-                    <p className={`text-lg font-medium ${metrics.rMultiple > 0 ? 'text-green-600' : metrics.rMultiple < 0 ? 'text-red-600' : ''}`}>
-                      {metrics.rMultiple.toFixed(2)}R
+                    <p className={`text-lg font-medium ${metrics.riskRewardRatio > 0 ? 'text-green-600' : metrics.riskRewardRatio < 0 ? 'text-red-600' : ''}`}>
+                      {metrics.riskRewardRatio.toFixed(2)}R
                     </p>
                   </div>
                 )}
@@ -282,6 +282,7 @@ export default function TradeDetail() {
             <PartialExitsList 
               trade={trade}
               allowEditing={false}
+              onUpdate={() => {}}
             />
           </CardContent>
         </Card>
@@ -307,10 +308,10 @@ export default function TradeDetail() {
                 <span className="text-sm text-muted-foreground">Direction</span>
                 <p className="font-medium capitalize">{relatedIdea.direction}</p>
               </div>
-              {relatedIdea.notes && (
+              {relatedIdea.description && (
                 <div>
                   <span className="text-sm text-muted-foreground">Notes</span>
-                  <p className="whitespace-pre-line">{relatedIdea.notes}</p>
+                  <p className="whitespace-pre-line">{relatedIdea.description}</p>
                 </div>
               )}
               <Button 
@@ -377,13 +378,11 @@ export default function TradeDetail() {
       </AlertDialog>
       
       {/* Image viewer dialog */}
-      {trade.images && trade.images.length > 0 && (
+      {trade.images && trade.images.length > 0 && isImageDialogOpen && (
         <ImageViewerDialog
-          images={trade.images}
-          currentIndex={currentImageIndex}
+          image={trade.images[currentImageIndex]}
           isOpen={isImageDialogOpen}
-          onOpenChange={setIsImageDialogOpen}
-          onIndexChange={setCurrentImageIndex}
+          onClose={() => setIsImageDialogOpen(false)}
         />
       )}
       
