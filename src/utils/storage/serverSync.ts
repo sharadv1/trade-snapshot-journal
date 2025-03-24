@@ -1,3 +1,4 @@
+
 import { toast } from '@/utils/toast';
 import { setServerSync, SERVER_URL_KEY, isUsingServerSync, getServerUrl } from './storageCore';
 
@@ -112,7 +113,7 @@ export const syncAllData = async (): Promise<boolean> => {
       await syncWithServer();
       // Sync ideas
       await syncIdeasWithServer();
-      // Sync strategies - use imported function instead of direct reference
+      // Sync strategies
       await syncStrategiesWithServer();
       // Sync symbols
       await syncSymbolsWithServer();

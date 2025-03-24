@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+
+import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, X } from 'lucide-react';
 
@@ -16,25 +17,69 @@ export function ImageUpload({
   disabled = false 
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropAreaRef = useRef<HTMLDivElement>(null);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        onImageUpload(base64String);
-        setUploading(false);
-      };
-      reader.onerror = () => {
-        console.error("Error reading file");
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
+      processImageFile(file);
     }
   };
+
+  const processImageFile = (file: File) => {
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      onImageUpload(base64String);
+      setUploading(false);
+    };
+    reader.onerror = () => {
+      console.error("Error reading file");
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!disabled) {
+      setIsDragging(true);
+    }
+  }, [disabled]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!disabled) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  }, [disabled]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    if (disabled) return;
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length) {
+      const imageFile = files[0];
+      if (imageFile.type.startsWith('image/')) {
+        processImageFile(imageFile);
+      }
+    }
+  }, [disabled, processImageFile]);
 
   const handleImageBtnClick = () => {
     fileInputRef.current?.click();
@@ -65,15 +110,24 @@ export function ImageUpload({
         ))}
         
         {!disabled && (
-          <Button
-            type="button"
+          <div
+            ref={dropAreaRef}
+            className={`w-24 h-24 flex flex-col items-center justify-center border-2 border-dashed rounded cursor-pointer transition-colors ${
+              isDragging 
+                ? 'border-primary bg-primary/10' 
+                : 'border-gray-300 hover:border-primary hover:bg-gray-50'
+            }`}
             onClick={handleImageBtnClick}
-            variant="outline"
-            className="w-24 h-24 flex flex-col items-center justify-center"
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
           >
-            <Upload className="h-6 w-6 mb-1" />
-            <span className="text-xs">Add Image</span>
-          </Button>
+            <Upload className="h-6 w-6 mb-1 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              {uploading ? 'Uploading...' : 'Drag or click'}
+            </span>
+          </div>
         )}
       </div>
       

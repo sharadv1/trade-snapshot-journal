@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, PencilLine, ArrowRight, ArrowUp, ArrowDown, Trash2, ChevronLeft, ChevronRight, Link as LinkIcon } from 'lucide-react';
@@ -375,6 +374,7 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
       {/* Edit Dialog */}
       {editingIdea && (
         <IdeaDialog
+          mode="edit"
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           initialIdea={editingIdea}

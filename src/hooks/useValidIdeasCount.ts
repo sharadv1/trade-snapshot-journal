@@ -1,29 +1,26 @@
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getIdeas } from '@/utils/ideaStorage';
 
 export function useValidIdeasCount() {
-  const [validIdeasCount, setValidIdeasCount] = useState<number>(0);
+  const [validIdeasCount, setValidIdeasCount] = useState(0);
 
   useEffect(() => {
-    const countValidIdeas = () => {
-      const ideas = getIdeas();
-      const validIdeas = ideas.filter(idea => idea.status === 'still valid');
-      setValidIdeasCount(validIdeas.length);
-    };
+    // Count valid ideas (those with status of 'still valid')
+    const ideas = getIdeas();
+    const validCount = ideas.filter(idea => idea.status === 'still valid').length;
+    setValidIdeasCount(validCount);
 
-    // Initial count
-    countValidIdeas();
-
-    // Listen for storage events to update the count when ideas change
+    // Listen for storage events (when ideas are updated)
     const handleStorageChange = () => {
-      countValidIdeas();
+      const updatedIdeas = getIdeas();
+      const updatedValidCount = updatedIdeas.filter(idea => idea.status === 'still valid').length;
+      setValidIdeasCount(updatedValidCount);
     };
 
     window.addEventListener('storage', handleStorageChange);
-    // Also listen to our custom storage event for same-window updates
     window.addEventListener('ideas-updated', handleStorageChange);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('ideas-updated', handleStorageChange);
