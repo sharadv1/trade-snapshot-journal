@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { toast } from '@/utils/toast';
 
 interface DataExportImportProps {
   onImportComplete?: () => void;
@@ -48,13 +49,19 @@ export const DataExportImport = ({ onImportComplete }: DataExportImportProps) =>
       if (onImportComplete) {
         onImportComplete();
       }
+    } catch (error) {
+      console.error('Error during import:', error);
+      toast.error('Import failed. Please check the file format.');
     } finally {
       setIsImporting(false);
       // Reset the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      setIsDialogOpen(false);
+      // Small delay before closing dialog to ensure toasts are visible
+      setTimeout(() => {
+        setIsDialogOpen(false);
+      }, 500);
     }
   };
   
@@ -104,7 +111,7 @@ export const DataExportImport = ({ onImportComplete }: DataExportImportProps) =>
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept=".csv,.json"
+          accept=".json,.csv"
           className="hidden"
         />
       </div>

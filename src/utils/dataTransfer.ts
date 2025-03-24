@@ -1,8 +1,10 @@
 
 import { Trade } from '@/types';
 import { getTrades, saveTrades, getTradesSync } from './storage/storageCore';
-import { getStrategies } from './strategyStorage';
+import { getStrategies, saveStrategies } from './strategyStorage';
 import { getAllSymbols, saveCustomSymbols } from './symbolStorage';
+import { getIdeas, saveIdeas } from './ideaStorage';
+import { toast } from './toast';
 
 // Create a local interface for SymbolDetails to avoid type conflicts
 interface SymbolDetails {
@@ -16,12 +18,6 @@ interface SymbolDetails {
   meaning?: string;
   isPreset?: boolean;
 }
-
-// Helper function to save strategies
-export const saveStrategies = (strategies: any[]): void => {
-  localStorage.setItem('tradeStrategies', JSON.stringify(strategies));
-  window.dispatchEvent(new Event('storage'));
-};
 
 // Function to export trades to CSV
 export const exportTradesToCSV = async (): Promise<string> => {
@@ -105,25 +101,61 @@ export const parseCsvFile = async (file: File): Promise<string> => {
 // Updated functions to handle CSV files
 export const exportTradesToFile = async (): Promise<void> => {
   try {
-    const csvUrl = await exportTradesToCSV();
+    // Export to JSON instead of CSV for better data retention
+    const data = exportData();
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
     const link = document.createElement('a');
-    link.href = csvUrl;
-    link.download = `trade-journal-export-${new Date().toISOString().split('T')[0]}.csv`;
+    link.href = url;
+    link.download = `trade-journal-export-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success('Data exported successfully');
   } catch (error) {
-    console.error('Error exporting trades:', error);
+    console.error('Error exporting data:', error);
+    toast.error('Error exporting data');
   }
 };
 
 export const importTradesFromFile = async (file: File): Promise<void> => {
   try {
-    const csvContent = await parseCsvFile(file);
-    await importTradesFromCSV(csvContent);
-    window.dispatchEvent(new Event('storage'));
+    console.log('Importing file:', file.name, file.type);
+    
+    if (file.name.endsWith('.json')) {
+      // Handle JSON import
+      const textContent = await parseCsvFile(file);
+      try {
+        const success = importData(textContent);
+        if (success) {
+          toast.success('Data imported successfully');
+          // Dispatch events to update all components
+          window.dispatchEvent(new Event('storage'));
+          window.dispatchEvent(new Event('ideas-updated'));
+          window.dispatchEvent(new Event('symbols-updated'));
+          window.dispatchEvent(new Event('strategies-updated'));
+        } else {
+          toast.error('Failed to import data');
+        }
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        toast.error('Invalid JSON file');
+      }
+    } else if (file.name.endsWith('.csv')) {
+      // Handle CSV import (backward compatibility)
+      const csvContent = await parseCsvFile(file);
+      await importTradesFromCSV(csvContent);
+      toast.success('Trades imported successfully');
+      window.dispatchEvent(new Event('storage'));
+    } else {
+      toast.error('Unsupported file format. Please use .json or .csv');
+    }
   } catch (error) {
-    console.error('Error importing trades:', error);
+    console.error('Error importing file:', error);
+    toast.error('Error importing file');
   }
 };
 
@@ -132,11 +164,13 @@ export const exportData = () => {
   const trades = getTradesSync();
   const strategies = getStrategies();
   const symbols = getAllSymbols();
+  const ideas = getIdeas();
 
   const exportData = {
     trades,
     strategies,
     symbols,
+    ideas,
     version: 1
   };
 
@@ -146,23 +180,36 @@ export const exportData = () => {
 // Import data function
 export const importData = (jsonData: string) => {
   try {
+    console.log('Parsing import data...');
     const data = JSON.parse(jsonData);
+    console.log('Data parsed successfully');
     
-    if (data.trades) {
+    // Add defensive checks for each data type
+    if (data.trades && Array.isArray(data.trades)) {
+      console.log(`Importing ${data.trades.length} trades`);
       saveTrades(data.trades);
     }
     
-    if (data.strategies) {
+    if (data.strategies && Array.isArray(data.strategies)) {
+      console.log(`Importing ${data.strategies.length} strategies`);
       saveStrategies(data.strategies);
     }
     
-    if (data.symbols) {
+    if (data.symbols && Array.isArray(data.symbols)) {
+      console.log(`Importing ${data.symbols.length} symbols`);
       saveCustomSymbols(data.symbols as SymbolDetails[]);
     }
     
+    if (data.ideas && Array.isArray(data.ideas)) {
+      console.log(`Importing ${data.ideas.length} ideas`);
+      saveIdeas(data.ideas);
+    }
+    
+    console.log('Import completed successfully');
     return true;
   } catch (error) {
     console.error('Error importing data:', error);
+    toast.error('Error importing data: ' + (error instanceof Error ? error.message : 'Unknown error'));
     return false;
   }
 };
