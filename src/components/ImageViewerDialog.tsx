@@ -2,17 +2,31 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, ZoomIn, ZoomOut, Maximize, ExternalLink } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, Maximize, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 
 interface ImageViewerDialogProps {
   image: string;
+  images?: string[];
+  currentIndex?: number;
   isOpen: boolean;
   onClose: () => void;
+  onIndexChange?: (index: number) => void;
 }
 
-export function ImageViewerDialog({ image, isOpen, onClose }: ImageViewerDialogProps) {
+export function ImageViewerDialog({ 
+  image, 
+  images = [], 
+  currentIndex = 0, 
+  isOpen, 
+  onClose, 
+  onIndexChange 
+}: ImageViewerDialogProps) {
   const [zoomLevel, setZoomLevel] = useState(100);
+  
+  // Use the array if provided, otherwise create a single-image array
+  const imageArray = images.length > 0 ? images : [image];
+  const displayedImage = images.length > 0 ? images[currentIndex] : image;
   
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 25, 200));
@@ -27,7 +41,23 @@ export function ImageViewerDialog({ image, isOpen, onClose }: ImageViewerDialogP
   };
   
   const openInNewTab = () => {
-    window.open(image, '_blank');
+    window.open(displayedImage, '_blank');
+  };
+  
+  const handlePrevious = () => {
+    if (imageArray.length <= 1) return;
+    const newIndex = (currentIndex - 1 + imageArray.length) % imageArray.length;
+    if (onIndexChange) {
+      onIndexChange(newIndex);
+    }
+  };
+  
+  const handleNext = () => {
+    if (imageArray.length <= 1) return;
+    const newIndex = (currentIndex + 1) % imageArray.length;
+    if (onIndexChange) {
+      onIndexChange(newIndex);
+    }
   };
   
   return (
@@ -80,10 +110,31 @@ export function ImageViewerDialog({ image, isOpen, onClose }: ImageViewerDialogP
             </Button>
           </div>
           
+          {imageArray.length > 1 && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 h-10 w-10 rounded-full opacity-70 hover:opacity-100"
+                onClick={handlePrevious}
+              >
+                <ChevronLeft size={20} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 h-10 w-10 rounded-full opacity-70 hover:opacity-100"
+                onClick={handleNext}
+              >
+                <ChevronRight size={20} />
+              </Button>
+            </>
+          )}
+          
           <div className="h-full flex items-center justify-center p-4">
             <div className="relative overflow-auto max-h-full max-w-full flex items-center justify-center">
               <img 
-                src={image} 
+                src={displayedImage} 
                 alt="Trade image" 
                 className="object-contain max-h-[calc(90vh-32px)]"
                 style={{ 
@@ -93,6 +144,16 @@ export function ImageViewerDialog({ image, isOpen, onClose }: ImageViewerDialogP
               />
             </div>
           </div>
+          
+          {imageArray.length > 1 && (
+            <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+              <div className="bg-background/80 px-3 py-1 rounded-full">
+                <span className="text-sm font-medium">
+                  {currentIndex + 1} / {imageArray.length}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -43,7 +43,8 @@ export function ImageUpload({
     reader.readAsDataURL(file);
   }, [onImageUpload]);
 
-  const handleDragEnter = useCallback((e: React.DragEvent) => {
+  // Improved drag event handlers
+  const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     if (!disabled) {
@@ -51,31 +52,33 @@ export function ImageUpload({
     }
   }, [disabled]);
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!disabled) {
+      setIsDragging(true);
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  }, [disabled]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   }, []);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!disabled) {
-      e.dataTransfer.dropEffect = 'copy';
-    }
-  }, [disabled]);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
     
     if (disabled) return;
     
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length) {
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
       const imageFile = files[0];
-      if (imageFile.type.startsWith('image/')) {
+      
+      if (imageFile && imageFile.type.startsWith('image/')) {
         processImageFile(imageFile);
       }
     }
