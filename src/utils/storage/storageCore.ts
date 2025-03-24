@@ -24,6 +24,9 @@ export const getServerUrl = (): string => {
 export const setServerSync = (enabled: boolean, url: string = ''): void => {
   useServerSync = enabled;
   serverUrl = url;
+  
+  // Log to help with debugging
+  console.log(`Server sync ${enabled ? 'enabled' : 'disabled'}${enabled ? ' with URL: ' + url : ''}`);
 };
 
 // Synchronous version for components that can't use async/await
@@ -38,11 +41,18 @@ export const getTradesSync = (): Trade[] => {
   }
 };
 
-// Save trades to storage (localStorage and/or server)
+// Enhanced save trades function with better error handling
 export const saveTrades = async (trades: Trade[]): Promise<void> => {
+  if (!trades || !Array.isArray(trades)) {
+    console.error('Invalid trades data:', trades);
+    toast.error('Invalid trade data format');
+    return;
+  }
+  
   try {
     // Always save to localStorage as a fallback
     localStorage.setItem(TRADES_STORAGE_KEY, JSON.stringify(trades));
+    console.log(`Saved ${trades.length} trades to local storage`);
     
     // If server sync is enabled, also save to server
     if (useServerSync && serverUrl) {
@@ -57,8 +67,7 @@ export const saveTrades = async (trades: Trade[]): Promise<void> => {
         });
         
         if (!response.ok) {
-          console.error('Error saving trades to server:', response.statusText);
-          toast.error('Failed to sync trades with server');
+          throw new Error(`Server returned status: ${response.status}`);
         } else {
           console.log('Trades synced with server successfully');
         }
@@ -68,16 +77,16 @@ export const saveTrades = async (trades: Trade[]): Promise<void> => {
       }
     }
     
-    // Dispatch a storage event to notify other tabs
+    // Dispatch a storage event to notify other tabs/components
     window.dispatchEvent(new Event('storage'));
-    console.log('Trades saved successfully');
+    console.log('Trades saved successfully and storage event dispatched');
   } catch (error) {
     console.error('Error saving trades to localStorage:', error);
     toast.error('Failed to save trades');
   }
 };
 
-// Get trades from storage (server or localStorage)
+// Enhanced get trades function with improved error handling
 export const getTrades = async (): Promise<Trade[]> => {
   try {
     // Try to get from server first if server sync is enabled
@@ -87,13 +96,18 @@ export const getTrades = async (): Promise<Trade[]> => {
         const response = await fetch(serverUrl);
         if (response.ok) {
           const serverTrades = await response.json();
-          console.log('Loaded trades from server');
-          // Update localStorage with server data
-          localStorage.setItem(TRADES_STORAGE_KEY, JSON.stringify(serverTrades));
-          return serverTrades;
+          console.log(`Loaded ${serverTrades.length} trades from server`);
+          
+          // Validate the data is an array before saving
+          if (Array.isArray(serverTrades)) {
+            // Update localStorage with server data
+            localStorage.setItem(TRADES_STORAGE_KEY, JSON.stringify(serverTrades));
+            return serverTrades;
+          } else {
+            throw new Error('Server returned invalid data format (not an array)');
+          }
         } else {
-          console.error('Server returned an error status', response.status);
-          toast.error('Failed to load trades from server, using local storage');
+          throw new Error(`Server returned an error status: ${response.status}`);
         }
       } catch (serverError) {
         console.error('Error fetching from server:', serverError);
@@ -104,7 +118,14 @@ export const getTrades = async (): Promise<Trade[]> => {
     // Fallback to localStorage
     const tradesJson = localStorage.getItem(TRADES_STORAGE_KEY);
     if (!tradesJson) return [];
-    return JSON.parse(tradesJson);
+    
+    const parsedTrades = JSON.parse(tradesJson);
+    if (!Array.isArray(parsedTrades)) {
+      console.error('Invalid trade data format in localStorage');
+      return [];
+    }
+    
+    return parsedTrades;
   } catch (error) {
     console.error('Error getting trades:', error);
     toast.error('Failed to load trades');

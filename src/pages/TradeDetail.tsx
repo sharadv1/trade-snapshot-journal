@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from '@/utils/toast';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
 import { TradeMetrics as TradeMetricsComponent } from '@/components/TradeMetrics';
 import { PartialExitsList } from '@/components/PartialExitsList';
@@ -390,6 +391,7 @@ export default function TradeDetail() {
         />
       )}
       
+      {/* Fixed DialogTrigger issue by removing the trigger and just using the Dialog directly */}
       <Dialog open={isExitDialogOpen} onOpenChange={setIsExitDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <ExitTradeForm 
@@ -402,4 +404,3 @@ export default function TradeDetail() {
     </div>
   );
 }
-

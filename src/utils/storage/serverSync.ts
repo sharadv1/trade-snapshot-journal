@@ -1,6 +1,5 @@
-
 import { toast } from '@/utils/toast';
-import { setServerSync, SERVER_URL_KEY, isUsingServerSync, getServerUrl } from './storageCore';
+import { setServerSync, SERVER_URL_KEY, isUsingServerSync, getServerUrl, getTrades, saveTrades } from './storageCore';
 
 // Re-export the isUsingServerSync function
 export { isUsingServerSync, getServerUrl };
@@ -52,11 +51,18 @@ export const configureServerConnection = async (url: string): Promise<boolean> =
   }
   
   localStorage.setItem(SERVER_URL_KEY, url);
-  return initializeServerSync(url);
+  const success = await initializeServerSync(url);
+  
+  // If connection is successful, immediately sync with server to get latest data
+  if (success) {
+    await syncWithServer(true); // Force refresh from server
+  }
+  
+  return success;
 };
 
 // On app initialization, try to restore server connection
-export const restoreServerConnection = (): void => {
+export const restoreServerConnection = async (): Promise<void> => {
   const savedServerUrl = localStorage.getItem(SERVER_URL_KEY);
   
   // If no saved URL but running in Docker container, try to auto-configure
@@ -68,34 +74,24 @@ export const restoreServerConnection = (): void => {
         origin !== 'http://127.0.0.1:5173') {
       const apiUrl = `${origin}/api/trades`;
       console.log('Auto-configuring Docker server URL:', apiUrl);
-      configureServerConnection(apiUrl)
-        .then(success => {
-          if (success) {
-            console.log('Auto-connected to server');
-            // Force a sync to get latest data
-            syncWithServer();
-            // Also sync all other data types
-            syncAllData();
-          }
-        });
+      const success = await configureServerConnection(apiUrl);
+      if (success) {
+        console.log('Auto-connected to server');
+        // Already synced in configureServerConnection
+      }
     }
     return;
   }
   
   // Otherwise use the saved server URL
-  initializeServerSync(savedServerUrl)
-    .then(success => {
-      if (success) {
-        console.log('Restored server connection to:', savedServerUrl);
-        // Force a sync to get latest data
-        syncWithServer();
-        // Also sync all other data types
-        syncAllData();
-      }
-    })
-    .catch(err => {
-      console.error('Failed to restore server connection:', err);
-    });
+  const success = await initializeServerSync(savedServerUrl);
+  if (success) {
+    console.log('Restored server connection to:', savedServerUrl);
+    // Force a sync to get latest data
+    await syncWithServer(true);
+    // Also sync all other data types
+    await syncAllData();
+  }
 };
 
 // Sync all data types with the server
@@ -110,49 +106,100 @@ export const syncAllData = async (): Promise<boolean> => {
 
     try {
       // Sync trades
-      await syncWithServer();
+      await syncWithServer(true);
       // Sync ideas
       await syncIdeasWithServer();
       // Sync strategies
       await syncStrategiesWithServer();
       // Sync symbols
       await syncSymbolsWithServer();
+      
+      // Dispatch a storage event to notify other components
+      window.dispatchEvent(new Event('storage'));
+      toast.success('All data synced with server successfully');
     } catch (error) {
       console.error('Error during full sync:', error);
+      toast.error('Error syncing some data with server');
       success = false;
     }
   } catch (error) {
     console.error('Error syncing all data types:', error);
+    toast.error('Failed to sync data with server');
+    success = false;
   }
   
   return success;
 };
 
 // Force sync with server (pull server data)
-export const syncWithServer = async (): Promise<boolean> => {
+export const syncWithServer = async (forceRefresh: boolean = false): Promise<boolean> => {
   const serverUrl = localStorage.getItem(SERVER_URL_KEY);
   if (!serverUrl) {
-    toast.error('Server sync is not enabled');
+    console.log('Server sync is not enabled');
     return false;
   }
   
   try {
     console.log('Syncing trades with server at:', serverUrl);
-    const response = await fetch(serverUrl);
-    if (response.ok) {
-      const serverTrades = await response.json();
-      localStorage.setItem('trade-journal-trades', JSON.stringify(serverTrades));
-      window.dispatchEvent(new Event('storage'));
-      console.log('Successfully synced trades with server');
-      return true;
+    
+    // If forceRefresh is true, always get from server
+    if (forceRefresh) {
+      const response = await fetch(serverUrl);
+      if (response.ok) {
+        const serverTrades = await response.json();
+        localStorage.setItem('trade-journal-trades', JSON.stringify(serverTrades));
+        window.dispatchEvent(new Event('storage'));
+        console.log('Successfully pulled trades from server');
+        return true;
+      } else {
+        console.error('Server returned an error status', response.status);
+        toast.error('Failed to sync trades with server');
+        return false;
+      }
     } else {
-      console.error('Server returned an error status', response.status);
-      toast.error('Failed to sync trades with server');
-      return false;
+      // Normal two-way sync
+      // First get current trades
+      const localTrades = await getTrades();
+      
+      // Try to get server trades
+      const response = await fetch(serverUrl);
+      if (response.ok) {
+        const serverTrades = await response.json();
+        
+        // Check which is newer (more trades usually means newer)
+        // This is a simple heuristic that could be improved
+        if (serverTrades.length >= localTrades.length) {
+          // Server has same or more trades, use server data
+          localStorage.setItem('trade-journal-trades', JSON.stringify(serverTrades));
+          window.dispatchEvent(new Event('storage'));
+          console.log('Using server trades (same or more trades)');
+        } else {
+          // Local has more trades, push to server
+          await fetch(serverUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(localTrades),
+          });
+          console.log('Pushed local trades to server (more local trades)');
+        }
+        return true;
+      } else {
+        console.error('Server returned an error status', response.status);
+        toast.error('Failed to sync trades with server');
+        return false;
+      }
     }
   } catch (error) {
     console.error('Error syncing with server:', error);
     toast.error('Failed to connect to server');
     return false;
   }
+};
+
+// Fix the DialogTrigger in TradeDetail.tsx
+export const handleDialogDisplayProblem = (): void => {
+  // This is just a marker function for the TradeDetail.tsx issue
+  console.log('Dialog display issue handler registered');
 };

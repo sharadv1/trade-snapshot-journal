@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +16,8 @@ import {
   configureServerConnection, 
   isUsingServerSync,
   getServerUrl,
-  syncWithServer
+  syncWithServer,
+  syncAllData
 } from '@/utils/storage/serverSync';
 import { syncIdeasWithServer } from '@/utils/ideaStorage';
 import { syncStrategiesWithServer } from '@/utils/strategyStorage';
@@ -36,26 +36,37 @@ export function ServerSyncConfig() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   
-  // Load saved server URL on component mount
+  // Load saved server URL on component mount and check connection status
   useEffect(() => {
-    const savedUrl = localStorage.getItem('trade-journal-server-url') || '';
-    setServerUrl(savedUrl);
-    
-    // Check connection status
-    setIsConnected(isUsingServerSync());
-    
-    // If not connected but we're likely running in Docker, auto-set URL
-    if (!isUsingServerSync()) {
-      const origin = window.location.origin;
-      // If not a localhost dev server, try to auto-configure
-      if (origin !== 'http://localhost:3000' && 
-          origin !== 'http://localhost:5173' && 
-          origin !== 'http://127.0.0.1:5173') {
-        const apiUrl = `${origin}/api/trades`;
-        setServerUrl(apiUrl);
-        console.log('Auto-configured Docker server URL:', apiUrl);
+    const refreshConnectionStatus = () => {
+      const savedUrl = localStorage.getItem('trade-journal-server-url') || '';
+      setServerUrl(savedUrl);
+      
+      // Check connection status
+      setIsConnected(isUsingServerSync());
+      
+      // If not connected but we're likely running in Docker, auto-set URL
+      if (!isUsingServerSync()) {
+        const origin = window.location.origin;
+        // If not a localhost dev server, try to auto-configure
+        if (origin !== 'http://localhost:3000' && 
+            origin !== 'http://localhost:5173' && 
+            origin !== 'http://127.0.0.1:5173') {
+          const apiUrl = `${origin}/api/trades`;
+          setServerUrl(apiUrl);
+          console.log('Auto-configured Docker server URL:', apiUrl);
+        }
       }
-    }
+    };
+    
+    refreshConnectionStatus();
+    
+    // Also listen for storage events to update connection status
+    window.addEventListener('storage', refreshConnectionStatus);
+    
+    return () => {
+      window.removeEventListener('storage', refreshConnectionStatus);
+    };
   }, []);
   
   const handleSaveConfig = async () => {
@@ -66,37 +77,23 @@ export function ServerSyncConfig() {
       
       if (success) {
         setIsOpen(false);
-        // Force a sync to get latest data
-        await syncAllData();
+        // Force a refresh from the server - this is handled in configureServerConnection now
+        toast.success('Successfully connected to server and synced data');
+        window.dispatchEvent(new Event('storage'));
       }
     } finally {
       setIsSyncing(false);
     }
   };
   
-  const syncAllData = async () => {
+  const handleSyncClick = async () => {
     setIsSyncing(true);
     try {
-      // Sync trades
-      await syncWithServer();
-      // Sync ideas
-      await syncIdeasWithServer();
-      // Sync strategies
-      await syncStrategiesWithServer();
-      // Sync symbols
-      await syncSymbolsWithServer();
-      
-      toast.success('Successfully synced all data with server');
-    } catch (error) {
-      console.error('Error syncing data:', error);
-      toast.error('Failed to sync some data with server');
+      await syncAllData();
+      window.dispatchEvent(new Event('storage'));
     } finally {
       setIsSyncing(false);
     }
-  };
-
-  const handleSync = async () => {
-    await syncAllData();
   };
 
   const handleUseDocker = () => {
@@ -175,11 +172,12 @@ export function ServerSyncConfig() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => {
+              onClick={async () => {
                 setServerUrl('');
-                configureServerConnection('');
+                await configureServerConnection('');
                 setIsConnected(false);
                 setIsOpen(false);
+                toast.info('Server sync disabled, using local storage only');
               }}
             >
               Disable Sync
@@ -195,7 +193,7 @@ export function ServerSyncConfig() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleSync}
+          onClick={handleSyncClick}
           disabled={isSyncing}
           className="ml-2"
         >
