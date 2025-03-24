@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -22,8 +23,9 @@ import { ImageViewerDialog } from '@/components/ImageViewerDialog';
 import { Badge } from '@/components/ui/badge';
 import { getTradeById, deleteTrade, getTradeIdea } from '@/utils/tradeOperations';
 import { toast } from '@/utils/toast';
-import { Trade } from '@/types';
+import { Trade, TradeWithMetrics } from '@/types';
 import { IdeaDialog } from '@/components/idea/IdeaDialog';
+import { calculateTradeMetrics } from '@/utils/tradeCalculations';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -36,7 +38,6 @@ export default function TradeDetail() {
   const [ideaDialogOpen, setIdeaDialogOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
-  const [isViewingIdea, setIsViewingIdea] = useState(false);
   
   const trade = id ? getTradeById(id) : null;
   const tradeIdea = trade?.ideaId ? getTradeIdea(trade.ideaId) : null;
@@ -80,6 +81,12 @@ export default function TradeDetail() {
       </div>
     );
   }
+  
+  // Convert Trade to TradeWithMetrics for the TradeMetrics component
+  const tradeWithMetrics: TradeWithMetrics = {
+    ...trade,
+    metrics: calculateTradeMetrics(trade)
+  };
   
   return (
     <>
@@ -287,7 +294,7 @@ export default function TradeDetail() {
               
               {/* Metrics Tab */}
               <TabsContent value="metrics" className="space-y-6 mt-0">
-                <TradeMetrics trades={[trade]} />
+                <TradeMetrics trades={[tradeWithMetrics]} />
               </TabsContent>
               
               {/* Notes & Images Tab */}
@@ -379,7 +386,7 @@ export default function TradeDetail() {
       {/* Exit Trade Form Dialog */}
       <ExitTradeForm 
         trade={trade} 
-        isOpen={isExitDialogOpen}
+        open={isExitDialogOpen}
         onOpenChange={setIsExitDialogOpen}
         onSuccess={handleExitSuccess}
       />
@@ -394,8 +401,8 @@ export default function TradeDetail() {
       {/* Idea Viewer Dialog */}
       {tradeIdea && (
         <IdeaDialog
-          open={isIdeaDialogOpen}
-          onOpenChange={setIsIdeaDialogOpen}
+          open={ideaDialogOpen}
+          onOpenChange={setIdeaDialogOpen}
           initialIdea={tradeIdea}
           mode="view"
         />
@@ -403,4 +410,3 @@ export default function TradeDetail() {
     </>
   );
 }
-

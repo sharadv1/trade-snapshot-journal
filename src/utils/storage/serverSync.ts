@@ -112,9 +112,8 @@ export const syncAllData = async (): Promise<boolean> => {
       await syncWithServer();
       // Sync ideas
       await syncIdeasWithServer();
-      // Use the function we added to strategyStorage.ts
-      const strategiesSuccess = await strategyStorage.syncStrategiesWithServer();
-      success = success && strategiesSuccess;
+      // Sync strategies - use imported function instead of direct reference
+      await syncStrategiesWithServer();
       // Sync symbols
       await syncSymbolsWithServer();
     } catch (error) {

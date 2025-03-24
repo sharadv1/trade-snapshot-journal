@@ -11,7 +11,7 @@ import { IdeaDialog } from './IdeaDialog';
 import { toast } from '@/utils/toast';
 import { format } from 'date-fns';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
-import { getTradeById } from '@/utils/tradeStorage';
+import { getTradesWithMetrics } from '@/utils/tradeOperations';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,8 +60,12 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
     };
     
     window.addEventListener('storage', handleStorageChange);
+    // Also listen to our custom event for same-window updates
+    window.addEventListener('ideas-updated', handleStorageChange);
+    
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('ideas-updated', handleStorageChange);
     };
   }, []);
   
@@ -110,9 +114,9 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
   // Find the trade ID for a taken idea
   const findTradeForIdea = (ideaId: string): string | null => {
     // Search through all trades to find the one associated with this idea
-    const allTrades = getTradeById(ideaId);
-    if (allTrades) return allTrades.id;
-    return null;
+    const allTrades = getTradesWithMetrics();
+    const trade = allTrades.find(trade => trade.ideaId === ideaId);
+    return trade ? trade.id : null;
   };
   
   // Filter and sort ideas
@@ -253,107 +257,118 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sortedIdeas.map((idea) => (
-            <ContextMenu key={idea.id}>
-              <ContextMenuTrigger>
-                <Card className="overflow-hidden flex flex-col">
-                  <CardHeader className="p-4 pb-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          {idea.symbol}
-                          {renderDirectionBadge(idea.direction)}
-                        </CardTitle>
-                        <div className="text-sm text-muted-foreground">
-                          {format(new Date(idea.date), 'MMM d, yyyy h:mm a')}
+          {sortedIdeas.map((idea) => {
+            // Find the related trade ID if idea is taken
+            const relatedTradeId = idea.status === 'taken' ? findTradeForIdea(idea.id) : null;
+            
+            return (
+              <ContextMenu key={idea.id}>
+                <ContextMenuTrigger>
+                  <Card className="overflow-hidden flex flex-col">
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            {idea.symbol}
+                            {renderDirectionBadge(idea.direction)}
+                          </CardTitle>
+                          <div className="text-sm text-muted-foreground">
+                            {format(new Date(idea.date), 'MMM d, yyyy h:mm a')}
+                          </div>
                         </div>
+                        {renderStatusBadge(idea.status)}
                       </div>
-                      {renderStatusBadge(idea.status)}
-                    </div>
-                  </CardHeader>
-                  
-                  {idea.images && idea.images.length > 0 && renderImageGallery(idea)}
-                  
-                  <CardContent className="p-4 pt-2 flex-grow">
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {idea.description || 'No description provided'}
-                    </p>
+                    </CardHeader>
                     
-                    {/* Add trade link for taken ideas */}
-                    {idea.status === 'taken' && (
-                      <div 
-                        className="mt-3 text-sm text-primary font-medium flex items-center cursor-pointer hover:underline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/trade/${idea.id}`);
-                        }}
-                      >
-                        <LinkIcon className="h-3.5 w-3.5 mr-1.5" />
-                        View associated trade
-                      </div>
-                    )}
-                  </CardContent>
-                  
-                  <CardFooter className="p-4 pt-0 flex flex-wrap justify-between">
-                    <div className="flex flex-wrap gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleEditClick(idea)}
-                      >
-                        <PencilLine className="mr-1 h-4 w-4" />
-                        Edit
-                      </Button>
+                    {idea.images && idea.images.length > 0 && renderImageGallery(idea)}
+                    
+                    <CardContent className="p-4 pt-2 flex-grow">
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {idea.description || 'No description provided'}
+                      </p>
                       
-                      {idea.status !== 'taken' && (
-                        <Button 
-                          size="sm"
-                          onClick={() => createTradeFromIdea(idea)}
+                      {/* Add trade link for taken ideas */}
+                      {idea.status === 'taken' && relatedTradeId && (
+                        <div 
+                          className="mt-3 text-sm text-primary font-medium flex items-center cursor-pointer hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/trade/${relatedTradeId}`);
+                          }}
                         >
-                          <ArrowRight className="mr-1 h-4 w-4" />
-                          Create Trade
-                        </Button>
+                          <LinkIcon className="h-3.5 w-3.5 mr-1.5" />
+                          View associated trade
+                        </div>
                       )}
-                    </div>
+                      
+                      {idea.status === 'taken' && !relatedTradeId && (
+                        <div className="mt-3 text-sm text-gray-500 italic">
+                          This idea is marked as taken but the trade is no longer available.
+                        </div>
+                      )}
+                    </CardContent>
                     
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteClick(idea.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </ContextMenuTrigger>
-              <ContextMenuContent>
-                <ContextMenuItem onClick={() => handleEditClick(idea)}>
-                  <PencilLine className="mr-2 h-4 w-4" />
-                  Edit
-                </ContextMenuItem>
-                {idea.status !== 'taken' && (
-                  <ContextMenuItem onClick={() => createTradeFromIdea(idea)}>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Create Trade
+                    <CardFooter className="p-4 pt-0 flex flex-wrap justify-between">
+                      <div className="flex flex-wrap gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleEditClick(idea)}
+                        >
+                          <PencilLine className="mr-1 h-4 w-4" />
+                          Edit
+                        </Button>
+                        
+                        {idea.status !== 'taken' && (
+                          <Button 
+                            size="sm"
+                            onClick={() => createTradeFromIdea(idea)}
+                          >
+                            <ArrowRight className="mr-1 h-4 w-4" />
+                            Create Trade
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteClick(idea.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onClick={() => handleEditClick(idea)}>
+                    <PencilLine className="mr-2 h-4 w-4" />
+                    Edit
                   </ContextMenuItem>
-                )}
-                {idea.status === 'taken' && (
-                  <ContextMenuItem onClick={() => navigate(`/trade/${idea.id}`)}>
-                    <LinkIcon className="mr-2 h-4 w-4" />
-                    View Trade
+                  {idea.status !== 'taken' && (
+                    <ContextMenuItem onClick={() => createTradeFromIdea(idea)}>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Create Trade
+                    </ContextMenuItem>
+                  )}
+                  {idea.status === 'taken' && relatedTradeId && (
+                    <ContextMenuItem onClick={() => navigate(`/trade/${relatedTradeId}`)}>
+                      <LinkIcon className="mr-2 h-4 w-4" />
+                      View Trade
+                    </ContextMenuItem>
+                  )}
+                  <ContextMenuItem 
+                    onClick={() => handleDeleteClick(idea.id)}
+                    className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
                   </ContextMenuItem>
-                )}
-                <ContextMenuItem 
-                  onClick={() => handleDeleteClick(idea.id)}
-                  className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </ContextMenuItem>
-              </ContextMenuContent>
-            </ContextMenu>
-          ))}
+                </ContextMenuContent>
+              </ContextMenu>
+            );
+          })}
         </div>
       )}
       
