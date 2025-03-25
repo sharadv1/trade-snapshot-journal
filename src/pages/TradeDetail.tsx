@@ -11,25 +11,11 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
-import { TradeMetrics as TradeMetricsComponent } from '@/components/TradeMetrics';
 import { PartialExitsList } from '@/components/PartialExitsList';
 import { ExitTradeForm } from '@/components/ExitTradeForm';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getTradeIdea } from '@/utils/tradeOperations';
 import { ArrowLeft, AlertTriangle, ArrowUpRight, PenSquare, Trash2, CircleDollarSign, ImageIcon, Lightbulb } from 'lucide-react';
-
-import { useState as useUpdateState, useCallback } from 'react';
-
-function useMonthlyPerformanceUpdater() {
-  const [updateCounter, setUpdateCounter] = useUpdateState(0);
-  
-  const updateData = useCallback(() => {
-    setUpdateCounter(prev => prev + 1);
-    window.dispatchEvent(new Event('storage'));
-  }, []);
-  
-  return { updateData };
-}
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -40,9 +26,6 @@ export default function TradeDetail() {
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  
-  const { updateData } = useMonthlyPerformanceUpdater();
-  
   const [metrics, setMetrics] = useState<TradeMetrics | null>(null);
 
   useEffect(() => {
@@ -77,7 +60,7 @@ export default function TradeDetail() {
         setTrade(updatedTrade);
         setMetrics(calculateTradeMetrics(updatedTrade));
         toast.success('Trade exited successfully');
-        updateData();
+        window.dispatchEvent(new Event('storage'));
       }
     } catch (error) {
       console.error('Error refreshing trade after exit:', error);
@@ -92,7 +75,7 @@ export default function TradeDetail() {
       await deleteTrade(id as string);
       toast.success('Trade deleted successfully');
       navigate('/');
-      updateData();
+      window.dispatchEvent(new Event('storage'));
     } catch (error) {
       console.error('Error deleting trade:', error);
       toast.error('Error deleting trade');
@@ -127,11 +110,6 @@ export default function TradeDetail() {
     );
   }
 
-  const tradeWithMetrics = {
-    ...trade,
-    metrics: metrics || calculateTradeMetrics(trade)
-  };
-  
   const isFullyExited = trade.status === 'closed' || 
     (trade.partialExits && trade.partialExits.reduce((acc, exit) => acc + exit.quantity, 0) === trade.quantity);
   
@@ -139,6 +117,10 @@ export default function TradeDetail() {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString();
   };
+
+  // Calculate P&L and other metrics
+  const profitLoss = metrics?.profitLoss || 0;
+  const riskRewardRatio = metrics?.riskRewardRatio;
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
@@ -206,15 +188,11 @@ export default function TradeDetail() {
       <div className="grid grid-cols-1 gap-8">
         <Card>
           <CardHeader>
-            <CardTitle>Trade Metrics</CardTitle>
-            <CardDescription>Key performance indicators for this trade</CardDescription>
+            <CardTitle>Trade Details</CardTitle>
+            <CardDescription>Key information about this trade</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <TradeMetricsComponent trades={[tradeWithMetrics]} />
-              </div>
-              
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-medium">Entry</h3>
@@ -236,7 +214,9 @@ export default function TradeDetail() {
                   <h3 className="text-sm font-medium">Quantity</h3>
                   <p className="text-lg">{trade.quantity}</p>
                 </div>
-                
+              </div>
+              
+              <div className="space-y-4">
                 {trade.stopLoss && (
                   <div>
                     <h3 className="text-sm font-medium">Stop Loss</h3>
@@ -250,31 +230,28 @@ export default function TradeDetail() {
                     <p className="text-lg">{trade.takeProfit.toFixed(2)}</p>
                   </div>
                 )}
-              </div>
-            </div>
-            
-            {trade.status === 'closed' && metrics && (
-              <div className="mt-6 p-4 bg-muted rounded-md">
-                <h3 className="font-medium mb-2">Results</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">P&L</p>
-                    <p className={`text-lg font-medium ${metrics.profitLoss > 0 ? 'text-green-600' : metrics.profitLoss < 0 ? 'text-red-600' : ''}`}>
-                      ${metrics.profitLoss.toFixed(2)}
-                    </p>
-                  </div>
-                  
-                  {metrics.riskRewardRatio !== undefined && (
+                
+                {trade.status === 'closed' && metrics && (
+                  <>
                     <div>
-                      <p className="text-sm text-muted-foreground">R Multiple</p>
-                      <p className={`text-lg font-medium ${metrics.riskRewardRatio > 0 ? 'text-green-600' : metrics.riskRewardRatio < 0 ? 'text-red-600' : ''}`}>
-                        {metrics.riskRewardRatio.toFixed(2)}R
+                      <h3 className="text-sm font-medium">P&L</h3>
+                      <p className={`text-lg font-medium ${profitLoss > 0 ? 'text-green-600' : profitLoss < 0 ? 'text-red-600' : ''}`}>
+                        ${profitLoss.toFixed(2)}
                       </p>
                     </div>
-                  )}
-                </div>
+                    
+                    {riskRewardRatio !== undefined && (
+                      <div>
+                        <h3 className="text-sm font-medium">R Multiple</h3>
+                        <p className={`text-lg font-medium ${riskRewardRatio > 0 ? 'text-green-600' : riskRewardRatio < 0 ? 'text-red-600' : ''}`}>
+                          {riskRewardRatio.toFixed(2)}R
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-            )}
+            </div>
             
             {trade.notes && (
               <div className="mt-6">
@@ -292,7 +269,7 @@ export default function TradeDetail() {
             </CardHeader>
             <CardContent>
               <PartialExitsList 
-                trade={trade}
+                trade={trade} 
                 allowEditing={false}
                 onUpdate={() => {}}
               />
