@@ -167,16 +167,43 @@ export const importTradesFromFile = async (file: File): Promise<void> => {
       const textContent = await parseCsvFile(file);
       try {
         console.log('Parsing JSON file...');
-        const success = importData(textContent);
-        if (success) {
-          toast.success('Data imported successfully');
-          // Dispatch events to update all components
+        // First check if it's an array (direct trades import) or an object with structure
+        let parsedData;
+        try {
+          parsedData = JSON.parse(textContent);
+        } catch (e) {
+          toast.error('Invalid JSON format');
+          return;
+        }
+        
+        // Handle both array of trades directly or structured data
+        if (Array.isArray(parsedData)) {
+          console.log('Found array of trades:', parsedData.length);
+          const validatedTrades = parsedData.map(trade => ({
+            ...trade,
+            direction: trade.direction || 'long',
+            type: trade.type || 'equity',
+            status: trade.status || 'closed',
+            entryDate: trade.entryDate || new Date().toISOString()
+          }));
+          
+          await saveTrades(validatedTrades);
+          toast.success(`Imported ${validatedTrades.length} trades successfully`);
+          // Force refresh UI components
           window.dispatchEvent(new Event('storage'));
-          window.dispatchEvent(new Event('ideas-updated'));
-          window.dispatchEvent(new Event('symbols-updated'));
-          window.dispatchEvent(new Event('strategies-updated'));
         } else {
-          toast.error('Failed to import data');
+          // Try structured data format
+          const success = importData(textContent);
+          if (success) {
+            toast.success('Data imported successfully');
+            // Dispatch events to update all components
+            window.dispatchEvent(new Event('storage'));
+            window.dispatchEvent(new Event('ideas-updated'));
+            window.dispatchEvent(new Event('symbols-updated'));
+            window.dispatchEvent(new Event('strategies-updated'));
+          } else {
+            toast.error('Failed to import data');
+          }
         }
       } catch (error) {
         console.error('Error parsing JSON:', error);

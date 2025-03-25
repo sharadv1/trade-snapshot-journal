@@ -52,6 +52,7 @@ export const DataExportImport = ({ onImportComplete }: DataExportImportProps) =>
       
       // Force refresh UI components
       window.dispatchEvent(new Event('storage'));
+      toast.success('Import completed successfully');
     } catch (error) {
       console.error('Error during import:', error);
       toast.error('Import failed. Please check the file format.');

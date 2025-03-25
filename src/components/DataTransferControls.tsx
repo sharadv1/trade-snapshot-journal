@@ -3,6 +3,7 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { exportTradesToFile, importTradesFromFile } from '@/utils/dataTransfer';
 import { Download, Upload } from 'lucide-react';
+import { toast } from '@/utils/toast';
 
 interface DataTransferControlsProps {
   onImportComplete?: () => void;
@@ -35,6 +36,10 @@ export const DataTransferControls = ({ onImportComplete }: DataTransferControlsP
       
       // Force refresh UI components
       window.dispatchEvent(new Event('storage'));
+      toast.success('Import completed successfully');
+    } catch (error) {
+      console.error('Error during import:', error);
+      toast.error('Import failed. Please check the file format.');
     } finally {
       setIsImporting(false);
       // Reset the file input
@@ -73,7 +78,7 @@ export const DataTransferControls = ({ onImportComplete }: DataTransferControlsP
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
-        accept=".csv,.json"
+        accept=".json,.csv"
         className="hidden"
       />
     </div>
