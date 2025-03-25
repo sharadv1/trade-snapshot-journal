@@ -3,7 +3,7 @@ import { Trade, TradeIdea, Strategy } from '@/types';
 import { getTrades, saveTrades } from './storage/storageCore';
 import { getIdeas, saveIdeas } from './ideaStorage';
 import { getStrategies, saveStrategies } from './strategyStorage';
-import { getAllSymbols as getSymbols, saveAllSymbols as saveSymbols } from './symbolStorage';
+import { getAllSymbols, saveCustomSymbols } from './symbolStorage';
 import { toast } from './toast';
 
 // Function to export trades, ideas, strategies, and symbols to a file
@@ -12,7 +12,7 @@ export const exportTradesToFile = async () => {
     const trades = await getTrades();
     const ideas = getIdeas();
     const strategies = getStrategies();
-    const symbols = getSymbols();
+    const symbols = getAllSymbols();
     
     // Create a data object with all elements
     const data = {
@@ -220,7 +220,7 @@ const importData = (jsonData: string): boolean => {
       
       // Validate and import symbols
       if (Array.isArray(data.symbols)) {
-        saveSymbols(data.symbols);
+        saveCustomSymbols(data.symbols);
         console.log(`Imported ${data.symbols.length} symbols`);
       } else {
         console.warn('Invalid symbols data format in import');
