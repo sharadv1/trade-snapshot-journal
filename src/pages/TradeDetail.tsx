@@ -15,7 +15,7 @@ import { PartialExitsList } from '@/components/PartialExitsList';
 import { ExitTradeForm } from '@/components/ExitTradeForm';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getTradeIdea } from '@/utils/tradeOperations';
-import { ArrowLeft, AlertTriangle, ArrowUpRight, PenSquare, Trash2, CircleDollarSign, ImageIcon, Lightbulb } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, ArrowUpRight, PenSquare, Trash2, CircleDollarSign, ImageIcon, Lightbulb, Calendar, BarChart } from 'lucide-react';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -174,7 +174,7 @@ export default function TradeDetail() {
           </Badge>
           
           <Badge variant="outline">
-            {trade.strategy}
+            {trade.strategy || 'No Strategy'}
           </Badge>
           
           {trade.tags && trade.tags.map((tag, index) => (
@@ -185,38 +185,85 @@ export default function TradeDetail() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <Card>
           <CardHeader>
             <CardTitle>Trade Details</CardTitle>
             <CardDescription>Key information about this trade</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-sm font-medium">Entry</h3>
-                  <p className="text-lg">
-                    {trade.entryPrice?.toFixed(2)} on {formatDate(trade.entryDate)}
-                  </p>
+                  <h3 className="text-sm font-medium">Entry Date</h3>
+                  <p className="text-lg">{formatDate(trade.entryDate)}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium">Entry Price</h3>
+                  <p className="text-lg">{trade.entryPrice?.toFixed(2)}</p>
                 </div>
                 
                 {trade.exitPrice && (
-                  <div>
-                    <h3 className="text-sm font-medium">Exit</h3>
-                    <p className="text-lg">
-                      {trade.exitPrice.toFixed(2)} on {formatDate(trade.exitDate)}
-                    </p>
-                  </div>
+                  <>
+                    <div>
+                      <h3 className="text-sm font-medium">Exit Date</h3>
+                      <p className="text-lg">{formatDate(trade.exitDate)}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium">Exit Price</h3>
+                      <p className="text-lg">{trade.exitPrice.toFixed(2)}</p>
+                    </div>
+                  </>
                 )}
                 
                 <div>
                   <h3 className="text-sm font-medium">Quantity</h3>
                   <p className="text-lg">{trade.quantity}</p>
                 </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium">Type</h3>
+                  <p className="text-lg capitalize">{trade.type}</p>
+                </div>
+                
+                {trade.contractDetails && (
+                  <>
+                    <div>
+                      <h3 className="text-sm font-medium">Contract Size</h3>
+                      <p className="text-lg">{trade.contractDetails.contractSize}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium">Exchange</h3>
+                      <p className="text-lg">{trade.contractDetails.exchange}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium">Tick Size</h3>
+                      <p className="text-lg">{trade.contractDetails.tickSize}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium">Tick Value</h3>
+                      <p className="text-lg">{trade.contractDetails.tickValue}</p>
+                    </div>
+                  </>
+                )}
               </div>
-              
-              <div className="space-y-4">
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Risk & Reward</CardTitle>
+            <CardDescription>Trade performance and risk metrics</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 {trade.stopLoss && (
                   <div>
                     <h3 className="text-sm font-medium">Stop Loss</h3>
@@ -226,7 +273,7 @@ export default function TradeDetail() {
                 
                 {trade.takeProfit && (
                   <div>
-                    <h3 className="text-sm font-medium">Target</h3>
+                    <h3 className="text-sm font-medium">Take Profit</h3>
                     <p className="text-lg">{trade.takeProfit.toFixed(2)}</p>
                   </div>
                 )}
@@ -248,19 +295,53 @@ export default function TradeDetail() {
                         </p>
                       </div>
                     )}
+                    
+                    <div>
+                      <h3 className="text-sm font-medium">P&L %</h3>
+                      <p className={`text-lg font-medium ${metrics.profitLossPercentage > 0 ? 'text-green-600' : metrics.profitLossPercentage < 0 ? 'text-red-600' : ''}`}>
+                        {metrics.profitLossPercentage.toFixed(2)}%
+                      </p>
+                    </div>
+                    
+                    {metrics.riskedAmount && (
+                      <div>
+                        <h3 className="text-sm font-medium">Risked Amount</h3>
+                        <p className="text-lg">${metrics.riskedAmount.toFixed(2)}</p>
+                      </div>
+                    )}
                   </>
                 )}
+                
+                {trade.fees !== undefined && (
+                  <div>
+                    <h3 className="text-sm font-medium">Fees</h3>
+                    <p className="text-lg">${trade.fees.toFixed(2)}</p>
+                  </div>
+                )}
               </div>
+              
+              {metrics?.calculationExplanation && (
+                <div className="mt-4 p-3 bg-muted rounded-md">
+                  <h3 className="text-sm font-medium mb-1">Calculation Details</h3>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">
+                    {metrics.calculationExplanation}
+                  </p>
+                </div>
+              )}
             </div>
-            
-            {trade.notes && (
-              <div className="mt-6">
-                <h3 className="font-medium mb-2">Notes</h3>
-                <p className="whitespace-pre-line">{trade.notes}</p>
-              </div>
-            )}
           </CardContent>
         </Card>
+        
+        {trade.notes && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-line">{trade.notes}</p>
+            </CardContent>
+          </Card>
+        )}
         
         {trade.partialExits && trade.partialExits.length > 0 && (
           <Card>
@@ -315,7 +396,7 @@ export default function TradeDetail() {
         )}
         
         {trade.images && trade.images.length > 0 && (
-          <Card>
+          <Card className="col-span-full">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Trade Images</CardTitle>
