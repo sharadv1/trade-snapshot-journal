@@ -15,7 +15,7 @@ import { PartialExitsList } from '@/components/PartialExitsList';
 import { ExitTradeForm } from '@/components/ExitTradeForm';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getTradeIdea } from '@/utils/tradeOperations';
-import { ArrowLeft, AlertTriangle, ArrowUpRight, PenSquare, Trash2, CircleDollarSign, ImageIcon, Lightbulb, Calendar, BarChart } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, PenSquare, Trash2, CircleDollarSign, ImageIcon, Lightbulb, Calendar, Clock, Star } from 'lucide-react';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -122,6 +122,23 @@ export default function TradeDetail() {
   const profitLoss = metrics?.profitLoss || 0;
   const riskRewardRatio = metrics?.riskRewardRatio;
 
+  // Format timeframe to readable form
+  const formatTimeframe = (timeframe?: string) => {
+    if (!timeframe) return 'N/A';
+    
+    const timeframeMap: Record<string, string> = {
+      'm5': '5 Minutes',
+      'm15': '15 Minutes',
+      'h1': '1 Hour',
+      'h4': '4 Hours',
+      'd1': 'Daily',
+      'w1': 'Weekly',
+      'm1': 'Monthly'
+    };
+    
+    return timeframeMap[timeframe] || timeframe;
+  };
+
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
       <div className="flex items-center justify-between">
@@ -177,6 +194,19 @@ export default function TradeDetail() {
             {trade.strategy || 'No Strategy'}
           </Badge>
           
+          {trade.grade && (
+            <Badge variant="outline" className={
+              trade.grade === 'A' ? 'bg-green-100 text-green-800' :
+              trade.grade === 'B' ? 'bg-blue-100 text-blue-800' :
+              trade.grade === 'C' ? 'bg-yellow-100 text-yellow-800' :
+              trade.grade === 'D' ? 'bg-orange-100 text-orange-800' :
+              'bg-red-100 text-red-800'
+            }>
+              <Star className="h-3 w-3 mr-1" />
+              Grade: {trade.grade}
+            </Badge>
+          )}
+          
           {trade.tags && trade.tags.map((tag, index) => (
             <Badge key={index} variant="outline">
               {tag}
@@ -227,6 +257,26 @@ export default function TradeDetail() {
                   <h3 className="text-sm font-medium">Type</h3>
                   <p className="text-lg capitalize">{trade.type}</p>
                 </div>
+                
+                {trade.pspTime && (
+                  <div>
+                    <h3 className="text-sm font-medium">PSP Time</h3>
+                    <p className="text-lg flex items-center">
+                      <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                      {trade.pspTime}
+                    </p>
+                  </div>
+                )}
+                
+                {trade.timeframe && (
+                  <div>
+                    <h3 className="text-sm font-medium">Timeframe</h3>
+                    <p className="text-lg flex items-center">
+                      <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
+                      {formatTimeframe(trade.timeframe)}
+                    </p>
+                  </div>
+                )}
                 
                 {trade.contractDetails && (
                   <>
