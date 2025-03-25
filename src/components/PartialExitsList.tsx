@@ -58,11 +58,6 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
   // Calculate remaining quantity
   const remainingQuantity = currentTrade.quantity - totalExitedQuantity;
 
-  // Determine if there's a status inconsistency
-  const isFullyExited = totalExitedQuantity === currentTrade.quantity;
-  const statusConsistent = (isFullyExited && currentTrade.status === 'closed') || 
-                           (!isFullyExited && currentTrade.status === 'open');
-
   // Calculate max quantity for each exit (original quantity + current exit quantity)
   const getMaxQuantityForExit = (currentExit: PartialExit) => {
     return remainingQuantity + currentExit.quantity;
@@ -100,8 +95,8 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
             </div>
             <div className="flex justify-between text-sm mt-1">
               <span>Status:</span>
-              <span className={`font-medium ${currentTrade.status === 'closed' ? 'text-red-500' : 'text-green-500'}`}>
-                {currentTrade.status}
+              <span className={`font-medium ${totalExitedQuantity === currentTrade.quantity ? 'text-red-500' : 'text-green-500'}`}>
+                {totalExitedQuantity === currentTrade.quantity ? 'closed' : 'open'}
               </span>
             </div>
           </div>

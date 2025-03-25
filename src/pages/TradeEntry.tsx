@@ -31,10 +31,10 @@ export default function TradeEntry() {
     toast.error('There was an error processing your trade. Please try again.');
   };
 
-  const handleFormSuccess = () => {
-    console.log('Trade saved successfully');
+  const handleFormSuccess = (tradeId: string) => {
+    console.log('Trade saved successfully, navigating to detail page');
     toast.success('Trade saved successfully!');
-    navigate('/');
+    navigate(`/trade/${tradeId}`);
   };
 
   if (isLoading) {

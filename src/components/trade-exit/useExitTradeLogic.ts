@@ -99,13 +99,24 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         
         updateTrade(updatedTrade);
       } else {
-        // If no partial exits, simply close the trade
+        // If no partial exits, simply close the trade but also add it as a single full exit
+        // This ensures consistency in how we track exits
+        const fullExit: PartialExit = {
+          id: crypto.randomUUID ? crypto.randomUUID() : generateUUID(),
+          exitDate: exitDate,
+          exitPrice: exitPrice,
+          quantity: latestTrade.quantity, // Exit the full quantity
+          fees: fees,
+          notes: notes
+        };
+        
         const updatedTrade: Trade = {
           ...latestTrade,
           exitPrice,
           exitDate,
           fees,
           status: 'closed',
+          partialExits: [...(latestTrade.partialExits || []), fullExit],
           notes: notes ? (latestTrade.notes ? `${latestTrade.notes}\n\nExit Notes: ${notes}` : notes) : latestTrade.notes
         };
         
@@ -183,8 +194,9 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       } else {
         // Make sure trade is open if not all units are exited
         updatedTrade.status = 'open';
-        updatedTrade.exitDate = undefined;
-        updatedTrade.exitPrice = undefined;
+        // Only clear these if they exist to avoid triggering unnecessary re-renders
+        if (updatedTrade.exitDate) updatedTrade.exitDate = undefined;
+        if (updatedTrade.exitPrice !== undefined) updatedTrade.exitPrice = undefined;
       }
       
       updateTrade(updatedTrade);

@@ -10,7 +10,8 @@ export function useTradeSubmit(
   images: string[],
   contractDetails: Partial<any>,
   isEditing: boolean,
-  initialTrade?: Trade
+  initialTrade?: Trade,
+  onSuccess?: (tradeId: string) => void
 ) {
   const handleSubmit = (e: React.FormEvent): boolean => {
     e.preventDefault();
@@ -39,6 +40,8 @@ export function useTradeSubmit(
         markIdeaAsTaken(trade.ideaId);
       }
       
+      let tradeId: string;
+      
       if (isEditing && initialTrade) {
         const updatedTrade = { 
           ...initialTrade, 
@@ -49,16 +52,24 @@ export function useTradeSubmit(
         console.log('Updating existing trade:', updatedTrade);
         updateTrade(updatedTrade);
         toast.success("Trade updated successfully");
+        tradeId = updatedTrade.id;
       } else {
+        const newId = generateUUID();
         const newTrade = {
           ...tradeToSave,
-          id: generateUUID(),
+          id: newId,
           partialExits: []
         } as Trade;
         
         console.log('Adding new trade:', newTrade);
         addTrade(newTrade);
         toast.success("Trade added successfully");
+        tradeId = newId;
+      }
+      
+      // Call onSuccess callback with trade ID if provided
+      if (onSuccess) {
+        onSuccess(tradeId);
       }
       
       return true;

@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,7 +13,7 @@ import { toast } from '@/utils/toast';
 interface TradeFormProps {
   initialTrade?: Trade;
   isEditing?: boolean;
-  onSuccess?: () => void;
+  onSuccess?: (tradeId: string) => void;
   onError?: (error: unknown) => void;
   ideaId?: string | null;
 }
@@ -37,7 +36,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     handleContractDetailsChange,
     handleImageUpload,
     handleRemoveImage,
-    handleSubmit,
+    handleSubmit: submitHandler,
     pointValue,
   } = useTradeForm(initialTrade, isEditing, ideaIdFromProps);
 
@@ -74,28 +73,26 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     navigate('/');
   };
 
+  const handleFormSuccess = (tradeId: string) => {
+    // If onSuccess prop is provided, call it
+    if (onSuccess) {
+      onSuccess(tradeId);
+    } else {
+      // Otherwise, navigate to the trade detail page
+      navigate(`/trade/${tradeId}`);
+    }
+  };
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Submitting trade form with data:', trade);
     
     try {
-      const success = handleSubmit(e);
+      const success = submitHandler(e, handleFormSuccess);
       
       if (success) {
         // Dispatch a storage event to notify other components to refresh
         window.dispatchEvent(new Event('storage'));
-        
-        // Call the onSuccess callback if provided
-        if (onSuccess) {
-          onSuccess();
-        } else if (isEditing && initialTrade) {
-          // If this is an edit and submission was successful, navigate to the trade detail page
-          navigate(`/trade/${initialTrade.id}`);
-        } else {
-          // Default success behavior
-          toast.success('Trade saved successfully!');
-          navigate('/');
-        }
       }
     } catch (error) {
       console.error('Error submitting form:', error);
