@@ -89,7 +89,7 @@ export function ImageUpload({
   };
   
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         {images.map((image, index) => (
           <div key={index} className="relative w-24 h-24 border rounded overflow-hidden">
@@ -111,28 +111,28 @@ export function ImageUpload({
             )}
           </div>
         ))}
-        
-        {!disabled && (
-          <div
-            ref={dropAreaRef}
-            className={`w-24 h-24 flex flex-col items-center justify-center border-2 border-dashed rounded cursor-pointer transition-colors ${
-              isDragging 
-                ? 'border-primary bg-primary/10' 
-                : 'border-gray-300 hover:border-primary hover:bg-gray-50'
-            }`}
-            onClick={handleImageBtnClick}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            <Upload className="h-6 w-6 mb-1 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">
-              {uploading ? 'Uploading...' : 'Drop image here'}
-            </span>
-          </div>
-        )}
       </div>
+      
+      {!disabled && (
+        <div
+          ref={dropAreaRef}
+          className={`w-full h-32 flex flex-col items-center justify-center border-2 border-dashed rounded cursor-pointer transition-colors ${
+            isDragging 
+              ? 'border-primary bg-primary/10' 
+              : 'border-gray-300 hover:border-primary hover:bg-gray-50'
+          }`}
+          onClick={handleImageBtnClick}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          <Upload className="h-8 w-8 mb-2 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            {uploading ? 'Uploading...' : 'Drop image here or click to upload'}
+          </span>
+        </div>
+      )}
       
       <input
         type="file"
