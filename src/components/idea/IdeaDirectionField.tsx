@@ -5,17 +5,20 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 
 interface IdeaDirectionFieldProps {
-  value: 'long' | 'short';
+  value: 'long' | 'short' | undefined;
   onChange: (value: 'long' | 'short') => void;
   isReadOnly: boolean;
 }
 
 export function IdeaDirectionField({ value, onChange, isReadOnly }: IdeaDirectionFieldProps) {
+  // Set a default value when direction is undefined
+  const safeValue = value || 'long';
+  
   return (
     <div className="space-y-2">
       <Label>Direction</Label>
       <RadioGroup
-        value={value}
+        value={safeValue}
         onValueChange={(value) => onChange(value as 'long' | 'short')}
         className="flex space-x-4"
         disabled={isReadOnly}

@@ -7,7 +7,7 @@ export interface IdeaFormData {
   symbol: string;
   description: string;
   status: 'still valid' | 'invalidated' | 'taken' | 'missed';
-  direction: 'long' | 'short';
+  direction: 'long' | 'short';  // This is now required, no undefined
   images: string[];
 }
 

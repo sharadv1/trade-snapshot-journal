@@ -20,14 +20,14 @@ export function useIdeaForm({
     symbol: '',
     description: '',
     status: 'still valid',
-    direction: 'long',
+    direction: 'long', // Always set a default direction
     images: []
   });
   const [images, setImages] = useState<string[]>([]);
 
   useEffect(() => {
     if (initialIdea) {
-      // Convert TradeIdea to IdeaFormData, ensuring required fields have default values
+      // Convert TradeIdea to IdeaFormData, ensuring direction always has a default value
       setIdea({
         ...initialIdea,
         direction: initialIdea.direction || 'long',
@@ -63,20 +63,25 @@ export function useIdeaForm({
     }
 
     try {
+      // Make sure direction is set before saving
+      const ideaToSave = {
+        ...idea,
+        direction: idea.direction || 'long',
+        images
+      };
+
       if (initialIdea) {
         // Update existing idea
         updateIdea({
           ...initialIdea,
-          ...idea,
-          images
+          ...ideaToSave,
         } as TradeIdea);
         toast.success("Trade idea updated successfully");
       } else {
         // Add new idea
         addIdea({
-          ...idea,
+          ...ideaToSave,
           id: generateUUID(),
-          images
         } as TradeIdea);
         toast.success("Trade idea added successfully");
       }
