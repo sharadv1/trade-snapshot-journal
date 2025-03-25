@@ -32,6 +32,10 @@ export const setServerSync = (enabled: boolean, url: string = ''): void => {
 // Safe localStorage getter with error handling
 const safeGetItem = (key: string): string | null => {
   try {
+    if (typeof localStorage === 'undefined') {
+      console.warn('localStorage is not available in this environment');
+      return null;
+    }
     return localStorage.getItem(key);
   } catch (error) {
     console.error(`Error accessing localStorage for key ${key}:`, error);
@@ -42,6 +46,10 @@ const safeGetItem = (key: string): string | null => {
 // Safe localStorage setter with error handling
 const safeSetItem = (key: string, value: string): boolean => {
   try {
+    if (typeof localStorage === 'undefined') {
+      console.warn('localStorage is not available in this environment');
+      return false;
+    }
     localStorage.setItem(key, value);
     return true;
   } catch (error) {
@@ -50,25 +58,54 @@ const safeSetItem = (key: string, value: string): boolean => {
   }
 };
 
+// Checks if a value is a valid trade object
+const isValidTrade = (trade: any): boolean => {
+  return (
+    trade && 
+    typeof trade === 'object' &&
+    typeof trade.id === 'string' &&
+    typeof trade.symbol === 'string'
+  );
+};
+
 // Synchronous version for components that can't use async/await
 export const getTradesSync = (): Trade[] => {
   try {
     const tradesJson = safeGetItem(TRADES_STORAGE_KEY);
-    if (!tradesJson) return [];
-    
-    const parsed = JSON.parse(tradesJson);
-    if (!Array.isArray(parsed)) {
-      console.error('Invalid trades data format in localStorage, expected array');
+    if (!tradesJson) {
+      console.info('No trades found in localStorage');
       return [];
     }
     
-    // Ensure all trades have a direction to prevent rendering errors
-    return parsed.map(trade => ({
-      ...trade,
-      direction: trade.direction || 'long', // Default to 'long' if direction is missing
-      type: trade.type || 'equity',         // Ensure type exists
-      status: trade.status || 'closed'      // Ensure status exists
-    }));
+    let parsed;
+    try {
+      parsed = JSON.parse(tradesJson);
+    } catch (parseError) {
+      console.error('Failed to parse trades JSON:', parseError);
+      return [];
+    }
+    
+    if (!Array.isArray(parsed)) {
+      console.error('Invalid trades data format in localStorage, expected array but got:', typeof parsed);
+      return [];
+    }
+    
+    // Filter out invalid trades and ensure all trades have required fields
+    const validTrades = parsed
+      .filter(isValidTrade)
+      .map(trade => ({
+        ...trade,
+        direction: trade.direction || 'long', // Default to 'long' if direction is missing
+        type: trade.type || 'equity',         // Ensure type exists
+        status: trade.status || 'closed',     // Ensure status exists
+        partialExits: Array.isArray(trade.partialExits) ? trade.partialExits : [],
+        tags: Array.isArray(trade.tags) ? trade.tags : [],
+        images: Array.isArray(trade.images) ? trade.images : []
+      }));
+    
+    // Log the count of valid trades found
+    console.info(`Found ${validTrades.length} valid trades in localStorage`);
+    return validTrades;
   } catch (error) {
     console.error('Error getting trades from localStorage:', error);
     return [];
@@ -86,14 +123,19 @@ export const saveTrades = async (trades: Trade[]): Promise<void> => {
   // Ensure all trades have required fields to prevent rendering errors
   const validatedTrades = trades.map(trade => ({
     ...trade,
+    id: trade.id || crypto.randomUUID(),
     direction: trade.direction || 'long', // Default to 'long' if direction is missing
     type: trade.type || 'equity',         // Ensure type exists
-    status: trade.status || 'closed'      // Ensure status exists
+    status: trade.status || 'closed',     // Ensure status exists
+    partialExits: Array.isArray(trade.partialExits) ? trade.partialExits : [],
+    tags: Array.isArray(trade.tags) ? trade.tags : [],
+    images: Array.isArray(trade.images) ? trade.images : []
   }));
   
   try {
     // Always save to localStorage as a fallback
-    const saved = safeSetItem(TRADES_STORAGE_KEY, JSON.stringify(validatedTrades));
+    const stringified = JSON.stringify(validatedTrades);
+    const saved = safeSetItem(TRADES_STORAGE_KEY, stringified);
     
     if (!saved) {
       toast.error('Could not save to local storage. Storage might be full or disabled.');
@@ -111,7 +153,7 @@ export const saveTrades = async (trades: Trade[]): Promise<void> => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(validatedTrades),
+          body: stringified,
         });
         
         if (!response.ok) {
@@ -155,9 +197,13 @@ export const getTrades = async (): Promise<Trade[]> => {
             // Ensure all trades have required fields
             const validatedTrades = serverTrades.map(trade => ({
               ...trade,
+              id: trade.id || crypto.randomUUID(),
               direction: trade.direction || 'long',
               type: trade.type || 'equity',
-              status: trade.status || 'closed'
+              status: trade.status || 'closed',
+              partialExits: Array.isArray(trade.partialExits) ? trade.partialExits : [],
+              tags: Array.isArray(trade.tags) ? trade.tags : [],
+              images: Array.isArray(trade.images) ? trade.images : []
             }));
             
             // Update localStorage with server data
@@ -176,22 +222,7 @@ export const getTrades = async (): Promise<Trade[]> => {
     }
     
     // Fallback to localStorage
-    const tradesJson = safeGetItem(TRADES_STORAGE_KEY);
-    if (!tradesJson) return [];
-    
-    const parsedTrades = JSON.parse(tradesJson);
-    if (!Array.isArray(parsedTrades)) {
-      console.error('Invalid trade data format in localStorage');
-      return [];
-    }
-    
-    // Ensure all trades have required fields
-    return parsedTrades.map(trade => ({
-      ...trade,
-      direction: trade.direction || 'long',
-      type: trade.type || 'equity',
-      status: trade.status || 'closed'
-    }));
+    return getTradesSync();
   } catch (error) {
     console.error('Error getting trades:', error);
     toast.error('Failed to load trades');

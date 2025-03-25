@@ -1,44 +1,49 @@
 
-import { Trade, TradeIdea, Strategy, TradeSymbol } from '@/types';
-import { getTrades, saveTrades } from './tradeStorage';
+import { Trade, TradeIdea, Strategy } from '@/types';
+import { getTrades, saveTrades } from './storage/storageCore';
 import { getIdeas, saveIdeas } from './ideaStorage';
 import { getStrategies, saveStrategies } from './strategyStorage';
-import { getSymbols, saveSymbols } from './symbolStorage';
+import { getAllSymbols as getSymbols, saveAllSymbols as saveSymbols } from './symbolStorage';
 import { toast } from './toast';
 
 // Function to export trades, ideas, strategies, and symbols to a file
-export const exportTradesToFile = () => {
-  const trades = getTrades();
-  const ideas = getIdeas();
-  const strategies = getStrategies();
-  const symbols = getSymbols();
-  
-  // Create a data object with all elements
-  const data = {
-    trades,
-    ideas,
-    strategies,
-    symbols,
-    version: "1.0",
-    exportDate: new Date().toISOString()
-  };
-  
-  // Convert to JSON
-  const jsonData = JSON.stringify(data, null, 2);
-  
-  // Create a blob and download link
-  const blob = new Blob([jsonData], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  a.download = `trade-journal-export-${timestamp}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  
-  toast.success('Export completed successfully');
+export const exportTradesToFile = async () => {
+  try {
+    const trades = await getTrades();
+    const ideas = getIdeas();
+    const strategies = getStrategies();
+    const symbols = getSymbols();
+    
+    // Create a data object with all elements
+    const data = {
+      trades,
+      ideas,
+      strategies,
+      symbols,
+      version: "1.0",
+      exportDate: new Date().toISOString()
+    };
+    
+    // Convert to JSON
+    const jsonData = JSON.stringify(data, null, 2);
+    
+    // Create a blob and download link
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    a.download = `trade-journal-export-${timestamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success('Export completed successfully');
+  } catch (error) {
+    console.error('Export error:', error);
+    toast.error('Export failed');
+  }
 };
 
 // Helper function to convert CSV to array of objects
@@ -80,53 +85,58 @@ const csvToObjects = (csv: string) => {
 };
 
 // Function to create a downloadable CSV file from trades
-export const exportTradesToCSV = () => {
-  const trades = getTrades();
-  
-  if (trades.length === 0) {
-    toast.error('No trades to export');
-    return;
-  }
-  
-  // Define the headers you want to include
-  const headers = [
-    'id', 'symbol', 'type', 'direction', 'entryDate', 'entryPrice', 
-    'exitDate', 'exitPrice', 'quantity', 'fees', 'status', 'strategy',
-    'stopLoss', 'takeProfit', 'notes'
-  ];
-  
-  // Create CSV header row
-  let csvContent = headers.join(',') + '\n';
-  
-  // Add each trade as a row
-  trades.forEach(trade => {
-    const row = headers.map(header => {
-      // Handle special cases
-      if (header === 'notes' && trade.notes) {
-        // Escape any commas or quotes in the notes field
-        return `"${trade.notes.replace(/"/g, '""')}"`;
-      }
+export const exportTradesToCSV = async () => {
+  try {
+    const trades = await getTrades();
+    
+    if (trades.length === 0) {
+      toast.error('No trades to export');
+      return;
+    }
+    
+    // Define the headers you want to include
+    const headers = [
+      'id', 'symbol', 'type', 'direction', 'entryDate', 'entryPrice', 
+      'exitDate', 'exitPrice', 'quantity', 'fees', 'status', 'strategy',
+      'stopLoss', 'takeProfit', 'notes'
+    ];
+    
+    // Create CSV header row
+    let csvContent = headers.join(',') + '\n';
+    
+    // Add each trade as a row
+    trades.forEach(trade => {
+      const row = headers.map(header => {
+        // Handle special cases
+        if (header === 'notes' && trade.notes) {
+          // Escape any commas or quotes in the notes field
+          return `"${trade.notes.replace(/"/g, '""')}"`;
+        }
+        
+        // For regular fields, convert to string or use empty string
+        return trade[header as keyof Trade]?.toString() || '';
+      });
       
-      // For regular fields, convert to string or use empty string
-      return trade[header as keyof Trade]?.toString() || '';
+      csvContent += row.join(',') + '\n';
     });
     
-    csvContent += row.join(',') + '\n';
-  });
-  
-  // Create a blob and download link
-  const blob = new Blob([csvContent], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  a.download = `trade-journal-export-${timestamp}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  
-  toast.success('CSV export completed successfully');
+    // Create a blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    a.download = `trade-journal-export-${timestamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success('CSV export completed successfully');
+  } catch (error) {
+    console.error('CSV export error:', error);
+    toast.error('CSV export failed');
+  }
 };
 
 // Read the uploaded file as text
@@ -265,6 +275,10 @@ export const importTradesFromFile = async (file: File): Promise<void> => {
         
         await saveTrades(validatedTrades);
         console.log(`Imported ${validatedTrades.length} trades from CSV`);
+        
+        // Force refresh UI components
+        window.dispatchEvent(new Event('storage'));
+        toast.success(`Imported ${validatedTrades.length} trades from CSV`);
       } else {
         throw new Error('Invalid CSV format - could not parse to array');
       }

@@ -203,165 +203,169 @@ export default function TradeDetail() {
         </div>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Trade Metrics</CardTitle>
-          <CardDescription>Key performance indicators for this trade</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TradeMetricsComponent trades={[tradeWithMetrics]} />
-            
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium">Entry</h3>
-                <p className="text-lg">
-                  {trade.entryPrice?.toFixed(2)} on {formatDate(trade.entryDate)}
-                </p>
+      <div className="grid grid-cols-1 gap-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Trade Metrics</CardTitle>
+            <CardDescription>Key performance indicators for this trade</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <TradeMetricsComponent trades={[tradeWithMetrics]} />
               </div>
               
-              {trade.exitPrice && (
+              <div className="space-y-4">
                 <div>
-                  <h3 className="text-sm font-medium">Exit</h3>
+                  <h3 className="text-sm font-medium">Entry</h3>
                   <p className="text-lg">
-                    {trade.exitPrice.toFixed(2)} on {formatDate(trade.exitDate)}
-                  </p>
-                </div>
-              )}
-              
-              <div>
-                <h3 className="text-sm font-medium">Quantity</h3>
-                <p className="text-lg">{trade.quantity}</p>
-              </div>
-              
-              {trade.stopLoss && (
-                <div>
-                  <h3 className="text-sm font-medium">Stop Loss</h3>
-                  <p className="text-lg">{trade.stopLoss.toFixed(2)}</p>
-                </div>
-              )}
-              
-              {trade.takeProfit && (
-                <div>
-                  <h3 className="text-sm font-medium">Target</h3>
-                  <p className="text-lg">{trade.takeProfit.toFixed(2)}</p>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {trade.status === 'closed' && metrics && (
-            <div className="mt-6 p-4 bg-muted rounded-md">
-              <h3 className="font-medium mb-2">Results</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">P&L</p>
-                  <p className={`text-lg font-medium ${metrics.profitLoss > 0 ? 'text-green-600' : metrics.profitLoss < 0 ? 'text-red-600' : ''}`}>
-                    ${metrics.profitLoss.toFixed(2)}
+                    {trade.entryPrice?.toFixed(2)} on {formatDate(trade.entryDate)}
                   </p>
                 </div>
                 
-                {metrics.riskRewardRatio !== undefined && (
+                {trade.exitPrice && (
                   <div>
-                    <p className="text-sm text-muted-foreground">R Multiple</p>
-                    <p className={`text-lg font-medium ${metrics.riskRewardRatio > 0 ? 'text-green-600' : metrics.riskRewardRatio < 0 ? 'text-red-600' : ''}`}>
-                      {metrics.riskRewardRatio.toFixed(2)}R
+                    <h3 className="text-sm font-medium">Exit</h3>
+                    <p className="text-lg">
+                      {trade.exitPrice.toFixed(2)} on {formatDate(trade.exitDate)}
                     </p>
+                  </div>
+                )}
+                
+                <div>
+                  <h3 className="text-sm font-medium">Quantity</h3>
+                  <p className="text-lg">{trade.quantity}</p>
+                </div>
+                
+                {trade.stopLoss && (
+                  <div>
+                    <h3 className="text-sm font-medium">Stop Loss</h3>
+                    <p className="text-lg">{trade.stopLoss.toFixed(2)}</p>
+                  </div>
+                )}
+                
+                {trade.takeProfit && (
+                  <div>
+                    <h3 className="text-sm font-medium">Target</h3>
+                    <p className="text-lg">{trade.takeProfit.toFixed(2)}</p>
                   </div>
                 )}
               </div>
             </div>
-          )}
-          
-          {trade.notes && (
-            <div className="mt-6">
-              <h3 className="font-medium mb-2">Notes</h3>
-              <p className="whitespace-pre-line">{trade.notes}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
-      {trade.partialExits && trade.partialExits.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Partial Exits</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PartialExitsList 
-              trade={trade}
-              allowEditing={false}
-              onUpdate={() => {}}
-            />
+            
+            {trade.status === 'closed' && metrics && (
+              <div className="mt-6 p-4 bg-muted rounded-md">
+                <h3 className="font-medium mb-2">Results</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">P&L</p>
+                    <p className={`text-lg font-medium ${metrics.profitLoss > 0 ? 'text-green-600' : metrics.profitLoss < 0 ? 'text-red-600' : ''}`}>
+                      ${metrics.profitLoss.toFixed(2)}
+                    </p>
+                  </div>
+                  
+                  {metrics.riskRewardRatio !== undefined && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">R Multiple</p>
+                      <p className={`text-lg font-medium ${metrics.riskRewardRatio > 0 ? 'text-green-600' : metrics.riskRewardRatio < 0 ? 'text-red-600' : ''}`}>
+                        {metrics.riskRewardRatio.toFixed(2)}R
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {trade.notes && (
+              <div className="mt-6">
+                <h3 className="font-medium mb-2">Notes</h3>
+                <p className="whitespace-pre-line">{trade.notes}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
-      )}
-      
-      {relatedIdea && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Related Idea</CardTitle>
-              <CardDescription>This trade was based on a saved idea</CardDescription>
-            </div>
-            <Lightbulb className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col space-y-2">
+        
+        {trade.partialExits && trade.partialExits.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Partial Exits</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PartialExitsList 
+                trade={trade}
+                allowEditing={false}
+                onUpdate={() => {}}
+              />
+            </CardContent>
+          </Card>
+        )}
+        
+        {relatedIdea && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <span className="text-sm text-muted-foreground">Symbol</span>
-                <p className="font-medium">{relatedIdea.symbol}</p>
+                <CardTitle>Related Idea</CardTitle>
+                <CardDescription>This trade was based on a saved idea</CardDescription>
               </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Direction</span>
-                <p className="font-medium capitalize">{relatedIdea.direction}</p>
-              </div>
-              {relatedIdea.description && (
+              <Lightbulb className="h-5 w-5 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col space-y-2">
                 <div>
-                  <span className="text-sm text-muted-foreground">Notes</span>
-                  <p className="whitespace-pre-line">{relatedIdea.description}</p>
+                  <span className="text-sm text-muted-foreground">Symbol</span>
+                  <p className="font-medium">{relatedIdea.symbol}</p>
                 </div>
-              )}
-              <Button 
-                variant="outline" 
-                className="w-full mt-2" 
-                onClick={() => navigate('/ideas')}
-              >
-                View All Ideas
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
-      {trade.images && trade.images.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Trade Images</CardTitle>
-              <CardDescription>Screenshots and charts for this trade</CardDescription>
-            </div>
-            <ImageIcon className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {trade.images.map((image, index) => (
-                <div 
-                  key={index} 
-                  className="aspect-square border rounded overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => viewImage(index)}
+                <div>
+                  <span className="text-sm text-muted-foreground">Direction</span>
+                  <p className="font-medium capitalize">{relatedIdea.direction}</p>
+                </div>
+                {relatedIdea.description && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">Notes</span>
+                    <p className="whitespace-pre-line">{relatedIdea.description}</p>
+                  </div>
+                )}
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-2" 
+                  onClick={() => navigate('/ideas')}
                 >
-                  <img 
-                    src={image} 
-                    alt={`Trade image ${index + 1}`} 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  View All Ideas
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        {trade.images && trade.images.length > 0 && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Trade Images</CardTitle>
+                <CardDescription>Screenshots and charts for this trade</CardDescription>
+              </div>
+              <ImageIcon className="h-5 w-5 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {trade.images.map((image, index) => (
+                  <div 
+                    key={index} 
+                    className="aspect-square border rounded overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => viewImage(index)}
+                  >
+                    <img 
+                      src={image} 
+                      alt={`Trade image ${index + 1}`} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
       
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
@@ -391,7 +395,6 @@ export default function TradeDetail() {
         />
       )}
       
-      {/* Fixed DialogTrigger issue by removing the trigger and just using the Dialog directly */}
       <Dialog open={isExitDialogOpen} onOpenChange={setIsExitDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <ExitTradeForm 
