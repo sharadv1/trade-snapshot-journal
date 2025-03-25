@@ -293,12 +293,45 @@ export default function TradeDetail() {
                   </div>
                 )}
                 
+                {trade.fees !== undefined && (
+                  <div>
+                    <h3 className="text-sm font-medium">Fees</h3>
+                    <p className="text-lg">${trade.fees.toFixed(2)}</p>
+                  </div>
+                )}
+                
+                {metrics?.riskedAmount && (
+                  <div>
+                    <h3 className="text-sm font-medium">Risked Amount</h3>
+                    <p className="text-lg">${metrics.riskedAmount.toFixed(2)}</p>
+                  </div>
+                )}
+                
+                {metrics?.maxPotentialGain && (
+                  <div>
+                    <h3 className="text-sm font-medium">Potential Reward</h3>
+                    <p className="text-lg">${metrics.maxPotentialGain.toFixed(2)}</p>
+                  </div>
+                )}
+                
                 {trade.status === 'closed' && metrics && (
                   <>
+                    <div className="col-span-2">
+                      <Separator className="my-2" />
+                      <h3 className="text-sm font-medium mb-2">Trade Results</h3>
+                    </div>
+                    
                     <div>
                       <h3 className="text-sm font-medium">P&L</h3>
                       <p className={`text-lg font-medium ${profitLoss > 0 ? 'text-green-600' : profitLoss < 0 ? 'text-red-600' : ''}`}>
                         ${profitLoss.toFixed(2)}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium">P&L %</h3>
+                      <p className={`text-lg font-medium ${metrics.profitLossPercentage > 0 ? 'text-green-600' : metrics.profitLossPercentage < 0 ? 'text-red-600' : ''}`}>
+                        {metrics.profitLossPercentage.toFixed(2)}%
                       </p>
                     </div>
                     
@@ -310,35 +343,7 @@ export default function TradeDetail() {
                         </p>
                       </div>
                     )}
-                    
-                    <div>
-                      <h3 className="text-sm font-medium">P&L %</h3>
-                      <p className={`text-lg font-medium ${metrics.profitLossPercentage > 0 ? 'text-green-600' : metrics.profitLossPercentage < 0 ? 'text-red-600' : ''}`}>
-                        {metrics.profitLossPercentage.toFixed(2)}%
-                      </p>
-                    </div>
-                    
-                    {metrics.riskedAmount && (
-                      <div>
-                        <h3 className="text-sm font-medium">Risked Amount</h3>
-                        <p className="text-lg">${metrics.riskedAmount.toFixed(2)}</p>
-                      </div>
-                    )}
-                    
-                    {metrics.maxPotentialGain && (
-                      <div>
-                        <h3 className="text-sm font-medium">Reward Amount</h3>
-                        <p className="text-lg">${metrics.maxPotentialGain.toFixed(2)}</p>
-                      </div>
-                    )}
                   </>
-                )}
-                
-                {trade.fees !== undefined && (
-                  <div>
-                    <h3 className="text-sm font-medium">Fees</h3>
-                    <p className="text-lg">${trade.fees.toFixed(2)}</p>
-                  </div>
                 )}
               </div>
               
