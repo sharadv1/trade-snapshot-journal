@@ -1,5 +1,12 @@
+
 import { toast } from '@/utils/toast';
-import { setServerSync, SERVER_URL_KEY, isUsingServerSync, getServerUrl, getTrades, saveTrades } from './storageCore';
+import { 
+  setServerSync, 
+  SERVER_URL_KEY, 
+  isUsingServerSync, 
+  getServerUrl 
+} from './serverConnection';
+import { getTrades, saveTrades } from './storageOperations';
 
 // Re-export the isUsingServerSync function
 export { isUsingServerSync, getServerUrl };

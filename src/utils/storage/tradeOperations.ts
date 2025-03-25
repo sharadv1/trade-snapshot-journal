@@ -1,6 +1,6 @@
 
 import { Trade, TradeWithMetrics } from '@/types';
-import { getTrades, getTradesSync, saveTrades } from './storageCore';
+import { getTrades, getTradesSync, saveTrades } from './storageOperations';
 import { calculateTradeMetrics } from '@/utils/tradeCalculations';
 import { markIdeaAsTaken } from '@/utils/ideaStorage';
 
