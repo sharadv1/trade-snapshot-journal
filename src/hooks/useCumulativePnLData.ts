@@ -1,8 +1,7 @@
-
 import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { TradeWithMetrics } from '@/types';
-import { formatCurrency } from '@/utils/tradeCalculations';
+import { formatCurrency } from '@/utils/calculations/formatters';
 
 interface ChartDataPoint {
   date: string;

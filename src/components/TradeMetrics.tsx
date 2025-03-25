@@ -1,7 +1,6 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TradeWithMetrics } from '@/types';
-import { calculateTradeMetrics, formatCurrency, formatPercentage } from '@/utils/tradeCalculations';
+import { calculateTradeMetrics, formatCurrency, formatPercentage } from '@/utils/calculations';
 import {
   Bar,
   BarChart,

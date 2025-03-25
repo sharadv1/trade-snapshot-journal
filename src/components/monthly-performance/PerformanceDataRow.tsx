@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { formatCurrency } from '@/utils/tradeCalculations';
+import { formatCurrency } from '@/utils/calculations/formatters';
 import { Category } from '@/hooks/useMonthlyPerformanceData';
 import { PerformanceTableCell } from './PerformanceTableCell';
 import { MonthPerformanceData } from '@/hooks/useMonthlyPerformanceData';

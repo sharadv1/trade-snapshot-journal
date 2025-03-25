@@ -1,5 +1,4 @@
-
-import { formatCurrency } from '@/utils/tradeCalculations';
+import { formatCurrency } from '@/utils/calculations/formatters';
 
 interface PnLTooltipProps {
   active?: boolean;

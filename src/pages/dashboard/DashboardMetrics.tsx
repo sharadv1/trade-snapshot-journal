@@ -1,6 +1,6 @@
 
 import { TradeWithMetrics } from '@/types';
-import { formatCurrency } from '@/utils/tradeCalculations';
+import { formatCurrency } from '@/utils/calculations/formatters';
 import { MetricCard } from './MetricCard';
 import { 
   calculateWinRate, 

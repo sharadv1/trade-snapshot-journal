@@ -1,7 +1,6 @@
-
 import { format, isToday } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { formatCurrency } from '@/utils/tradeCalculations';
+import { formatCurrency } from '@/utils/calculations/formatters';
 
 interface DayCellProps {
   day: Date | null;

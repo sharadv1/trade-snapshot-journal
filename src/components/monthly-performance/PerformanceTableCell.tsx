@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { TableCell } from '@/components/ui/table';
-import { formatCurrency } from '@/utils/tradeCalculations';
+import { formatCurrency } from '@/utils/calculations/formatters';
 
 interface PerformanceData {
   totalDollarValue: number;

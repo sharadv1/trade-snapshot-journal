@@ -1,7 +1,8 @@
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from '@/utils/toast';
-import { calculateTradeMetrics } from '@/utils/tradeCalculations';
+import { calculateTradeMetrics } from '@/utils/calculations/metricsCalculator';
 import { getTradeById, deleteTrade } from '@/utils/tradeStorage';
 import { Trade, PartialExit, TradeMetrics } from '@/types';
 import { Button } from '@/components/ui/button';
