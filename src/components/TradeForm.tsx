@@ -7,7 +7,7 @@ import { TradeDetailsForm } from './trade-form/TradeDetailsForm';
 import { RiskParametersForm } from './trade-form/RiskParametersForm';
 import { NotesAndImagesForm } from './trade-form/NotesAndImagesForm';
 import { useTradeForm } from './trade-form/useTradeForm';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { toast } from '@/utils/toast';
 
@@ -21,7 +21,6 @@ interface TradeFormProps {
 
 export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError, ideaId }: TradeFormProps) {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
   const ideaIdFromProps = ideaId || searchParams.get('ideaId');
   
@@ -110,10 +109,10 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   };
 
   return (
-    <form onSubmit={onSubmit} className="animate-scale-in" id="trade-form" name="trade-form">
-      <Card className="shadow-subtle border">
-        <CardHeader>
-          <CardTitle>{isEditing ? "Edit Trade" : "New Trade"}</CardTitle>
+    <form onSubmit={onSubmit} className="w-full" id="trade-form" name="trade-form">
+      <Card className="border">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">{isEditing ? "Edit Trade Details" : "New Trade"}</CardTitle>
           <CardDescription>
             {isEditing 
               ? "Update the details of your existing trade" 

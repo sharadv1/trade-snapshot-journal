@@ -4,7 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { TradeForm } from '@/components/TradeForm';
 import { ExitTradeForm } from '@/components/ExitTradeForm';
 import { Trade } from '@/types';
-import { getTradeById, updateTrade } from '@/utils/tradeStorage';
+import { getTradeById } from '@/utils/storage/tradeOperations';
+import { updateTrade } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PartialExitsList } from '@/components/PartialExitsList';
@@ -96,7 +97,7 @@ export default function TradeEdit() {
   const hasStatusError = trade.status === 'closed' && remainingQuantity > 0;
 
   return (
-    <div className="max-w-3xl mx-auto py-8">
+    <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold tracking-tight mb-6">
         Manage Trade: {trade.symbol} {trade.type === 'futures' ? '(Futures)' : ''}
       </h1>
@@ -115,22 +116,22 @@ export default function TradeEdit() {
       
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Edit Trade</CardTitle>
+          <CardTitle className="text-xl">Edit Trade</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-2 w-full">
+            <TabsList className="grid grid-cols-2 w-full mb-6">
               <TabsTrigger value="edit">Edit Details</TabsTrigger>
               <TabsTrigger value="exit" disabled={trade.status === 'closed' && remainingQuantity === 0}>
                 Exit Position
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="edit" className="mt-6">
+            <TabsContent value="edit" className="pt-2">
               <TradeForm initialTrade={trade} isEditing={true} />
             </TabsContent>
             
-            <TabsContent value="exit" className="mt-6">
+            <TabsContent value="exit" className="pt-2">
               <ExitTradeForm 
                 trade={trade} 
                 onClose={() => setActiveTab('edit')}
@@ -144,7 +145,7 @@ export default function TradeEdit() {
       {trade.partialExits && trade.partialExits.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Partial Exits</CardTitle>
+            <CardTitle className="text-xl">Partial Exits</CardTitle>
           </CardHeader>
           <CardContent>
             <PartialExitsList 
