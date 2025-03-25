@@ -1,169 +1,274 @@
 
-import { Trade } from '@/types';
-import { getTrades, saveTrades, getTradesSync } from './storage/storageCore';
-import { getStrategies, saveStrategies } from './strategyStorage';
-import { getAllSymbols, saveCustomSymbols } from './symbolStorage';
+import { Trade, TradeIdea, Strategy, TradeSymbol } from '@/types';
+import { getTrades, saveTrades } from './tradeStorage';
 import { getIdeas, saveIdeas } from './ideaStorage';
+import { getStrategies, saveStrategies } from './strategyStorage';
+import { getSymbols, saveSymbols } from './symbolStorage';
 import { toast } from './toast';
 
-// Create a local interface for SymbolDetails to avoid type conflicts
-interface SymbolDetails {
-  id?: string;
-  symbol: string;
-  name?: string;
-  type: "equity" | "futures" | "option" | "forex" | "crypto";
-  sector?: string;
-  exchange?: string;
-  contractSize?: number;
-  meaning?: string;
-  isPreset?: boolean;
-}
-
-// Function to export trades to CSV
-export const exportTradesToCSV = async (): Promise<string> => {
-  const trades = await getTrades();
-  const csvRows = [];
-
-  // Headers
-  csvRows.push([
-    "id", "symbol", "entryPrice", "exitPrice", "quantity", "notes",
-    "strategy", "grade", "tags", "ideaId", "direction"  // Added direction to ensure it's exported
-  ].join(','));
-
-  for (const trade of trades) {
-    const values = [
-      trade.id,
-      trade.symbol,
-      trade.entryPrice,
-      trade.exitPrice,
-      trade.quantity,
-      `"${(trade.notes || '').replace(/"/g, '""')}"`, // Escape double quotes
-      trade.strategy,
-      trade.grade || "",
-      trade.tags ? `"${trade.tags.join(';')}"` : "",
-      trade.ideaId || "",
-      trade.direction || "long"  // Include direction with fallback
-    ];
-    csvRows.push(values.join(','));
-  }
-
-  const csvString = csvRows.join('\n');
-  return 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvString);
+// Function to export trades, ideas, strategies, and symbols to a file
+export const exportTradesToFile = () => {
+  const trades = getTrades();
+  const ideas = getIdeas();
+  const strategies = getStrategies();
+  const symbols = getSymbols();
+  
+  // Create a data object with all elements
+  const data = {
+    trades,
+    ideas,
+    strategies,
+    symbols,
+    version: "1.0",
+    exportDate: new Date().toISOString()
+  };
+  
+  // Convert to JSON
+  const jsonData = JSON.stringify(data, null, 2);
+  
+  // Create a blob and download link
+  const blob = new Blob([jsonData], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  a.download = `trade-journal-export-${timestamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  toast.success('Export completed successfully');
 };
 
-// Function to import trades from CSV
-export const importTradesFromCSV = async (csvData: string): Promise<void> => {
-  const lines = csvData.split('\n');
-  const headers = lines.shift()?.split(',') || [];
-  const trades: Trade[] = [];
-
-  console.log('Importing CSV: headers', headers);
-
-  for (const line of lines) {
-    if (!line.trim()) continue; // Skip empty lines
+// Helper function to convert CSV to array of objects
+const csvToObjects = (csv: string) => {
+  const lines = csv.split('\n');
+  const headers = lines[0].split(',').map(header => header.trim());
+  
+  const result = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue; // Skip empty lines
     
-    const values = line.split(',');
-    if (values.length < headers.length - 2) {
-      console.warn('Skipping incomplete line:', line);
-      continue; // Skip lines with too few values
-    }
-
-    const trade: Partial<Trade> = {
-      // Set required fields with defaults
-      direction: 'long', // Default direction
-      type: 'equity',    // Default type
-      status: 'closed',  // Default status
-    };
+    const obj: Record<string, any> = {};
+    const currentLine = lines[i].split(',').map(item => item.trim());
     
-    for (let i = 0; i < headers.length; i++) {
-      const header = headers[i];
-      let value = values[i] || '';
-
-      // Remove quotes from the beginning and end of the value
-      if (value.startsWith('"') && value.endsWith('"')) {
-        value = value.slice(1, -1).replace(/""/g, '"'); // Unescape double quotes
-      }
-
-      switch (header) {
-        case 'entryPrice':
-        case 'exitPrice':
-        case 'quantity':
-          trade[header] = parseFloat(value);
-          break;
-        case 'tags':
-          trade[header] = value ? value.split(';') : [];
-          break;
-        case 'direction':
-          trade[header] = (value === 'short') ? 'short' : 'long'; // Ensure valid direction
-          break;
-        default:
-          if (value) trade[header] = value;
+    for (let j = 0; j < headers.length; j++) {
+      const value = currentLine[j];
+      
+      // Try to parse as number if applicable
+      if (!isNaN(Number(value)) && value !== '') {
+        obj[headers[j]] = Number(value);
+      } else {
+        obj[headers[j]] = value;
       }
     }
-
-    // Set entryDate if missing (required field)
-    if (!trade.entryDate) {
-      trade.entryDate = new Date().toISOString();
-    }
-
-    // Add only if we have the minimum required fields
-    if (trade.symbol && trade.entryPrice !== undefined && trade.quantity !== undefined) {
-      trades.push(trade as Trade);
-    } else {
-      console.warn('Skipping incomplete trade:', trade);
-    }
+    
+    // Ensure required fields exist
+    obj.id = obj.id || crypto.randomUUID();
+    obj.direction = obj.direction || 'long';
+    obj.status = obj.status || 'closed';
+    obj.type = obj.type || 'equity';
+    obj.images = obj.images || [];
+    obj.partialExits = obj.partialExits || [];
+    obj.tags = obj.tags || [];
+    
+    result.push(obj);
   }
-
-  console.log(`Importing ${trades.length} trades from CSV`);
-  if (trades.length > 0) {
-    await saveTrades(trades);
-    toast.success(`Imported ${trades.length} trades successfully`);
-    // Dispatch storage event to refresh components
-    window.dispatchEvent(new Event('storage'));
-  } else {
-    toast.error('No valid trades found in CSV');
-  }
+  
+  return result;
 };
 
-// Parse CSV file content to string
-export const parseCsvFile = async (file: File): Promise<string> => {
+// Function to create a downloadable CSV file from trades
+export const exportTradesToCSV = () => {
+  const trades = getTrades();
+  
+  if (trades.length === 0) {
+    toast.error('No trades to export');
+    return;
+  }
+  
+  // Define the headers you want to include
+  const headers = [
+    'id', 'symbol', 'type', 'direction', 'entryDate', 'entryPrice', 
+    'exitDate', 'exitPrice', 'quantity', 'fees', 'status', 'strategy',
+    'stopLoss', 'takeProfit', 'notes'
+  ];
+  
+  // Create CSV header row
+  let csvContent = headers.join(',') + '\n';
+  
+  // Add each trade as a row
+  trades.forEach(trade => {
+    const row = headers.map(header => {
+      // Handle special cases
+      if (header === 'notes' && trade.notes) {
+        // Escape any commas or quotes in the notes field
+        return `"${trade.notes.replace(/"/g, '""')}"`;
+      }
+      
+      // For regular fields, convert to string or use empty string
+      return trade[header as keyof Trade]?.toString() || '';
+    });
+    
+    csvContent += row.join(',') + '\n';
+  });
+  
+  // Create a blob and download link
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  a.download = `trade-journal-export-${timestamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  toast.success('CSV export completed successfully');
+};
+
+// Read the uploaded file as text
+const readFileAsText = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        resolve(event.target.result as string);
+      } else {
+        reject(new Error('Failed to read file'));
+      }
+    };
+    reader.onerror = (error) => reject(error);
     reader.readAsText(file);
   });
 };
 
-// Updated functions to handle CSV files
-export const exportTradesToFile = async (): Promise<void> => {
-  try {
-    // Export to JSON instead of CSV for better data retention
-    const data = exportData();
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `trade-journal-export-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    toast.success('Data exported successfully');
-  } catch (error) {
-    console.error('Error exporting data:', error);
-    toast.error('Error exporting data');
+// Parse CSV file
+const parseCsvFile = async (file: File): Promise<string> => {
+  const text = await readFileAsText(file);
+  if (file.name.endsWith('.json')) {
+    return text;
+  } else {
+    // For CSV, we need to convert to JSON format
+    try {
+      const tradesArray = csvToObjects(text);
+      return JSON.stringify(tradesArray);
+    } catch (error) {
+      console.error('Error converting CSV to JSON:', error);
+      throw new Error('Invalid CSV format');
+    }
   }
 };
 
-export const importTradesFromFile = async (file: File): Promise<void> => {
+// Function to import data from a JSON string
+const importData = (jsonData: string): boolean => {
   try {
-    console.log('Importing file:', file.name, file.type);
+    const data = JSON.parse(jsonData);
     
-    if (file.name.endsWith('.json')) {
-      // Handle JSON import
+    if (!data) {
+      console.error('Invalid data format - parsed to null/undefined');
+      return false;
+    }
+    
+    // Structured export with all data types
+    if (data.trades && data.version) {
+      // Validate and import trades
+      if (Array.isArray(data.trades)) {
+        const validatedTrades = data.trades.map((trade: Trade) => ({
+          ...trade,
+          direction: trade.direction || 'long',
+          type: trade.type || 'equity',
+          status: trade.status || 'closed'
+        }));
+        saveTrades(validatedTrades);
+        console.log(`Imported ${validatedTrades.length} trades`);
+      } else {
+        console.warn('Invalid trades data format in import');
+      }
+      
+      // Validate and import ideas
+      if (Array.isArray(data.ideas)) {
+        const validatedIdeas = data.ideas.map((idea: TradeIdea) => ({
+          ...idea,
+          direction: idea.direction || 'long'
+        }));
+        saveIdeas(validatedIdeas);
+        console.log(`Imported ${validatedIdeas.length} ideas`);
+      } else {
+        console.warn('Invalid ideas data format in import');
+      }
+      
+      // Validate and import strategies
+      if (Array.isArray(data.strategies)) {
+        saveStrategies(data.strategies);
+        console.log(`Imported ${data.strategies.length} strategies`);
+      } else {
+        console.warn('Invalid strategies data format in import');
+      }
+      
+      // Validate and import symbols
+      if (Array.isArray(data.symbols)) {
+        saveSymbols(data.symbols);
+        console.log(`Imported ${data.symbols.length} symbols`);
+      } else {
+        console.warn('Invalid symbols data format in import');
+      }
+      
+      return true;
+    }
+    
+    // Direct array of trades (simpler format)
+    if (Array.isArray(data)) {
+      console.log('Importing direct array of trades:', data.length);
+      const validatedTrades = data.map(trade => ({
+        ...trade,
+        direction: trade.direction || 'long',
+        type: trade.type || 'equity',
+        status: trade.status || 'closed'
+      }));
+      saveTrades(validatedTrades);
+      return true;
+    }
+    
+    console.error('Unrecognized data format');
+    return false;
+  } catch (error) {
+    console.error('Error parsing import data:', error);
+    return false;
+  }
+};
+
+// Function to import trades from a file
+export const importTradesFromFile = async (file: File): Promise<void> => {
+  console.log('Importing file:', file.name);
+  
+  try {
+    // Parse the file content based on the file type
+    if (file.name.endsWith('.csv')) {
+      console.log('Parsing CSV file...');
+      const tradesJson = await parseCsvFile(file);
+      const tradesArray = JSON.parse(tradesJson);
+      
+      if (Array.isArray(tradesArray)) {
+        console.log(`Parsed ${tradesArray.length} trades from CSV`);
+        
+        // Ensure all required fields exist to prevent rendering errors
+        const validatedTrades = tradesArray.map(trade => ({
+          ...trade,
+          direction: trade.direction || 'long',
+          type: trade.type || 'equity',
+          status: trade.status || 'closed',
+          entryDate: trade.entryDate || new Date().toISOString()
+        }));
+        
+        await saveTrades(validatedTrades);
+        console.log(`Imported ${validatedTrades.length} trades from CSV`);
+      } else {
+        throw new Error('Invalid CSV format - could not parse to array');
+      }
+    } else if (file.name.endsWith('.json')) {
       const textContent = await parseCsvFile(file);
       try {
         console.log('Parsing JSON file...');
@@ -207,88 +312,13 @@ export const importTradesFromFile = async (file: File): Promise<void> => {
         }
       } catch (error) {
         console.error('Error parsing JSON:', error);
-        toast.error('Invalid JSON file');
+        toast.error('Invalid JSON format');
       }
-    } else if (file.name.endsWith('.csv')) {
-      // Handle CSV import (backward compatibility)
-      const csvContent = await parseCsvFile(file);
-      await importTradesFromCSV(csvContent);
     } else {
-      toast.error('Unsupported file format. Please use .json or .csv');
+      toast.error('Unsupported file format. Please use CSV or JSON.');
     }
   } catch (error) {
     console.error('Error importing file:', error);
-    toast.error('Error importing file');
-  }
-};
-
-// Export data function
-export const exportData = () => {
-  const trades = getTradesSync();
-  const strategies = getStrategies();
-  const symbols = getAllSymbols();
-  const ideas = getIdeas();
-
-  const exportData = {
-    trades,
-    strategies,
-    symbols,
-    ideas,
-    version: 1
-  };
-
-  return JSON.stringify(exportData, null, 2);
-};
-
-// Import data function
-export const importData = (jsonData: string) => {
-  try {
-    console.log('Parsing import data...');
-    const data = JSON.parse(jsonData);
-    console.log('Data parsed successfully');
-    
-    // Add defensive checks for each data type
-    if (data.trades && Array.isArray(data.trades)) {
-      console.log(`Importing ${data.trades.length} trades`);
-      
-      // Ensure all required fields are set with defaults
-      const validatedTrades = data.trades.map(trade => ({
-        ...trade,
-        direction: trade.direction || 'long',
-        type: trade.type || 'equity',
-        status: trade.status || 'closed',
-        entryDate: trade.entryDate || new Date().toISOString()
-      }));
-      
-      saveTrades(validatedTrades);
-      console.log(`Saved ${validatedTrades.length} trades`);
-    }
-    
-    if (data.strategies && Array.isArray(data.strategies)) {
-      console.log(`Importing ${data.strategies.length} strategies`);
-      saveStrategies(data.strategies);
-    }
-    
-    if (data.symbols && Array.isArray(data.symbols)) {
-      console.log(`Importing ${data.symbols.length} symbols`);
-      saveCustomSymbols(data.symbols as SymbolDetails[]);
-    }
-    
-    if (data.ideas && Array.isArray(data.ideas)) {
-      console.log(`Importing ${data.ideas.length} ideas`);
-      // Ensure all ideas have a direction
-      const validatedIdeas = data.ideas.map(idea => ({
-        ...idea,
-        direction: idea.direction || 'long'
-      }));
-      saveIdeas(validatedIdeas);
-    }
-    
-    console.log('Import completed successfully');
-    return true;
-  } catch (error) {
-    console.error('Error importing data:', error);
-    toast.error('Error importing data: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    return false;
+    toast.error('Import failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
 };
