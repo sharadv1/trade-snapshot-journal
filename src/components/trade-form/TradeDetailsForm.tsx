@@ -8,7 +8,6 @@ import { FuturesContractSelector } from '@/components/FuturesContractSelector';
 import { FuturesContractDetails as FuturesDetails } from '@/components/FuturesContractDetails';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getIdeas } from '@/utils/ideaStorage';
 
@@ -161,7 +160,7 @@ export function TradeDetailsForm({
           <Input 
             id="entryDate" 
             type="datetime-local"
-            value={trade.entryDate}
+            value={trade.entryDate || ''}
             onChange={(e) => handleChange('entryDate', e.target.value)}
           />
         </div>

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Trade } from '@/types';
 import { getTradeIdea } from '@/utils/tradeOperations';
-import { getSymbolData } from '@/utils/symbolStorage';
+import { getAllSymbols } from '@/utils/symbolStorage';
 import { useTradeSubmit } from './hooks/useTradeSubmit';
 import { useTradeImages } from './hooks/useTradeImages';
 import { useTradeState } from './hooks/useTradeState';
@@ -14,7 +14,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
     contractDetails,
     setTrade,
     setContractDetails
-  } = useTradeState(initialTrade, ideaId);
+  } = useTradeState(initialTrade, !!isEditing, ideaId);
   
   // Tab state
   const [activeTab, setActiveTab] = useState<string>('details');
@@ -45,12 +45,15 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
   // Update pointValue when symbol changes for futures
   useEffect(() => {
     if (trade.type === 'futures' && trade.symbol) {
-      const symbolData = getSymbolData(trade.symbol);
-      if (symbolData?.tickValue) {
-        setPointValue(symbolData.tickValue);
+      // Get all symbols and find the matching one to get its details
+      const allSymbols = getAllSymbols();
+      const symbolData = allSymbols.find(s => s.symbol === trade.symbol);
+      
+      if (symbolData && contractDetails.tickValue) {
+        setPointValue(contractDetails.tickValue);
       }
     }
-  }, [trade.type, trade.symbol]);
+  }, [trade.type, trade.symbol, contractDetails.tickValue]);
   
   // Load idea data if ideaId is provided
   useEffect(() => {
@@ -69,41 +72,25 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
   }, [ideaId, isEditing, setTrade]);
   
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    field: keyof Trade,
+    value: any
   ) => {
-    const { name, value, type } = e.target;
-    
-    if (type === 'number') {
-      setTrade({
-        ...trade,
-        [name]: value === '' ? '' : Number(value)
-      });
-    } else if (type === 'checkbox') {
-      const target = e.target as HTMLInputElement;
-      setTrade({
-        ...trade,
-        [name]: target.checked
-      });
-    } else {
-      setTrade({
-        ...trade,
-        [name]: value
-      });
-    }
+    setTrade({
+      ...trade,
+      [field]: value
+    });
   };
   
   const handleTypeChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
+    type: Trade['type']
   ) => {
-    const newType = e.target.value as Trade['type'];
-    
     setTrade({
       ...trade,
-      type: newType
+      type: type
     });
     
     // Reset contract details if changing from futures to stock
-    if (newType !== 'futures') {
+    if (type !== 'futures') {
       setContractDetails({});
     }
   };
