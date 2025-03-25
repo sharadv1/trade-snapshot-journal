@@ -66,16 +66,52 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         return;
       }
       
-      const updatedTrade: Trade = {
-        ...latestTrade,
-        exitPrice,
-        exitDate,
-        fees,
-        status: 'closed',
-        notes: notes ? (latestTrade.notes ? `${latestTrade.notes}\n\nExit Notes: ${notes}` : notes) : latestTrade.notes
-      };
+      // If there are some partial exits, create a final partial exit for the remaining units
+      if (partialExitedQuantity > 0) {
+        const remainingUnits = latestTrade.quantity - partialExitedQuantity;
+        
+        const finalPartialExit: PartialExit = {
+          id: crypto.randomUUID ? crypto.randomUUID() : generateUUID(),
+          exitDate: exitDate,
+          exitPrice: exitPrice,
+          quantity: remainingUnits,
+          fees: fees,
+          notes: notes
+        };
+        
+        const partialExits = [...(latestTrade.partialExits || []), finalPartialExit];
+        
+        // Create a weighted average exit price for the main trade
+        let weightedSum = 0;
+        partialExits.forEach(exit => {
+          weightedSum += exit.exitPrice * exit.quantity;
+        });
+        
+        const updatedTrade: Trade = {
+          ...latestTrade,
+          status: 'closed',
+          exitDate: exitDate,
+          exitPrice: weightedSum / latestTrade.quantity, // Set to weighted average
+          fees: fees, // Store the final fees
+          partialExits: partialExits,
+          notes: notes ? (latestTrade.notes ? `${latestTrade.notes}\n\nExit Notes: ${notes}` : notes) : latestTrade.notes
+        };
+        
+        updateTrade(updatedTrade);
+      } else {
+        // If no partial exits, simply close the trade
+        const updatedTrade: Trade = {
+          ...latestTrade,
+          exitPrice,
+          exitDate,
+          fees,
+          status: 'closed',
+          notes: notes ? (latestTrade.notes ? `${latestTrade.notes}\n\nExit Notes: ${notes}` : notes) : latestTrade.notes
+        };
+        
+        updateTrade(updatedTrade);
+      }
       
-      updateTrade(updatedTrade);
       toast.success("Trade closed successfully");
       
       // Dispatch a storage event to ensure updates are detected
@@ -127,18 +163,28 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         (total, exit) => total + exit.quantity, 
         0
       );
-      const newRemainingQuantity = latestTrade.quantity - newTotalExitedQuantity;
       
       const updatedTrade: Trade = {
         ...latestTrade,
         partialExits
       };
       
-      // Only close the trade if there's no remaining quantity
-      if (newRemainingQuantity === 0) {
+      // Only close the trade if all units are exited
+      if (newTotalExitedQuantity === latestTrade.quantity) {
+        // Calculate weighted average exit price
+        let weightedSum = 0;
+        partialExits.forEach(exit => {
+          weightedSum += exit.exitPrice * exit.quantity;
+        });
+        
         updatedTrade.status = 'closed';
         updatedTrade.exitDate = partialExitDate;
-        updatedTrade.exitPrice = partialExitPrice;
+        updatedTrade.exitPrice = weightedSum / latestTrade.quantity;
+      } else {
+        // Make sure trade is open if not all units are exited
+        updatedTrade.status = 'open';
+        updatedTrade.exitDate = undefined;
+        updatedTrade.exitPrice = undefined;
       }
       
       updateTrade(updatedTrade);

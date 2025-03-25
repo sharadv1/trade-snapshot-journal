@@ -17,7 +17,6 @@ import { CircleDollarSign, SplitSquareVertical, Calendar } from 'lucide-react';
 import { Trade, PartialExit } from '@/types';
 import { toast } from '@/utils/toast';
 import { getTradeById, updateTrade } from '@/utils/tradeStorage';
-import { isTradeFullyExited } from '@/utils/tradeCalculations';
 
 interface EditPartialExitModalProps {
   trade: Trade;
@@ -82,9 +81,9 @@ export function EditPartialExitModal({
         (total, exit) => total + exit.quantity, 0
       );
       
-      // Check if the total exited quantity equals the trade quantity
+      // Update trade status based on exited quantity
       if (totalExitedQuantity === updatedTrade.quantity) {
-        // If fully exited, update trade status to closed
+        // If fully exited through partials, update trade status to closed
         updatedTrade.status = 'closed';
         
         // Find the latest exit date among partial exits
@@ -108,13 +107,18 @@ export function EditPartialExitModal({
           updatedTrade.exitPrice = weightedSum / totalQuantity;
         }
       } 
-      // If the total exited quantity is less than the trade quantity and the trade is marked as closed,
-      // change the status to open
-      else if (totalExitedQuantity < updatedTrade.quantity && updatedTrade.status === 'closed') {
+      else if (totalExitedQuantity < updatedTrade.quantity) {
+        // If there are remaining units, ensure the trade is marked as open
         updatedTrade.status = 'open';
-        updatedTrade.exitDate = undefined;
-        updatedTrade.exitPrice = undefined;
-        toast.info("Trade status changed to open since there are remaining units");
+        
+        // Only clear the exit date and price if they exist
+        if (updatedTrade.exitDate) {
+          updatedTrade.exitDate = undefined;
+        }
+        
+        if (updatedTrade.exitPrice !== undefined) {
+          updatedTrade.exitPrice = undefined;
+        }
       }
       
       // This triggers a storage event to update the view
