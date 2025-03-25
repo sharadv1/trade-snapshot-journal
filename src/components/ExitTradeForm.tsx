@@ -8,7 +8,7 @@ import { FullExitForm } from './trade-exit/FullExitForm';
 import { PartialExitForm } from './trade-exit/PartialExitForm';
 import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
-import { DialogTitle } from '@/components/ui/dialog';
+// Remove the DialogTitle import
 import { useEffect } from 'react';
 
 interface ExitTradeFormProps {
@@ -76,7 +76,8 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <DialogTitle className="sr-only">Exit Trade</DialogTitle>
+        {/* Remove DialogTitle - it must be used within Dialog context */}
+        <VisuallyHidden>Exit Trade</VisuallyHidden>
       </CardHeader>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
