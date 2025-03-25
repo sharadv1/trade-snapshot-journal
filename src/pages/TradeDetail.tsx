@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from '@/utils/toast';
@@ -15,7 +14,8 @@ import { PartialExitsList } from '@/components/PartialExitsList';
 import { ExitTradeForm } from '@/components/ExitTradeForm';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getTradeIdea } from '@/utils/tradeOperations';
-import { ArrowLeft, AlertTriangle, PenSquare, Trash2, CircleDollarSign, ImageIcon, Lightbulb, Calendar, Clock, Star } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, PenSquare, Trash2, CircleDollarSign, ImageIcon, Lightbulb, Calendar, Clock, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +27,7 @@ export default function TradeDetail() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [metrics, setMetrics] = useState<TradeMetrics | null>(null);
+  const [isCalculationOpen, setIsCalculationOpen] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -118,25 +119,12 @@ export default function TradeDetail() {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Calculate P&L and other metrics
   const profitLoss = metrics?.profitLoss || 0;
   const riskRewardRatio = metrics?.riskRewardRatio;
 
-  // Format timeframe to readable form
   const formatTimeframe = (timeframe?: string) => {
     if (!timeframe) return 'N/A';
-    
-    const timeframeMap: Record<string, string> = {
-      'm5': '5 Minutes',
-      'm15': '15 Minutes',
-      'h1': '1 Hour',
-      'h4': '4 Hours',
-      'd1': 'Daily',
-      'w1': 'Weekly',
-      'm1': 'Monthly'
-    };
-    
-    return timeframeMap[timeframe] || timeframe;
+    return timeframe.toUpperCase();
   };
 
   return (
@@ -359,6 +347,13 @@ export default function TradeDetail() {
                         <p className="text-lg">${metrics.riskedAmount.toFixed(2)}</p>
                       </div>
                     )}
+                    
+                    {metrics.maxPotentialGain && (
+                      <div>
+                        <h3 className="text-sm font-medium">Reward Amount</h3>
+                        <p className="text-lg">${metrics.maxPotentialGain.toFixed(2)}</p>
+                      </div>
+                    )}
                   </>
                 )}
                 
@@ -371,12 +366,23 @@ export default function TradeDetail() {
               </div>
               
               {metrics?.calculationExplanation && (
-                <div className="mt-4 p-3 bg-muted rounded-md">
-                  <h3 className="text-sm font-medium mb-1">Calculation Details</h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">
-                    {metrics.calculationExplanation}
-                  </p>
-                </div>
+                <Collapsible 
+                  open={isCalculationOpen} 
+                  onOpenChange={setIsCalculationOpen}
+                  className="mt-4"
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full flex justify-between">
+                      <span>Calculation Details</span>
+                      {isCalculationOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="p-3 mt-2 bg-muted rounded-md">
+                    <p className="text-sm text-muted-foreground whitespace-pre-line">
+                      {metrics.calculationExplanation}
+                    </p>
+                  </CollapsibleContent>
+                </Collapsible>
               )}
             </div>
           </CardContent>
