@@ -16,7 +16,10 @@ export function useTradeList({
   limit,
   dateParam
 }: UseTradeListProps) {
+  // State for internal trade data
   const [trades, setTrades] = useState<TradeWithMetrics[]>(initialTrades);
+  
+  // State for filters and sorting
   const [sortField, setSortField] = useState<string>('entryDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [strategyFilter, setStrategyFilter] = useState<string>('all');
@@ -25,6 +28,7 @@ export function useTradeList({
   
   // Update trades when initialTrades changes
   useEffect(() => {
+    console.log(`useTradeList: initialTrades updated with ${initialTrades.length} trades`);
     setTrades(initialTrades);
   }, [initialTrades]);
   
@@ -48,7 +52,7 @@ export function useTradeList({
   const totalOpenRisk = useMemo(() => {
     const openTrades = trades.filter(trade => trade.status === 'open');
     return openTrades.reduce((total, trade) => {
-      if (trade.metrics.riskedAmount) {
+      if (trade.metrics?.riskedAmount) {
         return total + trade.metrics.riskedAmount;
       }
       return total;
@@ -57,14 +61,18 @@ export function useTradeList({
   
   // Apply filters and sorting
   const filteredTrades = useMemo(() => {
+    console.log(`Filtering ${trades.length} trades with status: ${tradeStatus}, strategy: ${strategyFilter}, result: ${resultFilter}`);
+    
     let filteredResults = [...trades];
     
+    // Filter by trade status
     if (tradeStatus === 'open') {
       filteredResults = filteredResults.filter(trade => trade.status === 'open');
     } else if (tradeStatus === 'closed') {
       filteredResults = filteredResults.filter(trade => trade.status === 'closed');
     }
     
+    // Filter by date (if provided)
     if (dateParam) {
       const filterDate = parse(dateParam, 'yyyy-MM-dd', new Date());
       if (isValid(filterDate)) {
@@ -78,22 +86,25 @@ export function useTradeList({
       }
     }
     
+    // Filter by strategy
     if (strategyFilter !== 'all') {
       filteredResults = filteredResults.filter(trade => trade.strategy === strategyFilter);
     }
     
+    // Filter by result (win/loss)
     if (resultFilter !== 'all') {
       filteredResults = filteredResults.filter(trade => {
         if (trade.status !== 'closed') return false;
         
         if (resultFilter === 'win') {
-          return trade.metrics.profitLoss >= 0;
+          return (trade.metrics?.profitLoss || 0) >= 0;
         } else { // resultFilter === 'loss'
-          return trade.metrics.profitLoss < 0;
+          return (trade.metrics?.profitLoss || 0) < 0;
         }
       });
     }
     
+    // Apply sorting
     filteredResults.sort((a, b) => {
       let aValue: any;
       let bValue: any;
@@ -112,8 +123,8 @@ export function useTradeList({
           bValue = b.exitDate ? new Date(b.exitDate).getTime() : 0;
           break;
         case 'profitLoss':
-          aValue = a.status === 'closed' ? a.metrics.profitLoss : 0;
-          bValue = b.status === 'closed' ? b.metrics.profitLoss : 0;
+          aValue = a.status === 'closed' ? (a.metrics?.profitLoss || 0) : 0;
+          bValue = b.status === 'closed' ? (b.metrics?.profitLoss || 0) : 0;
           break;
         default:
           aValue = a[sortField as keyof TradeWithMetrics];
@@ -127,6 +138,7 @@ export function useTradeList({
       }
     });
     
+    console.log(`Filtered to ${filteredResults.length} trades`);
     return filteredResults;
   }, [trades, sortField, sortDirection, strategyFilter, resultFilter, dateParam, tradeStatus]);
   

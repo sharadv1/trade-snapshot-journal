@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatCurrency } from '@/utils/tradeCalculations';
+import { formatCurrency } from '@/utils/calculations/formatters';
 
 interface TradeListHeaderProps {
   title?: string;
@@ -42,10 +42,10 @@ export function TradeListHeader({
   setResultFilter
 }: TradeListHeaderProps) {
   return (
-    <div className="flex flex-row items-center justify-between pb-2">
+    <div className="flex flex-row items-center justify-between pb-2 w-full">
       <CardTitle className="text-xl">{title}</CardTitle>
       
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 ml-auto">
         {/* Show total open risk when viewing open trades */}
         {tradeStatus === 'open' && totalOpenRisk > 0 && (
           <div className="mr-2 flex items-center">
@@ -130,7 +130,7 @@ function FilterPopover({
           {hasFilters && <span className="ml-1 h-2 w-2 rounded-full bg-primary"></span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80">
+      <PopoverContent className="w-80" align="end">
         <div className="space-y-4">
           <div className="space-y-2">
             <h4 className="font-medium">Strategy</h4>

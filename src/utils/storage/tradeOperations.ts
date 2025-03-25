@@ -48,9 +48,15 @@ export const getTradeById = (tradeId: string): Trade | undefined => {
 
 // Get trades with metrics calculated
 export const getTradesWithMetrics = (): TradeWithMetrics[] => {
+  console.log('Getting trades with metrics');
   const trades = getTradesSync();
-  return trades.map(trade => ({
-    ...trade,
-    metrics: calculateTradeMetrics(trade)
-  }));
+  console.log(`Calculating metrics for ${trades.length} trades`);
+  
+  return trades.map(trade => {
+    const metrics = calculateTradeMetrics(trade);
+    return {
+      ...trade,
+      metrics
+    };
+  });
 };

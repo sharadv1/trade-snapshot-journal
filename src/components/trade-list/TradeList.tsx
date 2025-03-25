@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TradeWithMetrics } from '@/types';
-import { getTradesWithMetrics } from '@/utils/tradeStorage';
+import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { TradeListHeader } from './TradeListHeader';
 import { TradeListTable } from './TradeListTable';
 import { DateFilterBanner } from './DateFilterBanner';
@@ -23,11 +23,15 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   const dateParam = queryParams.get('date');
   
   const [trades, setTrades] = useState<TradeWithMetrics[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   
+  // Load trades when component mounts or when refreshKey changes
   useEffect(() => {
     const loadTrades = () => {
       console.log('Loading trades in TradeList component');
+      // If initialTrades is provided, use that, otherwise get from storage
       const allTrades = initialTrades || getTradesWithMetrics();
+      console.log(`Loaded ${allTrades.length} trades`);
       setTrades(allTrades);
     };
     
@@ -48,7 +52,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('trades-updated', handleStorageChange);
     };
-  }, [initialTrades]);
+  }, [initialTrades, refreshKey]);
   
   const {
     limitedTrades,
@@ -73,6 +77,12 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     dateParam
   });
   
+  // Function to manually refresh trades
+  const handleRefresh = () => {
+    console.log('Manual refresh requested');
+    setRefreshKey(prev => prev + 1);
+  };
+  
   return (
     <Card className="shadow-subtle border">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -93,17 +103,39 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
       <CardContent>
         <DateFilterBanner dateParam={dateParam} />
         
-        <TradeListTable 
-          trades={limitedTrades}
-          sortField={sortField}
-          sortDirection={sortDirection}
-          handleSort={handleSort}
-        />
+        {filteredTrades.length === 0 ? (
+          <div className="text-center py-6">
+            <p className="text-muted-foreground mb-4">No trades match your current filters</p>
+            {hasFilters && (
+              <Button variant="outline" onClick={resetFilters}>
+                Clear Filters
+              </Button>
+            )}
+            {!hasFilters && (
+              <Button variant="outline" asChild>
+                <Link to="/trade/new">Add Your First Trade</Link>
+              </Button>
+            )}
+          </div>
+        ) : (
+          <TradeListTable 
+            trades={limitedTrades}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            handleSort={handleSort}
+            onTradeDeleted={() => {
+              if (onTradeDeleted) {
+                onTradeDeleted();
+              }
+              handleRefresh();
+            }}
+          />
+        )}
         
         {limit && filteredTrades.length > limit && (
           <div className="mt-4 text-center">
             <Button variant="outline" asChild>
-              <Link to="/">View All Trades</Link>
+              <Link to="/trades">View All Trades</Link>
             </Button>
           </div>
         )}

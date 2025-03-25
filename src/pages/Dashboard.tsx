@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { TradeList } from '@/components/TradeList';
 import { Button } from '@/components/ui/button';
-import { getTradesWithMetrics } from '@/utils/tradeStorage';
+import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { TradePnLCalendar } from '@/components/TradePnLCalendar';
 import { TradeWithMetrics } from '@/types';
 import { DashboardHeader } from './dashboard/DashboardHeader';
@@ -15,13 +15,19 @@ export default function Dashboard() {
   
   useEffect(() => {
     // Load trades when component mounts or refreshKey changes
-    console.log('Dashboard: Loading trades due to refreshKey change');
-    setTrades(getTradesWithMetrics());
+    const loadTrades = () => {
+      console.log('Dashboard: Loading trades');
+      const fetchedTrades = getTradesWithMetrics();
+      console.log(`Dashboard: Loaded ${fetchedTrades.length} trades`);
+      setTrades(fetchedTrades);
+    };
+    
+    loadTrades();
     
     // Add event listeners for storage changes
     const handleStorageChange = () => {
       console.log('Dashboard: Detected storage change, refreshing trades');
-      setTrades(getTradesWithMetrics());
+      loadTrades();
     };
     
     window.addEventListener('storage', handleStorageChange);
@@ -68,7 +74,7 @@ export default function Dashboard() {
             <TradeList 
               statusFilter="all"
               initialTrades={trades}
-              onTradeDeleted={() => setRefreshKey(prev => prev + 1)}
+              onTradeDeleted={handleRefresh}
               limit={5}
             />
           </div>
