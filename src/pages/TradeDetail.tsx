@@ -16,6 +16,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getTradeIdea } from '@/utils/tradeOperations';
 import { ArrowLeft, AlertTriangle, PenSquare, Trash2, CircleDollarSign, ImageIcon, Lightbulb, Calendar, Clock, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { FuturesContractDetails } from '@/components/FuturesContractDetails';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -265,30 +266,6 @@ export default function TradeDetail() {
                     </p>
                   </div>
                 )}
-                
-                {trade.contractDetails && (
-                  <>
-                    <div>
-                      <h3 className="text-sm font-medium">Contract Size</h3>
-                      <p className="text-lg">{trade.contractDetails.contractSize}</p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium">Exchange</h3>
-                      <p className="text-lg">{trade.contractDetails.exchange}</p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium">Tick Size</h3>
-                      <p className="text-lg">{trade.contractDetails.tickSize}</p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium">Tick Value</h3>
-                      <p className="text-lg">{trade.contractDetails.tickValue}</p>
-                    </div>
-                  </>
-                )}
               </div>
             </div>
           </CardContent>
@@ -387,6 +364,23 @@ export default function TradeDetail() {
             </div>
           </CardContent>
         </Card>
+        
+        {trade.type === 'futures' && trade.contractDetails && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Contract Specifications</CardTitle>
+              <CardDescription>Futures contract details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {trade.symbol && trade.contractDetails && (
+                <FuturesContractDetails
+                  symbol={trade.symbol}
+                  contractDetails={trade.contractDetails}
+                />
+              )}
+            </CardContent>
+          </Card>
+        )}
         
         {trade.notes && (
           <Card>
