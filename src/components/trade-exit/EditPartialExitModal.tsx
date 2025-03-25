@@ -77,8 +77,13 @@ export function EditPartialExitModal({
         partialExits: updatedPartialExits
       };
       
-      // Check if trade is fully exited through partial exits
-      if (isTradeFullyExited(updatedTrade)) {
+      // Calculate total exited quantity with the updated partial exit
+      const totalExitedQuantity = updatedPartialExits.reduce(
+        (total, exit) => total + exit.quantity, 0
+      );
+      
+      // Check if the total exited quantity equals the trade quantity
+      if (totalExitedQuantity === updatedTrade.quantity) {
         // If fully exited, update trade status to closed
         updatedTrade.status = 'closed';
         
@@ -102,6 +107,14 @@ export function EditPartialExitModal({
           // Set the trade's exit price to the weighted average
           updatedTrade.exitPrice = weightedSum / totalQuantity;
         }
+      } 
+      // If the total exited quantity is less than the trade quantity and the trade is marked as closed,
+      // change the status to open
+      else if (totalExitedQuantity < updatedTrade.quantity && updatedTrade.status === 'closed') {
+        updatedTrade.status = 'open';
+        updatedTrade.exitDate = undefined;
+        updatedTrade.exitPrice = undefined;
+        toast.info("Trade status changed to open since there are remaining units");
       }
       
       // This triggers a storage event to update the view
