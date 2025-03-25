@@ -49,20 +49,28 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   
   useEffect(() => {
     const loadTrades = () => {
+      console.log('Loading trades in TradeList component');
       const allTrades = initialTrades || getTradesWithMetrics();
       setTrades(allTrades);
     };
     
     loadTrades();
     
+    // Listen for both standard storage events and custom trades-updated events
     const handleStorageChange = () => {
+      console.log('Storage change detected in TradeList');
       if (!initialTrades) {
         loadTrades();
       }
     };
     
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('trades-updated', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('trades-updated', handleStorageChange);
+    };
   }, [initialTrades]);
   
   // Update tradeStatus if statusFilter prop changes

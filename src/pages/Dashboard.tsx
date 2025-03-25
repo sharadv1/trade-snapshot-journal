@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, ListChecks } from 'lucide-react';
 import { TradeList } from '@/components/TradeList';
@@ -14,9 +14,30 @@ import { TradeWithMetrics } from '@/types';
 
 export default function Dashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
-  const trades = getTradesWithMetrics();
+  const [trades, setTrades] = useState<TradeWithMetrics[]>([]);
+  
+  useEffect(() => {
+    // Load trades when component mounts or refreshKey changes
+    console.log('Dashboard: Loading trades due to refreshKey change');
+    setTrades(getTradesWithMetrics());
+    
+    // Add event listeners for storage changes
+    const handleStorageChange = () => {
+      console.log('Dashboard: Detected storage change, refreshing trades');
+      setTrades(getTradesWithMetrics());
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('trades-updated', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('trades-updated', handleStorageChange);
+    };
+  }, [refreshKey]);
   
   const handleRefresh = () => {
+    console.log('Dashboard: Manual refresh requested');
     setRefreshKey(prev => prev + 1);
   };
   

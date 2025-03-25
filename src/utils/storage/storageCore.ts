@@ -32,7 +32,7 @@ export const setServerSync = (enabled: boolean, url: string = ''): void => {
 // Safe localStorage getter with error handling
 const safeGetItem = (key: string): string | null => {
   try {
-    if (typeof localStorage === 'undefined') {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
       console.warn('localStorage is not available in this environment');
       return null;
     }
@@ -46,7 +46,7 @@ const safeGetItem = (key: string): string | null => {
 // Safe localStorage setter with error handling
 const safeSetItem = (key: string, value: string): boolean => {
   try {
-    if (typeof localStorage === 'undefined') {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
       console.warn('localStorage is not available in this environment');
       return false;
     }
@@ -71,6 +71,7 @@ const isValidTrade = (trade: any): boolean => {
 // Synchronous version for components that can't use async/await
 export const getTradesSync = (): Trade[] => {
   try {
+    console.log('Getting trades from localStorage synchronously');
     const tradesJson = safeGetItem(TRADES_STORAGE_KEY);
     if (!tradesJson) {
       console.info('No trades found in localStorage');
@@ -169,8 +170,13 @@ export const saveTrades = async (trades: Trade[]): Promise<void> => {
     
     // Dispatch a storage event to notify other tabs/components
     try {
-      window.dispatchEvent(new Event('storage'));
-      console.log('Trades saved successfully and storage event dispatched');
+      if (typeof window !== 'undefined') {
+        // Use a more reliable method to notify components
+        window.dispatchEvent(new Event('storage'));
+        // Also dispatch a custom event for components listening specifically for trade updates
+        window.dispatchEvent(new CustomEvent('trades-updated'));
+        console.log('Trades saved successfully and storage event dispatched');
+      }
     } catch (eventError) {
       console.error('Error dispatching storage event:', eventError);
     }
@@ -183,6 +189,7 @@ export const saveTrades = async (trades: Trade[]): Promise<void> => {
 // Enhanced get trades function with improved error handling
 export const getTrades = async (): Promise<Trade[]> => {
   try {
+    console.log('Getting trades asynchronously');
     // Try to get from server first if server sync is enabled
     if (useServerSync && serverUrl) {
       try {
