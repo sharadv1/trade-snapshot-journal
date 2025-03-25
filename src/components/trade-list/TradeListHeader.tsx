@@ -45,7 +45,7 @@ export function TradeListHeader({
     <div className="flex flex-row items-center justify-between pb-2 w-full">
       <CardTitle className="text-xl">{title}</CardTitle>
       
-      <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center gap-2">
         {/* Show total open risk when viewing open trades */}
         {tradeStatus === 'open' && totalOpenRisk > 0 && (
           <div className="mr-2 flex items-center">

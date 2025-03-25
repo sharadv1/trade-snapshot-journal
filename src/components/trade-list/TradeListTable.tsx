@@ -4,20 +4,22 @@ import { Button } from '@/components/ui/button';
 import { TradeWithMetrics } from '@/types';
 import { ChevronUp, ChevronDown, Clock, CheckCircle, Award } from 'lucide-react';
 import { format } from 'date-fns';
-import { formatCurrency } from '@/utils/tradeCalculations';
+import { formatCurrency } from '@/utils/calculations/formatters';
 
 interface TradeListTableProps {
   trades: TradeWithMetrics[];
   sortField: string;
   sortDirection: 'asc' | 'desc';
   handleSort: (field: string) => void;
+  onTradeDeleted?: () => void;
 }
 
 export function TradeListTable({
   trades,
   sortField,
   sortDirection,
-  handleSort
+  handleSort,
+  onTradeDeleted
 }: TradeListTableProps) {
   return (
     <div className="overflow-x-auto">
@@ -112,17 +114,17 @@ export function TradeListTable({
                 <td className="p-2">
                   {trade.status === 'closed' ? (
                     <div className="flex items-center">
-                      <span className={trade.metrics.profitLoss >= 0 ? 'text-profit' : 'text-loss'}>
-                        {formatCurrency(trade.metrics.profitLoss)}
+                      <span className={trade.metrics?.profitLoss >= 0 ? 'text-profit' : 'text-loss'}>
+                        {formatCurrency(trade.metrics?.profitLoss || 0)}
                       </span>
-                      {trade.metrics.riskRewardRatio && trade.metrics.riskedAmount > 0 && (
-                        <span className={`ml-2 ${trade.metrics.profitLoss >= 0 ? 'text-profit' : 'text-loss'}`}>
+                      {trade.metrics?.riskRewardRatio && trade.metrics?.riskedAmount > 0 && (
+                        <span className={`ml-2 ${trade.metrics?.profitLoss >= 0 ? 'text-profit' : 'text-loss'}`}>
                           ({trade.metrics.riskRewardRatio.toFixed(2)}R)
                         </span>
                       )}
                     </div>
                   ) : (
-                    trade.metrics.riskedAmount ? formatCurrency(trade.metrics.riskedAmount) : '-'
+                    trade.metrics?.riskedAmount ? formatCurrency(trade.metrics.riskedAmount) : '-'
                   )}
                 </td>
                 <td className="p-2">

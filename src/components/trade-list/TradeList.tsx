@@ -31,7 +31,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
       console.log('Loading trades in TradeList component');
       // If initialTrades is provided, use that, otherwise get from storage
       const allTrades = initialTrades || getTradesWithMetrics();
-      console.log(`Loaded ${allTrades.length} trades`);
+      console.log(`Loaded ${allTrades.length} trades in TradeList`);
       setTrades(allTrades);
     };
     
@@ -79,7 +79,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   
   // Function to manually refresh trades
   const handleRefresh = () => {
-    console.log('Manual refresh requested');
+    console.log('Manual refresh requested in TradeList');
     setRefreshKey(prev => prev + 1);
   };
   
