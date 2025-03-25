@@ -32,6 +32,9 @@ export const DataTransferControls = ({ onImportComplete }: DataTransferControlsP
       if (onImportComplete) {
         onImportComplete();
       }
+      
+      // Force refresh UI components
+      window.dispatchEvent(new Event('storage'));
     } finally {
       setIsImporting(false);
       // Reset the file input
