@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startOfWeek, endOfWeek, subWeeks, format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -127,6 +126,16 @@ export default function WeeklyJournal() {
     }
   }, [currentWeekStart, currentWeekEnd, currentMonthStart, currentMonthEnd, showList]);
   
+  const handleGradeChange = (value: string) => {
+    console.log('Setting week grade to:', value);
+    setWeekGrade(value);
+  };
+  
+  const handleMonthGradeChange = (value: string) => {
+    console.log('Setting month grade to:', value);
+    setMonthGrade(value);
+  };
+  
   const previousWeek = () => {
     setCurrentWeekStart(prevDate => subWeeks(prevDate, 1));
   };
@@ -163,19 +172,11 @@ export default function WeeklyJournal() {
     setCurrentMonthStart(startOfMonth(new Date()));
   };
   
-  const handleGradeChange = (value: string) => {
-    console.log('Setting week grade to:', value);
-    setWeekGrade(value);
-  };
-  
-  const handleMonthGradeChange = (value: string) => {
-    console.log('Setting month grade to:', value);
-    setMonthGrade(value);
-  };
-  
   const saveWeeklyJournal = () => {
     setIsSaving(true);
     const weekId = format(currentWeekStart, 'yyyy-MM-dd');
+    
+    console.log('Saving week grade:', weekGrade);
     
     const reflectionData: WeeklyReflection = {
       id: weekId,
@@ -209,6 +210,8 @@ export default function WeeklyJournal() {
   const saveMonthlyJournal = () => {
     setIsSaving(true);
     const monthId = format(currentMonthStart, 'yyyy-MM');
+    
+    console.log('Saving month grade:', monthGrade);
     
     const reflectionData: MonthlyReflection = {
       id: monthId,
@@ -279,15 +282,26 @@ export default function WeeklyJournal() {
         <TabsContent value="weekly" className="mt-4 space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={previousWeek}>
+              <Button variant="outline" size="sm" onClick={() => {
+                setCurrentWeekStart(prevDate => subWeeks(prevDate, 1));
+              }}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               
-              <Button variant="outline" onClick={goToCurrentWeek}>
+              <Button variant="outline" onClick={() => {
+                setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
+              }}>
                 Current Week
               </Button>
               
-              <Button variant="outline" size="sm" onClick={nextWeek}>
+              <Button variant="outline" size="sm" onClick={() => {
+                const nextDate = new Date(currentWeekStart);
+                nextDate.setDate(nextDate.getDate() + 7);
+                
+                if (nextDate <= new Date()) {
+                  setCurrentWeekStart(nextDate);
+                }
+              }}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -330,11 +344,12 @@ export default function WeeklyJournal() {
                 <div>
                   <label className="block mb-2 font-medium">Week Grade</label>
                   <Select 
+                    defaultValue={weekGrade}
                     value={weekGrade}
                     onValueChange={handleGradeChange}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder={weekGrade} />
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a grade" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="A+">A+</SelectItem>
@@ -361,15 +376,28 @@ export default function WeeklyJournal() {
         <TabsContent value="monthly" className="mt-4 space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={previousMonth}>
+              <Button variant="outline" size="sm" onClick={() => {
+                const prevMonth = new Date(currentMonthStart);
+                prevMonth.setMonth(prevMonth.getMonth() - 1);
+                setCurrentMonthStart(startOfMonth(prevMonth));
+              }}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               
-              <Button variant="outline" onClick={goToCurrentMonth}>
+              <Button variant="outline" onClick={() => {
+                setCurrentMonthStart(startOfMonth(new Date()));
+              }}>
                 Current Month
               </Button>
               
-              <Button variant="outline" size="sm" onClick={nextMonth}>
+              <Button variant="outline" size="sm" onClick={() => {
+                const nextMonth = new Date(currentMonthStart);
+                nextMonth.setMonth(nextMonth.getMonth() + 1);
+                
+                if (nextMonth <= new Date()) {
+                  setCurrentMonthStart(startOfMonth(nextMonth));
+                }
+              }}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -412,11 +440,12 @@ export default function WeeklyJournal() {
                 <div>
                   <label className="block mb-2 font-medium">Month Grade</label>
                   <Select 
+                    defaultValue={monthGrade}
                     value={monthGrade}
                     onValueChange={handleMonthGradeChange}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder={monthGrade} />
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a grade" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="A+">A+</SelectItem>
