@@ -47,7 +47,10 @@ export function MonthlyReflectionsList() {
   }, []);
   
   const loadReflections = () => {
+    console.log("Loading monthly reflections...");
     const reflectionsMap = getMonthlyReflections();
+    console.log("Monthly reflections map:", reflectionsMap);
+    
     // Convert to array and sort by date, newest first
     const reflectionsArray = Object.entries(reflectionsMap).map(([monthId, reflection]) => ({
       ...reflection,
@@ -59,6 +62,7 @@ export function MonthlyReflectionsList() {
       new Date(b.monthStart || '').getTime() - new Date(a.monthStart || '').getTime()
     );
     
+    console.log("Monthly reflections array:", reflectionsArray);
     setReflections(reflectionsArray);
     
     // Calculate stats for each reflection
@@ -77,7 +81,7 @@ export function MonthlyReflectionsList() {
       const totalR = monthTrades.reduce((sum, trade) => 
         sum + (trade.metrics.riskRewardRatio || 0), 0);
       
-      const reflectionId = reflection.id || '';
+      const reflectionId = reflection.id || reflection.monthId || '';
       if (reflectionId) {
         stats[reflectionId] = { totalPnL, totalR };
       }
@@ -87,11 +91,19 @@ export function MonthlyReflectionsList() {
   };
   
   const handleEditReflection = (monthId: string) => {
-    navigate(`/journal/${monthId}`);
+    // For monthly reflections, we'll still navigate to the weekly view
+    // but set the current month in the route
+    const today = new Date();
+    const [year, month] = monthId.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, 15); // middle of the month
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    navigate(`/journal/${formattedDate}`);
   };
   
   const handleCreateNew = () => {
-    navigate('/journal/new');
+    const today = new Date();
+    const formattedDate = format(today, 'yyyy-MM-dd');
+    navigate(`/journal/${formattedDate}`);
   };
   
   const getGradeColor = (grade: string = '') => {
@@ -134,7 +146,7 @@ export function MonthlyReflectionsList() {
             </TableHeader>
             <TableBody>
               {reflections.map((reflection) => {
-                const reflectionId = reflection.id || '';
+                const reflectionId = reflection.id || reflection.monthId || '';
                 const stats = reflectionId ? (reflectionStats[reflectionId] || { totalPnL: 0, totalR: 0 }) : { totalPnL: 0, totalR: 0 };
                 return (
                   <TableRow key={reflectionId || Math.random().toString()}>

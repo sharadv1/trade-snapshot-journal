@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { 
   saveWeeklyReflection, 
   getWeeklyReflection, 
@@ -24,7 +23,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, ArrowLeft } from 'lucide-react';
 import { WeeklyReflection, MonthlyReflection } from '@/types';
 
 export default function WeeklyJournal() {
@@ -39,7 +38,6 @@ export default function WeeklyJournal() {
   const [monthlyReflection, setMonthlyReflection] = useState<string>('');
   const [weekGrade, setWeekGrade] = useState<string>('');
   const [monthGrade, setMonthGrade] = useState<string>('');
-  const [isSaving, setIsSaving] = useState(false);
 
   // Date manipulations
   const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -83,6 +81,10 @@ export default function WeeklyJournal() {
     setCurrentDate(nextMonthDate);
     const newMonthId = format(nextMonthDate, 'yyyy-MM');
     setMonthId(newMonthId);
+  };
+  
+  const goBackToList = () => {
+    navigate('/journal');
   };
 
   // Load data
@@ -189,9 +191,20 @@ export default function WeeklyJournal() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Weekly Journal</h1>
-        <p className="text-muted-foreground">Reflect on your trading week.</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={goBackToList}
+            className="mb-2"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Journal
+          </Button>
+          <h1 className="text-2xl font-bold">Weekly Journal</h1>
+          <p className="text-muted-foreground">Reflect on your trading week.</p>
+        </div>
       </div>
 
       <Card className="mb-8">

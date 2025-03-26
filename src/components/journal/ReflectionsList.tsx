@@ -47,7 +47,10 @@ export function ReflectionsList() {
   }, []);
   
   const loadReflections = () => {
+    console.log("Loading weekly reflections...");
     const reflectionsMap = getWeeklyReflections();
+    console.log("Weekly reflections map:", reflectionsMap);
+    
     // Convert to array and sort by date, newest first
     const reflectionsArray = Object.entries(reflectionsMap).map(([weekId, reflection]) => ({
       ...reflection,
@@ -59,6 +62,7 @@ export function ReflectionsList() {
       new Date(b.weekStart || '').getTime() - new Date(a.weekStart || '').getTime()
     );
     
+    console.log("Weekly reflections array:", reflectionsArray);
     setReflections(reflectionsArray);
     
     // Calculate stats for each reflection
@@ -77,7 +81,7 @@ export function ReflectionsList() {
       const totalR = weekTrades.reduce((sum, trade) => 
         sum + (trade.metrics.riskRewardRatio || 0), 0);
       
-      const reflectionId = reflection.id || '';
+      const reflectionId = reflection.id || reflection.weekId || '';
       if (reflectionId) {
         stats[reflectionId] = { totalPnL, totalR };
       }
@@ -91,7 +95,9 @@ export function ReflectionsList() {
   };
   
   const handleCreateNew = () => {
-    navigate('/journal/new');
+    const today = new Date();
+    const weekId = format(today, 'yyyy-MM-dd');
+    navigate(`/journal/${weekId}`);
   };
   
   const getGradeColor = (grade: string = '') => {
@@ -134,7 +140,7 @@ export function ReflectionsList() {
             </TableHeader>
             <TableBody>
               {reflections.map((reflection) => {
-                const reflectionId = reflection.id || '';
+                const reflectionId = reflection.id || reflection.weekId || '';
                 const stats = reflectionId ? (reflectionStats[reflectionId] || { totalPnL: 0, totalR: 0 }) : { totalPnL: 0, totalR: 0 };
                 return (
                   <TableRow key={reflectionId || Math.random().toString()}>
