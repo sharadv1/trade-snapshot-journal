@@ -11,8 +11,19 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     // Create a handler to ensure changes propagate correctly
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       console.log("Textarea change detected:", e.target.value.substring(0, 20) + (e.target.value.length > 20 ? "..." : ""));
+      
+      // IMPORTANT: Create a new event object to ensure the target value is preserved
+      // This fixes the issue with React's synthetic events being reused
+      const syntheticEvent = {
+        ...e,
+        target: {
+          ...e.target,
+          value: e.target.value
+        }
+      };
+      
       if (onChange) {
-        onChange(e);
+        onChange(syntheticEvent);
       }
     };
 
