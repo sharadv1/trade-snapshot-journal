@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startOfWeek, endOfWeek, subWeeks, format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -146,21 +145,27 @@ export default function WeeklyJournal() {
   }, [loadData]);
 
   const handleReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    console.log('Reflection changed:', e.target.value);
-    setReflection(e.target.value);
+    const newValue = e.target.value;
+    console.log('Reflection changed:', newValue);
+    setReflection(newValue);
   };
   
   const handleMonthlyReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    console.log('Monthly reflection changed:', e.target.value);
-    setMonthlyReflection(e.target.value);
+    const newValue = e.target.value;
+    console.log('Monthly reflection changed:', newValue);
+    setMonthlyReflection(newValue);
   };
   
   const handleWeekGradeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setWeekGrade(e.target.value);
+    const newValue = e.target.value;
+    console.log('Week grade changed:', newValue);
+    setWeekGrade(newValue);
   };
   
   const handleMonthGradeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMonthGrade(e.target.value);
+    const newValue = e.target.value;
+    console.log('Month grade changed:', newValue);
+    setMonthGrade(newValue);
   };
   
   const previousWeek = () => {
@@ -348,6 +353,7 @@ export default function WeeklyJournal() {
                 className="min-h-[150px]"
                 value={reflection}
                 onChange={handleReflectionChange}
+                name="weekly-reflection"
               />
               
               <div className="grid grid-cols-2 gap-4 items-center">
@@ -362,6 +368,7 @@ export default function WeeklyJournal() {
                     value={weekGrade}
                     onChange={handleWeekGradeChange}
                     maxLength={1}
+                    name="week-grade"
                   />
                 </div>
               </div>
@@ -417,6 +424,7 @@ export default function WeeklyJournal() {
                 className="min-h-[150px]"
                 value={monthlyReflection}
                 onChange={handleMonthlyReflectionChange}
+                name="monthly-reflection"
               />
               
               <div className="grid grid-cols-2 gap-4 items-center">
@@ -431,6 +439,7 @@ export default function WeeklyJournal() {
                     value={monthGrade}
                     onChange={handleMonthGradeChange}
                     maxLength={1}
+                    name="month-grade"
                   />
                 </div>
               </div>
