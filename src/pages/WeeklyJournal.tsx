@@ -132,12 +132,10 @@ export default function WeeklyJournal() {
   }, [loadData]);
   
   const handleWeekGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    console.log('Setting week grade to:', e.target.value);
     setWeekGrade(e.target.value);
   };
   
   const handleMonthGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    console.log('Setting month grade to:', e.target.value);
     setMonthGrade(e.target.value);
   };
   
@@ -335,7 +333,7 @@ export default function WeeklyJournal() {
                   </label>
                   <select
                     id="week-grade"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     value={weekGrade}
                     onChange={handleWeekGradeChange}
                   >
@@ -408,7 +406,7 @@ export default function WeeklyJournal() {
                   </label>
                   <select
                     id="month-grade"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     value={monthGrade}
                     onChange={handleMonthGradeChange}
                   >
