@@ -66,6 +66,12 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     setStrategyFilter,
     resultFilter,
     setResultFilter,
+    dateRangeFilter,
+    filterByDate,
+    filterByWeek,
+    filterByMonth,
+    filterByDateRange,
+    clearDateFilter,
     availableStrategies,
     totalOpenRisk,
     hasFilters,
@@ -97,11 +103,21 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
           setStrategyFilter={setStrategyFilter}
           resultFilter={resultFilter}
           setResultFilter={setResultFilter}
+          dateRangeFilter={dateRangeFilter}
+          filterByDate={filterByDate}
+          filterByWeek={filterByWeek}
+          filterByMonth={filterByMonth}
+          filterByDateRange={filterByDateRange}
+          clearDateFilter={clearDateFilter}
         />
       </CardHeader>
       
       <CardContent>
-        <DateFilterBanner dateParam={dateParam} />
+        <DateFilterBanner 
+          dateParam={dateParam} 
+          dateRangeFilter={dateRangeFilter} 
+          onClearFilter={clearDateFilter} 
+        />
         
         {filteredTrades.length === 0 ? (
           <div className="text-center py-6">

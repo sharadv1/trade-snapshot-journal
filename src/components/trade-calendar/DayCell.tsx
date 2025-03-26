@@ -1,3 +1,4 @@
+
 import { format, isToday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/utils/calculations/formatters';
@@ -8,6 +9,7 @@ interface DayCellProps {
     pnl: number;
     tradeCount: number;
     tradeIds: string[];
+    rValue?: number;
   };
   onDayClick: (day: Date) => void;
 }
@@ -50,6 +52,11 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
           <div className={`text-lg font-bold ${dayData.pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
             {formatCurrency(dayData.pnl)}
           </div>
+          {dayData.rValue !== undefined && (
+            <div className="text-xs font-medium">
+              R: {dayData.rValue.toFixed(2)}
+            </div>
+          )}
           <div className="text-xs text-muted-foreground">
             {dayData.tradeCount} {dayData.tradeCount === 1 ? 'trade' : 'trades'}
           </div>

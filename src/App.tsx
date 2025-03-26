@@ -11,6 +11,7 @@ import StrategyManagement from '@/pages/StrategyManagement';
 import NotFound from '@/pages/NotFound';
 import { Layout } from '@/components/layout/Layout';
 import SymbolManagement from '@/pages/SymbolManagement';
+import WeeklyJournal from '@/pages/WeeklyJournal';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="/ideas" element={<Ideas />} />
           <Route path="/strategies" element={<StrategyManagement />} />
           <Route path="/symbols" element={<SymbolManagement />} />
+          <Route path="/journal" element={<WeeklyJournal />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>

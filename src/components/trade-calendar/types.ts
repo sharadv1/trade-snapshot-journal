@@ -5,5 +5,6 @@ export interface DailyPnL {
     pnl: number;
     tradeCount: number;
     tradeIds: string[];
+    rValue?: number;
   };
 }

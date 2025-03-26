@@ -67,12 +67,33 @@ export function useTradePnLCalendar() {
         const exitDay = format(new Date(exitDate), 'yyyy-MM-dd');
         
         if (!pnlByDay[exitDay]) {
-          pnlByDay[exitDay] = { pnl: 0, tradeCount: 0, tradeIds: [] };
+          pnlByDay[exitDay] = { 
+            pnl: 0, 
+            tradeCount: 0, 
+            tradeIds: [],
+            rValue: 0 
+          };
         }
         
         pnlByDay[exitDay].pnl += trade.metrics.profitLoss;
         pnlByDay[exitDay].tradeCount += 1;
         pnlByDay[exitDay].tradeIds.push(trade.id);
+
+        // Add R value if available
+        if (trade.metrics.riskRewardRatio !== undefined) {
+          if (pnlByDay[exitDay].rValue === undefined) {
+            pnlByDay[exitDay].rValue = 0;
+          }
+          pnlByDay[exitDay].rValue += trade.metrics.riskRewardRatio;
+        }
+      }
+    });
+    
+    // Calculate average R values for each day
+    Object.keys(pnlByDay).forEach(day => {
+      const dayData = pnlByDay[day];
+      if (dayData.rValue !== undefined && dayData.tradeCount > 0) {
+        dayData.rValue = dayData.rValue / dayData.tradeCount;
       }
     });
     

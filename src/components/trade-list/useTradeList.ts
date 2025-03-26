@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { TradeWithMetrics } from '@/types';
-import { format, parse, isValid } from 'date-fns';
+import { format, parse, isValid, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 interface UseTradeListProps {
   statusFilter?: 'open' | 'closed' | 'all';
@@ -9,6 +9,12 @@ interface UseTradeListProps {
   limit?: number;
   dateParam: string | null;
 }
+
+export type DateRangeFilter = {
+  type: 'date' | 'week' | 'month' | 'range' | 'none';
+  startDate?: Date | null;
+  endDate?: Date | null;
+};
 
 export function useTradeList({ 
   statusFilter = 'all', 
@@ -25,6 +31,9 @@ export function useTradeList({
   const [strategyFilter, setStrategyFilter] = useState<string>('all');
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
   const [tradeStatus, setTradeStatus] = useState<'open' | 'closed' | 'all'>(statusFilter);
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>({
+    type: 'none'
+  });
   
   // Update trades when initialTrades changes
   useEffect(() => {
@@ -36,6 +45,63 @@ export function useTradeList({
   useEffect(() => {
     setTradeStatus(statusFilter);
   }, [statusFilter]);
+
+  // Initialize date filter from URL param if provided
+  useEffect(() => {
+    if (dateParam) {
+      const filterDate = parse(dateParam, 'yyyy-MM-dd', new Date());
+      if (isValid(filterDate)) {
+        setDateRangeFilter({
+          type: 'date',
+          startDate: filterDate,
+          endDate: filterDate,
+        });
+      }
+    }
+  }, [dateParam]);
+  
+  // Filter by week
+  const filterByWeek = (date: Date) => {
+    setDateRangeFilter({
+      type: 'week',
+      startDate: startOfWeek(date, { weekStartsOn: 0 }), // 0 = Sunday
+      endDate: endOfWeek(date, { weekStartsOn: 0 })
+    });
+  };
+  
+  // Filter by month
+  const filterByMonth = (date: Date) => {
+    setDateRangeFilter({
+      type: 'month',
+      startDate: startOfMonth(date),
+      endDate: endOfMonth(date)
+    });
+  };
+  
+  // Filter by date range
+  const filterByDateRange = (startDate: Date, endDate: Date) => {
+    setDateRangeFilter({
+      type: 'range',
+      startDate,
+      endDate
+    });
+  };
+  
+  // Filter by single date
+  const filterByDate = (date: Date) => {
+    setDateRangeFilter({
+      type: 'date',
+      startDate: date,
+      endDate: date
+    });
+  };
+  
+  // Clear date filter
+  const clearDateFilter = () => {
+    setDateRangeFilter({
+      type: 'none'
+    });
+  };
   
   // Get available strategies from trades
   const availableStrategies = useMemo(() => {
@@ -72,8 +138,34 @@ export function useTradeList({
       filteredResults = filteredResults.filter(trade => trade.status === 'closed');
     }
     
-    // Filter by date (if provided)
-    if (dateParam) {
+    // Apply date range filter if active
+    if (dateRangeFilter.type !== 'none' && dateRangeFilter.startDate && dateRangeFilter.endDate) {
+      filteredResults = filteredResults.filter(trade => {
+        // Use exitDate for closed trades, entryDate for open trades
+        const tradeDate = trade.status === 'closed' && trade.exitDate 
+          ? new Date(trade.exitDate) 
+          : new Date(trade.entryDate);
+        
+        if (dateRangeFilter.type === 'date') {
+          // Single date: compare year, month, and day
+          const filterDate = dateRangeFilter.startDate;
+          return (
+            tradeDate.getFullYear() === filterDate.getFullYear() &&
+            tradeDate.getMonth() === filterDate.getMonth() &&
+            tradeDate.getDate() === filterDate.getDate()
+          );
+        } else {
+          // Date range: check if within interval
+          return isWithinInterval(tradeDate, {
+            start: dateRangeFilter.startDate,
+            end: dateRangeFilter.endDate
+          });
+        }
+      });
+    }
+    
+    // Legacy date parameter filter (URL parameter)
+    else if (dateParam) {
       const filterDate = parse(dateParam, 'yyyy-MM-dd', new Date());
       if (isValid(filterDate)) {
         const dateString = format(filterDate, 'yyyy-MM-dd');
@@ -140,7 +232,7 @@ export function useTradeList({
     
     console.log(`Filtered to ${filteredResults.length} trades`);
     return filteredResults;
-  }, [trades, sortField, sortDirection, strategyFilter, resultFilter, dateParam, tradeStatus]);
+  }, [trades, sortField, sortDirection, strategyFilter, resultFilter, dateParam, tradeStatus, dateRangeFilter]);
   
   // Apply limit to filtered trades if specified
   const limitedTrades = useMemo(() => {
@@ -161,12 +253,16 @@ export function useTradeList({
   };
   
   // Check if any filters are applied
-  const hasFilters = strategyFilter !== 'all' || resultFilter !== 'all' || dateParam !== null;
+  const hasFilters = strategyFilter !== 'all' || 
+    resultFilter !== 'all' || 
+    dateParam !== null ||
+    dateRangeFilter.type !== 'none';
   
   // Reset filters
   const resetFilters = () => {
     setStrategyFilter('all');
     setResultFilter('all');
+    clearDateFilter();
   };
   
   return {
@@ -182,6 +278,12 @@ export function useTradeList({
     setStrategyFilter,
     resultFilter,
     setResultFilter,
+    dateRangeFilter,
+    filterByDate,
+    filterByWeek,
+    filterByMonth,
+    filterByDateRange,
+    clearDateFilter,
     availableStrategies,
     totalOpenRisk,
     hasFilters,
