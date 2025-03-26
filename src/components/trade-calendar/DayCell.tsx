@@ -41,8 +41,9 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
       <div
         className={cn(
           "h-full w-full rounded-md flex flex-col items-center p-1",
-          isToday ? "bg-primary/10 border border-primary" : 
-          hasTrades ? (isProfitable ? "bg-green-100" : "bg-red-100") : ""
+          isToday ? "bg-primary/10 border border-primary" : "",
+          hasTrades && isProfitable ? "bg-green-100" : "",
+          hasTrades && !isProfitable ? "bg-red-100" : ""
         )}
       >
         {/* Date number at the top right */}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startOfWeek, endOfWeek, subWeeks, format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -65,7 +64,6 @@ export default function WeeklyJournal() {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("weekly");
   
-  // If we're on the main journal page, show the list of reflections
   useEffect(() => {
     if (!weekId || weekId === 'list') {
       setShowList(true);
@@ -74,17 +72,14 @@ export default function WeeklyJournal() {
     }
   }, [weekId]);
   
-  // Load trades for the selected week
   useEffect(() => {
     if (showList) return;
     
     const allTrades = getTradesWithMetrics();
     
-    // Load weekly trades
     const weekStart = currentWeekStart.getTime();
     const weekEnd = currentWeekEnd.getTime();
     
-    // Filter trades closed within the week
     const tradesInWeek = allTrades.filter(trade => {
       if (trade.status !== 'closed' || !trade.exitDate) return false;
       
@@ -94,11 +89,9 @@ export default function WeeklyJournal() {
     
     setWeeklyTrades(tradesInWeek);
     
-    // Load monthly trades
     const monthStart = currentMonthStart.getTime();
     const monthEnd = currentMonthEnd.getTime();
     
-    // Filter trades closed within the month
     const tradesInMonth = allTrades.filter(trade => {
       if (trade.status !== 'closed' || !trade.exitDate) return false;
       
@@ -108,7 +101,6 @@ export default function WeeklyJournal() {
     
     setMonthlyTrades(tradesInMonth);
     
-    // Load existing reflection for this week
     const currentWeekId = format(currentWeekStart, 'yyyy-MM-dd');
     const savedWeeklyReflection = getWeeklyReflection(currentWeekId);
     
@@ -120,7 +112,6 @@ export default function WeeklyJournal() {
       setWeekGrade('B');
     }
     
-    // Load existing reflection for this month
     const currentMonthId = format(currentMonthStart, 'yyyy-MM');
     const savedMonthlyReflection = getMonthlyReflection(currentMonthId);
     
@@ -141,7 +132,6 @@ export default function WeeklyJournal() {
     const nextDate = new Date(currentWeekStart);
     nextDate.setDate(nextDate.getDate() + 7);
     
-    // Don't allow going into the future
     if (nextDate <= new Date()) {
       setCurrentWeekStart(nextDate);
     }
@@ -161,7 +151,6 @@ export default function WeeklyJournal() {
     const nextMonth = new Date(currentMonthStart);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
     
-    // Don't allow going into the future
     if (nextMonth <= new Date()) {
       setCurrentMonthStart(startOfMonth(nextMonth));
     }
@@ -200,12 +189,10 @@ export default function WeeklyJournal() {
     if (success) {
       toast.success('Weekly reflection saved');
       
-      // Dispatch a storage event to notify other components
       window.dispatchEvent(new StorageEvent('storage', { 
         key: 'trade-journal-reflections'
       }));
       
-      // Navigate back to the list after saving
       setTimeout(() => {
         navigate('/journal');
         setIsSaving(false);
@@ -235,12 +222,10 @@ export default function WeeklyJournal() {
     if (success) {
       toast.success('Monthly reflection saved');
       
-      // Dispatch a storage event to notify other components
       window.dispatchEvent(new StorageEvent('storage', { 
         key: 'trade-journal-monthly-reflections'
       }));
       
-      // Navigate back to the list after saving
       setTimeout(() => {
         navigate('/journal');
         setIsSaving(false);
@@ -322,10 +307,8 @@ export default function WeeklyJournal() {
             </div>
           </div>
           
-          {/* Weekly metrics summary */}
           <WeeklySummaryMetrics trades={weeklyTrades} />
           
-          {/* Reflection and grade */}
           <Card>
             <CardHeader>
               <CardTitle>Weekly Reflection</CardTitle>
@@ -344,12 +327,11 @@ export default function WeeklyJournal() {
                 <div>
                   <label className="block mb-2 font-medium">Week Grade</label>
                   <Select 
-                    value={weekGrade} 
+                    value={weekGrade}
                     onValueChange={handleGradeChange}
-                    defaultValue={weekGrade}
                   >
                     <SelectTrigger>
-                      <SelectValue>{weekGrade}</SelectValue>
+                      <SelectValue placeholder={weekGrade} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="A+">A+</SelectItem>
@@ -370,8 +352,7 @@ export default function WeeklyJournal() {
             </CardContent>
           </Card>
           
-          {/* Combined trades list with comments */}
-          <TradeCommentsList trades={weeklyTrades} />
+          <TradeCommentsList trades={weeklyTrades} groupByStrategy={true} />
         </TabsContent>
         
         <TabsContent value="monthly" className="mt-4 space-y-6">
@@ -408,10 +389,8 @@ export default function WeeklyJournal() {
             </div>
           </div>
           
-          {/* Monthly metrics summary */}
           <WeeklySummaryMetrics trades={monthlyTrades} />
           
-          {/* Monthly reflection and grade */}
           <Card>
             <CardHeader>
               <CardTitle>Monthly Reflection</CardTitle>
@@ -430,12 +409,11 @@ export default function WeeklyJournal() {
                 <div>
                   <label className="block mb-2 font-medium">Month Grade</label>
                   <Select 
-                    value={monthGrade} 
+                    value={monthGrade}
                     onValueChange={handleMonthGradeChange}
-                    defaultValue={monthGrade}
                   >
                     <SelectTrigger>
-                      <SelectValue>{monthGrade}</SelectValue>
+                      <SelectValue placeholder={monthGrade} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="A+">A+</SelectItem>
@@ -456,10 +434,78 @@ export default function WeeklyJournal() {
             </CardContent>
           </Card>
           
-          {/* Combined trades list with comments */}
-          <TradeCommentsList trades={monthlyTrades} />
+          <Card>
+            <CardHeader>
+              <CardTitle>Weekly Summaries</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <WeeklyReflectionsInMonthList 
+                currentMonth={currentMonthStart} 
+                navigate={navigate} 
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function WeeklyReflectionsInMonthList({ currentMonth, navigate }: { currentMonth: Date, navigate: (path: string) => void }) {
+  const [weeklyReflections, setWeeklyReflections] = useState<WeeklyReflection[]>([]);
+  
+  useEffect(() => {
+    const allReflections = getWeeklyReflections();
+    const monthStart = startOfMonth(currentMonth).getTime();
+    const monthEnd = endOfMonth(currentMonth).getTime();
+    
+    const reflectionsInMonth = allReflections.filter(reflection => {
+      const reflectionStart = new Date(reflection.weekStart).getTime();
+      return reflectionStart >= monthStart && reflectionStart <= monthEnd;
+    });
+    
+    reflectionsInMonth.sort((a, b) => 
+      new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime()
+    );
+    
+    setWeeklyReflections(reflectionsInMonth);
+  }, [currentMonth]);
+  
+  if (weeklyReflections.length === 0) {
+    return (
+      <div className="text-center py-4">
+        <p className="text-muted-foreground">No weekly reflections found for this month.</p>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-4">
+      {weeklyReflections.map(reflection => (
+        <Card key={reflection.id} className="cursor-pointer hover:bg-accent/10 transition-colors" 
+          onClick={() => navigate(`/journal/${reflection.id}`)}>
+          <CardContent className="pt-4 pb-2">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-medium">
+                  {format(parseISO(reflection.weekStart), 'MMM d')} - {format(parseISO(reflection.weekEnd), 'MMM d, yyyy')}
+                </h3>
+                <p className="text-sm text-muted-foreground">{reflection.tradeIds.length} trades</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className={
+                  reflection.grade.startsWith('A') ? 'bg-green-100 text-green-800' :
+                  reflection.grade.startsWith('B') ? 'bg-blue-100 text-blue-800' :
+                  reflection.grade.startsWith('C') ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }>
+                  {reflection.grade}
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
