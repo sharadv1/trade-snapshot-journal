@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startOfWeek, endOfWeek, subWeeks, format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -82,7 +81,6 @@ export default function WeeklyJournal() {
     }
   }, [weekId]);
 
-  // This function loads trades and reflections data
   const loadData = useCallback(() => {
     if (showList) return;
     
@@ -135,7 +133,6 @@ export default function WeeklyJournal() {
     }
   }, [currentWeekStart, currentWeekEnd, currentMonthStart, currentMonthEnd, showList]);
   
-  // Only run loadData once when dependencies change
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -339,17 +336,21 @@ export default function WeeklyJournal() {
               
               <div className="grid grid-cols-2 gap-4 items-center">
                 <div>
-                  <label className="text-sm font-medium mb-1 block">
+                  <label htmlFor="week-grade" className="text-sm font-medium mb-1 block">
                     Rate your week
                   </label>
                   <Select 
                     value={weekGrade} 
                     onValueChange={handleWeekGradeChange}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger id="week-grade" className="w-full">
                       <SelectValue placeholder="Select a grade" />
                     </SelectTrigger>
-                    <SelectContent position="popper" className="z-50 bg-background">
+                    <SelectContent
+                      position="popper"
+                      className="z-50 bg-background"
+                      align="start"
+                    >
                       <SelectItem value="A">A - Excellent</SelectItem>
                       <SelectItem value="B">B - Good</SelectItem>
                       <SelectItem value="C">C - Average</SelectItem>
@@ -415,17 +416,21 @@ export default function WeeklyJournal() {
               
               <div className="grid grid-cols-2 gap-4 items-center">
                 <div>
-                  <label className="text-sm font-medium mb-1 block">
+                  <label htmlFor="month-grade" className="text-sm font-medium mb-1 block">
                     Rate your month
                   </label>
                   <Select 
                     value={monthGrade} 
                     onValueChange={handleMonthGradeChange}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger id="month-grade" className="w-full">
                       <SelectValue placeholder="Select a grade" />
                     </SelectTrigger>
-                    <SelectContent position="popper" className="z-50 bg-background">
+                    <SelectContent
+                      position="popper"
+                      className="z-50 bg-background"
+                      align="start"
+                    >
                       <SelectItem value="A">A - Excellent</SelectItem>
                       <SelectItem value="B">B - Good</SelectItem>
                       <SelectItem value="C">C - Average</SelectItem>
