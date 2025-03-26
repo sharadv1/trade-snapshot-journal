@@ -135,10 +135,12 @@ export default function WeeklyJournal() {
   }, [currentWeekStart, currentWeekEnd, currentMonthStart, currentMonthEnd, showList]);
   
   const handleWeekGradeChange = (value: string) => {
+    console.log('Setting week grade to:', value);
     setWeekGrade(value);
   };
   
   const handleMonthGradeChange = (value: string) => {
+    console.log('Setting month grade to:', value);
     setMonthGrade(value);
   };
   
@@ -334,11 +336,15 @@ export default function WeeklyJournal() {
                   <label className="text-sm font-medium mb-1 block">
                     Rate your week
                   </label>
-                  <Select value={weekGrade} onValueChange={handleWeekGradeChange}>
-                    <SelectTrigger>
+                  <Select 
+                    value={weekGrade} 
+                    onValueChange={handleWeekGradeChange}
+                    defaultValue="B"
+                  >
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a grade" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper" className="z-50 bg-background">
                       <SelectItem value="A">A - Excellent</SelectItem>
                       <SelectItem value="B">B - Good</SelectItem>
                       <SelectItem value="C">C - Average</SelectItem>
@@ -407,11 +413,15 @@ export default function WeeklyJournal() {
                   <label className="text-sm font-medium mb-1 block">
                     Rate your month
                   </label>
-                  <Select value={monthGrade} onValueChange={handleMonthGradeChange}>
-                    <SelectTrigger>
+                  <Select 
+                    value={monthGrade} 
+                    onValueChange={handleMonthGradeChange}
+                    defaultValue="B"
+                  >
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a grade" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper" className="z-50 bg-background">
                       <SelectItem value="A">A - Excellent</SelectItem>
                       <SelectItem value="B">B - Good</SelectItem>
                       <SelectItem value="C">C - Average</SelectItem>
