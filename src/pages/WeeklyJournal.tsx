@@ -63,7 +63,14 @@ export default function WeeklyJournal() {
   const [monthGrade, setMonthGrade] = useState<string>('B');
   const [showList, setShowList] = useState<boolean>(!weekId || weekId === 'list');
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("weekly");
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const savedTab = sessionStorage.getItem('journal-active-tab');
+    if (savedTab) {
+      sessionStorage.removeItem('journal-active-tab');
+      return savedTab;
+    }
+    return "weekly";
+  });
   
   useEffect(() => {
     if (!weekId || weekId === 'list') {
@@ -239,7 +246,7 @@ export default function WeeklyJournal() {
           <h1 className="text-2xl font-bold tracking-tight">Trading Journal</h1>
         </div>
         
-        <Tabs defaultValue="weekly" className="w-full" onValueChange={setActiveTab}>
+        <Tabs defaultValue={activeTab} className="w-full" onValueChange={setActiveTab}>
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="weekly">Weekly Journal</TabsTrigger>
             <TabsTrigger value="monthly">Monthly Journal</TabsTrigger>
@@ -263,7 +270,7 @@ export default function WeeklyJournal() {
         <h1 className="text-2xl font-bold tracking-tight">Trading Journal</h1>
       </div>
       
-      <Tabs defaultValue="weekly" className="w-full" onValueChange={setActiveTab}>
+      <Tabs defaultValue={activeTab} className="w-full" onValueChange={setActiveTab}>
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="weekly">Weekly Journal</TabsTrigger>
           <TabsTrigger value="monthly">Monthly Journal</TabsTrigger>
@@ -395,6 +402,7 @@ export default function WeeklyJournal() {
           <TradeCommentsList
             trades={monthlyTrades}
             groupByStrategy={true}
+            listTitle="Trades This Month"
           />
         </TabsContent>
       </Tabs>

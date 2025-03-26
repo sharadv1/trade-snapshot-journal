@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from '@/utils/toast';
@@ -30,6 +29,10 @@ export default function TradeDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [metrics, setMetrics] = useState<TradeMetrics | null>(null);
   const [isCalculationOpen, setIsCalculationOpen] = useState(false);
+
+  const handleBackToJournal = () => {
+    navigate('/journal');
+  };
 
   useEffect(() => {
     if (!id) {
@@ -131,221 +134,229 @@ export default function TradeDetail() {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="flex items-center gap-1">
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back</span>
-        </Button>
-        
-        <div className="flex gap-2">
-          {!isFullyExited && (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
             <Button 
-              onClick={() => setIsExitDialogOpen(true)}
-              variant="outline"
+              variant="outline" 
+              size="sm" 
+              onClick={handleBackToJournal}
+              className="flex items-center"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back to Journal
+            </Button>
+          </div>
+          
+          <div className="flex gap-2">
+            {!isFullyExited && (
+              <Button 
+                onClick={() => setIsExitDialogOpen(true)}
+                variant="outline"
+                className="flex items-center gap-1"
+              >
+                <CircleDollarSign className="h-4 w-4" />
+                <span>Exit Trade</span>
+              </Button>
+            )}
+            
+            <Button 
+              onClick={() => navigate(`/trade/${id}/edit`)}
+              variant="outline" 
               className="flex items-center gap-1"
             >
-              <CircleDollarSign className="h-4 w-4" />
-              <span>Exit Trade</span>
+              <PenSquare className="h-4 w-4" />
+              <span>Edit</span>
             </Button>
-          )}
-          
-          <Button 
-            onClick={() => navigate(`/trade/${id}/edit`)}
-            variant="outline" 
-            className="flex items-center gap-1"
-          >
-            <PenSquare className="h-4 w-4" />
-            <span>Edit</span>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="flex items-center gap-1 text-destructive hover:bg-destructive/10"
-            onClick={() => setIsDeleteDialogOpen(true)}
-          >
-            <Trash2 className="h-4 w-4" />
-            <span>Delete</span>
-          </Button>
+            
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-1 text-destructive hover:bg-destructive/10"
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Delete</span>
+            </Button>
+          </div>
         </div>
-      </div>
-      
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          {trade.symbol} {trade.direction === 'long' ? 'Long' : 'Short'}
-          {trade.type === 'futures' && ' (Futures)'}
-        </h1>
         
-        <div className="flex flex-wrap gap-2 mt-2">
-          <Badge variant={trade.status === 'open' ? 'default' : 'secondary'}>
-            {trade.status === 'open' ? 'Open' : 'Closed'}
-          </Badge>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {trade.symbol} {trade.direction === 'long' ? 'Long' : 'Short'}
+            {trade.type === 'futures' && ' (Futures)'}
+          </h1>
           
-          <Badge variant="outline">
-            {trade.strategy || 'No Strategy'}
-          </Badge>
-          
-          {trade.grade && (
-            <Badge variant="outline" className={
-              trade.grade === 'A' ? 'bg-green-100 text-green-800' :
-              trade.grade === 'B' ? 'bg-blue-100 text-blue-800' :
-              trade.grade === 'C' ? 'bg-yellow-100 text-yellow-800' :
-              trade.grade === 'D' ? 'bg-orange-100 text-orange-800' :
-              'bg-red-100 text-red-800'
-            }>
-              <Star className="h-3 w-3 mr-1" />
-              Grade: {trade.grade}
+          <div className="flex flex-wrap gap-2 mt-2">
+            <Badge variant={trade.status === 'open' ? 'default' : 'secondary'}>
+              {trade.status === 'open' ? 'Open' : 'Closed'}
             </Badge>
-          )}
-          
-          {trade.tags && trade.tags.map((tag, index) => (
-            <Badge key={index} variant="outline">
-              {tag}
+            
+            <Badge variant="outline">
+              {trade.strategy || 'No Strategy'}
             </Badge>
-          ))}
+            
+            {trade.grade && (
+              <Badge variant="outline" className={
+                trade.grade === 'A' ? 'bg-green-100 text-green-800' :
+                trade.grade === 'B' ? 'bg-blue-100 text-blue-800' :
+                trade.grade === 'C' ? 'bg-yellow-100 text-yellow-800' :
+                trade.grade === 'D' ? 'bg-orange-100 text-orange-800' :
+                'bg-red-100 text-red-800'
+              }>
+                <Star className="h-3 w-3 mr-1" />
+                Grade: {trade.grade}
+              </Badge>
+            )}
+            
+            {trade.tags && trade.tags.map((tag, index) => (
+              <Badge key={index} variant="outline">
+                {tag}
+              </Badge>
+            ))}
+          </div>
         </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Trade Details</CardTitle>
-            <CardDescription>Key information about this trade</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium">Entry Date</h3>
-                  <p className="text-lg">{formatDate(trade.entryDate)}</p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium">Entry Price</h3>
-                  <p className="text-lg">{trade.entryPrice?.toFixed(2)}</p>
-                </div>
-                
-                {trade.exitPrice && (
-                  <>
-                    <div>
-                      <h3 className="text-sm font-medium">Exit Date</h3>
-                      <p className="text-lg">{formatDate(trade.exitDate)}</p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium">Exit Price</h3>
-                      <p className="text-lg">{trade.exitPrice.toFixed(2)}</p>
-                    </div>
-                  </>
-                )}
-                
-                <div>
-                  <h3 className="text-sm font-medium">Quantity</h3>
-                  <p className="text-lg">{trade.quantity}</p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium">Type</h3>
-                  <p className="text-lg capitalize">{trade.type}</p>
-                </div>
-                
-                {trade.pspTime && (
-                  <div>
-                    <h3 className="text-sm font-medium">PSP Time</h3>
-                    <p className="text-lg flex items-center">
-                      <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                      {trade.pspTime}
-                    </p>
-                  </div>
-                )}
-                
-                {trade.timeframe && (
-                  <div>
-                    <h3 className="text-sm font-medium">Timeframe</h3>
-                    <p className="text-lg flex items-center">
-                      <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
-                      {formatTimeframe(trade.timeframe)}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Risk & Reward</CardTitle>
-            <CardDescription>Trade performance and risk metrics</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {trade.stopLoss && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Trade Details</CardTitle>
+              <CardDescription>Key information about this trade</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <h3 className="text-sm font-medium">Stop Loss</h3>
-                    <p className="text-lg">{trade.stopLoss.toFixed(2)}</p>
+                    <h3 className="text-sm font-medium">Entry Date</h3>
+                    <p className="text-lg">{formatDate(trade.entryDate)}</p>
                   </div>
-                )}
-                
-                {trade.takeProfit && (
+                  
                   <div>
-                    <h3 className="text-sm font-medium">Take Profit</h3>
-                    <p className="text-lg">{trade.takeProfit.toFixed(2)}</p>
+                    <h3 className="text-sm font-medium">Entry Price</h3>
+                    <p className="text-lg">{trade.entryPrice?.toFixed(2)}</p>
                   </div>
-                )}
-                
-                {trade.fees !== undefined && (
-                  <div>
-                    <h3 className="text-sm font-medium">Fees</h3>
-                    <p className="text-lg">${trade.fees.toFixed(2)}</p>
-                  </div>
-                )}
-                
-                {metrics?.riskedAmount && (
-                  <div>
-                    <h3 className="text-sm font-medium">Risked Amount</h3>
-                    <p className="text-lg">${metrics.riskedAmount.toFixed(2)}</p>
-                  </div>
-                )}
-                
-                {metrics?.maxPotentialGain && (
-                  <div>
-                    <h3 className="text-sm font-medium">Potential Reward</h3>
-                    <p className="text-lg">${metrics.maxPotentialGain.toFixed(2)}</p>
-                  </div>
-                )}
-                
-                {trade.status === 'closed' && metrics && (
-                  <>
-                    <div className="col-span-2">
-                      <Separator className="my-2" />
-                      <h3 className="text-sm font-medium mb-2">Trade Results</h3>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium">P&L</h3>
-                      <p className={`text-lg font-medium ${profitLoss > 0 ? 'text-green-600' : profitLoss < 0 ? 'text-red-600' : ''}`}>
-                        ${profitLoss.toFixed(2)}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium">P&L %</h3>
-                      <p className={`text-lg font-medium ${metrics.profitLossPercentage > 0 ? 'text-green-600' : metrics.profitLossPercentage < 0 ? 'text-red-600' : ''}`}>
-                        {metrics.profitLossPercentage.toFixed(2)}%
-                      </p>
-                    </div>
-                    
-                    {riskRewardRatio !== undefined && (
+                  
+                  {trade.exitPrice && (
+                    <>
                       <div>
-                        <h3 className="text-sm font-medium">R Multiple</h3>
-                        <p className={`text-lg font-medium ${riskRewardRatio > 0 ? 'text-green-600' : riskRewardRatio < 0 ? 'text-red-600' : ''}`}>
-                          {riskRewardRatio.toFixed(2)}R
+                        <h3 className="text-sm font-medium">Exit Date</h3>
+                        <p className="text-lg">{formatDate(trade.exitDate)}</p>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-sm font-medium">Exit Price</h3>
+                        <p className="text-lg">{trade.exitPrice.toFixed(2)}</p>
+                      </div>
+                    </>
+                  )}
+                  
+                  <div>
+                    <h3 className="text-sm font-medium">Quantity</h3>
+                    <p className="text-lg">{trade.quantity}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium">Type</h3>
+                    <p className="text-lg capitalize">{trade.type}</p>
+                  </div>
+                  
+                  {trade.pspTime && (
+                    <div>
+                      <h3 className="text-sm font-medium">PSP Time</h3>
+                      <p className="text-lg flex items-center">
+                        <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                        {trade.pspTime}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {trade.timeframe && (
+                    <div>
+                      <h3 className="text-sm font-medium">Timeframe</h3>
+                      <p className="text-lg flex items-center">
+                        <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
+                        {formatTimeframe(trade.timeframe)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Risk & Reward</CardTitle>
+              <CardDescription>Trade performance and risk metrics</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  {trade.stopLoss && (
+                    <div>
+                      <h3 className="text-sm font-medium">Stop Loss</h3>
+                      <p className="text-lg">{trade.stopLoss.toFixed(2)}</p>
+                    </div>
+                  )}
+                  
+                  {trade.takeProfit && (
+                    <div>
+                      <h3 className="text-sm font-medium">Take Profit</h3>
+                      <p className="text-lg">{trade.takeProfit.toFixed(2)}</p>
+                    </div>
+                  )}
+                  
+                  {trade.fees !== undefined && (
+                    <div>
+                      <h3 className="text-sm font-medium">Fees</h3>
+                      <p className="text-lg">${trade.fees.toFixed(2)}</p>
+                    </div>
+                  )}
+                  
+                  {metrics?.riskedAmount && (
+                    <div>
+                      <h3 className="text-sm font-medium">Risked Amount</h3>
+                      <p className="text-lg">${metrics.riskedAmount.toFixed(2)}</p>
+                    </div>
+                  )}
+                  
+                  {metrics?.maxPotentialGain && (
+                    <div>
+                      <h3 className="text-sm font-medium">Potential Reward</h3>
+                      <p className="text-lg">${metrics.maxPotentialGain.toFixed(2)}</p>
+                    </div>
+                  )}
+                  
+                  {trade.status === 'closed' && metrics && (
+                    <>
+                      <div className="col-span-2">
+                        <Separator className="my-2" />
+                        <h3 className="text-sm font-medium mb-2">Trade Results</h3>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-sm font-medium">P&L</h3>
+                        <p className={`text-lg font-medium ${profitLoss > 0 ? 'text-green-600' : profitLoss < 0 ? 'text-red-600' : ''}`}>
+                          ${profitLoss.toFixed(2)}
                         </p>
                       </div>
-                    )}
-                  </>
-                )}
+                      
+                      <div>
+                        <h3 className="text-sm font-medium">P&L %</h3>
+                        <p className={`text-lg font-medium ${metrics.profitLossPercentage > 0 ? 'text-green-600' : metrics.profitLossPercentage < 0 ? 'text-red-600' : ''}`}>
+                          {metrics.profitLossPercentage.toFixed(2)}%
+                        </p>
+                      </div>
+                      
+                      {riskRewardRatio !== undefined && (
+                        <div>
+                          <h3 className="text-sm font-medium">R Multiple</h3>
+                          <p className={`text-lg font-medium ${riskRewardRatio > 0 ? 'text-green-600' : riskRewardRatio < 0 ? 'text-red-600' : ''}`}>
+                            {riskRewardRatio.toFixed(2)}R
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
               </div>
               
               {metrics?.calculationExplanation && (

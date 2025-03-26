@@ -11,9 +11,14 @@ import { useNavigate } from 'react-router-dom';
 interface TradeCommentsListProps {
   trades: TradeWithMetrics[];
   groupByStrategy?: boolean;
+  listTitle?: string;
 }
 
-export function TradeCommentsList({ trades, groupByStrategy = false }: TradeCommentsListProps) {
+export function TradeCommentsList({ 
+  trades, 
+  groupByStrategy = false,
+  listTitle = "Trades This Week"
+}: TradeCommentsListProps) {
   const navigate = useNavigate();
   
   const groupedTrades = useMemo(() => {
@@ -39,6 +44,12 @@ export function TradeCommentsList({ trades, groupByStrategy = false }: TradeComm
   }, [trades, groupByStrategy]);
   
   const handleTradeClick = (tradeId: string) => {
+    // Store the current journal tab in session storage before navigating
+    const currentTab = document.querySelector('[data-state="active"][data-radix-collection-item]')?.getAttribute('value');
+    if (currentTab) {
+      sessionStorage.setItem('journal-active-tab', currentTab);
+    }
+    
     navigate(`/trade/${tradeId}`);
   };
   
@@ -46,11 +57,11 @@ export function TradeCommentsList({ trades, groupByStrategy = false }: TradeComm
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Trades This Week</CardTitle>
+          <CardTitle>{listTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground text-center py-4">
-            No trades found for this week.
+            No trades found for this period.
           </p>
         </CardContent>
       </Card>
@@ -60,7 +71,7 @@ export function TradeCommentsList({ trades, groupByStrategy = false }: TradeComm
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Trades This Week</CardTitle>
+        <CardTitle>{listTitle}</CardTitle>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[500px] pr-4">
