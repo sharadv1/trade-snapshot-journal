@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startOfWeek, endOfWeek, subWeeks, format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { 
   Select, 
   SelectContent, 
@@ -23,7 +25,8 @@ import {
   MonthlyReflection,
   getMonthlyReflection,
   saveMonthlyReflection,
-  getMonthlyReflections
+  getMonthlyReflections,
+  getWeeklyReflections
 } from '@/utils/journalStorage';
 import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics';
 import { TradeCommentsList } from '@/components/journal/TradeCommentsList';
