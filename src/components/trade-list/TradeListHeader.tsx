@@ -1,7 +1,6 @@
 
-import { Button } from '@/components/ui/button';
-import { DateRangeFilterComponent } from './DateRangeFilter';
-import { DateRangeFilter } from './useTradeList';
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -9,11 +8,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatCurrency } from "@/utils/calculations/formatters";
+import { DateRangeFilterComponent } from "./DateRangeFilterComponent";
+import { DateRangeFilter } from "./useTradeList";
+import { XCircle } from "lucide-react";
 
 interface TradeListHeaderProps {
-  totalOpenRisk: number;
+  totalOpenRisk?: number;
   tradeStatus: 'open' | 'closed' | 'all';
   setTradeStatus: (status: 'open' | 'closed' | 'all') => void;
+  hasFilters: boolean;
+  resetFilters: () => void;
+  availableStrategies: string[];
   strategyFilter: string;
   setStrategyFilter: (strategy: string) => void;
   resultFilter: 'all' | 'win' | 'loss';
@@ -24,15 +30,15 @@ interface TradeListHeaderProps {
   filterByMonth: (date: Date) => void;
   filterByDateRange: (startDate: Date, endDate: Date) => void;
   clearDateFilter: () => void;
-  availableStrategies: string[];
-  hasFilters: boolean;
-  resetFilters: () => void;
 }
 
 export function TradeListHeader({
   totalOpenRisk,
   tradeStatus,
   setTradeStatus,
+  hasFilters,
+  resetFilters,
+  availableStrategies,
   strategyFilter,
   setStrategyFilter,
   resultFilter,
@@ -43,29 +49,16 @@ export function TradeListHeader({
   filterByMonth,
   filterByDateRange,
   clearDateFilter,
-  availableStrategies,
-  hasFilters,
-  resetFilters
 }: TradeListHeaderProps) {
   return (
-    <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-3">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">
-          {tradeStatus === 'all' ? 'All Trades' : 
-           tradeStatus === 'open' ? 'Open Trades' : 'Closed Trades'}
-        </h2>
-        {tradeStatus === 'open' && totalOpenRisk > 0 && (
-          <p className="text-sm text-muted-foreground">
-            Total Open Risk: ${totalOpenRisk.toFixed(2)}
-          </p>
-        )}
-      </div>
-      
-      <div className="flex flex-wrap gap-2 items-center">
-        {/* Trade Status Filter */}
-        <Select value={tradeStatus} onValueChange={(value) => setTradeStatus(value as 'open' | 'closed' | 'all')}>
-          <SelectTrigger className="w-[130px]">
-            <SelectValue placeholder="All Trades" />
+    <div className="w-full flex flex-col sm:flex-row justify-between gap-2">
+      <div className="flex flex-row items-center gap-2">
+        <Select
+          value={tradeStatus}
+          onValueChange={(value) => setTradeStatus(value as 'open' | 'closed' | 'all')}
+        >
+          <SelectTrigger className="w-[120px]">
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Trades</SelectItem>
@@ -74,32 +67,47 @@ export function TradeListHeader({
           </SelectContent>
         </Select>
         
-        {/* Strategy Filter */}
-        <Select value={strategyFilter} onValueChange={setStrategyFilter}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="All Strategies" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Strategies</SelectItem>
-            {availableStrategies.map((strategy) => (
-              <SelectItem key={strategy} value={strategy}>{strategy}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {totalOpenRisk !== undefined && totalOpenRisk > 0 && tradeStatus !== 'closed' && (
+          <Badge variant="outline" className="ml-2">
+            Open Risk: {formatCurrency(totalOpenRisk)}
+          </Badge>
+        )}
+      </div>
+      
+      <div className="flex flex-wrap items-center gap-2">
+        {availableStrategies.length > 0 && (
+          <Select
+            value={strategyFilter}
+            onValueChange={setStrategyFilter}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="Strategy" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Strategies</SelectItem>
+              {availableStrategies.map((strategy) => (
+                <SelectItem key={strategy} value={strategy}>
+                  {strategy}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         
-        {/* Result Filter */}
-        <Select value={resultFilter} onValueChange={(value) => setResultFilter(value as 'all' | 'win' | 'loss')}>
-          <SelectTrigger className="w-[100px]">
+        <Select
+          value={resultFilter}
+          onValueChange={(value) => setResultFilter(value as 'all' | 'win' | 'loss')}
+        >
+          <SelectTrigger className="w-[110px]">
             <SelectValue placeholder="Result" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="win">Win</SelectItem>
-            <SelectItem value="loss">Loss</SelectItem>
+            <SelectItem value="all">All Results</SelectItem>
+            <SelectItem value="win">Wins</SelectItem>
+            <SelectItem value="loss">Losses</SelectItem>
           </SelectContent>
         </Select>
         
-        {/* Date Range Filter */}
         <DateRangeFilterComponent
           dateRangeFilter={dateRangeFilter}
           onFilterByDate={filterByDate}
@@ -109,10 +117,14 @@ export function TradeListHeader({
           onClearFilter={clearDateFilter}
         />
         
-        {/* Reset Button - only show if filters are applied */}
         {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={resetFilters}>
-            Reset
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={resetFilters}
+            title="Clear all filters"
+          >
+            <XCircle className="h-4 w-4" />
           </Button>
         )}
       </div>

@@ -33,8 +33,8 @@ export function DateRangeFilterComponent({
   );
   const [mode, setMode] = useState<"single" | "range">("single");
   const [selectedRange, setSelectedRange] = useState<{
-    from?: Date;
-    to?: Date;
+    from: Date | undefined;
+    to: Date | undefined;
   }>({
     from: dateRangeFilter.startDate || undefined,
     to: dateRangeFilter.endDate || undefined,
@@ -45,7 +45,7 @@ export function DateRangeFilterComponent({
     setDate(selectedDate);
   };
 
-  const handleRangeSelect = (range: { from?: Date; to?: Date }) => {
+  const handleRangeSelect = (range: { from: Date | undefined; to: Date | undefined }) => {
     setSelectedRange(range);
   };
 
@@ -134,16 +134,21 @@ export function DateRangeFilterComponent({
         </div>
         
         <div className="p-0">
-          <Calendar
-            mode={mode === "range" ? "range" : "single"}
-            selected={mode === "range" ? selectedRange : date}
-            onSelect={
-              mode === "range"
-                ? handleRangeSelect
-                : handleDateSelect
-            }
-            className="p-3 pointer-events-auto"
-          />
+          {mode === "single" ? (
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={handleDateSelect}
+              className="p-3 pointer-events-auto"
+            />
+          ) : (
+            <Calendar
+              mode="range"
+              selected={selectedRange}
+              onSelect={handleRangeSelect}
+              className="p-3 pointer-events-auto"
+            />
+          )}
         </div>
         
         <div className="p-3 border-t flex justify-between">

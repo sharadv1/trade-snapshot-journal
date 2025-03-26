@@ -15,9 +15,11 @@ import {
 import { useSidebar } from '@/components/ui/sidebar';
 
 export function SimpleSidebar() {
-  const { isOpen } = useSidebar();
+  const { state } = useSidebar();
   
-  if (!isOpen) return null;
+  // In the updated sidebar component, we should use the 'state' property
+  // instead of 'isOpen' to determine if the sidebar is expanded
+  if (state === "collapsed") return null;
   
   return (
     <div className="hidden md:block w-64 shrink-0 border-r pt-16 bg-background z-10">
