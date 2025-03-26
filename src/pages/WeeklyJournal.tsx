@@ -31,6 +31,7 @@ import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics'
 import { TradeCommentsList } from '@/components/journal/TradeCommentsList';
 import { ReflectionsList } from '@/components/journal/ReflectionsList';
 import { MonthlyReflectionsList } from '@/components/journal/MonthlyReflectionsList';
+import { formatCurrency } from '@/utils/calculations/formatters';
 
 export default function WeeklyJournal() {
   const navigate = useNavigate();
@@ -413,9 +414,14 @@ export default function WeeklyJournal() {
 
 function WeeklyReflectionsInMonthList({ currentMonth, navigate }: { currentMonth: Date, navigate: (path: string) => void }) {
   const [weeklyReflections, setWeeklyReflections] = useState<WeeklyReflection[]>([]);
+  const [reflectionStats, setReflectionStats] = useState<Record<string, {
+    totalPnL: number,
+    totalR: number
+  }>>({});
   
   useEffect(() => {
     const allReflections = getWeeklyReflections();
+    const allTrades = getTradesWithMetrics();
     const monthStart = startOfMonth(currentMonth).getTime();
     const monthEnd = endOfMonth(currentMonth).getTime();
     
@@ -428,6 +434,23 @@ function WeeklyReflectionsInMonthList({ currentMonth, navigate }: { currentMonth
       new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime()
     );
     
+    const stats: Record<string, { totalPnL: number, totalR: number }> = {};
+    
+    reflectionsInMonth.forEach(reflection => {
+      const weekTrades = allTrades.filter(trade => 
+        reflection.tradeIds.includes(trade.id)
+      );
+      
+      const totalPnL = weekTrades.reduce((sum, trade) => 
+        sum + (trade.metrics.profitLoss || 0), 0);
+      
+      const totalR = weekTrades.reduce((sum, trade) => 
+        sum + (trade.metrics.riskRewardRatio || 0), 0);
+      
+      stats[reflection.id] = { totalPnL, totalR };
+    });
+    
+    setReflectionStats(stats);
     setWeeklyReflections(reflectionsInMonth);
   }, [currentMonth]);
   
@@ -441,31 +464,32 @@ function WeeklyReflectionsInMonthList({ currentMonth, navigate }: { currentMonth
   
   return (
     <div className="space-y-4">
-      {weeklyReflections.map(reflection => (
-        <Card key={reflection.id} className="cursor-pointer hover:bg-accent/10 transition-colors" 
-          onClick={() => navigate(`/journal/${reflection.id}`)}>
-          <CardContent className="pt-4 pb-2">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-medium">
-                  {format(parseISO(reflection.weekStart), 'MMM d')} - {format(parseISO(reflection.weekEnd), 'MMM d, yyyy')}
-                </h3>
-                <p className="text-sm text-muted-foreground">{reflection.tradeIds.length} trades</p>
+      {weeklyReflections.map(reflection => {
+        const stats = reflectionStats[reflection.id] || { totalPnL: 0, totalR: 0 };
+        return (
+          <Card key={reflection.id} className="cursor-pointer hover:bg-accent/10 transition-colors" 
+            onClick={() => navigate(`/journal/${reflection.id}`)}>
+            <CardContent className="pt-4 pb-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-medium">
+                    {format(parseISO(reflection.weekStart), 'MMM d')} - {format(parseISO(reflection.weekEnd), 'MMM d, yyyy')}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{reflection.tradeIds.length} trades</p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={stats.totalPnL >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                    {formatCurrency(stats.totalPnL)}
+                  </span>
+                  <span className={stats.totalR >= 0 ? 'text-green-600 text-sm' : 'text-red-600 text-sm'}>
+                    {stats.totalR > 0 ? '+' : ''}{stats.totalR.toFixed(1)}R
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className={
-                  reflection.grade.startsWith('A') ? 'bg-green-100 text-green-800' :
-                  reflection.grade.startsWith('B') ? 'bg-blue-100 text-blue-800' :
-                  reflection.grade.startsWith('C') ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
-                }>
-                  {reflection.grade}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
