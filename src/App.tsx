@@ -29,6 +29,7 @@ function App() {
           <Route path="/strategies" element={<StrategyManagement />} />
           <Route path="/symbols" element={<SymbolManagement />} />
           <Route path="/journal" element={<WeeklyJournal />} />
+          <Route path="/journal/:weekId" element={<WeeklyJournal />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>

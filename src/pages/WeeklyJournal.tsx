@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { startOfWeek, endOfWeek, subWeeks, format } from 'date-fns';
+import { useNavigate, useParams } from 'react-router-dom';
+import { startOfWeek, endOfWeek, subWeeks, format, parseISO } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,19 +17,48 @@ import { TradeList } from '@/components/trade-list/TradeList';
 import { toast } from '@/utils/toast';
 import { TradeWithMetrics } from '@/types';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
-import { WeeklyReflection, getWeeklyReflection, saveWeeklyReflection } from '@/utils/journalStorage';
+import { WeeklyReflection, getWeeklyReflection, saveWeeklyReflection, getWeeklyReflections } from '@/utils/journalStorage';
 import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics';
+import { TradeCommentsList } from '@/components/journal/TradeCommentsList';
+import { ReflectionsList } from '@/components/journal/ReflectionsList';
 
 export default function WeeklyJournal() {
-  const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
+  const navigate = useNavigate();
+  const { weekId } = useParams();
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
+    if (weekId === 'new') {
+      return startOfWeek(new Date(), { weekStartsOn: 0 });
+    } else if (weekId) {
+      // Try to load the specified week
+      const reflection = getWeeklyReflection(weekId);
+      if (reflection) {
+        return parseISO(reflection.weekStart);
+      }
+    }
+    // Default to current week
+    return startOfWeek(new Date(), { weekStartsOn: 0 });
+  });
+  
   const currentWeekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 0 });
   
   const [weeklyTrades, setWeeklyTrades] = useState<TradeWithMetrics[]>([]);
   const [reflection, setReflection] = useState<string>('');
   const [weekGrade, setWeekGrade] = useState<string>('B');
+  const [showList, setShowList] = useState<boolean>(!weekId || weekId === 'list');
+  
+  // If we're on the main journal page, show the list of reflections
+  useEffect(() => {
+    if (!weekId || weekId === 'list') {
+      setShowList(true);
+    } else {
+      setShowList(false);
+    }
+  }, [weekId]);
   
   // Load trades for the selected week
   useEffect(() => {
+    if (showList) return;
+    
     const allTrades = getTradesWithMetrics();
     const weekStart = currentWeekStart.getTime();
     const weekEnd = currentWeekEnd.getTime();
@@ -44,8 +74,8 @@ export default function WeeklyJournal() {
     setWeeklyTrades(tradesInWeek);
     
     // Load existing reflection for this week
-    const weekId = format(currentWeekStart, 'yyyy-MM-dd');
-    const savedReflection = getWeeklyReflection(weekId);
+    const currentWeekId = format(currentWeekStart, 'yyyy-MM-dd');
+    const savedReflection = getWeeklyReflection(currentWeekId);
     
     if (savedReflection) {
       setReflection(savedReflection.reflection || '');
@@ -54,7 +84,7 @@ export default function WeeklyJournal() {
       setReflection('');
       setWeekGrade('B');
     }
-  }, [currentWeekStart, currentWeekEnd]);
+  }, [currentWeekStart, currentWeekEnd, showList]);
   
   const previousWeek = () => {
     setCurrentWeekStart(prevDate => subWeeks(prevDate, 1));
@@ -88,9 +118,29 @@ export default function WeeklyJournal() {
       updatedAt: new Date().toISOString()
     };
     
-    saveWeeklyReflection(reflectionData);
-    toast.success('Weekly reflection saved');
+    const success = saveWeeklyReflection(reflectionData);
+    if (success) {
+      toast.success('Weekly reflection saved');
+      
+      // Dispatch a storage event to notify other components
+      window.dispatchEvent(new StorageEvent('storage', { 
+        key: 'trade-journal-reflections'
+      }));
+    } else {
+      toast.error('Failed to save reflection');
+    }
   };
+  
+  if (showList) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">Weekly Trading Journal</h1>
+        </div>
+        <ReflectionsList />
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -108,6 +158,10 @@ export default function WeeklyJournal() {
           
           <Button variant="outline" size="sm" onClick={nextWeek}>
             <ChevronRight className="h-4 w-4" />
+          </Button>
+          
+          <Button variant="outline" onClick={() => navigate('/journal')}>
+            All Reflections
           </Button>
         </div>
       </div>
@@ -166,6 +220,9 @@ export default function WeeklyJournal() {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Trade comments */}
+      <TradeCommentsList trades={weeklyTrades} />
       
       {/* List of trades for this week */}
       <h2 className="text-xl font-semibold mt-6">Trades This Week</h2>

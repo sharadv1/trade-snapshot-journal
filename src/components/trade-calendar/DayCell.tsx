@@ -1,5 +1,5 @@
 
-import { format, isToday } from 'date-fns';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/utils/calculations/formatters';
 
@@ -16,54 +16,64 @@ interface DayCellProps {
 
 export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
   if (!day) {
-    return (
-      <div className="border rounded-md p-2 h-24 flex flex-col items-center bg-muted/20">
-        {/* Empty cell */}
-      </div>
-    );
+    return <div className="aspect-square p-1" />;
   }
-
-  const isCurrentDay = isToday(day);
   
-  const getCellClass = () => {
-    let classes = '';
-    
-    if (isCurrentDay) {
-      classes += 'ring-2 ring-primary font-bold ';
-    }
-    
-    if (!dayData) return classes + 'bg-background';
-    
-    return classes + (dayData.pnl >= 0 
-      ? 'bg-profit/20' 
-      : 'bg-loss/20');
+  const isToday = day.toDateString() === new Date().toDateString();
+  const hasTrades = dayData && dayData.tradeCount > 0;
+  
+  const getPnLColor = (pnl: number) => {
+    if (pnl > 0) return 'text-green-600';
+    if (pnl < 0) return 'text-red-600';
+    return 'text-gray-600';
   };
   
   return (
-    <div 
-      className={`border rounded-md p-2 h-24 flex flex-col ${getCellClass()} ${dayData ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${isCurrentDay ? 'shadow-md' : ''}`}
-      onClick={() => dayData && onDayClick(day)}
-    >
-      <div className={`self-end text-sm font-medium ${isCurrentDay ? 'bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center' : ''}`}>
-        {format(day, 'd')}
-      </div>
-      {dayData ? (
-        <div className="flex flex-col items-center justify-center flex-1 gap-1">
-          <div className={`text-lg font-bold ${dayData.pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
-            {formatCurrency(dayData.pnl)}
-          </div>
-          {dayData.rValue !== undefined && (
-            <div className="text-xs font-medium">
-              R: {dayData.rValue.toFixed(2)}
-            </div>
-          )}
-          <div className="text-xs text-muted-foreground">
-            {dayData.tradeCount} {dayData.tradeCount === 1 ? 'trade' : 'trades'}
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1"></div>
+    <button
+      className={cn(
+        "aspect-square p-1 w-full",
+        hasTrades ? 'cursor-pointer' : 'cursor-default'
       )}
-    </div>
+      onClick={() => hasTrades && onDayClick(day)}
+      disabled={!hasTrades}
+    >
+      <div
+        className={cn(
+          "h-full w-full rounded-md flex flex-col items-center justify-start p-1",
+          isToday ? "bg-primary/10 border border-primary" : hasTrades ? "bg-accent/40" : ""
+        )}
+      >
+        <div className={cn(
+          "text-xs font-medium",
+          isToday ? "text-primary" : "text-foreground"
+        )}>
+          {format(day, 'd')}
+        </div>
+        
+        {hasTrades && (
+          <div className="w-full mt-auto">
+            <div className={cn(
+              "text-xs font-medium text-center truncate",
+              getPnLColor(dayData.pnl)
+            )}>
+              {formatCurrency(dayData.pnl)}
+            </div>
+            
+            {dayData.rValue !== undefined && (
+              <div className={cn(
+                "text-xs text-center truncate",
+                getPnLColor(dayData.rValue)
+              )}>
+                {dayData.rValue > 0 ? "+" : ""}{dayData.rValue.toFixed(1)}R
+              </div>
+            )}
+            
+            <div className="text-[10px] text-center text-muted-foreground">
+              {dayData.tradeCount} {dayData.tradeCount === 1 ? 'trade' : 'trades'}
+            </div>
+          </div>
+        )}
+      </div>
+    </button>
   );
 }

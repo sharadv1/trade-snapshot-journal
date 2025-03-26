@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { TradeWithMetrics } from '@/types';
@@ -79,23 +78,15 @@ export function useTradePnLCalendar() {
         pnlByDay[exitDay].tradeCount += 1;
         pnlByDay[exitDay].tradeIds.push(trade.id);
 
-        // Add R value if available
+        // Fix R value calculation - only add if it's defined
         if (trade.metrics.riskRewardRatio !== undefined) {
-          if (pnlByDay[exitDay].rValue === undefined) {
-            pnlByDay[exitDay].rValue = 0;
-          }
           pnlByDay[exitDay].rValue += trade.metrics.riskRewardRatio;
         }
       }
     });
     
-    // Calculate average R values for each day
-    Object.keys(pnlByDay).forEach(day => {
-      const dayData = pnlByDay[day];
-      if (dayData.rValue !== undefined && dayData.tradeCount > 0) {
-        dayData.rValue = dayData.rValue / dayData.tradeCount;
-      }
-    });
+    // Don't calculate average R values - keep them as cumulative
+    // This fixes the issue with R values not adding up correctly
     
     return pnlByDay;
   }, [filteredTrades, refreshKey]);
