@@ -104,6 +104,7 @@ export default function WeeklyJournal() {
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
   };
   
+  // Fix: Use a separate handleGradeChange function to ensure the grade is properly updated
   const handleGradeChange = (value: string) => {
     console.log('Setting grade to:', value);
     setWeekGrade(value);
@@ -216,7 +217,7 @@ export default function WeeklyJournal() {
                 onValueChange={handleGradeChange}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a grade" />
+                  <SelectValue>{weekGrade}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="A+">A+</SelectItem>

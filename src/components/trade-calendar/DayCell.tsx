@@ -39,21 +39,25 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
     >
       <div
         className={cn(
-          "h-full w-full rounded-md flex flex-col items-center justify-start p-1",
+          "h-full w-full rounded-md flex flex-col items-center p-1",
           isToday ? "bg-primary/10 border border-primary" : hasTrades ? "bg-accent/40" : ""
         )}
       >
-        <div className={cn(
-          "text-xs font-medium",
-          isToday ? "text-primary" : "text-foreground"
-        )}>
-          {format(day, 'd')}
+        {/* Date number at the top right */}
+        <div className="w-full text-right">
+          <span className={cn(
+            "inline-block px-1 text-sm font-medium",
+            isToday ? "text-primary" : "text-foreground"
+          )}>
+            {format(day, 'd')}
+          </span>
         </div>
         
+        {/* PnL and trade data in the center */}
         {hasTrades && (
-          <div className="w-full mt-auto space-y-0.5">
+          <div className="w-full flex-1 flex flex-col justify-center items-center mt-1 space-y-0.5">
             <div className={cn(
-              "text-xs font-semibold text-center truncate",
+              "text-base font-semibold",
               getPnLColor(dayData.pnl)
             )}>
               {formatCurrency(dayData.pnl)}
@@ -61,14 +65,14 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
             
             {dayData.rValue !== undefined && (
               <div className={cn(
-                "text-xs font-medium text-center truncate",
+                "text-sm font-medium",
                 getPnLColor(dayData.rValue)
               )}>
                 {dayData.rValue > 0 ? "+" : ""}{dayData.rValue.toFixed(1)}R
               </div>
             )}
             
-            <div className="text-[10px] text-center text-muted-foreground">
+            <div className="text-xs text-muted-foreground">
               {dayData.tradeCount} {dayData.tradeCount === 1 ? 'trade' : 'trades'}
             </div>
           </div>
