@@ -16,11 +16,13 @@ const safeParse = <T>(value: string | null): T | {} => {
 
 export const getWeeklyReflections = (): { [weekId: string]: WeeklyReflection } => {
   const storedReflections = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
+  console.log('Retrieved weekly reflections from storage:', storedReflections);
   return safeParse(storedReflections) as { [weekId: string]: WeeklyReflection };
 };
 
 export const getMonthlyReflections = (): { [monthId: string]: MonthlyReflection } => {
   const storedReflections = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
+  console.log('Retrieved monthly reflections from storage:', storedReflections);
   return safeParse(storedReflections) as { [monthId: string]: MonthlyReflection };
 };
 
@@ -39,12 +41,23 @@ export const saveWeeklyReflection = (weekId: string, reflection: string, grade?:
   try {
     const reflections = getWeeklyReflections();
     
+    // Create the start and end dates for the current week
+    const currentDate = new Date();
+    const weekStart = new Date(currentDate);
+    weekStart.setDate(currentDate.getDate() - currentDate.getDay() + (currentDate.getDay() === 0 ? -6 : 1)); // Monday
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6); // Sunday
+    
     // Create or update the reflection
     reflections[weekId] = {
       ...reflections[weekId],
+      weekId: weekId,
+      weekStart: reflections[weekId]?.weekStart || weekStart.toISOString(),
+      weekEnd: reflections[weekId]?.weekEnd || weekEnd.toISOString(),
       reflection,
       grade,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      tradeIds: reflections[weekId]?.tradeIds || []
     };
     
     localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
@@ -59,12 +72,24 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
   try {
     const reflections = getMonthlyReflections();
     
+    // Create the start and end dates for the current month
+    const currentDate = new Date();
+    const year = parseInt(monthId.split('-')[0], 10);
+    const month = parseInt(monthId.split('-')[1], 10) - 1; // JS months are 0-based
+    
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+    
     // Create or update the reflection
     reflections[monthId] = {
       ...reflections[monthId],
+      monthId: monthId,
+      monthStart: reflections[monthId]?.monthStart || monthStart.toISOString(),
+      monthEnd: reflections[monthId]?.monthEnd || monthEnd.toISOString(),
       reflection,
       grade,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      tradeIds: reflections[monthId]?.tradeIds || []
     };
     
     localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));

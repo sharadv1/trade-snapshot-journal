@@ -12,6 +12,8 @@ import NotFound from '@/pages/NotFound';
 import { Layout } from '@/components/layout/Layout';
 import SymbolManagement from '@/pages/SymbolManagement';
 import WeeklyJournal from '@/pages/WeeklyJournal';
+import { ReflectionsList } from '@/components/journal/ReflectionsList';
+import { MonthlyReflectionsList } from '@/components/journal/MonthlyReflectionsList';
 
 function App() {
   return (
@@ -28,7 +30,9 @@ function App() {
           <Route path="/ideas" element={<Ideas />} />
           <Route path="/strategies" element={<StrategyManagement />} />
           <Route path="/symbols" element={<SymbolManagement />} />
-          <Route path="/journal" element={<WeeklyJournal />} />
+          <Route path="/journal" element={<ReflectionsList />} />
+          <Route path="/journal/weekly" element={<ReflectionsList />} />
+          <Route path="/journal/monthly" element={<MonthlyReflectionsList />} />
           <Route path="/journal/:weekId" element={<WeeklyJournal />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

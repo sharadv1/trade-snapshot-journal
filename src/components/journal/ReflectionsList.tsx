@@ -37,7 +37,7 @@ export function ReflectionsList() {
     
     // Listen for storage changes to reload reflections
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'trade-journal-reflections') {
+      if (event.key === 'trade-journal-weekly-reflections') {
         loadReflections();
       }
     };
@@ -49,10 +49,16 @@ export function ReflectionsList() {
   const loadReflections = () => {
     const reflectionsMap = getWeeklyReflections();
     // Convert to array and sort by date, newest first
-    const reflectionsArray = Object.values(reflectionsMap);
+    const reflectionsArray = Object.entries(reflectionsMap).map(([weekId, reflection]) => ({
+      ...reflection,
+      id: weekId,
+      weekId: weekId
+    }));
+    
     reflectionsArray.sort((a, b) => 
       new Date(b.weekStart || '').getTime() - new Date(a.weekStart || '').getTime()
     );
+    
     setReflections(reflectionsArray);
     
     // Calculate stats for each reflection

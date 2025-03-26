@@ -49,10 +49,16 @@ export function MonthlyReflectionsList() {
   const loadReflections = () => {
     const reflectionsMap = getMonthlyReflections();
     // Convert to array and sort by date, newest first
-    const reflectionsArray = Object.values(reflectionsMap);
+    const reflectionsArray = Object.entries(reflectionsMap).map(([monthId, reflection]) => ({
+      ...reflection,
+      id: monthId,
+      monthId: monthId
+    }));
+    
     reflectionsArray.sort((a, b) => 
       new Date(b.monthStart || '').getTime() - new Date(a.monthStart || '').getTime()
     );
+    
     setReflections(reflectionsArray);
     
     // Calculate stats for each reflection
