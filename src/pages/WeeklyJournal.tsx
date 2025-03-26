@@ -369,20 +369,33 @@ export default function WeeklyJournal() {
                 value={monthlyReflection}
                 onChange={(e) => setMonthlyReflection(e.target.value)}
               />
+              
+              <div className="grid grid-cols-2 gap-4 items-center">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">
+                    Rate your month
+                  </label>
+                  <Select value={monthGrade} onValueChange={handleMonthGradeChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a grade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="A">A - Excellent</SelectItem>
+                      <SelectItem value="B">B - Good</SelectItem>
+                      <SelectItem value="C">C - Average</SelectItem>
+                      <SelectItem value="D">D - Poor</SelectItem>
+                      <SelectItem value="F">F - Failed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Weekly Summaries</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <WeeklyReflectionsInMonthList 
-                currentMonth={currentMonthStart} 
-                navigate={navigate} 
-              />
-            </CardContent>
-          </Card>
+          <TradeCommentsList
+            trades={monthlyTrades}
+            groupByStrategy={true}
+          />
         </TabsContent>
       </Tabs>
     </div>
