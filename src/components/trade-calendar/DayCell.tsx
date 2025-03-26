@@ -21,6 +21,7 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
   
   const isToday = day.toDateString() === new Date().toDateString();
   const hasTrades = dayData && dayData.tradeCount > 0;
+  const isProfitable = dayData && dayData.pnl > 0;
   
   const getPnLColor = (pnl: number) => {
     if (pnl > 0) return 'text-green-600';
@@ -40,7 +41,8 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
       <div
         className={cn(
           "h-full w-full rounded-md flex flex-col items-center p-1",
-          isToday ? "bg-primary/10 border border-primary" : hasTrades ? "bg-accent/40" : ""
+          isToday ? "bg-primary/10 border border-primary" : 
+          hasTrades ? (isProfitable ? "bg-green-100" : "bg-red-100") : ""
         )}
       >
         {/* Date number at the top right */}
