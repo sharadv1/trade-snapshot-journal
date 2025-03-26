@@ -59,11 +59,6 @@ export default function WeeklyJournal() {
   const [showList, setShowList] = useState<boolean>(!weekId || weekId === 'list');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>(() => {
-    const savedTab = sessionStorage.getItem('journal-active-tab');
-    if (savedTab) {
-      sessionStorage.removeItem('journal-active-tab');
-      return savedTab;
-    }
     return "weekly";
   });
   
@@ -78,6 +73,7 @@ export default function WeeklyJournal() {
   const loadData = useCallback(() => {
     if (showList) return;
     
+    console.log('Loading trades data in WeeklyJournal');
     const allTrades = getTradesWithMetrics();
     
     const weekStart = currentWeekStart.getTime();
@@ -129,6 +125,23 @@ export default function WeeklyJournal() {
   
   useEffect(() => {
     loadData();
+    
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'trade-journal-trades' || 
+          event.key === 'trade-journal-reflections' ||
+          event.key === 'trade-journal-monthly-reflections') {
+        console.log('Storage changed, reloading journal data');
+        loadData();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('trades-updated', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('trades-updated', handleStorageChange);
+    };
   }, [loadData]);
 
   const handleReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

@@ -12,9 +12,9 @@ export function useTradePnLCalendar() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const loadTrades = () => {
+    console.log('Loading trades in TradePnLCalendar');
     const allTrades = getTradesWithMetrics();
     setTrades(allTrades.filter(trade => trade.status === 'closed'));
-    setRefreshKey(prev => prev + 1);
   };
 
   useEffect(() => {
@@ -22,17 +22,17 @@ export function useTradePnLCalendar() {
     
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'trade-journal-trades') {
+        console.log('Trade storage changed, refreshing calendar data');
         loadTrades();
       }
     };
     
     window.addEventListener('storage', handleStorageChange);
-    
-    const intervalId = setInterval(loadTrades, 2000);
+    window.addEventListener('trades-updated', handleStorageChange);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      clearInterval(intervalId);
+      window.removeEventListener('trades-updated', handleStorageChange);
     };
   }, []);
 
@@ -78,15 +78,11 @@ export function useTradePnLCalendar() {
         pnlByDay[exitDay].tradeCount += 1;
         pnlByDay[exitDay].tradeIds.push(trade.id);
 
-        // Fix R value calculation - only add if it's defined
         if (trade.metrics.riskRewardRatio !== undefined) {
           pnlByDay[exitDay].rValue += trade.metrics.riskRewardRatio;
         }
       }
     });
-    
-    // Don't calculate average R values - keep them as cumulative
-    // This fixes the issue with R values not adding up correctly
     
     return pnlByDay;
   }, [filteredTrades, refreshKey]);

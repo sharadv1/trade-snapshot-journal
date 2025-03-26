@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -28,30 +27,40 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   // Load trades when component mounts or when refreshKey changes
   useEffect(() => {
     const loadTrades = () => {
-      console.log('Loading trades in TradeList component');
       // If initialTrades is provided, use that, otherwise get from storage
-      const allTrades = initialTrades || getTradesWithMetrics();
-      console.log(`Loaded ${allTrades.length} trades in TradeList`);
-      setTrades(allTrades);
+      if (!initialTrades) {
+        console.log('Loading trades in TradeList component');
+        const allTrades = getTradesWithMetrics();
+        console.log(`Loaded ${allTrades.length} trades in TradeList`);
+        setTrades(allTrades);
+      } else {
+        setTrades(initialTrades);
+      }
     };
     
     loadTrades();
     
-    // Listen for both standard storage events and custom trades-updated events
-    const handleStorageChange = () => {
-      console.log('Storage change detected in TradeList');
-      if (!initialTrades) {
-        loadTrades();
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('trades-updated', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('trades-updated', handleStorageChange);
-    };
+    // Only listen for storage events when initialTrades is not provided
+    if (!initialTrades) {
+      const handleStorageChange = (event: StorageEvent | Event) => {
+        // Only reload if it's a storage event with the right key or a trades-updated event
+        if (
+          (event instanceof StorageEvent && event.key === 'trade-journal-trades') || 
+          event.type === 'trades-updated'
+        ) {
+          console.log('Storage change detected in TradeList');
+          loadTrades();
+        }
+      };
+      
+      window.addEventListener('storage', handleStorageChange);
+      window.addEventListener('trades-updated', handleStorageChange);
+      
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('trades-updated', handleStorageChange);
+      };
+    }
   }, [initialTrades, refreshKey]);
   
   const {

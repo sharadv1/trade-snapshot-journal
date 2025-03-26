@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { TradeList } from '@/components/TradeList';
@@ -25,9 +24,15 @@ export default function Dashboard() {
     loadTrades();
     
     // Add event listeners for storage changes
-    const handleStorageChange = () => {
-      console.log('Dashboard: Detected storage change, refreshing trades');
-      loadTrades();
+    const handleStorageChange = (event: StorageEvent | Event) => {
+      // Only reload if it's a storage event with the right key or a trades-updated event
+      if (
+        (event instanceof StorageEvent && event.key === 'trade-journal-trades') || 
+        event.type === 'trades-updated'
+      ) {
+        console.log('Dashboard: Detected storage change, refreshing trades');
+        loadTrades();
+      }
     };
     
     window.addEventListener('storage', handleStorageChange);
