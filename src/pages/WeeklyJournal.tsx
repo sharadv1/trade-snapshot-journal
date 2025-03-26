@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,12 +7,25 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { saveWeeklyReflection, getWeeklyReflection, saveMonthlyReflection, getMonthlyReflection } from '@/utils/journalStorage';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
+import { 
+  saveWeeklyReflection, 
+  getWeeklyReflection, 
+  saveMonthlyReflection, 
+  getMonthlyReflection 
+} from '@/utils/journalStorage';
+import { 
+  format, 
+  startOfWeek, 
+  endOfWeek, 
+  startOfMonth, 
+  endOfMonth, 
+  isSameDay 
+} from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from 'lucide-react';
+import { WeeklyReflection, MonthlyReflection } from '@/types';
 
 export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
@@ -21,10 +35,10 @@ export default function WeeklyJournal() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekId, setWeekId] = useState(paramWeekId || format(currentDate, 'yyyy-MM-dd'));
   const [monthId, setMonthId] = useState(paramMonthId || format(currentDate, 'yyyy-MM'));
-  const [reflection, setReflection] = useState<string | undefined>('');
-  const [monthlyReflection, setMonthlyReflection] = useState<string | undefined>('');
-  const [weekGrade, setWeekGrade] = useState<string | undefined>('');
-  const [monthGrade, setMonthGrade] = useState<string | undefined>('');
+  const [reflection, setReflection] = useState<string>('');
+  const [monthlyReflection, setMonthlyReflection] = useState<string>('');
+  const [weekGrade, setWeekGrade] = useState<string>('');
+  const [monthGrade, setMonthGrade] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
 
   // Date manipulations
@@ -76,8 +90,8 @@ export default function WeeklyJournal() {
     if (weekId) {
       const savedReflection = getWeeklyReflection(weekId);
       if (savedReflection) {
-        setReflection(savedReflection.reflection);
-        setWeekGrade(savedReflection.grade);
+        setReflection(savedReflection.reflection || '');
+        setWeekGrade(savedReflection.grade || '');
       } else {
         setReflection('');
         setWeekGrade('');
@@ -89,8 +103,8 @@ export default function WeeklyJournal() {
     if (monthId) {
       const savedReflection = getMonthlyReflection(monthId);
       if (savedReflection) {
-        setMonthlyReflection(savedReflection.reflection);
-        setMonthGrade(savedReflection.grade);
+        setMonthlyReflection(savedReflection.reflection || '');
+        setMonthGrade(savedReflection.grade || '');
       } else {
         setMonthlyReflection('');
         setMonthGrade('');
@@ -129,7 +143,7 @@ export default function WeeklyJournal() {
     
     // Save immediately on change with current reflection
     if (weekId) {
-      saveWeeklyReflection(weekId, reflection, newValue);
+      saveWeeklyReflection(weekId, reflection || '', newValue);
     }
   };
   
@@ -140,7 +154,7 @@ export default function WeeklyJournal() {
     
     // Save immediately on change with current reflection
     if (monthId) {
-      saveMonthlyReflection(monthId, monthlyReflection, newValue);
+      saveMonthlyReflection(monthId, monthlyReflection || '', newValue);
     }
   };
   
@@ -157,12 +171,12 @@ export default function WeeklyJournal() {
     console.log('Saving reflections manually');
     if (weekId && reflection !== undefined) {
       console.log(`Saving weekly reflection for ${weekId}:`, reflection);
-      saveWeeklyReflection(weekId, reflection, weekGrade);
+      saveWeeklyReflection(weekId, reflection || '', weekGrade);
     }
     
     if (monthId && monthlyReflection !== undefined) {
       console.log(`Saving monthly reflection for ${monthId}:`, monthlyReflection);
-      saveMonthlyReflection(monthId, monthlyReflection, monthGrade);
+      saveMonthlyReflection(monthId, monthlyReflection || '', monthGrade);
     }
   }, [weekId, reflection, weekGrade, monthId, monthlyReflection, monthGrade]);
   
@@ -222,6 +236,7 @@ export default function WeeklyJournal() {
             <Label htmlFor="reflection">Reflection</Label>
             <Textarea
               id="reflection"
+              name="reflection"
               placeholder="Write your weekly reflection here."
               value={reflection}
               onChange={handleReflectionChange}
@@ -232,6 +247,7 @@ export default function WeeklyJournal() {
             <Input
               type="text"
               id="week-grade"
+              name="week-grade"
               placeholder="Enter your grade for the week (e.g., A, B, C)"
               value={weekGrade}
               onChange={handleWeekGradeChange}
@@ -257,6 +273,7 @@ export default function WeeklyJournal() {
             <Label htmlFor="monthly-reflection">Reflection</Label>
             <Textarea
               id="monthly-reflection"
+              name="monthly-reflection"
               placeholder="Write your monthly reflection here."
               value={monthlyReflection}
               onChange={handleMonthlyReflectionChange}
@@ -267,6 +284,7 @@ export default function WeeklyJournal() {
             <Input
               type="text"
               id="month-grade"
+              name="month-grade"
               placeholder="Enter your grade for the month (e.g., A, B, C)"
               value={monthGrade}
               onChange={handleMonthGradeChange}

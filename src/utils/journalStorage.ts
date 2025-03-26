@@ -1,3 +1,4 @@
+
 import { WeeklyReflection, MonthlyReflection } from '@/types';
 
 const WEEKLY_REFLECTIONS_KEY = 'trade-journal-weekly-reflections';
@@ -70,6 +71,49 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
     console.log('Monthly reflection saved successfully');
   } catch (error) {
     console.error('Error saving monthly reflection:', error);
+  }
+};
+
+// Overloaded function to save a full reflection object
+export const saveWeeklyReflectionObject = (reflection: WeeklyReflection): void => {
+  try {
+    const reflections = getWeeklyReflections();
+    const weekId = reflection.weekId || reflection.id || '';
+    
+    if (!weekId) {
+      console.error('Cannot save reflection without id or weekId');
+      return;
+    }
+    
+    reflections[weekId] = {
+      ...reflection,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+  } catch (error) {
+    console.error('Error saving weekly reflection object:', error);
+  }
+};
+
+export const saveMonthlyReflectionObject = (reflection: MonthlyReflection): void => {
+  try {
+    const reflections = getMonthlyReflections();
+    const monthId = reflection.monthId || reflection.id || '';
+    
+    if (!monthId) {
+      console.error('Cannot save reflection without id or monthId');
+      return;
+    }
+    
+    reflections[monthId] = {
+      ...reflection,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+  } catch (error) {
+    console.error('Error saving monthly reflection object:', error);
   }
 };
 

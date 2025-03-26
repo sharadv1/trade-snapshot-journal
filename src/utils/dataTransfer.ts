@@ -1,4 +1,4 @@
-import { Trade, TradeIdea, Strategy } from '@/types';
+import { Trade, TradeIdea, Strategy, WeeklyReflection, MonthlyReflection } from '@/types';
 import { getTrades, saveTrades } from './storage/storageCore';
 import { getIdeas, saveIdeas } from './ideaStorage';
 import { getStrategies, saveStrategies } from './strategyStorage';
@@ -6,8 +6,8 @@ import { getAllSymbols, saveCustomSymbols } from './symbolStorage';
 import { 
   getWeeklyReflections, 
   getMonthlyReflections,
-  saveWeeklyReflection,
-  saveMonthlyReflection
+  saveWeeklyReflectionObject,
+  saveMonthlyReflectionObject
 } from './journalStorage';
 import { toast } from './toast';
 
@@ -236,19 +236,19 @@ const importData = (jsonData: string): boolean => {
       }
       
       // Import weekly journal reflections (new in v1.1)
-      if (Array.isArray(data.weeklyReflections)) {
-        data.weeklyReflections.forEach((reflection: any) => {
-          saveWeeklyReflection(reflection);
+      if (data.weeklyReflections) {
+        Object.values(data.weeklyReflections).forEach((reflection: any) => {
+          saveWeeklyReflectionObject(reflection as WeeklyReflection);
         });
-        console.log(`Imported ${data.weeklyReflections.length} weekly reflections`);
+        console.log(`Imported ${Object.keys(data.weeklyReflections).length} weekly reflections`);
       }
       
       // Import monthly journal reflections (new in v1.1)
-      if (Array.isArray(data.monthlyReflections)) {
-        data.monthlyReflections.forEach((reflection: any) => {
-          saveMonthlyReflection(reflection);
+      if (data.monthlyReflections) {
+        Object.values(data.monthlyReflections).forEach((reflection: any) => {
+          saveMonthlyReflectionObject(reflection as MonthlyReflection);
         });
-        console.log(`Imported ${data.monthlyReflections.length} monthly reflections`);
+        console.log(`Imported ${Object.keys(data.monthlyReflections).length} monthly reflections`);
       }
       
       return true;
@@ -363,4 +363,3 @@ export const importTradesFromFile = async (file: File): Promise<void> => {
     toast.error('Import failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
 };
-

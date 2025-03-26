@@ -19,7 +19,8 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Pencil, Calendar } from 'lucide-react';
-import { WeeklyReflection, getWeeklyReflections } from '@/utils/journalStorage';
+import { getWeeklyReflections } from '@/utils/journalStorage';
+import { WeeklyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
 import { formatCurrency } from '@/utils/calculations/formatters';
 
@@ -46,20 +47,22 @@ export function ReflectionsList() {
   }, []);
   
   const loadReflections = () => {
-    const allReflections = getWeeklyReflections();
-    // Sort by date, newest first
-    allReflections.sort((a, b) => 
-      new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime()
+    const reflectionsMap = getWeeklyReflections();
+    // Convert to array and sort by date, newest first
+    const reflectionsArray = Object.values(reflectionsMap);
+    reflectionsArray.sort((a, b) => 
+      new Date(b.weekStart || '').getTime() - new Date(a.weekStart || '').getTime()
     );
-    setReflections(allReflections);
+    setReflections(reflectionsArray);
     
     // Calculate stats for each reflection
     const allTrades = getTradesWithMetrics();
     const stats: Record<string, { totalPnL: number, totalR: number }> = {};
     
-    allReflections.forEach(reflection => {
+    reflectionsArray.forEach(reflection => {
+      const tradeIds = reflection.tradeIds || [];
       const weekTrades = allTrades.filter(trade => 
-        reflection.tradeIds.includes(trade.id)
+        tradeIds.includes(trade.id)
       );
       
       const totalPnL = weekTrades.reduce((sum, trade) => 
@@ -68,7 +71,10 @@ export function ReflectionsList() {
       const totalR = weekTrades.reduce((sum, trade) => 
         sum + (trade.metrics.riskRewardRatio || 0), 0);
       
-      stats[reflection.id] = { totalPnL, totalR };
+      const reflectionId = reflection.id || '';
+      if (reflectionId) {
+        stats[reflectionId] = { totalPnL, totalR };
+      }
     });
     
     setReflectionStats(stats);
@@ -82,7 +88,7 @@ export function ReflectionsList() {
     navigate('/journal/new');
   };
   
-  const getGradeColor = (grade: string) => {
+  const getGradeColor = (grade: string = '') => {
     if (grade.startsWith('A')) return 'bg-green-100 text-green-800';
     if (grade.startsWith('B')) return 'bg-blue-100 text-blue-800';
     if (grade.startsWith('C')) return 'bg-yellow-100 text-yellow-800';
@@ -122,15 +128,18 @@ export function ReflectionsList() {
             </TableHeader>
             <TableBody>
               {reflections.map((reflection) => {
-                const stats = reflectionStats[reflection.id] || { totalPnL: 0, totalR: 0 };
+                const reflectionId = reflection.id || '';
+                const stats = reflectionId ? (reflectionStats[reflectionId] || { totalPnL: 0, totalR: 0 }) : { totalPnL: 0, totalR: 0 };
                 return (
-                  <TableRow key={reflection.id}>
+                  <TableRow key={reflectionId || Math.random().toString()}>
                     <TableCell>
-                      {format(parseISO(reflection.weekStart), 'MMM d')} - {format(parseISO(reflection.weekEnd), 'MMM d, yyyy')}
+                      {reflection.weekStart && reflection.weekEnd ? 
+                        `${format(parseISO(reflection.weekStart), 'MMM d')} - ${format(parseISO(reflection.weekEnd), 'MMM d, yyyy')}` :
+                        'Unknown date range'}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={getGradeColor(reflection.grade)}>
-                        {reflection.grade}
+                        {reflection.grade || '-'}
                       </Badge>
                     </TableCell>
                     <TableCell className={stats.totalPnL >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
@@ -139,9 +148,9 @@ export function ReflectionsList() {
                     <TableCell className={stats.totalR >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
                       {stats.totalR > 0 ? '+' : ''}{stats.totalR.toFixed(1)}R
                     </TableCell>
-                    <TableCell>{reflection.tradeIds.length} trades</TableCell>
+                    <TableCell>{(reflection.tradeIds?.length || 0)} trades</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditReflection(reflection.id)}>
+                      <Button variant="ghost" size="sm" onClick={() => handleEditReflection(reflectionId)}>
                         <Pencil className="h-4 w-4 mr-1" />
                         Edit
                       </Button>

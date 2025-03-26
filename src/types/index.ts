@@ -73,6 +73,28 @@ export interface TradeIdea {
   images?: string[];
 }
 
+export interface WeeklyReflection {
+  id?: string;
+  weekId?: string;
+  weekStart: string;
+  weekEnd: string;
+  reflection: string;
+  grade: string;
+  lastUpdated: string;
+  tradeIds?: string[];
+}
+
+export interface MonthlyReflection {
+  id?: string;
+  monthId?: string;
+  monthStart: string;
+  monthEnd: string;
+  reflection: string;
+  grade: string;
+  lastUpdated: string;
+  tradeIds?: string[];
+}
+
 export const COMMON_FUTURES_CONTRACTS = [
   {
     symbol: 'ES',
