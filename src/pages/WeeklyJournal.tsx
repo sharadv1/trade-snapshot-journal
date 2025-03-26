@@ -44,7 +44,7 @@ export default function WeeklyJournal() {
   const [reflection, setReflection] = useState<string>('');
   const [weekGrade, setWeekGrade] = useState<string>('B');
   const [showList, setShowList] = useState<boolean>(!weekId || weekId === 'list');
-  const [savedGrade, setSavedGrade] = useState<string>('B');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   
   // If we're on the main journal page, show the list of reflections
   useEffect(() => {
@@ -80,11 +80,9 @@ export default function WeeklyJournal() {
     if (savedReflection) {
       setReflection(savedReflection.reflection || '');
       setWeekGrade(savedReflection.grade || 'B');
-      setSavedGrade(savedReflection.grade || 'B');
     } else {
       setReflection('');
       setWeekGrade('B');
-      setSavedGrade('B');
     }
   }, [currentWeekStart, currentWeekEnd, showList]);
   
@@ -107,11 +105,12 @@ export default function WeeklyJournal() {
   };
   
   const handleGradeChange = (value: string) => {
+    console.log('Setting grade to:', value);
     setWeekGrade(value);
-    console.log('Grade changed to:', value);
   };
   
   const saveReflection = () => {
+    setIsSaving(true);
     const weekId = format(currentWeekStart, 'yyyy-MM-dd');
     
     const reflectionData: WeeklyReflection = {
@@ -128,14 +127,20 @@ export default function WeeklyJournal() {
     const success = saveWeeklyReflection(reflectionData);
     if (success) {
       toast.success('Weekly reflection saved');
-      setSavedGrade(weekGrade);
       
       // Dispatch a storage event to notify other components
       window.dispatchEvent(new StorageEvent('storage', { 
         key: 'trade-journal-reflections'
       }));
+      
+      // Navigate back to the list after saving
+      setTimeout(() => {
+        navigate('/journal');
+        setIsSaving(false);
+      }, 1000);
     } else {
       toast.error('Failed to save reflection');
+      setIsSaving(false);
     }
   };
   
@@ -179,9 +184,9 @@ export default function WeeklyJournal() {
           Week of {format(currentWeekStart, 'MMMM d')} - {format(currentWeekEnd, 'MMMM d, yyyy')}
         </h2>
         
-        <Button onClick={saveReflection}>
+        <Button onClick={saveReflection} disabled={isSaving}>
           <Save className="h-4 w-4 mr-2" />
-          Save Reflection
+          {isSaving ? 'Saving...' : 'Save Reflection'}
         </Button>
       </div>
       
@@ -209,7 +214,6 @@ export default function WeeklyJournal() {
               <Select 
                 value={weekGrade} 
                 onValueChange={handleGradeChange}
-                defaultValue={savedGrade}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a grade" />

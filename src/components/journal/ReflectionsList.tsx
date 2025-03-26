@@ -20,10 +20,16 @@ import {
 } from '@/components/ui/table';
 import { Pencil, Calendar } from 'lucide-react';
 import { WeeklyReflection, getWeeklyReflections } from '@/utils/journalStorage';
+import { getTradesWithMetrics } from '@/utils/tradeStorage';
+import { formatCurrency } from '@/utils/calculations/formatters';
 
 export function ReflectionsList() {
   const navigate = useNavigate();
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
+  const [reflectionStats, setReflectionStats] = useState<Record<string, {
+    totalPnL: number,
+    totalR: number
+  }>>({});
   
   useEffect(() => {
     loadReflections();
@@ -46,6 +52,26 @@ export function ReflectionsList() {
       new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime()
     );
     setReflections(allReflections);
+    
+    // Calculate stats for each reflection
+    const allTrades = getTradesWithMetrics();
+    const stats: Record<string, { totalPnL: number, totalR: number }> = {};
+    
+    allReflections.forEach(reflection => {
+      const weekTrades = allTrades.filter(trade => 
+        reflection.tradeIds.includes(trade.id)
+      );
+      
+      const totalPnL = weekTrades.reduce((sum, trade) => 
+        sum + (trade.metrics.profitLoss || 0), 0);
+      
+      const totalR = weekTrades.reduce((sum, trade) => 
+        sum + (trade.metrics.riskRewardRatio || 0), 0);
+      
+      stats[reflection.id] = { totalPnL, totalR };
+    });
+    
+    setReflectionStats(stats);
   };
   
   const handleEditReflection = (weekId: string) => {
@@ -88,32 +114,41 @@ export function ReflectionsList() {
               <TableRow>
                 <TableHead>Week</TableHead>
                 <TableHead>Grade</TableHead>
+                <TableHead>P&L</TableHead>
+                <TableHead>R Value</TableHead>
                 <TableHead>Trades</TableHead>
-                <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reflections.map((reflection) => (
-                <TableRow key={reflection.id}>
-                  <TableCell>
-                    {format(parseISO(reflection.weekStart), 'MMM d')} - {format(parseISO(reflection.weekEnd), 'MMM d, yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={getGradeColor(reflection.grade)}>
-                      {reflection.grade}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{reflection.tradeIds.length} trades</TableCell>
-                  <TableCell>{format(parseISO(reflection.createdAt), 'MMM d, yyyy')}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleEditReflection(reflection.id)}>
-                      <Pencil className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {reflections.map((reflection) => {
+                const stats = reflectionStats[reflection.id] || { totalPnL: 0, totalR: 0 };
+                return (
+                  <TableRow key={reflection.id}>
+                    <TableCell>
+                      {format(parseISO(reflection.weekStart), 'MMM d')} - {format(parseISO(reflection.weekEnd), 'MMM d, yyyy')}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={getGradeColor(reflection.grade)}>
+                        {reflection.grade}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className={stats.totalPnL >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                      {formatCurrency(stats.totalPnL)}
+                    </TableCell>
+                    <TableCell className={stats.totalR >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                      {stats.totalR > 0 ? '+' : ''}{stats.totalR.toFixed(1)}R
+                    </TableCell>
+                    <TableCell>{reflection.tradeIds.length} trades</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => handleEditReflection(reflection.id)}>
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
