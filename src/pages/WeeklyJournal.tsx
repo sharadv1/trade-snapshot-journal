@@ -130,6 +130,14 @@ export default function WeeklyJournal() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setReflection(e.target.value);
+  };
+  
+  const handleMonthlyReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMonthlyReflection(e.target.value);
+  };
   
   const handleWeekGradeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setWeekGrade(e.target.value);
@@ -323,7 +331,7 @@ export default function WeeklyJournal() {
                 placeholder="Write your thoughts about your trading this week. What went well? What could be improved? Any patterns you noticed?"
                 className="min-h-[150px]"
                 value={reflection}
-                onChange={(e) => setReflection(e.target.value)}
+                onChange={handleReflectionChange}
               />
               
               <div className="grid grid-cols-2 gap-4 items-center">
@@ -392,7 +400,7 @@ export default function WeeklyJournal() {
                 placeholder="Write your thoughts about your trading this month. What went well? What could be improved? Any patterns you noticed?"
                 className="min-h-[150px]"
                 value={monthlyReflection}
-                onChange={(e) => setMonthlyReflection(e.target.value)}
+                onChange={handleMonthlyReflectionChange}
               />
               
               <div className="grid grid-cols-2 gap-4 items-center">
