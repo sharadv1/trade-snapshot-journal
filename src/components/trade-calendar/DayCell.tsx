@@ -29,13 +29,20 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
     return 'text-gray-600';
   };
   
+  const handleClick = () => {
+    if (hasTrades) {
+      console.log("DayCell clicked with date:", day);
+      onDayClick(day);
+    }
+  };
+  
   return (
     <button
       className={cn(
         "aspect-square p-1 w-full",
         hasTrades ? 'cursor-pointer' : 'cursor-default'
       )}
-      onClick={() => hasTrades && onDayClick(day)}
+      onClick={handleClick}
       disabled={!hasTrades}
     >
       <div

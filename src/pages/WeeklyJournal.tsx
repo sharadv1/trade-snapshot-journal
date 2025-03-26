@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startOfWeek, endOfWeek, subWeeks, format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -446,7 +447,10 @@ function WeeklyReflectionsInMonthList({ currentMonth, navigate }: { currentMonth
           <Card 
             key={reflection.id} 
             className="cursor-pointer hover:bg-accent/10 transition-colors" 
-            onClick={() => navigate(`/journal/${reflection.id}`)}
+            onClick={() => {
+              console.log("Navigating to weekly journal:", `/journal/${reflection.id}`);
+              navigate(`/journal/${reflection.id}`);
+            }}
           >
             <CardContent className="pt-4 pb-2">
               <div className="flex justify-between items-center">

@@ -44,6 +44,11 @@ export function CalendarGrid({ currentMonth, dailyPnL, onDayClick }: CalendarGri
     return weeks;
   }, [currentMonth]);
 
+  const handleDayClick = (day: Date) => {
+    console.log("CalendarGrid: Day clicked", day);
+    onDayClick(day);
+  };
+
   return (
     <div className="grid grid-cols-7 gap-1">
       {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
@@ -54,7 +59,7 @@ export function CalendarGrid({ currentMonth, dailyPnL, onDayClick }: CalendarGri
       
       {calendarDays.flat().map((day, i) => {
         if (!day) {
-          return <DayCell key={`empty-${i}`} day={null} onDayClick={() => {}} />;
+          return <DayCell key={`empty-${i}`} day={null} onDayClick={handleDayClick} />;
         }
         
         const dateKey = format(day, 'yyyy-MM-dd');
@@ -65,7 +70,7 @@ export function CalendarGrid({ currentMonth, dailyPnL, onDayClick }: CalendarGri
             key={dateKey} 
             day={day} 
             dayData={dayData}
-            onDayClick={onDayClick}
+            onDayClick={handleDayClick}
           />
         );
       })}
