@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from '@/utils/toast';
@@ -31,6 +32,8 @@ export default function TradeDetail() {
   const [isCalculationOpen, setIsCalculationOpen] = useState(false);
 
   const handleBackToJournal = () => {
+    // Store the current journal tab in session storage before navigating back
+    const activeTab = sessionStorage.getItem('journal-active-tab');
     navigate('/journal');
   };
 
@@ -357,139 +360,140 @@ export default function TradeDetail() {
                       )}
                     </>
                   )}
-              </div>
-              
-              {metrics?.calculationExplanation && (
-                <Collapsible 
-                  open={isCalculationOpen} 
-                  onOpenChange={setIsCalculationOpen}
-                  className="mt-4"
-                >
-                  <CollapsibleTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-full flex justify-between">
-                      <span>Calculation Details</span>
-                      {isCalculationOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="p-3 mt-2 bg-muted rounded-md">
-                    <p className="text-sm text-muted-foreground whitespace-pre-line">
-                      {metrics.calculationExplanation}
-                    </p>
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-        
-        {trade.type === 'futures' && trade.contractDetails && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Contract Specifications</CardTitle>
-              <CardDescription>Futures contract details</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {trade.symbol && trade.contractDetails && (
-                <FuturesContractDetails
-                  symbol={trade.symbol}
-                  contractDetails={trade.contractDetails}
-                />
-              )}
-            </CardContent>
-          </Card>
-        )}
-        
-        {trade.notes && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Notes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-line">{trade.notes}</p>
-            </CardContent>
-          </Card>
-        )}
-        
-        {trade.partialExits && trade.partialExits.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Partial Exits</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PartialExitsList 
-                trade={trade} 
-                allowEditing={false}
-                onUpdate={() => {}}
-              />
-            </CardContent>
-          </Card>
-        )}
-        
-        {relatedIdea && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Related Idea</CardTitle>
-                <CardDescription>This trade was based on a saved idea</CardDescription>
-              </div>
-              <Lightbulb className="h-5 w-5 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-2">
-                <div>
-                  <span className="text-sm text-muted-foreground">Symbol</span>
-                  <p className="font-medium">{relatedIdea.symbol}</p>
                 </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Direction</span>
-                  <p className="font-medium capitalize">{relatedIdea.direction}</p>
-                </div>
-                {relatedIdea.description && (
-                  <div>
-                    <span className="text-sm text-muted-foreground">Notes</span>
-                    <p className="whitespace-pre-line">{relatedIdea.description}</p>
-                  </div>
-                )}
-                <Button 
-                  variant="outline" 
-                  className="w-full mt-2" 
-                  onClick={() => navigate('/ideas')}
-                >
-                  View All Ideas
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        
-        {trade.images && trade.images.length > 0 && (
-          <Card className="col-span-full">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Trade Images</CardTitle>
-                <CardDescription>Screenshots and charts for this trade</CardDescription>
-              </div>
-              <ImageIcon className="h-5 w-5 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {trade.images.map((image, index) => (
-                  <div 
-                    key={index} 
-                    className="aspect-square border rounded overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => viewImage(index)}
+                
+                {metrics?.calculationExplanation && (
+                  <Collapsible 
+                    open={isCalculationOpen} 
+                    onOpenChange={setIsCalculationOpen}
+                    className="mt-4"
                   >
-                    <img 
-                      src={image} 
-                      alt={`Trade image ${index + 1}`} 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full flex justify-between">
+                        <span>Calculation Details</span>
+                        {isCalculationOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="p-3 mt-2 bg-muted rounded-md">
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">
+                        {metrics.calculationExplanation}
+                      </p>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
               </div>
             </CardContent>
           </Card>
-        )}
+        
+          {trade.type === 'futures' && trade.contractDetails && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Contract Specifications</CardTitle>
+                <CardDescription>Futures contract details</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {trade.symbol && trade.contractDetails && (
+                  <FuturesContractDetails
+                    symbol={trade.symbol}
+                    contractDetails={trade.contractDetails}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          )}
+          
+          {trade.notes && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="whitespace-pre-line">{trade.notes}</p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {trade.partialExits && trade.partialExits.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Partial Exits</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PartialExitsList 
+                  trade={trade} 
+                  allowEditing={false}
+                  onUpdate={() => {}}
+                />
+              </CardContent>
+            </Card>
+          )}
+          
+          {relatedIdea && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Related Idea</CardTitle>
+                  <CardDescription>This trade was based on a saved idea</CardDescription>
+                </div>
+                <Lightbulb className="h-5 w-5 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col space-y-2">
+                  <div>
+                    <span className="text-sm text-muted-foreground">Symbol</span>
+                    <p className="font-medium">{relatedIdea.symbol}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground">Direction</span>
+                    <p className="font-medium capitalize">{relatedIdea.direction}</p>
+                  </div>
+                  {relatedIdea.description && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">Notes</span>
+                      <p className="whitespace-pre-line">{relatedIdea.description}</p>
+                    </div>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-2" 
+                    onClick={() => navigate('/ideas')}
+                  >
+                    View All Ideas
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {trade.images && trade.images.length > 0 && (
+            <Card className="col-span-full">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Trade Images</CardTitle>
+                  <CardDescription>Screenshots and charts for this trade</CardDescription>
+                </div>
+                <ImageIcon className="h-5 w-5 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {trade.images.map((image, index) => (
+                    <div 
+                      key={index} 
+                      className="aspect-square border rounded overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => viewImage(index)}
+                    >
+                      <img 
+                        src={image} 
+                        alt={`Trade image ${index + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
       
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
