@@ -1,9 +1,14 @@
-
 import { Trade, TradeIdea, Strategy } from '@/types';
 import { getTrades, saveTrades } from './storage/storageCore';
 import { getIdeas, saveIdeas } from './ideaStorage';
 import { getStrategies, saveStrategies } from './strategyStorage';
 import { getAllSymbols, saveCustomSymbols } from './symbolStorage';
+import { 
+  getWeeklyReflections, 
+  getMonthlyReflections,
+  saveWeeklyReflection,
+  saveMonthlyReflection
+} from './journalStorage';
 import { toast } from './toast';
 
 // Function to export trades, ideas, strategies, and symbols to a file
@@ -13,6 +18,8 @@ export const exportTradesToFile = async () => {
     const ideas = getIdeas();
     const strategies = getStrategies();
     const symbols = getAllSymbols();
+    const weeklyReflections = getWeeklyReflections();
+    const monthlyReflections = getMonthlyReflections();
     
     // Create a data object with all elements
     const data = {
@@ -20,7 +27,9 @@ export const exportTradesToFile = async () => {
       ideas,
       strategies,
       symbols,
-      version: "1.0",
+      weeklyReflections,
+      monthlyReflections,
+      version: "1.1",
       exportDate: new Date().toISOString()
     };
     
@@ -226,6 +235,22 @@ const importData = (jsonData: string): boolean => {
         console.warn('Invalid symbols data format in import');
       }
       
+      // Import weekly journal reflections (new in v1.1)
+      if (Array.isArray(data.weeklyReflections)) {
+        data.weeklyReflections.forEach((reflection: any) => {
+          saveWeeklyReflection(reflection);
+        });
+        console.log(`Imported ${data.weeklyReflections.length} weekly reflections`);
+      }
+      
+      // Import monthly journal reflections (new in v1.1)
+      if (Array.isArray(data.monthlyReflections)) {
+        data.monthlyReflections.forEach((reflection: any) => {
+          saveMonthlyReflection(reflection);
+        });
+        console.log(`Imported ${data.monthlyReflections.length} monthly reflections`);
+      }
+      
       return true;
     }
     
@@ -320,6 +345,8 @@ export const importTradesFromFile = async (file: File): Promise<void> => {
             window.dispatchEvent(new Event('ideas-updated'));
             window.dispatchEvent(new Event('symbols-updated'));
             window.dispatchEvent(new Event('strategies-updated'));
+            window.dispatchEvent(new StorageEvent('storage', { key: 'trade-journal-reflections' }));
+            window.dispatchEvent(new StorageEvent('storage', { key: 'trade-journal-monthly-reflections' }));
           } else {
             toast.error('Failed to import data');
           }
@@ -336,3 +363,4 @@ export const importTradesFromFile = async (file: File): Promise<void> => {
     toast.error('Import failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
 };
+

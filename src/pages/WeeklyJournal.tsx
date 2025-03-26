@@ -271,26 +271,15 @@ export default function WeeklyJournal() {
         <TabsContent value="weekly" className="mt-4 space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => {
-                setCurrentWeekStart(prevDate => subWeeks(prevDate, 1));
-              }}>
+              <Button variant="outline" size="sm" onClick={previousWeek}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               
-              <Button variant="outline" onClick={() => {
-                setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
-              }}>
+              <Button variant="outline" onClick={goToCurrentWeek}>
                 Current Week
               </Button>
               
-              <Button variant="outline" size="sm" onClick={() => {
-                const nextDate = new Date(currentWeekStart);
-                nextDate.setDate(nextDate.getDate() + 7);
-                
-                if (nextDate <= new Date()) {
-                  setCurrentWeekStart(nextDate);
-                }
-              }}>
+              <Button variant="outline" size="sm" onClick={nextWeek}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -335,28 +324,15 @@ export default function WeeklyJournal() {
         <TabsContent value="monthly" className="mt-4 space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => {
-                const prevMonth = new Date(currentMonthStart);
-                prevMonth.setMonth(prevMonth.getMonth() - 1);
-                setCurrentMonthStart(startOfMonth(prevMonth));
-              }}>
+              <Button variant="outline" size="sm" onClick={previousMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               
-              <Button variant="outline" onClick={() => {
-                setCurrentMonthStart(startOfMonth(new Date()));
-              }}>
+              <Button variant="outline" onClick={goToCurrentMonth}>
                 Current Month
               </Button>
               
-              <Button variant="outline" size="sm" onClick={() => {
-                const nextMonth = new Date(currentMonthStart);
-                nextMonth.setMonth(nextMonth.getMonth() + 1);
-                
-                if (nextMonth <= new Date()) {
-                  setCurrentMonthStart(startOfMonth(nextMonth));
-                }
-              }}>
+              <Button variant="outline" size="sm" onClick={nextMonth}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -467,8 +443,11 @@ function WeeklyReflectionsInMonthList({ currentMonth, navigate }: { currentMonth
       {weeklyReflections.map(reflection => {
         const stats = reflectionStats[reflection.id] || { totalPnL: 0, totalR: 0 };
         return (
-          <Card key={reflection.id} className="cursor-pointer hover:bg-accent/10 transition-colors" 
-            onClick={() => navigate(`/journal/${reflection.id}`)}>
+          <Card 
+            key={reflection.id} 
+            className="cursor-pointer hover:bg-accent/10 transition-colors" 
+            onClick={() => navigate(`/journal/${reflection.id}`)}
+          >
             <CardContent className="pt-4 pb-2">
               <div className="flex justify-between items-center">
                 <div>
