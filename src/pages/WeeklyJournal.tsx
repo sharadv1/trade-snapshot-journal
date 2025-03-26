@@ -5,13 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChevronLeft, ChevronRight, Save, Calendar } from 'lucide-react';
 import { toast } from '@/utils/toast';
@@ -32,6 +25,7 @@ import { TradeCommentsList } from '@/components/journal/TradeCommentsList';
 import { ReflectionsList } from '@/components/journal/ReflectionsList';
 import { MonthlyReflectionsList } from '@/components/journal/MonthlyReflectionsList';
 import { formatCurrency } from '@/utils/calculations/formatters';
+import { Input } from '@/components/ui/input';
 
 export default function WeeklyJournal() {
   const navigate = useNavigate();
@@ -137,14 +131,14 @@ export default function WeeklyJournal() {
     loadData();
   }, [loadData]);
   
-  const handleWeekGradeChange = (value: string) => {
-    console.log('Setting week grade to:', value);
-    setWeekGrade(value);
+  const handleWeekGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log('Setting week grade to:', e.target.value);
+    setWeekGrade(e.target.value);
   };
   
-  const handleMonthGradeChange = (value: string) => {
-    console.log('Setting month grade to:', value);
-    setMonthGrade(value);
+  const handleMonthGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log('Setting month grade to:', e.target.value);
+    setMonthGrade(e.target.value);
   };
   
   const previousWeek = () => {
@@ -339,25 +333,18 @@ export default function WeeklyJournal() {
                   <label htmlFor="week-grade" className="text-sm font-medium mb-1 block">
                     Rate your week
                   </label>
-                  <Select 
-                    value={weekGrade} 
-                    onValueChange={handleWeekGradeChange}
+                  <select
+                    id="week-grade"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={weekGrade}
+                    onChange={handleWeekGradeChange}
                   >
-                    <SelectTrigger id="week-grade" className="w-full">
-                      <SelectValue placeholder="Select a grade" />
-                    </SelectTrigger>
-                    <SelectContent
-                      position="popper"
-                      className="z-50 bg-background"
-                      align="start"
-                    >
-                      <SelectItem value="A">A - Excellent</SelectItem>
-                      <SelectItem value="B">B - Good</SelectItem>
-                      <SelectItem value="C">C - Average</SelectItem>
-                      <SelectItem value="D">D - Poor</SelectItem>
-                      <SelectItem value="F">F - Failed</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="A">A - Excellent</option>
+                    <option value="B">B - Good</option>
+                    <option value="C">C - Average</option>
+                    <option value="D">D - Poor</option>
+                    <option value="F">F - Failed</option>
+                  </select>
                 </div>
               </div>
             </CardContent>
@@ -419,25 +406,18 @@ export default function WeeklyJournal() {
                   <label htmlFor="month-grade" className="text-sm font-medium mb-1 block">
                     Rate your month
                   </label>
-                  <Select 
-                    value={monthGrade} 
-                    onValueChange={handleMonthGradeChange}
+                  <select
+                    id="month-grade"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={monthGrade}
+                    onChange={handleMonthGradeChange}
                   >
-                    <SelectTrigger id="month-grade" className="w-full">
-                      <SelectValue placeholder="Select a grade" />
-                    </SelectTrigger>
-                    <SelectContent
-                      position="popper"
-                      className="z-50 bg-background"
-                      align="start"
-                    >
-                      <SelectItem value="A">A - Excellent</SelectItem>
-                      <SelectItem value="B">B - Good</SelectItem>
-                      <SelectItem value="C">C - Average</SelectItem>
-                      <SelectItem value="D">D - Poor</SelectItem>
-                      <SelectItem value="F">F - Failed</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="A">A - Excellent</option>
+                    <option value="B">B - Good</option>
+                    <option value="C">C - Average</option>
+                    <option value="D">D - Poor</option>
+                    <option value="F">F - Failed</option>
+                  </select>
                 </div>
               </div>
             </CardContent>
