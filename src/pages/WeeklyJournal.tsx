@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startOfWeek, endOfWeek, subWeeks, format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -145,10 +146,12 @@ export default function WeeklyJournal() {
   }, [loadData]);
 
   const handleReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    console.log('Reflection changed:', e.target.value);
     setReflection(e.target.value);
   };
   
   const handleMonthlyReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    console.log('Monthly reflection changed:', e.target.value);
     setMonthlyReflection(e.target.value);
   };
   
