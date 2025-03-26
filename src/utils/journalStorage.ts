@@ -12,7 +12,7 @@ export interface WeeklyReflection {
   weekStart: string; // ISO date string for start of week (Sunday)
   weekEnd: string;   // ISO date string for end of week (Saturday)
   reflection: string;
-  grade: string;
+  grade: string;     // Keeping this in the type for backward compatibility
   tradeIds: string[];
   createdAt: string;
   updatedAt: string;

@@ -39,13 +39,11 @@ export default function WeeklyJournal() {
     if (weekId === 'new') {
       return startOfWeek(new Date(), { weekStartsOn: 0 });
     } else if (weekId) {
-      // Try to load the specified week
       const reflection = getWeeklyReflection(weekId);
       if (reflection) {
         return parseISO(reflection.weekStart);
       }
     }
-    // Default to current week
     return startOfWeek(new Date(), { weekStartsOn: 0 });
   });
   
@@ -59,7 +57,6 @@ export default function WeeklyJournal() {
   const [weeklyTrades, setWeeklyTrades] = useState<TradeWithMetrics[]>([]);
   const [monthlyTrades, setMonthlyTrades] = useState<TradeWithMetrics[]>([]);
   const [reflection, setReflection] = useState<string>('');
-  const [weekGrade, setWeekGrade] = useState<string>('B');
   const [monthlyReflection, setMonthlyReflection] = useState<string>('');
   const [monthGrade, setMonthGrade] = useState<string>('B');
   const [showList, setShowList] = useState<boolean>(!weekId || weekId === 'list');
@@ -108,10 +105,8 @@ export default function WeeklyJournal() {
     
     if (savedWeeklyReflection) {
       setReflection(savedWeeklyReflection.reflection || '');
-      setWeekGrade(savedWeeklyReflection.grade || 'B');
     } else {
       setReflection('');
-      setWeekGrade('B');
     }
     
     const currentMonthId = format(currentMonthStart, 'yyyy-MM');
@@ -125,11 +120,6 @@ export default function WeeklyJournal() {
       setMonthGrade('B');
     }
   }, [currentWeekStart, currentWeekEnd, currentMonthStart, currentMonthEnd, showList]);
-  
-  const handleGradeChange = (value: string) => {
-    console.log('Setting week grade to:', value);
-    setWeekGrade(value);
-  };
   
   const handleMonthGradeChange = (value: string) => {
     console.log('Setting month grade to:', value);
@@ -176,14 +166,12 @@ export default function WeeklyJournal() {
     setIsSaving(true);
     const weekId = format(currentWeekStart, 'yyyy-MM-dd');
     
-    console.log('Saving week grade:', weekGrade);
-    
     const reflectionData: WeeklyReflection = {
       id: weekId,
       weekStart: format(currentWeekStart, 'yyyy-MM-dd'),
       weekEnd: format(currentWeekEnd, 'yyyy-MM-dd'),
       reflection,
-      grade: weekGrade,
+      grade: 'N/A',
       tradeIds: weeklyTrades.map(trade => trade.id),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -331,42 +319,12 @@ export default function WeeklyJournal() {
               <CardTitle>Weekly Reflection</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="md:col-span-3">
-                  <Textarea
-                    placeholder="Write your thoughts about your trading this week. What went well? What could be improved? Any patterns you noticed?"
-                    className="min-h-[150px]"
-                    value={reflection}
-                    onChange={(e) => setReflection(e.target.value)}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block mb-2 font-medium">Week Grade</label>
-                  <Select 
-                    defaultValue={weekGrade}
-                    value={weekGrade}
-                    onValueChange={handleGradeChange}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a grade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="A+">A+</SelectItem>
-                      <SelectItem value="A">A</SelectItem>
-                      <SelectItem value="A-">A-</SelectItem>
-                      <SelectItem value="B+">B+</SelectItem>
-                      <SelectItem value="B">B</SelectItem>
-                      <SelectItem value="B-">B-</SelectItem>
-                      <SelectItem value="C+">C+</SelectItem>
-                      <SelectItem value="C">C</SelectItem>
-                      <SelectItem value="C-">C-</SelectItem>
-                      <SelectItem value="D">D</SelectItem>
-                      <SelectItem value="F">F</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              <Textarea
+                placeholder="Write your thoughts about your trading this week. What went well? What could be improved? Any patterns you noticed?"
+                className="min-h-[150px]"
+                value={reflection}
+                onChange={(e) => setReflection(e.target.value)}
+              />
             </CardContent>
           </Card>
           
@@ -427,42 +385,12 @@ export default function WeeklyJournal() {
               <CardTitle>Monthly Reflection</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="md:col-span-3">
-                  <Textarea
-                    placeholder="Write your thoughts about your trading this month. What went well? What could be improved? Any patterns you noticed?"
-                    className="min-h-[150px]"
-                    value={monthlyReflection}
-                    onChange={(e) => setMonthlyReflection(e.target.value)}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block mb-2 font-medium">Month Grade</label>
-                  <Select 
-                    defaultValue={monthGrade}
-                    value={monthGrade}
-                    onValueChange={handleMonthGradeChange}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a grade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="A+">A+</SelectItem>
-                      <SelectItem value="A">A</SelectItem>
-                      <SelectItem value="A-">A-</SelectItem>
-                      <SelectItem value="B+">B+</SelectItem>
-                      <SelectItem value="B">B</SelectItem>
-                      <SelectItem value="B-">B-</SelectItem>
-                      <SelectItem value="C+">C+</SelectItem>
-                      <SelectItem value="C">C</SelectItem>
-                      <SelectItem value="C-">C-</SelectItem>
-                      <SelectItem value="D">D</SelectItem>
-                      <SelectItem value="F">F</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              <Textarea
+                placeholder="Write your thoughts about your trading this month. What went well? What could be improved? Any patterns you noticed?"
+                className="min-h-[150px]"
+                value={monthlyReflection}
+                onChange={(e) => setMonthlyReflection(e.target.value)}
+              />
             </CardContent>
           </Card>
           
