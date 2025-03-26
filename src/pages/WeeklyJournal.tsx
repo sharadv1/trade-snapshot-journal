@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startOfWeek, endOfWeek, subWeeks, format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -81,8 +81,9 @@ export default function WeeklyJournal() {
       setShowList(false);
     }
   }, [weekId]);
-  
-  useEffect(() => {
+
+  // This function loads trades and reflections data
+  const loadData = useCallback(() => {
     if (showList) return;
     
     const allTrades = getTradesWithMetrics();
@@ -133,6 +134,11 @@ export default function WeeklyJournal() {
       setMonthGrade('B');
     }
   }, [currentWeekStart, currentWeekEnd, currentMonthStart, currentMonthEnd, showList]);
+  
+  // Only run loadData once when dependencies change
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
   
   const handleWeekGradeChange = (value: string) => {
     console.log('Setting week grade to:', value);
@@ -339,7 +345,6 @@ export default function WeeklyJournal() {
                   <Select 
                     value={weekGrade} 
                     onValueChange={handleWeekGradeChange}
-                    defaultValue="B"
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a grade" />
@@ -416,7 +421,6 @@ export default function WeeklyJournal() {
                   <Select 
                     value={monthGrade} 
                     onValueChange={handleMonthGradeChange}
-                    defaultValue="B"
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a grade" />
