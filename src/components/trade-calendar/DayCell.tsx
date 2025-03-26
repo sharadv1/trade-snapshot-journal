@@ -51,9 +51,9 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
         </div>
         
         {hasTrades && (
-          <div className="w-full mt-auto">
+          <div className="w-full mt-auto space-y-0.5">
             <div className={cn(
-              "text-xs font-medium text-center truncate",
+              "text-xs font-semibold text-center truncate",
               getPnLColor(dayData.pnl)
             )}>
               {formatCurrency(dayData.pnl)}
@@ -61,7 +61,7 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
             
             {dayData.rValue !== undefined && (
               <div className={cn(
-                "text-xs text-center truncate",
+                "text-xs font-medium text-center truncate",
                 getPnLColor(dayData.rValue)
               )}>
                 {dayData.rValue > 0 ? "+" : ""}{dayData.rValue.toFixed(1)}R

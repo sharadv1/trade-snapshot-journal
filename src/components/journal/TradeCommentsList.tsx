@@ -11,18 +11,15 @@ interface TradeCommentsListProps {
 }
 
 export function TradeCommentsList({ trades }: TradeCommentsListProps) {
-  // Filter only trades with notes
-  const tradesWithNotes = trades.filter(trade => trade.notes && trade.notes.trim() !== '');
-  
-  if (tradesWithNotes.length === 0) {
+  if (trades.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Trade Comments</CardTitle>
+          <CardTitle>Trades This Week</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground text-center py-4">
-            No comments found for trades this week.
+            No trades found for this week.
           </p>
         </CardContent>
       </Card>
@@ -32,12 +29,12 @@ export function TradeCommentsList({ trades }: TradeCommentsListProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Trade Comments</CardTitle>
+        <CardTitle>Trades This Week</CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[400px] pr-4">
+        <ScrollArea className="h-[500px] pr-4">
           <div className="space-y-6">
-            {tradesWithNotes.map(trade => (
+            {trades.map(trade => (
               <div key={trade.id} className="border-b pb-4 last:border-b-0">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -58,13 +55,26 @@ export function TradeCommentsList({ trades }: TradeCommentsListProps) {
                   </div>
                 </div>
                 
-                <div className="text-xs text-muted-foreground mb-2">
-                  {trade.entryDate && format(parseISO(trade.entryDate), 'MMM d, yyyy')} → {trade.exitDate && format(parseISO(trade.exitDate), 'MMM d, yyyy')}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Date: </span>
+                    {trade.entryDate && format(parseISO(trade.entryDate), 'MMM d, yyyy')} → {trade.exitDate && format(parseISO(trade.exitDate), 'MMM d, yyyy')}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Entry: </span>
+                    {formatCurrency(trade.entryPrice)}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Exit: </span>
+                    {formatCurrency(trade.exitPrice || 0)}
+                  </div>
                 </div>
                 
-                <div className="bg-accent/50 p-3 rounded-md whitespace-pre-wrap text-sm">
-                  {trade.notes}
-                </div>
+                {trade.notes && trade.notes.trim() !== '' && (
+                  <div className="bg-accent/50 p-3 rounded-md whitespace-pre-wrap text-sm mt-2">
+                    {trade.notes}
+                  </div>
+                )}
               </div>
             ))}
           </div>

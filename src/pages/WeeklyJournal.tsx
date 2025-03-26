@@ -13,11 +13,10 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { ChevronLeft, ChevronRight, Save } from 'lucide-react';
-import { TradeList } from '@/components/trade-list/TradeList';
 import { toast } from '@/utils/toast';
 import { TradeWithMetrics } from '@/types';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
-import { WeeklyReflection, getWeeklyReflection, saveWeeklyReflection, getWeeklyReflections } from '@/utils/journalStorage';
+import { WeeklyReflection, getWeeklyReflection, saveWeeklyReflection } from '@/utils/journalStorage';
 import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics';
 import { TradeCommentsList } from '@/components/journal/TradeCommentsList';
 import { ReflectionsList } from '@/components/journal/ReflectionsList';
@@ -45,6 +44,7 @@ export default function WeeklyJournal() {
   const [reflection, setReflection] = useState<string>('');
   const [weekGrade, setWeekGrade] = useState<string>('B');
   const [showList, setShowList] = useState<boolean>(!weekId || weekId === 'list');
+  const [savedGrade, setSavedGrade] = useState<string>('B');
   
   // If we're on the main journal page, show the list of reflections
   useEffect(() => {
@@ -80,9 +80,11 @@ export default function WeeklyJournal() {
     if (savedReflection) {
       setReflection(savedReflection.reflection || '');
       setWeekGrade(savedReflection.grade || 'B');
+      setSavedGrade(savedReflection.grade || 'B');
     } else {
       setReflection('');
       setWeekGrade('B');
+      setSavedGrade('B');
     }
   }, [currentWeekStart, currentWeekEnd, showList]);
   
@@ -104,6 +106,11 @@ export default function WeeklyJournal() {
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
   };
   
+  const handleGradeChange = (value: string) => {
+    setWeekGrade(value);
+    console.log('Grade changed to:', value);
+  };
+  
   const saveReflection = () => {
     const weekId = format(currentWeekStart, 'yyyy-MM-dd');
     
@@ -121,6 +128,7 @@ export default function WeeklyJournal() {
     const success = saveWeeklyReflection(reflectionData);
     if (success) {
       toast.success('Weekly reflection saved');
+      setSavedGrade(weekGrade);
       
       // Dispatch a storage event to notify other components
       window.dispatchEvent(new StorageEvent('storage', { 
@@ -198,7 +206,11 @@ export default function WeeklyJournal() {
             
             <div>
               <label className="block mb-2 font-medium">Week Grade</label>
-              <Select value={weekGrade} onValueChange={setWeekGrade}>
+              <Select 
+                value={weekGrade} 
+                onValueChange={handleGradeChange}
+                defaultValue={savedGrade}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a grade" />
                 </SelectTrigger>
@@ -221,12 +233,8 @@ export default function WeeklyJournal() {
         </CardContent>
       </Card>
       
-      {/* Trade comments */}
+      {/* Combined trades list with comments */}
       <TradeCommentsList trades={weeklyTrades} />
-      
-      {/* List of trades for this week */}
-      <h2 className="text-xl font-semibold mt-6">Trades This Week</h2>
-      <TradeList initialTrades={weeklyTrades} statusFilter="closed" />
     </div>
   );
 }
