@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startOfWeek, endOfWeek, subWeeks, format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -37,6 +36,7 @@ import { formatCurrency } from '@/utils/calculations/formatters';
 export default function WeeklyJournal() {
   const navigate = useNavigate();
   const { weekId } = useParams();
+  
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     if (weekId === 'new') {
       return startOfWeek(new Date(), { weekStartsOn: 0 });
@@ -439,6 +439,11 @@ function WeeklyReflectionsInMonthList({ currentMonth, navigate }: { currentMonth
     );
   }
   
+  const handleCardClick = (reflectionId: string) => {
+    console.log("Navigating to weekly journal:", `/journal/${reflectionId}`);
+    navigate(`/journal/${reflectionId}`);
+  };
+  
   return (
     <div className="space-y-4">
       {weeklyReflections.map(reflection => {
@@ -447,10 +452,7 @@ function WeeklyReflectionsInMonthList({ currentMonth, navigate }: { currentMonth
           <Card 
             key={reflection.id} 
             className="cursor-pointer hover:bg-accent/10 transition-colors" 
-            onClick={() => {
-              console.log("Navigating to weekly journal:", `/journal/${reflection.id}`);
-              navigate(`/journal/${reflection.id}`);
-            }}
+            onClick={() => handleCardClick(reflection.id)}
           >
             <CardContent className="pt-4 pb-2">
               <div className="flex justify-between items-center">
