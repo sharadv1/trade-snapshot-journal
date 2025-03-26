@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startOfWeek, endOfWeek, subWeeks, format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -59,6 +60,7 @@ export default function WeeklyJournal() {
   const [weeklyTrades, setWeeklyTrades] = useState<TradeWithMetrics[]>([]);
   const [monthlyTrades, setMonthlyTrades] = useState<TradeWithMetrics[]>([]);
   const [reflection, setReflection] = useState<string>('');
+  const [weekGrade, setWeekGrade] = useState<string>('B');
   const [monthlyReflection, setMonthlyReflection] = useState<string>('');
   const [monthGrade, setMonthGrade] = useState<string>('B');
   const [showList, setShowList] = useState<boolean>(!weekId || weekId === 'list');
@@ -114,8 +116,10 @@ export default function WeeklyJournal() {
     
     if (savedWeeklyReflection) {
       setReflection(savedWeeklyReflection.reflection || '');
+      setWeekGrade(savedWeeklyReflection.grade || 'B');
     } else {
       setReflection('');
+      setWeekGrade('B');
     }
     
     const currentMonthId = format(currentMonthStart, 'yyyy-MM');
@@ -130,8 +134,11 @@ export default function WeeklyJournal() {
     }
   }, [currentWeekStart, currentWeekEnd, currentMonthStart, currentMonthEnd, showList]);
   
+  const handleWeekGradeChange = (value: string) => {
+    setWeekGrade(value);
+  };
+  
   const handleMonthGradeChange = (value: string) => {
-    console.log('Setting month grade to:', value);
     setMonthGrade(value);
   };
   
@@ -180,7 +187,7 @@ export default function WeeklyJournal() {
       weekStart: format(currentWeekStart, 'yyyy-MM-dd'),
       weekEnd: format(currentWeekEnd, 'yyyy-MM-dd'),
       reflection,
-      grade: 'N/A',
+      grade: weekGrade,
       tradeIds: weeklyTrades.map(trade => trade.id),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -207,8 +214,6 @@ export default function WeeklyJournal() {
   const saveMonthlyJournal = () => {
     setIsSaving(true);
     const monthId = format(currentMonthStart, 'yyyy-MM');
-    
-    console.log('Saving month grade:', monthGrade);
     
     const reflectionData: MonthlyReflection = {
       id: monthId,
@@ -323,6 +328,26 @@ export default function WeeklyJournal() {
                 value={reflection}
                 onChange={(e) => setReflection(e.target.value)}
               />
+              
+              <div className="grid grid-cols-2 gap-4 items-center">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">
+                    Rate your week
+                  </label>
+                  <Select value={weekGrade} onValueChange={handleWeekGradeChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a grade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="A">A - Excellent</SelectItem>
+                      <SelectItem value="B">B - Good</SelectItem>
+                      <SelectItem value="C">C - Average</SelectItem>
+                      <SelectItem value="D">D - Poor</SelectItem>
+                      <SelectItem value="F">F - Failed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardContent>
           </Card>
           
