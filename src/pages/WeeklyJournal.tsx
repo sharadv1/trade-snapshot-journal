@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startOfWeek, endOfWeek, subWeeks, format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -132,11 +131,11 @@ export default function WeeklyJournal() {
     loadData();
   }, [loadData]);
   
-  const handleWeekGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleWeekGradeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setWeekGrade(e.target.value);
   };
   
-  const handleMonthGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleMonthGradeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMonthGrade(e.target.value);
   };
   
@@ -330,20 +329,16 @@ export default function WeeklyJournal() {
               <div className="grid grid-cols-2 gap-4 items-center">
                 <div>
                   <label htmlFor="week-grade" className="text-sm font-medium mb-1 block">
-                    Rate your week
+                    Grade (A, B, C, D, F)
                   </label>
-                  <select
+                  <Input
                     id="week-grade"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    type="text"
+                    className="w-20"
                     value={weekGrade}
                     onChange={handleWeekGradeChange}
-                  >
-                    <option value="A">A - Excellent</option>
-                    <option value="B">B - Good</option>
-                    <option value="C">C - Average</option>
-                    <option value="D">D - Poor</option>
-                    <option value="F">F - Failed</option>
-                  </select>
+                    maxLength={1}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -403,20 +398,16 @@ export default function WeeklyJournal() {
               <div className="grid grid-cols-2 gap-4 items-center">
                 <div>
                   <label htmlFor="month-grade" className="text-sm font-medium mb-1 block">
-                    Rate your month
+                    Grade (A, B, C, D, F)
                   </label>
-                  <select
+                  <Input
                     id="month-grade"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    type="text"
+                    className="w-20" 
                     value={monthGrade}
                     onChange={handleMonthGradeChange}
-                  >
-                    <option value="A">A - Excellent</option>
-                    <option value="B">B - Good</option>
-                    <option value="C">C - Average</option>
-                    <option value="D">D - Poor</option>
-                    <option value="F">F - Failed</option>
-                  </select>
+                    maxLength={1}
+                  />
                 </div>
               </div>
             </CardContent>
