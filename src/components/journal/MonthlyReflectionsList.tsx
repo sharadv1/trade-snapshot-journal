@@ -91,19 +91,18 @@ export function MonthlyReflectionsList() {
   };
   
   const handleEditReflection = (monthId: string) => {
-    // For monthly reflections, we'll still navigate to the weekly view
-    // but set the current month in the route
-    const today = new Date();
+    // For monthly reflections, navigate to a month-specific route
     const [year, month] = monthId.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1, 15); // middle of the month
     const formattedDate = format(date, 'yyyy-MM-dd');
-    navigate(`/journal/${formattedDate}`);
+    // Use the 'monthly' path segment to indicate it's a monthly view
+    navigate(`/journal/monthly/${formattedDate}`);
   };
   
   const handleCreateNew = () => {
     const today = new Date();
     const formattedDate = format(today, 'yyyy-MM-dd');
-    navigate(`/journal/${formattedDate}`);
+    navigate(`/journal/monthly/${formattedDate}`);
   };
   
   const getGradeColor = (grade: string = '') => {

@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export function JournalLayout() {
   const location = useLocation();
   const isMonthlyView = location.pathname === '/journal/monthly';
+  const isWeeklyView = location.pathname === '/journal/weekly' || location.pathname === '/journal';
   const isDetailView = location.pathname.match(/^\/journal\/\d{4}-\d{2}-\d{2}$/);
   
   // Determine which tab is active
@@ -29,7 +30,7 @@ export function JournalLayout() {
         )}
         {isDetailView && (
           <Link 
-            to="/journal"
+            to={isMonthlyView ? "/journal/monthly" : "/journal/weekly"}
             className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90"
           >
             Back to List
