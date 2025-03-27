@@ -27,29 +27,56 @@ export const getMonthlyReflections = (): { [monthId: string]: MonthlyReflection 
 };
 
 export const getWeeklyReflection = (weekId: string): WeeklyReflection | undefined => {
+  if (!weekId) {
+    console.error('Cannot get weekly reflection: weekId is empty');
+    return undefined;
+  }
   const reflections = getWeeklyReflections();
+  console.log(`Getting weekly reflection for ${weekId}`, reflections[weekId]);
   return reflections[weekId];
 };
 
 export const getMonthlyReflection = (monthId: string): MonthlyReflection | undefined => {
+  if (!monthId) {
+    console.error('Cannot get monthly reflection: monthId is empty');
+    return undefined;
+  }
   const reflections = getMonthlyReflections();
+  console.log(`Getting monthly reflection for ${monthId}`, reflections[monthId]);
   return reflections[monthId];
 };
 
-// Helper function to dispatch storage event
+// Helper function to dispatch storage event more reliably
 const dispatchStorageEvent = (key: string) => {
-  // Create a custom event that mimics the storage event
-  const event = new Event('storage');
-  window.dispatchEvent(event);
+  // First try using the Storage event constructor if supported
+  try {
+    const storageEvent = new StorageEvent('storage', { key });
+    window.dispatchEvent(storageEvent);
+  } catch (e) {
+    // Fallback to a custom event
+    const event = new Event('storage');
+    window.dispatchEvent(event);
+  }
+  
+  // Also dispatch a custom event as another fallback
+  const customEvent = new CustomEvent('journalUpdated', { detail: { key } });
+  window.dispatchEvent(customEvent);
+  
+  console.log(`Storage event dispatched for key: ${key}`);
 };
 
 export const saveWeeklyReflection = (weekId: string, reflection: string, grade?: string): void => {
+  if (!weekId) {
+    console.error('Cannot save weekly reflection: weekId is empty');
+    return;
+  }
+  
   console.log(`Saving weekly reflection for ${weekId}:`, reflection);
   try {
     const reflections = getWeeklyReflections();
     
     // Create the start and end dates for the current week
-    const currentDate = new Date();
+    const currentDate = new Date(weekId);
     const weekStart = new Date(currentDate);
     weekStart.setDate(currentDate.getDate() - currentDate.getDay() + (currentDate.getDay() === 0 ? -6 : 1)); // Monday
     const weekEnd = new Date(weekStart);
@@ -69,6 +96,7 @@ export const saveWeeklyReflection = (weekId: string, reflection: string, grade?:
     };
     
     localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    
     // Dispatch a storage event to notify other components
     dispatchStorageEvent(WEEKLY_REFLECTIONS_KEY);
     console.log('Weekly reflection saved successfully');
@@ -78,14 +106,23 @@ export const saveWeeklyReflection = (weekId: string, reflection: string, grade?:
 };
 
 export const saveMonthlyReflection = (monthId: string, reflection: string, grade?: string): void => {
+  if (!monthId) {
+    console.error('Cannot save monthly reflection: monthId is empty');
+    return;
+  }
+  
   console.log(`Saving monthly reflection for ${monthId}:`, reflection);
   try {
     const reflections = getMonthlyReflections();
     
     // Create the start and end dates for the current month
-    const currentDate = new Date();
     const year = parseInt(monthId.split('-')[0], 10);
     const month = parseInt(monthId.split('-')[1], 10) - 1; // JS months are 0-based
+    
+    if (isNaN(year) || isNaN(month)) {
+      console.error(`Invalid monthId format: ${monthId}, expected 'YYYY-MM'`);
+      return;
+    }
     
     const monthStart = new Date(year, month, 1);
     const monthEnd = new Date(year, month + 1, 0);
@@ -104,6 +141,7 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
     };
     
     localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    
     // Dispatch a storage event to notify other components
     dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
     console.log('Monthly reflection saved successfully');
@@ -115,6 +153,11 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
 // Update full reflection object functions
 export const saveWeeklyReflectionObject = (reflection: WeeklyReflection): void => {
   try {
+    if (!reflection) {
+      console.error('Cannot save null reflection object');
+      return;
+    }
+    
     const reflections = getWeeklyReflections();
     const weekId = reflection.weekId || reflection.id || '';
     
@@ -131,8 +174,10 @@ export const saveWeeklyReflectionObject = (reflection: WeeklyReflection): void =
     };
     
     localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    
     // Dispatch a storage event to notify other components
     dispatchStorageEvent(WEEKLY_REFLECTIONS_KEY);
+    console.log(`Weekly reflection object saved successfully for ${weekId}`);
   } catch (error) {
     console.error('Error saving weekly reflection object:', error);
   }
@@ -140,6 +185,11 @@ export const saveWeeklyReflectionObject = (reflection: WeeklyReflection): void =
 
 export const saveMonthlyReflectionObject = (reflection: MonthlyReflection): void => {
   try {
+    if (!reflection) {
+      console.error('Cannot save null reflection object');
+      return;
+    }
+    
     const reflections = getMonthlyReflections();
     const monthId = reflection.monthId || reflection.id || '';
     
@@ -156,8 +206,10 @@ export const saveMonthlyReflectionObject = (reflection: MonthlyReflection): void
     };
     
     localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    
     // Dispatch a storage event to notify other components
     dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
+    console.log(`Monthly reflection object saved successfully for ${monthId}`);
   } catch (error) {
     console.error('Error saving monthly reflection object:', error);
   }
@@ -165,11 +217,18 @@ export const saveMonthlyReflectionObject = (reflection: MonthlyReflection): void
 
 export const deleteWeeklyReflection = (weekId: string): void => {
   try {
+    if (!weekId) {
+      console.error('Cannot delete weekly reflection: weekId is empty');
+      return;
+    }
+    
     const reflections = getWeeklyReflections();
     delete reflections[weekId];
     localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    
     // Dispatch a storage event to notify other components
     dispatchStorageEvent(WEEKLY_REFLECTIONS_KEY);
+    console.log(`Weekly reflection deleted successfully for ${weekId}`);
   } catch (error) {
     console.error('Error deleting weekly reflection:', error);
   }
@@ -177,11 +236,18 @@ export const deleteWeeklyReflection = (weekId: string): void => {
 
 export const deleteMonthlyReflection = (monthId: string): void => {
   try {
+    if (!monthId) {
+      console.error('Cannot delete monthly reflection: monthId is empty');
+      return;
+    }
+    
     const reflections = getMonthlyReflections();
     delete reflections[monthId];
     localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    
     // Dispatch a storage event to notify other components
     dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
+    console.log(`Monthly reflection deleted successfully for ${monthId}`);
   } catch (error) {
     console.error('Error deleting monthly reflection:', error);
   }

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,9 +42,14 @@ export default function WeeklyJournal() {
     return paramWeekId ? new Date(paramWeekId) : new Date();
   });
   
-  const [weekId, setWeekId] = useState(paramWeekId || format(currentDate, 'yyyy-MM-dd'));
+  const [weekId, setWeekId] = useState(() => {
+    // Ensure we're using the received weekId or current date
+    return paramWeekId || format(currentDate, 'yyyy-MM-dd');
+  });
+  
   const [monthId, setMonthId] = useState(() => {
     if (isMonthView && paramMonthId) {
+      // If we're in month view and have a monthId from URL, use that
       return format(new Date(paramMonthId), 'yyyy-MM');
     }
     return format(currentDate, 'yyyy-MM');
@@ -67,15 +73,17 @@ export default function WeeklyJournal() {
     navigate(isMonthView ? '/journal/monthly' : '/journal/weekly');
   };
 
-  // Load data
+  // Load data whenever weekId, monthId, or isMonthView changes
   useEffect(() => {
     if (!isMonthView && weekId) {
+      console.log('Loading weekly reflection for ID:', weekId);
       const savedReflection = getWeeklyReflection(weekId);
       if (savedReflection) {
         console.log('Loaded weekly reflection for', weekId, savedReflection);
         setReflection(savedReflection.reflection || '');
         setWeekGrade(savedReflection.grade || '');
       } else {
+        console.log('No existing weekly reflection found for', weekId);
         setReflection('');
         setWeekGrade('');
       }
@@ -84,12 +92,14 @@ export default function WeeklyJournal() {
   
   useEffect(() => {
     if (isMonthView && monthId) {
+      console.log('Loading monthly reflection for ID:', monthId);
       const savedReflection = getMonthlyReflection(monthId);
       if (savedReflection) {
         console.log('Loaded monthly reflection for', monthId, savedReflection);
         setMonthlyReflection(savedReflection.reflection || '');
         setMonthGrade(savedReflection.grade || '');
       } else {
+        console.log('No existing monthly reflection found for', monthId);
         setMonthlyReflection('');
         setMonthGrade('');
       }
@@ -98,11 +108,13 @@ export default function WeeklyJournal() {
 
   const handleReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
+    console.log('Weekly reflection changed:', newValue);
     setReflection(newValue);
   };
   
   const handleMonthlyReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
+    console.log('Monthly reflection changed:', newValue);
     setMonthlyReflection(newValue);
   };
   
@@ -136,7 +148,7 @@ export default function WeeklyJournal() {
   // Add a function to explicitly save the reflection and return to list
   const handleSaveWeekly = () => {
     if (weekId) {
-      console.log(`Saving weekly reflection for ${weekId}:`, reflection, weekGrade);
+      console.log(`Explicitly saving weekly reflection for ${weekId}:`, reflection, weekGrade);
       saveWeeklyReflection(weekId, reflection || '', weekGrade);
       toast.success("Weekly reflection saved successfully");
       navigate('/journal/weekly');
@@ -145,18 +157,28 @@ export default function WeeklyJournal() {
   
   const handleSaveMonthly = () => {
     if (monthId) {
-      console.log(`Saving monthly reflection for ${monthId}:`, monthlyReflection, monthGrade);
+      console.log(`Explicitly saving monthly reflection for ${monthId}:`, monthlyReflection, monthGrade);
       saveMonthlyReflection(monthId, monthlyReflection || '', monthGrade);
       toast.success("Monthly reflection saved successfully");
       navigate('/journal/monthly');
     }
   };
   
-  // Add an effect to save on component unmount
+  // Save when user navigates away or component unmounts
   useEffect(() => {
     return () => {
+      console.log("Component unmounting, saving reflections if needed");
       saveReflections();
     };
+  }, [saveReflections]);
+
+  // Auto-save changes periodically (every 5 seconds)
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      saveReflections();
+    }, 5000);
+    
+    return () => clearInterval(autoSaveInterval);
   }, [saveReflections]);
 
   return (

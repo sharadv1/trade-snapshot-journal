@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import Analytics from '@/pages/Analytics';
 import TradeEntry from '@/pages/TradeEntry';
@@ -35,17 +35,20 @@ function App() {
           {/* Journal routes with nested structure */}
           <Route path="/journal" element={<JournalLayout />}>
             {/* Default route redirects to weekly */}
-            <Route index element={<ReflectionsList />} />
+            <Route index element={<Navigate to="/journal/weekly" replace />} />
             
             {/* Explicit weekly and monthly list views */}
             <Route path="weekly" element={<ReflectionsList />} />
             <Route path="monthly" element={<MonthlyReflectionsList />} />
             
             {/* Weekly detail view */}
-            <Route path=":weekId" element={<WeeklyJournal />} />
+            <Route path="weekly/:weekId" element={<WeeklyJournal />} />
             
-            {/* Monthly detail view - ensure this route works */}
+            {/* Monthly detail view */}
             <Route path="monthly/:monthId" element={<WeeklyJournal />} />
+            
+            {/* Legacy route for backward compatibility */}
+            <Route path=":weekId" element={<Navigate to={(params) => `/journal/weekly/${params.weekId}`} replace />} />
           </Route>
           
           <Route path="*" element={<NotFound />} />

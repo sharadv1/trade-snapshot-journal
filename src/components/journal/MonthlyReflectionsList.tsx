@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -110,16 +109,8 @@ export function MonthlyReflectionsList() {
   const handleEditReflection = (monthId: string) => {
     if (!monthId) return;
     
-    // FIX: Create a date object from the monthId (YYYY-MM format)
-    const [year, month] = monthId.split('-');
-    if (!year || !month) return;
-    
-    // Create a date object for the first day of the month
-    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const formattedDate = format(date, 'yyyy-MM-dd');
-    
-    console.log(`Navigating to monthly reflection detail: /journal/monthly/${formattedDate}`);
-    navigate(`/journal/monthly/${formattedDate}`);
+    // Fix: Navigate directly to the correct URL format using the monthId
+    navigate(`/journal/monthly/${monthId}`);
   };
   
   const handleCreateNew = () => {
