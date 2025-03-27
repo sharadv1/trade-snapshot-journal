@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -17,7 +18,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Pencil, Calendar } from 'lucide-react';
+import { Pencil, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getMonthlyReflections } from '@/utils/journalStorage';
 import { MonthlyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
@@ -30,6 +31,7 @@ export function MonthlyReflectionsList() {
     totalPnL: number,
     totalR: number
   }>>({});
+  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
   
   useEffect(() => {
     loadReflections();
@@ -108,15 +110,14 @@ export function MonthlyReflectionsList() {
   };
   
   const handleEditReflection = (monthId: string) => {
-    // Format date correctly for the route
     if (!monthId) return;
     
     // Parse the monthId to get year and month
     const [year, month] = monthId.split('-');
     if (!year || !month) return;
     
-    // Create a date object for the middle of the month (15th)
-    const date = new Date(parseInt(year), parseInt(month) - 1, 15);
+    // Create a date object for the first day of the month
+    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
     const formattedDate = format(date, 'yyyy-MM-dd');
     
     console.log(`Navigating to monthly reflection detail: /journal/monthly/${formattedDate}`);
@@ -124,9 +125,21 @@ export function MonthlyReflectionsList() {
   };
   
   const handleCreateNew = () => {
-    const today = new Date();
-    const formattedDate = format(today, 'yyyy-MM-dd');
+    // Use current month date for new reflection
+    const formattedDate = format(currentMonthDate, 'yyyy-MM-dd');
     navigate(`/journal/monthly/${formattedDate}`);
+  };
+  
+  const goToPreviousMonth = () => {
+    const newDate = new Date(currentMonthDate);
+    newDate.setMonth(newDate.getMonth() - 1);
+    setCurrentMonthDate(newDate);
+  };
+
+  const goToNextMonth = () => {
+    const newDate = new Date(currentMonthDate);
+    newDate.setMonth(newDate.getMonth() + 1);
+    setCurrentMonthDate(newDate);
   };
   
   const getGradeColor = (grade: string = '') => {
@@ -140,10 +153,21 @@ export function MonthlyReflectionsList() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Monthly Trading Journal Reflections</CardTitle>
-        <Button onClick={handleCreateNew}>
-          <Calendar className="mr-2 h-4 w-4" />
-          Current Month
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" onClick={goToPreviousMonth} className="flex items-center">
+            <ChevronLeft className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Previous Month</span>
+          </Button>
+          <span className="text-sm font-medium">{format(currentMonthDate, 'MMMM yyyy')}</span>
+          <Button variant="outline" onClick={goToNextMonth} className="flex items-center">
+            <span className="hidden sm:inline mr-1">Next Month</span>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button onClick={handleCreateNew}>
+            <Calendar className="mr-2 h-4 w-4" />
+            New Reflection
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {reflections.length === 0 ? (

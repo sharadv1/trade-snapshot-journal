@@ -17,18 +17,10 @@ import {
   endOfWeek, 
   startOfMonth, 
   endOfMonth, 
-  addWeeks,
-  subWeeks,
-  addMonths,
-  subMonths,
-  isSameDay,
   parse,
   parseISO
 } from 'date-fns';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { CalendarIcon, ArrowLeft, Save, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function WeeklyJournal() {
@@ -62,7 +54,7 @@ export default function WeeklyJournal() {
   const [weekGrade, setWeekGrade] = useState<string>('');
   const [monthGrade, setMonthGrade] = useState<string>('');
 
-  // Date manipulations
+  // Date calculations
   const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const currentWeekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const currentMonthStart = startOfMonth(currentDate);
@@ -70,39 +62,6 @@ export default function WeeklyJournal() {
 
   const formattedWeekRange = `${format(currentWeekStart, 'MMM dd')} - ${format(currentWeekEnd, 'MMM dd, yyyy')}`;
   const formattedMonth = format(currentMonthStart, 'MMMM yyyy');
-
-  // Navigation functions - updated with better date handling
-  const goToPreviousWeek = () => {
-    const prevWeekDate = subWeeks(currentDate, 1);
-    setCurrentDate(prevWeekDate);
-    const newWeekId = format(prevWeekDate, 'yyyy-MM-dd');
-    setWeekId(newWeekId);
-    navigate(`/journal/${newWeekId}`);
-  };
-
-  const goToNextWeek = () => {
-    const nextWeekDate = addWeeks(currentDate, 1);
-    setCurrentDate(nextWeekDate);
-    const newWeekId = format(nextWeekDate, 'yyyy-MM-dd');
-    setWeekId(newWeekId);
-    navigate(`/journal/${newWeekId}`);
-  };
-
-  const goToPreviousMonth = () => {
-    const prevMonthDate = subMonths(currentDate, 1);
-    setCurrentDate(prevMonthDate);
-    const newMonthId = format(prevMonthDate, 'yyyy-MM');
-    setMonthId(newMonthId);
-    navigate(`/journal/monthly/${format(prevMonthDate, 'yyyy-MM-dd')}`);
-  };
-
-  const goToNextMonth = () => {
-    const nextMonthDate = addMonths(currentDate, 1);
-    setCurrentDate(nextMonthDate);
-    const newMonthId = format(nextMonthDate, 'yyyy-MM');
-    setMonthId(newMonthId);
-    navigate(`/journal/monthly/${format(nextMonthDate, 'yyyy-MM-dd')}`);
-  };
   
   const goBackToList = () => {
     navigate(isMonthView ? '/journal/monthly' : '/journal/weekly');
@@ -157,30 +116,26 @@ export default function WeeklyJournal() {
     setMonthGrade(newValue);
   };
   
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setCurrentDate(date);
-      const newWeekId = format(date, 'yyyy-MM-dd');
-      setWeekId(newWeekId);
-      navigate(`/journal/${newWeekId}`);
-    }
-  };
-
+  // Define a function to save reflections
   const saveReflections = useCallback(() => {
-    if (!isMonthView && weekId && reflection !== undefined) {
+    if (!isMonthView && weekId) {
       console.log(`Saving weekly reflection for ${weekId}:`, reflection, weekGrade);
       saveWeeklyReflection(weekId, reflection || '', weekGrade);
+      return true;
     }
     
-    if (isMonthView && monthId && monthlyReflection !== undefined) {
+    if (isMonthView && monthId) {
       console.log(`Saving monthly reflection for ${monthId}:`, monthlyReflection, monthGrade);
       saveMonthlyReflection(monthId, monthlyReflection || '', monthGrade);
+      return true;
     }
+    
+    return false;
   }, [weekId, reflection, weekGrade, monthId, monthlyReflection, monthGrade, isMonthView]);
   
   // Add a function to explicitly save the reflection and return to list
   const handleSaveWeekly = () => {
-    if (weekId && reflection !== undefined) {
+    if (weekId) {
       console.log(`Saving weekly reflection for ${weekId}:`, reflection, weekGrade);
       saveWeeklyReflection(weekId, reflection || '', weekGrade);
       toast.success("Weekly reflection saved successfully");
@@ -189,7 +144,7 @@ export default function WeeklyJournal() {
   };
   
   const handleSaveMonthly = () => {
-    if (monthId && monthlyReflection !== undefined) {
+    if (monthId) {
       console.log(`Saving monthly reflection for ${monthId}:`, monthlyReflection, monthGrade);
       saveMonthlyReflection(monthId, monthlyReflection || '', monthGrade);
       toast.success("Monthly reflection saved successfully");
@@ -233,38 +188,6 @@ export default function WeeklyJournal() {
         <Card className="mb-8">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Weekly Reflection - {formattedWeekRange}</CardTitle>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" onClick={goToPreviousWeek} className="flex items-center">
-                <ChevronLeft className="h-4 w-4" />
-                <span className="hidden sm:inline ml-1">Previous Week</span>
-              </Button>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"ghost"}
-                    className={cn(
-                      "w-[220px] justify-start text-left font-normal",
-                      !currentDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {currentDate ? format(currentDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="center">
-                  <Calendar
-                    mode="single"
-                    selected={currentDate}
-                    onSelect={handleDateSelect}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <Button variant="outline" onClick={goToNextWeek} className="flex items-center">
-                <span className="hidden sm:inline mr-1">Next Week</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
@@ -306,16 +229,6 @@ export default function WeeklyJournal() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Monthly Reflection - {formattedMonth}</CardTitle>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" onClick={goToPreviousMonth} className="flex items-center">
-                <ChevronLeft className="h-4 w-4" />
-                <span className="hidden sm:inline ml-1">Previous Month</span>
-              </Button>
-              <Button variant="outline" onClick={goToNextMonth} className="flex items-center">
-                <span className="hidden sm:inline mr-1">Next Month</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">

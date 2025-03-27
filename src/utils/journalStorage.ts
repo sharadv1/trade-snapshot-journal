@@ -62,6 +62,8 @@ export const saveWeeklyReflection = (weekId: string, reflection: string, grade?:
     };
     
     localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    // Dispatch a storage event to notify other components
+    window.dispatchEvent(new Event('storage'));
     console.log('Weekly reflection saved successfully');
   } catch (error) {
     console.error('Error saving weekly reflection:', error);
@@ -95,6 +97,8 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
     };
     
     localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    // Dispatch a storage event to notify other components
+    window.dispatchEvent(new Event('storage'));
     console.log('Monthly reflection saved successfully');
   } catch (error) {
     console.error('Error saving monthly reflection:', error);
@@ -120,6 +124,8 @@ export const saveWeeklyReflectionObject = (reflection: WeeklyReflection): void =
     };
     
     localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    // Dispatch a storage event to notify other components
+    window.dispatchEvent(new Event('storage'));
   } catch (error) {
     console.error('Error saving weekly reflection object:', error);
   }
@@ -143,6 +149,8 @@ export const saveMonthlyReflectionObject = (reflection: MonthlyReflection): void
     };
     
     localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    // Dispatch a storage event to notify other components
+    window.dispatchEvent(new Event('storage'));
   } catch (error) {
     console.error('Error saving monthly reflection object:', error);
   }
@@ -153,6 +161,8 @@ export const deleteWeeklyReflection = (weekId: string): void => {
     const reflections = getWeeklyReflections();
     delete reflections[weekId];
     localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    // Dispatch a storage event to notify other components
+    window.dispatchEvent(new Event('storage'));
   } catch (error) {
     console.error('Error deleting weekly reflection:', error);
   }
@@ -163,6 +173,8 @@ export const deleteMonthlyReflection = (monthId: string): void => {
     const reflections = getMonthlyReflections();
     delete reflections[monthId];
     localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    // Dispatch a storage event to notify other components
+    window.dispatchEvent(new Event('storage'));
   } catch (error) {
     console.error('Error deleting monthly reflection:', error);
   }

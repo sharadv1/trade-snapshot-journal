@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, addWeeks, subWeeks } from 'date-fns';
 import { 
   Table, 
   TableBody, 
@@ -17,7 +17,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Pencil, Calendar } from 'lucide-react';
+import { Pencil, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getWeeklyReflections } from '@/utils/journalStorage';
 import { WeeklyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
@@ -31,6 +31,7 @@ export function ReflectionsList() {
     totalPnL: number,
     totalR: number
   }>>({});
+  const [currentWeekDate, setCurrentWeekDate] = useState(new Date());
   
   // Determine if we're in weekly or monthly view
   const isWeeklyView = !location.pathname.includes('/monthly');
@@ -124,9 +125,18 @@ export function ReflectionsList() {
   };
   
   const handleCreateNew = () => {
-    const today = new Date();
-    const weekId = format(today, 'yyyy-MM-dd');
+    const weekId = format(currentWeekDate, 'yyyy-MM-dd');
     navigate(`/journal/${weekId}`);
+  };
+
+  const goToPreviousWeek = () => {
+    const newDate = subWeeks(currentWeekDate, 1);
+    setCurrentWeekDate(newDate);
+  };
+
+  const goToNextWeek = () => {
+    const newDate = addWeeks(currentWeekDate, 1);
+    setCurrentWeekDate(newDate);
   };
   
   const getGradeColor = (grade: string = '') => {
@@ -158,10 +168,20 @@ export function ReflectionsList() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Weekly Trading Journal Reflections</CardTitle>
-        <Button onClick={handleCreateNew}>
-          <Calendar className="mr-2 h-4 w-4" />
-          Current Week
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" onClick={goToPreviousWeek} className="flex items-center">
+            <ChevronLeft className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Previous Week</span>
+          </Button>
+          <Button variant="outline" onClick={goToNextWeek} className="flex items-center">
+            <span className="hidden sm:inline mr-1">Next Week</span>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button onClick={handleCreateNew}>
+            <Calendar className="mr-2 h-4 w-4" />
+            New Reflection
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {reflections.length === 0 ? (
