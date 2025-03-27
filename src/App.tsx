@@ -34,11 +34,17 @@ function App() {
           
           {/* Journal routes with nested structure */}
           <Route path="/journal" element={<JournalLayout />}>
+            {/* Default route redirects to weekly */}
             <Route index element={<ReflectionsList />} />
+            
+            {/* Explicit weekly and monthly list views */}
             <Route path="weekly" element={<ReflectionsList />} />
             <Route path="monthly" element={<MonthlyReflectionsList />} />
+            
+            {/* Weekly detail view */}
             <Route path=":weekId" element={<WeeklyJournal />} />
-            {/* Add the monthly detail route */}
+            
+            {/* Monthly detail view - ensure this route works */}
             <Route path="monthly/:monthId" element={<WeeklyJournal />} />
           </Route>
           

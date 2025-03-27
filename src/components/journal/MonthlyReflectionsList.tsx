@@ -91,11 +91,17 @@ export function MonthlyReflectionsList() {
   };
   
   const handleEditReflection = (monthId: string) => {
-    // Convert the month ID (yyyy-MM) to a date string for the URL
+    // Extract the year and month from the monthId (format: yyyy-MM)
+    if (!monthId) return;
+    
+    // Parse the monthId to create a date pointing to the middle of the month
     const [year, month] = monthId.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1, 15); // middle of the month
+    if (!year || !month) return;
+    
+    const date = new Date(parseInt(year), parseInt(month) - 1, 15); // 15th of the month
     const formattedDate = format(date, 'yyyy-MM-dd');
-    // Navigate to the monthly detail view with the properly formatted date
+    
+    console.log(`Navigating to monthly reflection detail: /journal/monthly/${formattedDate}`);
     navigate(`/journal/monthly/${formattedDate}`);
   };
   

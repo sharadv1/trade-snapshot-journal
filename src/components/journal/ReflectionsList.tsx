@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Card, 
   CardContent, 
@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { 
   Table, 
   TableBody, 
@@ -26,25 +26,32 @@ import { formatCurrency } from '@/utils/calculations/formatters';
 
 export function ReflectionsList() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
   const [reflectionStats, setReflectionStats] = useState<Record<string, {
     totalPnL: number,
     totalR: number
   }>>({});
   
+  // Determine if we're in weekly or monthly view
+  const isWeeklyView = !location.pathname.includes('/monthly');
+  
   useEffect(() => {
-    loadReflections();
+    // Only load reflections if we're in the weekly view
+    if (isWeeklyView) {
+      loadReflections();
+    }
     
     // Listen for storage changes to reload reflections
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'trade-journal-weekly-reflections') {
+      if (event.key === 'trade-journal-weekly-reflections' && isWeeklyView) {
         loadReflections();
       }
     };
     
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [isWeeklyView]);
   
   const loadReflections = () => {
     console.log("Loading weekly reflections...");
@@ -58,9 +65,14 @@ export function ReflectionsList() {
       weekId: weekId
     }));
     
-    reflectionsArray.sort((a, b) => 
-      new Date(b.weekStart || '').getTime() - new Date(a.weekStart || '').getTime()
-    );
+    reflectionsArray.sort((a, b) => {
+      // Use weekStart for sorting if available
+      if (a.weekStart && b.weekStart) {
+        return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
+      }
+      // Fallback to weekId if weekStart is not available
+      return new Date(b.weekId || '').getTime() - new Date(a.weekId || '').getTime();
+    });
     
     console.log("Weekly reflections array:", reflectionsArray);
     setReflections(reflectionsArray);
@@ -107,6 +119,24 @@ export function ReflectionsList() {
     return 'bg-red-100 text-red-800';
   };
   
+  const formatDateRange = (start?: string, end?: string) => {
+    if (!start || !end) return 'Unknown date range';
+    
+    try {
+      const startDate = parseISO(start);
+      const endDate = parseISO(end);
+      
+      if (!isValid(startDate) || !isValid(endDate)) {
+        return 'Invalid date range';
+      }
+      
+      return `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`;
+    } catch (error) {
+      console.error('Error formatting date range:', error);
+      return 'Error in date range';
+    }
+  };
+  
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -145,9 +175,7 @@ export function ReflectionsList() {
                 return (
                   <TableRow key={reflectionId || Math.random().toString()}>
                     <TableCell>
-                      {reflection.weekStart && reflection.weekEnd ? 
-                        `${format(parseISO(reflection.weekStart), 'MMM d')} - ${format(parseISO(reflection.weekEnd), 'MMM d, yyyy')}` :
-                        'Unknown date range'}
+                      {formatDateRange(reflection.weekStart, reflection.weekEnd)}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={getGradeColor(reflection.grade)}>
