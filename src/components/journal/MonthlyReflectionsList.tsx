@@ -91,11 +91,11 @@ export function MonthlyReflectionsList() {
   };
   
   const handleEditReflection = (monthId: string) => {
-    // For monthly reflections, navigate to a month-specific route
+    // Convert the month ID (yyyy-MM) to a date string for the URL
     const [year, month] = monthId.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1, 15); // middle of the month
     const formattedDate = format(date, 'yyyy-MM-dd');
-    // Use the 'monthly' path segment to indicate it's a monthly view
+    // Navigate to the monthly detail view with the properly formatted date
     navigate(`/journal/monthly/${formattedDate}`);
   };
   

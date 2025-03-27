@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +17,9 @@ import {
   endOfWeek, 
   startOfMonth, 
   endOfMonth, 
-  isSameDay 
+  isSameDay,
+  parse,
+  parseISO
 } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -35,9 +36,23 @@ export default function WeeklyJournal() {
   const isMonthView = location.pathname.includes('/journal/monthly/');
   
   // State variables
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => {
+    // If we have a monthId, use it to create a date in that month
+    if (isMonthView && paramMonthId) {
+      return new Date(paramMonthId);
+    }
+    // Otherwise use weekId or current date
+    return paramWeekId ? new Date(paramWeekId) : new Date();
+  });
+  
   const [weekId, setWeekId] = useState(paramWeekId || format(currentDate, 'yyyy-MM-dd'));
-  const [monthId, setMonthId] = useState(paramMonthId || format(currentDate, 'yyyy-MM'));
+  const [monthId, setMonthId] = useState(() => {
+    if (isMonthView && paramMonthId) {
+      return format(new Date(paramMonthId), 'yyyy-MM');
+    }
+    return format(currentDate, 'yyyy-MM');
+  });
+  
   const [reflection, setReflection] = useState<string>('');
   const [monthlyReflection, setMonthlyReflection] = useState<string>('');
   const [weekGrade, setWeekGrade] = useState<string>('');
@@ -77,6 +92,7 @@ export default function WeeklyJournal() {
     setCurrentDate(prevMonthDate);
     const newMonthId = format(prevMonthDate, 'yyyy-MM');
     setMonthId(newMonthId);
+    navigate(`/journal/monthly/${format(prevMonthDate, 'yyyy-MM-dd')}`);
   };
 
   const goToNextMonth = () => {
@@ -85,6 +101,7 @@ export default function WeeklyJournal() {
     setCurrentDate(nextMonthDate);
     const newMonthId = format(nextMonthDate, 'yyyy-MM');
     setMonthId(newMonthId);
+    navigate(`/journal/monthly/${format(nextMonthDate, 'yyyy-MM-dd')}`);
   };
   
   const goBackToList = () => {
@@ -93,7 +110,7 @@ export default function WeeklyJournal() {
 
   // Load data
   useEffect(() => {
-    if (weekId) {
+    if (!isMonthView && weekId) {
       const savedReflection = getWeeklyReflection(weekId);
       if (savedReflection) {
         console.log('Loaded weekly reflection for', weekId, savedReflection);
@@ -104,10 +121,10 @@ export default function WeeklyJournal() {
         setWeekGrade('');
       }
     }
-  }, [weekId]);
+  }, [weekId, isMonthView]);
   
   useEffect(() => {
-    if (monthId) {
+    if (isMonthView && monthId) {
       const savedReflection = getMonthlyReflection(monthId);
       if (savedReflection) {
         console.log('Loaded monthly reflection for', monthId, savedReflection);
@@ -118,7 +135,7 @@ export default function WeeklyJournal() {
         setMonthGrade('');
       }
     }
-  }, [monthId]);
+  }, [monthId, isMonthView]);
 
   const handleReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -150,16 +167,16 @@ export default function WeeklyJournal() {
   };
 
   const saveReflections = useCallback(() => {
-    if (weekId && reflection !== undefined) {
+    if (!isMonthView && weekId && reflection !== undefined) {
       console.log(`Saving weekly reflection for ${weekId}:`, reflection, weekGrade);
       saveWeeklyReflection(weekId, reflection || '', weekGrade);
     }
     
-    if (monthId && monthlyReflection !== undefined) {
+    if (isMonthView && monthId && monthlyReflection !== undefined) {
       console.log(`Saving monthly reflection for ${monthId}:`, monthlyReflection, monthGrade);
       saveMonthlyReflection(monthId, monthlyReflection || '', monthGrade);
     }
-  }, [weekId, reflection, weekGrade, monthId, monthlyReflection, monthGrade]);
+  }, [weekId, reflection, weekGrade, monthId, monthlyReflection, monthGrade, isMonthView]);
   
   // Add a function to explicitly save the reflection and return to list
   const handleSaveWeekly = () => {

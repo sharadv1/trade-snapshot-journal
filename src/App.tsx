@@ -38,6 +38,8 @@ function App() {
             <Route path="weekly" element={<ReflectionsList />} />
             <Route path="monthly" element={<MonthlyReflectionsList />} />
             <Route path=":weekId" element={<WeeklyJournal />} />
+            {/* Add the monthly detail route */}
+            <Route path="monthly/:monthId" element={<WeeklyJournal />} />
           </Route>
           
           <Route path="*" element={<NotFound />} />
