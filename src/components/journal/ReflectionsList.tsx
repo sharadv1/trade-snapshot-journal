@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -59,11 +58,32 @@ export function ReflectionsList() {
     console.log("Weekly reflections map:", reflectionsMap);
     
     // Convert to array and sort by date, newest first
-    const reflectionsArray = Object.entries(reflectionsMap).map(([weekId, reflection]) => ({
+    let reflectionsArray = Object.entries(reflectionsMap).map(([weekId, reflection]) => ({
       ...reflection,
       id: weekId,
       weekId: weekId
     }));
+    
+    // Deduplicate reflections by weekStart - only keep the latest entry for each week
+    const weekMap = new Map<string, WeeklyReflection>();
+    reflectionsArray.forEach(reflection => {
+      if (reflection.weekStart) {
+        const weekKey = new Date(reflection.weekStart).toISOString().slice(0, 10);
+        const existing = weekMap.get(weekKey);
+        
+        // Only replace if this is a newer entry or if no entry exists
+        if (!existing || (reflection.lastUpdated && existing.lastUpdated && 
+            new Date(reflection.lastUpdated) > new Date(existing.lastUpdated))) {
+          weekMap.set(weekKey, reflection);
+        }
+      } else {
+        // For entries without weekStart, use the weekId as the key
+        weekMap.set(reflection.weekId || '', reflection);
+      }
+    });
+    
+    // Convert back to array
+    reflectionsArray = Array.from(weekMap.values());
     
     reflectionsArray.sort((a, b) => {
       // Use weekStart for sorting if available
@@ -74,7 +94,7 @@ export function ReflectionsList() {
       return new Date(b.weekId || '').getTime() - new Date(a.weekId || '').getTime();
     });
     
-    console.log("Weekly reflections array:", reflectionsArray);
+    console.log("Weekly reflections array after deduplication:", reflectionsArray);
     setReflections(reflectionsArray);
     
     // Calculate stats for each reflection

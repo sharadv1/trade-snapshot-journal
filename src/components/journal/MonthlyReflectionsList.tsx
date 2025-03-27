@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -52,11 +51,32 @@ export function MonthlyReflectionsList() {
     console.log("Monthly reflections map:", reflectionsMap);
     
     // Convert to array and sort by date, newest first
-    const reflectionsArray = Object.entries(reflectionsMap).map(([monthId, reflection]) => ({
+    let reflectionsArray = Object.entries(reflectionsMap).map(([monthId, reflection]) => ({
       ...reflection,
       id: monthId,
       monthId: monthId
     }));
+    
+    // Deduplicate reflections by monthStart - only keep the latest entry for each month
+    const monthMap = new Map<string, MonthlyReflection>();
+    reflectionsArray.forEach(reflection => {
+      if (reflection.monthStart) {
+        const monthKey = new Date(reflection.monthStart).toISOString().slice(0, 7); // YYYY-MM
+        const existing = monthMap.get(monthKey);
+        
+        // Only replace if this is a newer entry or if no entry exists
+        if (!existing || (reflection.lastUpdated && existing.lastUpdated && 
+            new Date(reflection.lastUpdated) > new Date(existing.lastUpdated))) {
+          monthMap.set(monthKey, reflection);
+        }
+      } else {
+        // For entries without monthStart, use the monthId as the key
+        monthMap.set(reflection.monthId || '', reflection);
+      }
+    });
+    
+    // Convert back to array
+    reflectionsArray = Array.from(monthMap.values());
     
     reflectionsArray.sort((a, b) => 
       new Date(b.monthStart || '').getTime() - new Date(a.monthStart || '').getTime()
@@ -91,14 +111,15 @@ export function MonthlyReflectionsList() {
   };
   
   const handleEditReflection = (monthId: string) => {
-    // Extract the year and month from the monthId (format: yyyy-MM)
+    // Format date correctly for the route
     if (!monthId) return;
     
-    // Parse the monthId to create a date pointing to the middle of the month
+    // Parse the monthId to get year and month
     const [year, month] = monthId.split('-');
     if (!year || !month) return;
     
-    const date = new Date(parseInt(year), parseInt(month) - 1, 15); // 15th of the month
+    // Create a date object for the middle of the month (15th)
+    const date = new Date(parseInt(year), parseInt(month) - 1, 15);
     const formattedDate = format(date, 'yyyy-MM-dd');
     
     console.log(`Navigating to monthly reflection detail: /journal/monthly/${formattedDate}`);

@@ -17,6 +17,10 @@ import {
   endOfWeek, 
   startOfMonth, 
   endOfMonth, 
+  addWeeks,
+  subWeeks,
+  addMonths,
+  subMonths,
   isSameDay,
   parse,
   parseISO
@@ -24,7 +28,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, ArrowLeft, Save } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function WeeklyJournal() {
@@ -67,10 +71,9 @@ export default function WeeklyJournal() {
   const formattedWeekRange = `${format(currentWeekStart, 'MMM dd')} - ${format(currentWeekEnd, 'MMM dd, yyyy')}`;
   const formattedMonth = format(currentMonthStart, 'MMMM yyyy');
 
-  // Navigation functions
+  // Navigation functions - updated with better date handling
   const goToPreviousWeek = () => {
-    const prevWeekDate = new Date(currentDate);
-    prevWeekDate.setDate(prevWeekDate.getDate() - 7);
+    const prevWeekDate = subWeeks(currentDate, 1);
     setCurrentDate(prevWeekDate);
     const newWeekId = format(prevWeekDate, 'yyyy-MM-dd');
     setWeekId(newWeekId);
@@ -78,8 +81,7 @@ export default function WeeklyJournal() {
   };
 
   const goToNextWeek = () => {
-    const nextWeekDate = new Date(currentDate);
-    nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+    const nextWeekDate = addWeeks(currentDate, 1);
     setCurrentDate(nextWeekDate);
     const newWeekId = format(nextWeekDate, 'yyyy-MM-dd');
     setWeekId(newWeekId);
@@ -87,8 +89,7 @@ export default function WeeklyJournal() {
   };
 
   const goToPreviousMonth = () => {
-    const prevMonthDate = new Date(currentDate);
-    prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+    const prevMonthDate = subMonths(currentDate, 1);
     setCurrentDate(prevMonthDate);
     const newMonthId = format(prevMonthDate, 'yyyy-MM');
     setMonthId(newMonthId);
@@ -96,8 +97,7 @@ export default function WeeklyJournal() {
   };
 
   const goToNextMonth = () => {
-    const nextMonthDate = new Date(currentDate);
-    nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+    const nextMonthDate = addMonths(currentDate, 1);
     setCurrentDate(nextMonthDate);
     const newMonthId = format(nextMonthDate, 'yyyy-MM');
     setMonthId(newMonthId);
@@ -234,8 +234,9 @@ export default function WeeklyJournal() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Weekly Reflection - {formattedWeekRange}</CardTitle>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
-                ←
+              <Button variant="outline" onClick={goToPreviousWeek} className="flex items-center">
+                <ChevronLeft className="h-4 w-4" />
+                <span className="hidden sm:inline ml-1">Previous Week</span>
               </Button>
               <Popover>
                 <PopoverTrigger asChild>
@@ -255,15 +256,13 @@ export default function WeeklyJournal() {
                     mode="single"
                     selected={currentDate}
                     onSelect={handleDateSelect}
-                    disabled={(date) =>
-                      date > new Date() || isSameDay(date, new Date("2020-10-01"))
-                    }
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
-              <Button variant="outline" size="icon" onClick={goToNextWeek}>
-                →
+              <Button variant="outline" onClick={goToNextWeek} className="flex items-center">
+                <span className="hidden sm:inline mr-1">Next Week</span>
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
@@ -308,11 +307,13 @@ export default function WeeklyJournal() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Monthly Reflection - {formattedMonth}</CardTitle>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
-                ←
+              <Button variant="outline" onClick={goToPreviousMonth} className="flex items-center">
+                <ChevronLeft className="h-4 w-4" />
+                <span className="hidden sm:inline ml-1">Previous Month</span>
               </Button>
-              <Button variant="outline" size="icon" onClick={goToNextMonth}>
-                →
+              <Button variant="outline" onClick={goToNextMonth} className="flex items-center">
+                <span className="hidden sm:inline mr-1">Next Month</span>
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
