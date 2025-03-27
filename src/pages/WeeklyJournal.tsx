@@ -24,7 +24,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { CalendarIcon, ArrowLeft, Save } from 'lucide-react';
-import { WeeklyReflection, MonthlyReflection } from '@/types';
+import { toast } from 'sonner';
 
 export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
@@ -96,6 +96,7 @@ export default function WeeklyJournal() {
     if (weekId) {
       const savedReflection = getWeeklyReflection(weekId);
       if (savedReflection) {
+        console.log('Loaded weekly reflection for', weekId, savedReflection);
         setReflection(savedReflection.reflection || '');
         setWeekGrade(savedReflection.grade || '');
       } else {
@@ -109,6 +110,7 @@ export default function WeeklyJournal() {
     if (monthId) {
       const savedReflection = getMonthlyReflection(monthId);
       if (savedReflection) {
+        console.log('Loaded monthly reflection for', monthId, savedReflection);
         setMonthlyReflection(savedReflection.reflection || '');
         setMonthGrade(savedReflection.grade || '');
       } else {
@@ -120,25 +122,21 @@ export default function WeeklyJournal() {
 
   const handleReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
-    console.log('Reflection changed to:', newValue);
     setReflection(newValue);
   };
   
   const handleMonthlyReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
-    console.log('Monthly reflection changed to:', newValue);
     setMonthlyReflection(newValue);
   };
   
   const handleWeekGradeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    console.log('Week grade changed to:', newValue);
     setWeekGrade(newValue);
   };
   
   const handleMonthGradeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    console.log('Month grade changed to:', newValue);
     setMonthGrade(newValue);
   };
   
@@ -152,30 +150,33 @@ export default function WeeklyJournal() {
   };
 
   const saveReflections = useCallback(() => {
-    console.log('Saving reflections manually');
     if (weekId && reflection !== undefined) {
-      console.log(`Saving weekly reflection for ${weekId}:`, reflection);
+      console.log(`Saving weekly reflection for ${weekId}:`, reflection, weekGrade);
       saveWeeklyReflection(weekId, reflection || '', weekGrade);
     }
     
     if (monthId && monthlyReflection !== undefined) {
-      console.log(`Saving monthly reflection for ${monthId}:`, monthlyReflection);
+      console.log(`Saving monthly reflection for ${monthId}:`, monthlyReflection, monthGrade);
       saveMonthlyReflection(monthId, monthlyReflection || '', monthGrade);
     }
   }, [weekId, reflection, weekGrade, monthId, monthlyReflection, monthGrade]);
   
-  // Add a function to explicitly save the reflection
+  // Add a function to explicitly save the reflection and return to list
   const handleSaveWeekly = () => {
     if (weekId && reflection !== undefined) {
-      console.log(`Saving weekly reflection for ${weekId}:`, reflection);
+      console.log(`Saving weekly reflection for ${weekId}:`, reflection, weekGrade);
       saveWeeklyReflection(weekId, reflection || '', weekGrade);
+      toast.success("Weekly reflection saved successfully");
+      navigate('/journal/weekly');
     }
   };
   
   const handleSaveMonthly = () => {
     if (monthId && monthlyReflection !== undefined) {
-      console.log(`Saving monthly reflection for ${monthId}:`, monthlyReflection);
+      console.log(`Saving monthly reflection for ${monthId}:`, monthlyReflection, monthGrade);
       saveMonthlyReflection(monthId, monthlyReflection || '', monthGrade);
+      toast.success("Monthly reflection saved successfully");
+      navigate('/journal/monthly');
     }
   };
   
@@ -258,6 +259,7 @@ export default function WeeklyJournal() {
                 placeholder="Write your weekly reflection here."
                 value={reflection}
                 onChange={handleReflectionChange}
+                rows={6}
               />
             </div>
             <div className="grid gap-2">
@@ -271,13 +273,15 @@ export default function WeeklyJournal() {
                 onChange={handleWeekGradeChange}
               />
             </div>
-            <Button 
-              onClick={handleSaveWeekly} 
-              className="mt-2 w-full max-w-[200px] mx-auto"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              Save Weekly Reflection
-            </Button>
+            <div className="flex justify-center mt-4">
+              <Button 
+                onClick={handleSaveWeekly} 
+                className="w-full max-w-[200px]"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save & Return to List
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -304,6 +308,7 @@ export default function WeeklyJournal() {
                 placeholder="Write your monthly reflection here."
                 value={monthlyReflection}
                 onChange={handleMonthlyReflectionChange}
+                rows={6}
               />
             </div>
             <div className="grid gap-2">
@@ -317,13 +322,15 @@ export default function WeeklyJournal() {
                 onChange={handleMonthGradeChange}
               />
             </div>
-            <Button 
-              onClick={handleSaveMonthly} 
-              className="mt-2 w-full max-w-[200px] mx-auto"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              Save Monthly Reflection
-            </Button>
+            <div className="flex justify-center mt-4">
+              <Button 
+                onClick={handleSaveMonthly} 
+                className="w-full max-w-[200px]"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save & Return to List
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
