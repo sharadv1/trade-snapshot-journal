@@ -37,10 +37,8 @@ export function MonthlyReflectionsList() {
     loadReflections();
     
     // Listen for storage changes to reload reflections
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'trade-journal-monthly-reflections') {
-        loadReflections();
-      }
+    const handleStorageChange = () => {
+      loadReflections();
     };
     
     window.addEventListener('storage', handleStorageChange);
@@ -112,7 +110,7 @@ export function MonthlyReflectionsList() {
   const handleEditReflection = (monthId: string) => {
     if (!monthId) return;
     
-    // Parse the monthId to get year and month
+    // FIX: Create a date object from the monthId (YYYY-MM format)
     const [year, month] = monthId.split('-');
     if (!year || !month) return;
     
@@ -149,6 +147,9 @@ export function MonthlyReflectionsList() {
     return 'bg-red-100 text-red-800';
   };
   
+  // Display current month indicator
+  const currentMonthFormatted = format(currentMonthDate, 'MMMM yyyy');
+  
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -158,7 +159,7 @@ export function MonthlyReflectionsList() {
             <ChevronLeft className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Previous Month</span>
           </Button>
-          <span className="text-sm font-medium">{format(currentMonthDate, 'MMMM yyyy')}</span>
+          <span className="text-sm font-medium px-3 py-1 bg-primary/10 rounded-md">{currentMonthFormatted}</span>
           <Button variant="outline" onClick={goToNextMonth} className="flex items-center">
             <span className="hidden sm:inline mr-1">Next Month</span>
             <ChevronRight className="h-4 w-4" />

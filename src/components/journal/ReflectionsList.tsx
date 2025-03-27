@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -43,8 +44,8 @@ export function ReflectionsList() {
     }
     
     // Listen for storage changes to reload reflections
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'trade-journal-weekly-reflections' && isWeeklyView) {
+    const handleStorageChange = (event: Event) => {
+      if (isWeeklyView) {
         loadReflections();
       }
     };
@@ -164,6 +165,13 @@ export function ReflectionsList() {
     }
   };
   
+  // Calculate current week date range for display
+  const weekStart = new Date(currentWeekDate);
+  weekStart.setDate(currentWeekDate.getDate() - currentWeekDate.getDay() + (currentWeekDate.getDay() === 0 ? -6 : 1)); // Monday
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6); // Sunday
+  const currentWeekFormatted = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
+  
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -173,6 +181,7 @@ export function ReflectionsList() {
             <ChevronLeft className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Previous Week</span>
           </Button>
+          <span className="text-sm font-medium px-3 py-1 bg-primary/10 rounded-md">{currentWeekFormatted}</span>
           <Button variant="outline" onClick={goToNextWeek} className="flex items-center">
             <span className="hidden sm:inline mr-1">Next Week</span>
             <ChevronRight className="h-4 w-4" />
