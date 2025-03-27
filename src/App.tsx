@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import Analytics from '@/pages/Analytics';
 import TradeEntry from '@/pages/TradeEntry';
@@ -15,6 +15,12 @@ import WeeklyJournal from '@/pages/WeeklyJournal';
 import { JournalLayout } from '@/components/journal/JournalLayout';
 import { ReflectionsList } from '@/components/journal/ReflectionsList';
 import { MonthlyReflectionsList } from '@/components/journal/MonthlyReflectionsList';
+
+// Helper component to handle legacy route redirects
+const LegacyWeekRedirect = () => {
+  const { weekId } = useParams();
+  return <Navigate to={`/journal/weekly/${weekId}`} replace />;
+};
 
 function App() {
   return (
@@ -48,7 +54,7 @@ function App() {
             <Route path="monthly/:monthId" element={<WeeklyJournal />} />
             
             {/* Legacy route for backward compatibility */}
-            <Route path=":weekId" element={<Navigate to={(params) => `/journal/weekly/${params.weekId}`} replace />} />
+            <Route path=":weekId" element={<LegacyWeekRedirect />} />
           </Route>
           
           <Route path="*" element={<NotFound />} />

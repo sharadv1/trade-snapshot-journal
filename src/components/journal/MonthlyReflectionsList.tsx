@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -41,7 +42,11 @@ export function MonthlyReflectionsList() {
     };
     
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('journalUpdated', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('journalUpdated', handleStorageChange);
+    };
   }, []);
   
   const loadReflections = () => {
@@ -53,7 +58,7 @@ export function MonthlyReflectionsList() {
     let reflectionsArray = Object.entries(reflectionsMap).map(([monthId, reflection]) => ({
       ...reflection,
       id: reflection.id || monthId, // Ensure id is always set
-      monthId: reflection.monthId || monthId // Ensure monthId is always set
+      monthId: monthId // Ensure monthId is always set
     }));
     
     // Deduplicate reflections by monthStart - only keep the latest entry for each month
@@ -109,13 +114,14 @@ export function MonthlyReflectionsList() {
   const handleEditReflection = (monthId: string) => {
     if (!monthId) return;
     
-    // Fix: Navigate directly to the correct URL format using the monthId
+    console.log(`Navigating to monthly reflection: ${monthId}`);
+    // Use the monthId directly for navigation
     navigate(`/journal/monthly/${monthId}`);
   };
   
   const handleCreateNew = () => {
     // Use current month date for new reflection
-    const formattedDate = format(currentMonthDate, 'yyyy-MM-dd');
+    const formattedDate = format(currentMonthDate, 'yyyy-MM');
     navigate(`/journal/monthly/${formattedDate}`);
   };
   
