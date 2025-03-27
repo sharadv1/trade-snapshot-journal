@@ -51,11 +51,12 @@ export const saveWeeklyReflection = (weekId: string, reflection: string, grade?:
     // Create or update the reflection
     reflections[weekId] = {
       ...reflections[weekId],
-      weekId: weekId,
+      id: weekId, // Ensure id is always set
+      weekId: weekId, // Ensure weekId is always set
       weekStart: reflections[weekId]?.weekStart || weekStart.toISOString(),
       weekEnd: reflections[weekId]?.weekEnd || weekEnd.toISOString(),
       reflection,
-      grade,
+      grade: grade || '',
       lastUpdated: new Date().toISOString(),
       tradeIds: reflections[weekId]?.tradeIds || []
     };
@@ -83,11 +84,12 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
     // Create or update the reflection
     reflections[monthId] = {
       ...reflections[monthId],
-      monthId: monthId,
+      id: monthId, // Ensure id is always set
+      monthId: monthId, // Ensure monthId is always set
       monthStart: reflections[monthId]?.monthStart || monthStart.toISOString(),
       monthEnd: reflections[monthId]?.monthEnd || monthEnd.toISOString(),
       reflection,
-      grade,
+      grade: grade || '',
       lastUpdated: new Date().toISOString(),
       tradeIds: reflections[monthId]?.tradeIds || []
     };
@@ -99,7 +101,7 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
   }
 };
 
-// Overloaded function to save a full reflection object
+// Update full reflection object functions
 export const saveWeeklyReflectionObject = (reflection: WeeklyReflection): void => {
   try {
     const reflections = getWeeklyReflections();
@@ -112,6 +114,8 @@ export const saveWeeklyReflectionObject = (reflection: WeeklyReflection): void =
     
     reflections[weekId] = {
       ...reflection,
+      id: weekId, // Ensure id is always set
+      weekId: weekId, // Ensure weekId is always set
       lastUpdated: new Date().toISOString()
     };
     
@@ -133,6 +137,8 @@ export const saveMonthlyReflectionObject = (reflection: MonthlyReflection): void
     
     reflections[monthId] = {
       ...reflection,
+      id: monthId, // Ensure id is always set
+      monthId: monthId, // Ensure monthId is always set
       lastUpdated: new Date().toISOString()
     };
     

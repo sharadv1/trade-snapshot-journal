@@ -1,3 +1,4 @@
+
 export interface Trade {
   id: string;
   symbol: string;
@@ -74,8 +75,8 @@ export interface TradeIdea {
 }
 
 export interface WeeklyReflection {
-  id?: string;
-  weekId?: string;
+  id: string; // Changed from optional to required
+  weekId: string; // Changed from optional to required
   weekStart: string;
   weekEnd: string;
   reflection: string;
@@ -85,8 +86,8 @@ export interface WeeklyReflection {
 }
 
 export interface MonthlyReflection {
-  id?: string;
-  monthId?: string;
+  id: string; // Changed from optional to required
+  monthId: string; // Changed from optional to required
   monthStart: string;
   monthEnd: string;
   reflection: string;

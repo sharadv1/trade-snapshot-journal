@@ -53,8 +53,8 @@ export function MonthlyReflectionsList() {
     // Convert to array and sort by date, newest first
     let reflectionsArray = Object.entries(reflectionsMap).map(([monthId, reflection]) => ({
       ...reflection,
-      id: monthId,
-      monthId: monthId
+      id: reflection.id || monthId, // Ensure id is always set
+      monthId: reflection.monthId || monthId // Ensure monthId is always set
     }));
     
     // Deduplicate reflections by monthStart - only keep the latest entry for each month
@@ -71,7 +71,7 @@ export function MonthlyReflectionsList() {
         }
       } else {
         // For entries without monthStart, use the monthId as the key
-        monthMap.set(reflection.monthId || '', reflection);
+        monthMap.set(reflection.monthId, reflection);
       }
     });
     
@@ -101,10 +101,7 @@ export function MonthlyReflectionsList() {
       const totalR = monthTrades.reduce((sum, trade) => 
         sum + (trade.metrics.riskRewardRatio || 0), 0);
       
-      const reflectionId = reflection.id || reflection.monthId || '';
-      if (reflectionId) {
-        stats[reflectionId] = { totalPnL, totalR };
-      }
+      stats[reflection.id] = { totalPnL, totalR };
     });
     
     setReflectionStats(stats);
@@ -172,8 +169,8 @@ export function MonthlyReflectionsList() {
             </TableHeader>
             <TableBody>
               {reflections.map((reflection) => {
-                const reflectionId = reflection.id || reflection.monthId || '';
-                const stats = reflectionId ? (reflectionStats[reflectionId] || { totalPnL: 0, totalR: 0 }) : { totalPnL: 0, totalR: 0 };
+                const reflectionId = reflection.id;
+                const stats = reflectionStats[reflectionId] || { totalPnL: 0, totalR: 0 };
                 return (
                   <TableRow key={reflectionId || Math.random().toString()}>
                     <TableCell>
@@ -194,7 +191,7 @@ export function MonthlyReflectionsList() {
                     </TableCell>
                     <TableCell>{(reflection.tradeIds?.length || 0)} trades</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditReflection(reflectionId)}>
+                      <Button variant="ghost" size="sm" onClick={() => handleEditReflection(reflection.monthId)}>
                         <Pencil className="h-4 w-4 mr-1" />
                         Edit
                       </Button>

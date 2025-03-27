@@ -60,8 +60,8 @@ export function ReflectionsList() {
     // Convert to array and sort by date, newest first
     let reflectionsArray = Object.entries(reflectionsMap).map(([weekId, reflection]) => ({
       ...reflection,
-      id: weekId,
-      weekId: weekId
+      id: reflection.id || weekId, // Ensure id is always set
+      weekId: reflection.weekId || weekId // Ensure weekId is always set
     }));
     
     // Deduplicate reflections by weekStart - only keep the latest entry for each week
@@ -78,7 +78,7 @@ export function ReflectionsList() {
         }
       } else {
         // For entries without weekStart, use the weekId as the key
-        weekMap.set(reflection.weekId || '', reflection);
+        weekMap.set(reflection.weekId, reflection);
       }
     });
     
@@ -113,10 +113,7 @@ export function ReflectionsList() {
       const totalR = weekTrades.reduce((sum, trade) => 
         sum + (trade.metrics.riskRewardRatio || 0), 0);
       
-      const reflectionId = reflection.id || reflection.weekId || '';
-      if (reflectionId) {
-        stats[reflectionId] = { totalPnL, totalR };
-      }
+      stats[reflection.id] = { totalPnL, totalR };
     });
     
     setReflectionStats(stats);
