@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,7 +35,19 @@ export default function WeeklyJournal() {
   const [currentDate, setCurrentDate] = useState(() => {
     // If we have a monthId, use it to create a date in that month
     if (isMonthView && paramMonthId) {
-      return new Date(paramMonthId);
+      try {
+        // First try to parse it as YYYY-MM format for months
+        if (paramMonthId.match(/^\d{4}-\d{2}$/)) {
+          const year = parseInt(paramMonthId.split('-')[0], 10);
+          const month = parseInt(paramMonthId.split('-')[1], 10) - 1; // JS months are 0-indexed
+          return new Date(year, month, 1);
+        }
+        // If that didn't work, try to parse it as a date string
+        return new Date(paramMonthId);
+      } catch (e) {
+        console.error("Failed to parse monthId", paramMonthId, e);
+        return new Date();
+      }
     }
     // Otherwise use weekId or current date
     return paramWeekId ? new Date(paramWeekId) : new Date();
@@ -49,7 +60,12 @@ export default function WeeklyJournal() {
   
   const [monthId, setMonthId] = useState(() => {
     if (isMonthView && paramMonthId) {
-      // If we're in month view and have a monthId from URL, use that
+      // For month view, always preserve the exact format from the URL
+      // This ensures we don't change the ID format when editing
+      if (paramMonthId.match(/^\d{4}-\d{2}$/)) {
+        return paramMonthId;
+      }
+      // If not in YYYY-MM format, format it properly
       return format(new Date(paramMonthId), 'yyyy-MM');
     }
     return format(currentDate, 'yyyy-MM');

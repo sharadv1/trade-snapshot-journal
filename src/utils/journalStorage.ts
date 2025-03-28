@@ -116,8 +116,19 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
     const reflections = getMonthlyReflections();
     
     // Create the start and end dates for the current month
-    const year = parseInt(monthId.split('-')[0], 10);
-    const month = parseInt(monthId.split('-')[1], 10) - 1; // JS months are 0-based
+    let year: number;
+    let month: number;
+    
+    // If monthId is in YYYY-MM format
+    if (monthId.match(/^\d{4}-\d{2}$/)) {
+      year = parseInt(monthId.split('-')[0], 10);
+      month = parseInt(monthId.split('-')[1], 10) - 1; // JS months are 0-based
+    } else {
+      // Try to parse it as a date
+      const date = new Date(monthId);
+      year = date.getFullYear();
+      month = date.getMonth();
+    }
     
     if (isNaN(year) || isNaN(month)) {
       console.error(`Invalid monthId format: ${monthId}, expected 'YYYY-MM'`);
@@ -125,19 +136,22 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
     }
     
     const monthStart = new Date(year, month, 1);
-    const monthEnd = new Date(year, month + 1, 0);
+    const monthEnd = new Date(year, month + 1, 0); // Last day of month
+    
+    // Use the exact monthId from the parameter to avoid format changes
+    const exactMonthId = monthId;
     
     // Create or update the reflection
-    reflections[monthId] = {
-      ...reflections[monthId],
-      id: monthId, // Ensure id is always set
-      monthId: monthId, // Ensure monthId is always set
-      monthStart: reflections[monthId]?.monthStart || monthStart.toISOString(),
-      monthEnd: reflections[monthId]?.monthEnd || monthEnd.toISOString(),
+    reflections[exactMonthId] = {
+      ...reflections[exactMonthId],
+      id: exactMonthId, // Ensure id is always set
+      monthId: exactMonthId, // Ensure monthId is always set
+      monthStart: reflections[exactMonthId]?.monthStart || monthStart.toISOString(),
+      monthEnd: reflections[exactMonthId]?.monthEnd || monthEnd.toISOString(),
       reflection,
       grade: grade || '',
       lastUpdated: new Date().toISOString(),
-      tradeIds: reflections[monthId]?.tradeIds || []
+      tradeIds: reflections[exactMonthId]?.tradeIds || []
     };
     
     localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
