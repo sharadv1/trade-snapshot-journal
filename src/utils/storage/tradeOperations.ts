@@ -3,6 +3,7 @@ import { Trade, TradeWithMetrics } from '@/types';
 import { getTrades, getTradesSync, saveTrades } from './storageOperations';
 import { calculateTradeMetrics } from '@/utils/calculations/metricsCalculator';
 import { markIdeaAsTaken } from '@/utils/ideaStorage';
+import { associateTradeWithReflections } from '@/utils/journalStorage';
 
 // Add a new trade
 export const addTrade = async (trade: Trade): Promise<void> => {
@@ -13,8 +14,14 @@ export const addTrade = async (trade: Trade): Promise<void> => {
     markIdeaAsTaken(trade.ideaId);
   }
   
+  // Add the trade
   trades.push(trade);
   await saveTrades(trades);
+  
+  // Associate trade with weekly and monthly reflections
+  if (trade.status === 'closed' && trade.exitDate) {
+    associateTradeWithReflections(trade.id, trade.exitDate);
+  }
 };
 
 // Update an existing trade
@@ -28,8 +35,17 @@ export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
       markIdeaAsTaken(updatedTrade.ideaId);
     }
     
+    const wasClosedBefore = trades[index].status === 'closed';
+    const isClosedNow = updatedTrade.status === 'closed';
+    
+    // Update the trade
     trades[index] = updatedTrade;
     await saveTrades(trades);
+    
+    // Associate trade with weekly and monthly reflections when it's closed
+    if (isClosedNow && !wasClosedBefore && updatedTrade.exitDate) {
+      associateTradeWithReflections(updatedTrade.id, updatedTrade.exitDate);
+    }
   }
 };
 

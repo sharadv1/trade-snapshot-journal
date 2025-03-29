@@ -2,6 +2,8 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { Home } from 'lucide-react';
 
 export function JournalLayout() {
   const location = useLocation();
@@ -20,6 +22,35 @@ export function JournalLayout() {
   
   return (
     <div className="space-y-6">
+      <div className="mb-6">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">
+                <Home className="h-4 w-4 mr-1" />
+                Dashboard
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/journal">Journal</BreadcrumbLink>
+            </BreadcrumbItem>
+            {isDetailView && (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink href={backLinkPath}>
+                    {path.includes('/monthly') ? 'Monthly' : 'Weekly'} List
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>Detail</BreadcrumbItem>
+              </>
+            )}
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+      
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Trading Journal</h1>
         {!isDetailView && (
@@ -33,14 +64,6 @@ export function JournalLayout() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-        )}
-        {isDetailView && (
-          <Link 
-            to={backLinkPath}
-            className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            Back to List
-          </Link>
         )}
       </div>
       <Outlet />

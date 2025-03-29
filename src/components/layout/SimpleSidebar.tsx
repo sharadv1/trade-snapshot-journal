@@ -27,7 +27,7 @@ export function SimpleSidebar() {
         <NavItem to="/" icon={<Home size={18} />} label="Dashboard" />
         <NavItem to="/analytics" icon={<BarChartBig size={18} />} label="Analytics" />
         <NavItem to="/trade/new" icon={<PencilRuler size={18} />} label="New Trade" />
-        <NavItem to="/journal" icon={<Book size={18} />} label="Weekly Journal" />
+        <NavItem to="/journal" icon={<Book size={18} />} label="Journal" />
         <NavItem to="/ideas" icon={<Sparkles size={18} />} label="Ideas" />
         <NavItem to="/strategies" icon={<Calendar size={18} />} label="Strategies" />
         <NavItem to="/symbols" icon={<Tags size={18} />} label="Symbols" />

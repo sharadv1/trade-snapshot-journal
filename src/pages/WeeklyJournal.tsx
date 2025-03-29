@@ -122,6 +122,34 @@ export default function WeeklyJournal() {
     }
   }, [monthId, isMonthView]);
 
+  // Add event listener for reflection updates
+  useEffect(() => {
+    const handleJournalUpdated = () => {
+      console.log("Journal updated event detected, reloading reflection data");
+      if (!isMonthView && weekId) {
+        const savedReflection = getWeeklyReflection(weekId);
+        if (savedReflection) {
+          console.log('Reloaded weekly reflection after update:', savedReflection);
+          setReflection(savedReflection.reflection || '');
+          setWeekGrade(savedReflection.grade || '');
+        }
+      } else if (isMonthView && monthId) {
+        const savedReflection = getMonthlyReflection(monthId);
+        if (savedReflection) {
+          console.log('Reloaded monthly reflection after update:', savedReflection);
+          setMonthlyReflection(savedReflection.reflection || '');
+          setMonthGrade(savedReflection.grade || '');
+        }
+      }
+    };
+    
+    window.addEventListener('journalUpdated', handleJournalUpdated);
+    
+    return () => {
+      window.removeEventListener('journalUpdated', handleJournalUpdated);
+    };
+  }, [weekId, monthId, isMonthView]);
+
   const handleReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     console.log('Weekly reflection changed:', newValue);

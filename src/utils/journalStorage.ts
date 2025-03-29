@@ -65,6 +65,60 @@ const dispatchStorageEvent = (key: string) => {
   console.log(`Storage event dispatched for key: ${key}`);
 };
 
+// New function to associate trades with reflections
+export const associateTradeWithReflections = (tradeId: string, tradeDate: string | Date) => {
+  if (!tradeId || !tradeDate) {
+    console.error('Cannot associate trade: missing trade ID or date');
+    return;
+  }
+  
+  const tradeDateTime = new Date(tradeDate);
+  if (isNaN(tradeDateTime.getTime())) {
+    console.error('Cannot associate trade: invalid date format', tradeDate);
+    return;
+  }
+  
+  // Associate with weekly reflection
+  const weekStart = new Date(tradeDateTime);
+  weekStart.setDate(tradeDateTime.getDate() - tradeDateTime.getDay() + (tradeDateTime.getDay() === 0 ? -6 : 1)); // Monday
+  const weekId = weekStart.toISOString().slice(0, 10); // YYYY-MM-DD format
+  
+  // Associate with monthly reflection
+  const monthId = tradeDateTime.toISOString().slice(0, 7); // YYYY-MM format
+  
+  console.log(`Associating trade ${tradeId} with week ${weekId} and month ${monthId}`);
+  
+  // Update weekly reflection
+  const weeklyReflections = getWeeklyReflections();
+  if (weeklyReflections[weekId]) {
+    if (!weeklyReflections[weekId].tradeIds) {
+      weeklyReflections[weekId].tradeIds = [];
+    }
+    
+    if (!weeklyReflections[weekId].tradeIds.includes(tradeId)) {
+      weeklyReflections[weekId].tradeIds.push(tradeId);
+      localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(weeklyReflections));
+      dispatchStorageEvent(WEEKLY_REFLECTIONS_KEY);
+      console.log(`Added trade ${tradeId} to weekly reflection ${weekId}`);
+    }
+  }
+  
+  // Update monthly reflection
+  const monthlyReflections = getMonthlyReflections();
+  if (monthlyReflections[monthId]) {
+    if (!monthlyReflections[monthId].tradeIds) {
+      monthlyReflections[monthId].tradeIds = [];
+    }
+    
+    if (!monthlyReflections[monthId].tradeIds.includes(tradeId)) {
+      monthlyReflections[monthId].tradeIds.push(tradeId);
+      localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(monthlyReflections));
+      dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
+      console.log(`Added trade ${tradeId} to monthly reflection ${monthId}`);
+    }
+  }
+};
+
 export const saveWeeklyReflection = (weekId: string, reflection: string, grade?: string): void => {
   if (!weekId) {
     console.error('Cannot save weekly reflection: weekId is empty');
