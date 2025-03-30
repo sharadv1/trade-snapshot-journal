@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -18,8 +17,8 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Pencil, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getMonthlyReflections } from '@/utils/journalStorage';
+import { Pencil, Calendar } from 'lucide-react';
+import { getMonthlyReflections, monthlyReflectionExists } from '@/utils/journalStorage';
 import { MonthlyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
 import { formatCurrency } from '@/utils/calculations/formatters';
@@ -29,9 +28,9 @@ export function MonthlyReflectionsList() {
   const [reflections, setReflections] = useState<MonthlyReflection[]>([]);
   const [reflectionStats, setReflectionStats] = useState<Record<string, {
     totalPnL: number,
-    totalR: number
+    totalR: number,
+    tradeCount: number
   }>>({});
-  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
   
   useEffect(() => {
     loadReflections();
@@ -91,13 +90,41 @@ export function MonthlyReflectionsList() {
     
     // Calculate stats for each reflection
     const allTrades = getTradesWithMetrics();
-    const stats: Record<string, { totalPnL: number, totalR: number }> = {};
+    const stats: Record<string, { totalPnL: number, totalR: number, tradeCount: number }> = {};
     
     reflectionsArray.forEach(reflection => {
-      const tradeIds = reflection.tradeIds || [];
-      const monthTrades = allTrades.filter(trade => 
-        tradeIds.includes(trade.id)
-      );
+      let monthTrades = [];
+      
+      // First check by date range
+      if (reflection.monthStart && reflection.monthEnd) {
+        const monthStart = new Date(reflection.monthStart);
+        const monthEnd = new Date(reflection.monthEnd);
+        
+        monthTrades = allTrades.filter(trade => {
+          if (trade.exitDate) {
+            const exitDate = new Date(trade.exitDate);
+            return exitDate >= monthStart && exitDate <= monthEnd;
+          }
+          return false;
+        });
+      }
+      
+      // If we have explicit tradeIds, use those too
+      if (reflection.tradeIds && reflection.tradeIds.length > 0) {
+        const tradeIdsSet = new Set(reflection.tradeIds);
+        const tradesByIds = allTrades.filter(trade => tradeIdsSet.has(trade.id));
+        
+        // Merge trades from date range and explicit IDs, avoiding duplicates
+        const allMonthTradesMap = new Map();
+        
+        [...monthTrades, ...tradesByIds].forEach(trade => {
+          if (!allMonthTradesMap.has(trade.id)) {
+            allMonthTradesMap.set(trade.id, trade);
+          }
+        });
+        
+        monthTrades = Array.from(allMonthTradesMap.values());
+      }
       
       const totalPnL = monthTrades.reduce((sum, trade) => 
         sum + (trade.metrics.profitLoss || 0), 0);
@@ -105,7 +132,11 @@ export function MonthlyReflectionsList() {
       const totalR = monthTrades.reduce((sum, trade) => 
         sum + (trade.metrics.riskRewardRatio || 0), 0);
       
-      stats[reflection.id] = { totalPnL, totalR };
+      stats[reflection.id] = { 
+        totalPnL, 
+        totalR, 
+        tradeCount: monthTrades.length 
+      };
     });
     
     setReflectionStats(stats);
@@ -120,21 +151,18 @@ export function MonthlyReflectionsList() {
   };
   
   const handleCreateNew = () => {
-    // Use current month date for new reflection
-    const formattedDate = format(currentMonthDate, 'yyyy-MM');
-    navigate(`/journal/monthly/${formattedDate}`);
-  };
-  
-  const goToPreviousMonth = () => {
-    const newDate = new Date(currentMonthDate);
-    newDate.setMonth(newDate.getMonth() - 1);
-    setCurrentMonthDate(newDate);
-  };
-
-  const goToNextMonth = () => {
-    const newDate = new Date(currentMonthDate);
-    newDate.setMonth(newDate.getMonth() + 1);
-    setCurrentMonthDate(newDate);
+    // Use current month for new reflection
+    const today = new Date();
+    const formattedDate = format(today, 'yyyy-MM');
+    
+    // Check if the current month already has a reflection
+    if (monthlyReflectionExists(formattedDate)) {
+      // If an entry exists, just navigate to it
+      navigate(`/journal/monthly/${formattedDate}`);
+    } else {
+      // If no entry exists, create a new one
+      navigate(`/journal/monthly/${formattedDate}`);
+    }
   };
   
   const getGradeColor = (grade: string = '') => {
@@ -144,24 +172,20 @@ export function MonthlyReflectionsList() {
     return 'bg-red-100 text-red-800';
   };
   
-  // Display current month indicator
-  const currentMonthFormatted = format(currentMonthDate, 'MMMM yyyy');
+  // Get the current month's ID to check if it already has a reflection
+  const currentMonthId = format(new Date(), 'yyyy-MM');
+  const currentMonthHasReflection = monthlyReflectionExists(currentMonthId);
   
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Monthly Trading Journal Reflections</CardTitle>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={goToPreviousMonth} className="flex items-center">
-            <ChevronLeft className="h-4 w-4" />
-            <span className="hidden sm:inline ml-1">Previous Month</span>
-          </Button>
-          <span className="text-sm font-medium px-3 py-1 bg-primary/10 rounded-md">{currentMonthFormatted}</span>
-          <Button variant="outline" onClick={goToNextMonth} className="flex items-center">
-            <span className="hidden sm:inline mr-1">Next Month</span>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button onClick={handleCreateNew}>
+          <Button 
+            onClick={handleCreateNew}
+            disabled={currentMonthHasReflection}
+            title={currentMonthHasReflection ? "This month already has a reflection" : "Create new reflection"}
+          >
             <Calendar className="mr-2 h-4 w-4" />
             New Reflection
           </Button>
@@ -192,7 +216,12 @@ export function MonthlyReflectionsList() {
             <TableBody>
               {reflections.map((reflection) => {
                 const reflectionId = reflection.id;
-                const stats = reflectionStats[reflectionId] || { totalPnL: 0, totalR: 0 };
+                const stats = reflectionStats[reflectionId] || { 
+                  totalPnL: 0, 
+                  totalR: 0, 
+                  tradeCount: 0 
+                };
+                
                 return (
                   <TableRow key={reflectionId || Math.random().toString()}>
                     <TableCell>
@@ -211,7 +240,7 @@ export function MonthlyReflectionsList() {
                     <TableCell className={stats.totalR >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
                       {stats.totalR > 0 ? '+' : ''}{stats.totalR.toFixed(1)}R
                     </TableCell>
-                    <TableCell>{(reflection.tradeIds?.length || 0)} trades</TableCell>
+                    <TableCell>{stats.tradeCount} trades</TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" onClick={() => handleEditReflection(reflection.monthId)}>
                         <Pencil className="h-4 w-4 mr-1" />

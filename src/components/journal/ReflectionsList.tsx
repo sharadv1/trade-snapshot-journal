@@ -19,7 +19,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Pencil, Calendar } from 'lucide-react';
-import { getWeeklyReflections } from '@/utils/journalStorage';
+import { getWeeklyReflections, weeklyReflectionExists } from '@/utils/journalStorage';
 import { WeeklyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { formatCurrency } from '@/utils/calculations/formatters';
@@ -30,7 +30,8 @@ export function ReflectionsList() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
   const [reflectionStats, setReflectionStats] = useState<Record<string, {
     totalPnL: number,
-    totalR: number
+    totalR: number,
+    tradeCount: number
   }>>({});
   
   const isWeeklyView = !location.pathname.includes('/monthly');
@@ -93,16 +94,12 @@ export function ReflectionsList() {
     setReflections(reflectionsArray);
     
     const allTrades = getTradesWithMetrics();
-    const stats: Record<string, { totalPnL: number, totalR: number }> = {};
+    const stats: Record<string, { totalPnL: number, totalR: number, tradeCount: number }> = {};
     
     reflectionsArray.forEach(reflection => {
       let weekTrades = [];
       
-      if (reflection.tradeIds && reflection.tradeIds.length > 0) {
-        weekTrades = allTrades.filter(trade => 
-          reflection.tradeIds?.includes(trade.id)
-        );
-      } else if (reflection.weekStart && reflection.weekEnd) {
+      if (reflection.weekStart && reflection.weekEnd) {
         const weekStart = new Date(reflection.weekStart);
         const weekEnd = new Date(reflection.weekEnd);
         
@@ -115,19 +112,41 @@ export function ReflectionsList() {
         });
       }
       
+      // If we have explicit tradeIds, use those too
+      if (reflection.tradeIds && reflection.tradeIds.length > 0) {
+        const tradeIdsSet = new Set(reflection.tradeIds);
+        const tradesByIds = allTrades.filter(trade => tradeIdsSet.has(trade.id));
+        
+        // Merge trades from date range and explicit IDs, avoiding duplicates
+        const allWeekTradesMap = new Map();
+        
+        [...weekTrades, ...tradesByIds].forEach(trade => {
+          if (!allWeekTradesMap.has(trade.id)) {
+            allWeekTradesMap.set(trade.id, trade);
+          }
+        });
+        
+        weekTrades = Array.from(allWeekTradesMap.values());
+      }
+      
       const totalPnL = weekTrades.reduce((sum, trade) => 
         sum + (trade.metrics.profitLoss || 0), 0);
       
       const totalR = weekTrades.reduce((sum, trade) => 
         sum + (trade.metrics.riskRewardRatio || 0), 0);
       
-      stats[reflection.id] = { totalPnL, totalR };
+      stats[reflection.id] = { 
+        totalPnL, 
+        totalR, 
+        tradeCount: weekTrades.length 
+      };
     });
     
     setReflectionStats(stats);
   };
   
   const handleEditReflection = (weekId: string) => {
+    // Navigate directly to the specific week's journal
     navigate(`/journal/weekly/${weekId}`);
   };
   
@@ -140,10 +159,11 @@ export function ReflectionsList() {
     const weekId = format(monday, 'yyyy-MM-dd');
     
     // Check if this week already has an entry
-    const reflectionsMap = getWeeklyReflections();
-    if (reflectionsMap[weekId]) {
+    if (weeklyReflectionExists(weekId)) {
+      // If an entry exists, just navigate to it
       navigate(`/journal/weekly/${weekId}`);
     } else {
+      // If no entry exists, create a new one
       navigate(`/journal/weekly/${weekId}`);
     }
   };
@@ -173,12 +193,23 @@ export function ReflectionsList() {
     }
   };
   
+  // Get the current week's ID to check if it already has a reflection
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+  const currentWeekId = format(monday, 'yyyy-MM-dd');
+  const currentWeekHasReflection = weeklyReflectionExists(currentWeekId);
+  
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Weekly Trading Journal Reflections</CardTitle>
         <div className="flex items-center space-x-2">
-          <Button onClick={handleCreateNew}>
+          <Button 
+            onClick={handleCreateNew}
+            disabled={currentWeekHasReflection}
+            title={currentWeekHasReflection ? "This week already has a reflection" : "Create new reflection"}
+          >
             <Calendar className="mr-2 h-4 w-4" />
             New Reflection
           </Button>
@@ -209,7 +240,16 @@ export function ReflectionsList() {
             <TableBody>
               {reflections.map((reflection) => {
                 const reflectionId = reflection.id || reflection.weekId || '';
-                const stats = reflectionId ? (reflectionStats[reflectionId] || { totalPnL: 0, totalR: 0 }) : { totalPnL: 0, totalR: 0 };
+                const stats = reflectionId ? (reflectionStats[reflectionId] || { 
+                  totalPnL: 0, 
+                  totalR: 0, 
+                  tradeCount: 0 
+                }) : { 
+                  totalPnL: 0, 
+                  totalR: 0, 
+                  tradeCount: 0 
+                };
+                
                 return (
                   <TableRow key={reflectionId || Math.random().toString()}>
                     <TableCell>
@@ -226,7 +266,7 @@ export function ReflectionsList() {
                     <TableCell className={stats.totalR >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
                       {stats.totalR > 0 ? '+' : ''}{stats.totalR.toFixed(1)}R
                     </TableCell>
-                    <TableCell>{(reflection.tradeIds?.length || 0)} trades</TableCell>
+                    <TableCell>{stats.tradeCount} trades</TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" onClick={() => handleEditReflection(reflectionId)}>
                         <Pencil className="h-4 w-4 mr-1" />

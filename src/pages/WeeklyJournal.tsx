@@ -40,6 +40,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { formatCurrency } from '@/utils/calculations/formatters';
+import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics';
 
 export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
@@ -415,6 +416,11 @@ export default function WeeklyJournal() {
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
+      </div>
+
+      {/* Add summary metrics at the top */}
+      <div className="mb-8">
+        <WeeklySummaryMetrics trades={periodTrades} />
       </div>
 
       {/* Show only weekly or monthly form based on view */}
