@@ -1,15 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { getTradeById } from '@/utils/storage/tradeOperations';
 import { Button } from '@/components/ui/button';
-import { Trade } from '@/types';
+import { Trade, TradeWithMetrics } from '@/types';
 import { TradeMetrics } from '@/components/TradeMetrics';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TradeCommentsList } from '@/components/journal/TradeCommentsList';
 import { PartialExitsList } from '@/components/PartialExitsList';
+import { calculateTradeMetrics } from '@/utils/calculations/metricsCalculator';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -51,6 +53,12 @@ export default function TradeDetail() {
   
   const handleEditClick = () => {
     navigate(`/trade/${id}/edit`);
+  };
+  
+  // Convert the single trade to a TradeWithMetrics object and wrap it in an array for the TradeMetrics component
+  const tradeWithMetrics: TradeWithMetrics = {
+    ...trade,
+    metrics: calculateTradeMetrics(trade)
   };
   
   return (
@@ -99,7 +107,8 @@ export default function TradeDetail() {
           <CardDescription>Key performance indicators for this trade.</CardDescription>
         </CardHeader>
         <CardContent>
-          <TradeMetrics trade={trade} />
+          {/* Pass an array containing the single trade with metrics to match the expected props */}
+          <TradeMetrics trades={[tradeWithMetrics]} showOnlyKeyMetrics={true} />
         </CardContent>
       </Card>
       
@@ -169,7 +178,8 @@ export default function TradeDetail() {
           <CardDescription>Comments and analysis on the trade.</CardDescription>
         </CardHeader>
         <CardContent>
-          <TradeCommentsList tradeId={id} />
+          {/* Pass the trade data to match the expected props of TradeCommentsList */}
+          <TradeCommentsList trades={[tradeWithMetrics]} listTitle="Trade Notes" />
         </CardContent>
       </Card>
     </div>
