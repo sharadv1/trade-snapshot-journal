@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const isInitialMount = useRef(true);
   
   // Determine if we're viewing monthly or weekly reflection
   const isMonthView = location.pathname.includes('/journal/monthly/');
@@ -75,6 +76,8 @@ export default function WeeklyJournal() {
   const [monthlyReflection, setMonthlyReflection] = useState<string>('');
   const [weekGrade, setWeekGrade] = useState<string>('');
   const [monthGrade, setMonthGrade] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasChanged, setHasChanged] = useState(false);
 
   // Date calculations
   const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -91,6 +94,7 @@ export default function WeeklyJournal() {
 
   // Load data whenever weekId, monthId, or isMonthView changes
   useEffect(() => {
+    setIsLoading(true);
     if (!isMonthView && weekId) {
       console.log('Loading weekly reflection for ID:', weekId);
       const savedReflection = getWeeklyReflection(weekId);
@@ -104,9 +108,12 @@ export default function WeeklyJournal() {
         setWeekGrade('');
       }
     }
+    setIsLoading(false);
+    setHasChanged(false);
   }, [weekId, isMonthView]);
   
   useEffect(() => {
+    setIsLoading(true);
     if (isMonthView && monthId) {
       console.log('Loading monthly reflection for ID:', monthId);
       const savedReflection = getMonthlyReflection(monthId);
@@ -120,78 +127,60 @@ export default function WeeklyJournal() {
         setMonthGrade('');
       }
     }
+    setIsLoading(false);
+    setHasChanged(false);
   }, [monthId, isMonthView]);
-
-  // Add event listener for reflection updates
-  useEffect(() => {
-    const handleJournalUpdated = () => {
-      console.log("Journal updated event detected, reloading reflection data");
-      if (!isMonthView && weekId) {
-        const savedReflection = getWeeklyReflection(weekId);
-        if (savedReflection) {
-          console.log('Reloaded weekly reflection after update:', savedReflection);
-          setReflection(savedReflection.reflection || '');
-          setWeekGrade(savedReflection.grade || '');
-        }
-      } else if (isMonthView && monthId) {
-        const savedReflection = getMonthlyReflection(monthId);
-        if (savedReflection) {
-          console.log('Reloaded monthly reflection after update:', savedReflection);
-          setMonthlyReflection(savedReflection.reflection || '');
-          setMonthGrade(savedReflection.grade || '');
-        }
-      }
-    };
-    
-    window.addEventListener('journalUpdated', handleJournalUpdated);
-    
-    return () => {
-      window.removeEventListener('journalUpdated', handleJournalUpdated);
-    };
-  }, [weekId, monthId, isMonthView]);
 
   const handleReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     console.log('Weekly reflection changed:', newValue);
     setReflection(newValue);
+    setHasChanged(true);
   };
   
   const handleMonthlyReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     console.log('Monthly reflection changed:', newValue);
     setMonthlyReflection(newValue);
+    setHasChanged(true);
   };
   
   const handleWeekGradeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setWeekGrade(newValue);
+    setHasChanged(true);
   };
   
   const handleMonthGradeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setMonthGrade(newValue);
+    setHasChanged(true);
   };
   
   // Define a function to save reflections
   const saveReflections = useCallback(() => {
+    if (isLoading || !hasChanged) return false;
+    
     if (!isMonthView && weekId) {
       console.log(`Saving weekly reflection for ${weekId}:`, reflection, weekGrade);
       saveWeeklyReflection(weekId, reflection || '', weekGrade);
+      setHasChanged(false);
       return true;
     }
     
     if (isMonthView && monthId) {
       console.log(`Saving monthly reflection for ${monthId}:`, monthlyReflection, monthGrade);
       saveMonthlyReflection(monthId, monthlyReflection || '', monthGrade);
+      setHasChanged(false);
       return true;
     }
     
     return false;
-  }, [weekId, reflection, weekGrade, monthId, monthlyReflection, monthGrade, isMonthView]);
+  }, [weekId, reflection, weekGrade, monthId, monthlyReflection, monthGrade, isMonthView, isLoading, hasChanged]);
   
   // Add a function to explicitly save the reflection and return to list
   const handleSaveWeekly = () => {
-    if (weekId) {
+    if (!isLoading && weekId) {
       console.log(`Explicitly saving weekly reflection for ${weekId}:`, reflection, weekGrade);
       saveWeeklyReflection(weekId, reflection || '', weekGrade);
       toast.success("Weekly reflection saved successfully");
@@ -200,7 +189,7 @@ export default function WeeklyJournal() {
   };
   
   const handleSaveMonthly = () => {
-    if (monthId) {
+    if (!isLoading && monthId) {
       console.log(`Explicitly saving monthly reflection for ${monthId}:`, monthlyReflection, monthGrade);
       saveMonthlyReflection(monthId, monthlyReflection || '', monthGrade);
       toast.success("Monthly reflection saved successfully");
@@ -212,18 +201,36 @@ export default function WeeklyJournal() {
   useEffect(() => {
     return () => {
       console.log("Component unmounting, saving reflections if needed");
-      saveReflections();
+      if (hasChanged) {
+        saveReflections();
+      }
     };
-  }, [saveReflections]);
+  }, [saveReflections, hasChanged]);
 
-  // Auto-save changes periodically (every 5 seconds)
+  // Auto-save changes periodically (every 5 seconds), but only if content has changed
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
     const autoSaveInterval = setInterval(() => {
-      saveReflections();
+      if (hasChanged) {
+        saveReflections();
+      }
     }, 5000);
     
     return () => clearInterval(autoSaveInterval);
-  }, [saveReflections]);
+  }, [saveReflections, hasChanged]);
+
+  // Don't render until loading is complete to avoid flickering
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8">

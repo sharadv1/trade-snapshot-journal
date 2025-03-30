@@ -46,8 +46,21 @@ export const getMonthlyReflection = (monthId: string): MonthlyReflection | undef
   return reflections[monthId];
 };
 
+// Improve storage event dispatch to be more reliable and prevent race conditions
+let lastEventDispatchTime: Record<string, number> = {};
+const MIN_EVENT_INTERVAL = 500; // Minimum milliseconds between events
+
 // Helper function to dispatch storage event more reliably
 const dispatchStorageEvent = (key: string) => {
+  // Throttle events to prevent rapid-fire updates
+  const now = Date.now();
+  if (lastEventDispatchTime[key] && (now - lastEventDispatchTime[key] < MIN_EVENT_INTERVAL)) {
+    console.log(`Skipping event dispatch for ${key} - too soon after last event`);
+    return;
+  }
+  
+  lastEventDispatchTime[key] = now;
+  
   // First try using the Storage event constructor if supported
   try {
     const storageEvent = new StorageEvent('storage', { key });
