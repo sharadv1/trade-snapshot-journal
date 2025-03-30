@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +23,9 @@ import {
 } from 'date-fns';
 import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
+import { TradeList } from '@/components/trade-list/TradeList';
+import { TradeWithMetrics } from '@/types';
 
 export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
@@ -78,6 +82,7 @@ export default function WeeklyJournal() {
   const [monthGrade, setMonthGrade] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [hasChanged, setHasChanged] = useState(false);
+  const [periodTrades, setPeriodTrades] = useState<TradeWithMetrics[]>([]);
 
   // Date calculations
   const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -87,6 +92,56 @@ export default function WeeklyJournal() {
 
   const formattedWeekRange = `${format(currentWeekStart, 'MMM dd')} - ${format(currentWeekEnd, 'MMM dd, yyyy')}`;
   const formattedMonth = format(currentMonthStart, 'MMMM yyyy');
+  
+  // Load trades for the current period (week or month)
+  useEffect(() => {
+    const loadPeriodTrades = () => {
+      const allTrades = getTradesWithMetrics();
+      let filteredTrades: TradeWithMetrics[] = [];
+      
+      if (isMonthView) {
+        // Get trades for the current month
+        const startDate = currentMonthStart;
+        const endDate = currentMonthEnd;
+        
+        filteredTrades = allTrades.filter(trade => {
+          if (trade.exitDate) {
+            const exitDate = new Date(trade.exitDate);
+            return exitDate >= startDate && exitDate <= endDate;
+          }
+          return false;
+        });
+      } else {
+        // Get trades for the current week
+        const startDate = currentWeekStart;
+        const endDate = currentWeekEnd;
+        
+        filteredTrades = allTrades.filter(trade => {
+          if (trade.exitDate) {
+            const exitDate = new Date(trade.exitDate);
+            return exitDate >= startDate && exitDate <= endDate;
+          }
+          return false;
+        });
+      }
+      
+      setPeriodTrades(filteredTrades);
+      console.log(`Loaded ${filteredTrades.length} trades for ${isMonthView ? 'month' : 'week'}`);
+    };
+    
+    loadPeriodTrades();
+    
+    // Listen for trade updates
+    const handleTradeUpdated = () => {
+      loadPeriodTrades();
+    };
+    
+    window.addEventListener('trades-updated', handleTradeUpdated);
+    
+    return () => {
+      window.removeEventListener('trades-updated', handleTradeUpdated);
+    };
+  }, [isMonthView, currentWeekStart, currentWeekEnd, currentMonthStart, currentMonthEnd]);
   
   const goBackToList = () => {
     navigate(isMonthView ? '/journal/monthly' : '/journal/weekly');
@@ -299,7 +354,7 @@ export default function WeeklyJournal() {
       )}
 
       {isMonthView && (
-        <Card>
+        <Card className="mb-8">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Monthly Reflection - {formattedMonth}</CardTitle>
           </CardHeader>
@@ -338,6 +393,26 @@ export default function WeeklyJournal() {
           </CardContent>
         </Card>
       )}
+
+      {/* Add trades list for the current period */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {isMonthView 
+              ? `Trades in ${formattedMonth}` 
+              : `Trades for ${formattedWeekRange}`}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {periodTrades.length > 0 ? (
+            <TradeList initialTrades={periodTrades} />
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              No trades found for this {isMonthView ? 'month' : 'week'}.
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

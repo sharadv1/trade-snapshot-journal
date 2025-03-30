@@ -101,87 +101,111 @@ export default function TradeDetail() {
         </Button>
       </div>
       
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Trade Metrics</CardTitle>
-          <CardDescription>Key performance indicators for this trade.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Pass an array containing the single trade with metrics to match the expected props */}
-          <TradeMetrics trades={[tradeWithMetrics]} showOnlyKeyMetrics={true} />
-        </CardContent>
-      </Card>
-      
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Trade Details</CardTitle>
-          <CardDescription>Detailed information about the trade.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="list-none pl-0">
-            <li className="mb-2">
-              <strong>Symbol:</strong> {trade.symbol}
-            </li>
-            <li className="mb-2">
-              <strong>Type:</strong> {trade.type}
-            </li>
-            <li className="mb-2">
-              <strong>Strategy:</strong> {trade.strategy || 'N/A'}
-            </li>
-            <li className="mb-2">
-              <strong>Entry Date:</strong> {format(new Date(trade.entryDate), 'MMMM d, yyyy, h:mm a')}
-            </li>
-            <li className="mb-2">
-              <strong>Entry Price:</strong> {trade.entryPrice}
-            </li>
-            <li className="mb-2">
-              <strong>Quantity:</strong> {trade.quantity}
-            </li>
-            <li className="mb-2">
-              <strong>Stop Loss:</strong> {trade.stopLoss}
-            </li>
-            <li className="mb-2">
-              <strong>Take Profit:</strong> {trade.takeProfit}
-            </li>
-            {trade.exitDate && (
-              <li className="mb-2">
-                <strong>Exit Date:</strong> {format(new Date(trade.exitDate), 'MMMM d, yyyy, h:mm a')}
-              </li>
-            )}
-            {trade.exitPrice && (
-              <li className="mb-2">
-                <strong>Exit Price:</strong> {trade.exitPrice}
-              </li>
-            )}
-            <li className="mb-2">
-              <strong>Status:</strong> {trade.status}
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
-      
-      {trade.partialExits && trade.partialExits.length > 0 && (
-        <Card className="mb-4">
-          <CardHeader>
-            <CardTitle>Partial Exits</CardTitle>
-            <CardDescription>List of partial exits for this trade.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PartialExitsList trade={trade} onUpdate={() => {}} allowEditing={false} />
-          </CardContent>
-        </Card>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Trade Details</CardTitle>
+              <CardDescription>Detailed information about the trade.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <ul className="list-none pl-0 space-y-3">
+                    <li>
+                      <span className="font-medium text-muted-foreground">Symbol:</span> {trade.symbol}
+                    </li>
+                    <li>
+                      <span className="font-medium text-muted-foreground">Type:</span> {trade.type}
+                    </li>
+                    <li>
+                      <span className="font-medium text-muted-foreground">Strategy:</span> {trade.strategy || 'N/A'}
+                    </li>
+                    <li>
+                      <span className="font-medium text-muted-foreground">Direction:</span> {trade.direction === 'long' ? 'Long' : 'Short'}
+                    </li>
+                    <li>
+                      <span className="font-medium text-muted-foreground">Status:</span> {trade.status}
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <ul className="list-none pl-0 space-y-3">
+                    <li>
+                      <span className="font-medium text-muted-foreground">Entry Date:</span> {format(new Date(trade.entryDate), 'MMMM d, yyyy, h:mm a')}
+                    </li>
+                    <li>
+                      <span className="font-medium text-muted-foreground">Entry Price:</span> {trade.entryPrice}
+                    </li>
+                    <li>
+                      <span className="font-medium text-muted-foreground">Quantity:</span> {trade.quantity}
+                    </li>
+                    <li>
+                      <span className="font-medium text-muted-foreground">Stop Loss:</span> {trade.stopLoss || 'N/A'}
+                    </li>
+                    <li>
+                      <span className="font-medium text-muted-foreground">Take Profit:</span> {trade.takeProfit || 'N/A'}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              {trade.exitDate && (
+                <div className="mt-4 pt-4 border-t">
+                  <h3 className="font-medium text-lg mb-2">Exit Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ul className="list-none pl-0 space-y-3">
+                      <li>
+                        <span className="font-medium text-muted-foreground">Exit Date:</span> {format(new Date(trade.exitDate), 'MMMM d, yyyy, h:mm a')}
+                      </li>
+                      <li>
+                        <span className="font-medium text-muted-foreground">Exit Price:</span> {trade.exitPrice || 'N/A'}
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Trade Comments</CardTitle>
-          <CardDescription>Comments and analysis on the trade.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Pass the trade data to match the expected props of TradeCommentsList */}
-          <TradeCommentsList trades={[tradeWithMetrics]} listTitle="Trade Notes" />
-        </CardContent>
-      </Card>
+          {trade.partialExits && trade.partialExits.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Partial Exits</CardTitle>
+                <CardDescription>List of partial exits for this trade.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PartialExitsList trade={trade} onUpdate={() => {}} allowEditing={false} />
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Trade Comments</CardTitle>
+              <CardDescription>Comments and analysis on the trade.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {trade.notes ? (
+                <div className="bg-accent/30 p-4 rounded-md whitespace-pre-wrap">{trade.notes}</div>
+              ) : (
+                <p className="text-muted-foreground">No comments for this trade.</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Trade Metrics</CardTitle>
+              <CardDescription>Key performance indicators</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TradeMetrics trades={[tradeWithMetrics]} showOnlyKeyMetrics={true} />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
