@@ -1,3 +1,4 @@
+
 import { WeeklyReflection, MonthlyReflection } from '@/types';
 
 const WEEKLY_REFLECTIONS_KEY = 'trade-journal-weekly-reflections';
@@ -43,6 +44,20 @@ export const getMonthlyReflection = (monthId: string): MonthlyReflection | undef
   const reflections = getMonthlyReflections();
   console.log(`Getting monthly reflection for ${monthId}`, reflections[monthId]);
   return reflections[monthId];
+};
+
+// Check if a reflection exists for a given week ID
+export const weeklyReflectionExists = (weekId: string): boolean => {
+  if (!weekId) return false;
+  const reflections = getWeeklyReflections();
+  return !!reflections[weekId];
+};
+
+// Check if a reflection exists for a given month ID
+export const monthlyReflectionExists = (monthId: string): boolean => {
+  if (!monthId) return false;
+  const reflections = getMonthlyReflections();
+  return !!reflections[monthId];
 };
 
 // Improve storage event dispatch to be more reliable and prevent race conditions

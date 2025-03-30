@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -21,7 +20,7 @@ import {
 import { Pencil, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getWeeklyReflections } from '@/utils/journalStorage';
 import { WeeklyReflection } from '@/types';
-import { getTradesWithMetrics } from '@/utils/tradeStorage';
+import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { formatCurrency } from '@/utils/calculations/formatters';
 
 export function ReflectionsList() {
@@ -33,17 +32,20 @@ export function ReflectionsList() {
     totalR: number
   }>>({});
   const [currentWeekDate, setCurrentWeekDate] = useState(new Date());
+  const [currentWeekId, setCurrentWeekId] = useState(() => {
+    const weekStart = new Date(currentWeekDate);
+    weekStart.setDate(currentWeekDate.getDate() - currentWeekDate.getDay() + (currentWeekDate.getDay() === 0 ? -6 : 1));
+    return format(weekStart, 'yyyy-MM-dd');
+  });
+  const [hasCurrentWeekReflection, setHasCurrentWeekReflection] = useState(false);
   
-  // Determine if we're in weekly or monthly view
   const isWeeklyView = !location.pathname.includes('/monthly');
   
   useEffect(() => {
-    // Only load reflections if we're in the weekly view
     if (isWeeklyView) {
       loadReflections();
     }
     
-    // Listen for storage changes to reload reflections
     const handleStorageChange = (event: Event) => {
       if (isWeeklyView) {
         loadReflections();
@@ -51,63 +53,83 @@ export function ReflectionsList() {
     };
     
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('journalUpdated', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('journalUpdated', handleStorageChange);
+    };
   }, [isWeeklyView]);
+  
+  useEffect(() => {
+    const weekStart = new Date(currentWeekDate);
+    weekStart.setDate(currentWeekDate.getDate() - currentWeekDate.getDay() + (currentWeekDate.getDay() === 0 ? -6 : 1));
+    const weekId = format(weekStart, 'yyyy-MM-dd');
+    setCurrentWeekId(weekId);
+    
+    const reflectionsMap = getWeeklyReflections();
+    setHasCurrentWeekReflection(!!reflectionsMap[weekId]);
+  }, [currentWeekDate]);
   
   const loadReflections = () => {
     console.log("Loading weekly reflections...");
     const reflectionsMap = getWeeklyReflections();
     console.log("Weekly reflections map:", reflectionsMap);
     
-    // Convert to array and sort by date, newest first
     let reflectionsArray = Object.entries(reflectionsMap).map(([weekId, reflection]) => ({
       ...reflection,
-      id: reflection.id || weekId, // Ensure id is always set
-      weekId: reflection.weekId || weekId // Ensure weekId is always set
+      id: reflection.id || weekId,
+      weekId: reflection.weekId || weekId
     }));
     
-    // Deduplicate reflections by weekStart - only keep the latest entry for each week
     const weekMap = new Map<string, WeeklyReflection>();
     reflectionsArray.forEach(reflection => {
       if (reflection.weekStart) {
         const weekKey = new Date(reflection.weekStart).toISOString().slice(0, 10);
         const existing = weekMap.get(weekKey);
         
-        // Only replace if this is a newer entry or if no entry exists
         if (!existing || (reflection.lastUpdated && existing.lastUpdated && 
             new Date(reflection.lastUpdated) > new Date(existing.lastUpdated))) {
           weekMap.set(weekKey, reflection);
         }
       } else {
-        // For entries without weekStart, use the weekId as the key
         weekMap.set(reflection.weekId, reflection);
       }
     });
     
-    // Convert back to array
     reflectionsArray = Array.from(weekMap.values());
     
     reflectionsArray.sort((a, b) => {
-      // Use weekStart for sorting if available
       if (a.weekStart && b.weekStart) {
         return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
       }
-      // Fallback to weekId if weekStart is not available
       return new Date(b.weekId || '').getTime() - new Date(a.weekId || '').getTime();
     });
     
     console.log("Weekly reflections array after deduplication:", reflectionsArray);
     setReflections(reflectionsArray);
     
-    // Calculate stats for each reflection
     const allTrades = getTradesWithMetrics();
     const stats: Record<string, { totalPnL: number, totalR: number }> = {};
     
     reflectionsArray.forEach(reflection => {
-      const tradeIds = reflection.tradeIds || [];
-      const weekTrades = allTrades.filter(trade => 
-        tradeIds.includes(trade.id)
-      );
+      let weekTrades = [];
+      
+      if (reflection.tradeIds && reflection.tradeIds.length > 0) {
+        weekTrades = allTrades.filter(trade => 
+          reflection.tradeIds?.includes(trade.id)
+        );
+      } else if (reflection.weekStart && reflection.weekEnd) {
+        const weekStart = new Date(reflection.weekStart);
+        const weekEnd = new Date(reflection.weekEnd);
+        
+        weekTrades = allTrades.filter(trade => {
+          if (trade.exitDate) {
+            const exitDate = new Date(trade.exitDate);
+            return exitDate >= weekStart && exitDate <= weekEnd;
+          }
+          return false;
+        });
+      }
       
       const totalPnL = weekTrades.reduce((sum, trade) => 
         sum + (trade.metrics.profitLoss || 0), 0);
@@ -119,15 +141,16 @@ export function ReflectionsList() {
     });
     
     setReflectionStats(stats);
+    
+    setHasCurrentWeekReflection(!!reflectionsMap[currentWeekId]);
   };
   
   const handleEditReflection = (weekId: string) => {
-    navigate(`/journal/${weekId}`);
+    navigate(`/journal/weekly/${weekId}`);
   };
   
   const handleCreateNew = () => {
-    const weekId = format(currentWeekDate, 'yyyy-MM-dd');
-    navigate(`/journal/${weekId}`);
+    navigate(`/journal/weekly/${currentWeekId}`);
   };
 
   const goToPreviousWeek = () => {
@@ -165,11 +188,10 @@ export function ReflectionsList() {
     }
   };
   
-  // Calculate current week date range for display
   const weekStart = new Date(currentWeekDate);
-  weekStart.setDate(currentWeekDate.getDate() - currentWeekDate.getDay() + (currentWeekDate.getDay() === 0 ? -6 : 1)); // Monday
+  weekStart.setDate(currentWeekDate.getDate() - currentWeekDate.getDay() + (currentWeekDate.getDay() === 0 ? -6 : 1));
   const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6); // Sunday
+  weekEnd.setDate(weekStart.getDate() + 6);
   const currentWeekFormatted = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
   
   return (
@@ -186,9 +208,13 @@ export function ReflectionsList() {
             <span className="hidden sm:inline mr-1">Next Week</span>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button onClick={handleCreateNew}>
+          <Button 
+            onClick={handleCreateNew} 
+            disabled={hasCurrentWeekReflection}
+            title={hasCurrentWeekReflection ? "An entry already exists for this week" : "Create new reflection"}
+          >
             <Calendar className="mr-2 h-4 w-4" />
-            New Reflection
+            {hasCurrentWeekReflection ? "Entry Exists" : "New Reflection"}
           </Button>
         </div>
       </CardHeader>
@@ -198,7 +224,7 @@ export function ReflectionsList() {
             <p className="text-muted-foreground mb-4">
               You haven't created any weekly reflections yet.
             </p>
-            <Button onClick={handleCreateNew}>
+            <Button onClick={handleCreateNew} disabled={hasCurrentWeekReflection}>
               Create Your First Reflection
             </Button>
           </div>
