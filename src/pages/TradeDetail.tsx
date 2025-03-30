@@ -6,7 +6,6 @@ import { format } from 'date-fns';
 import { getTradeById } from '@/utils/storage/tradeOperations';
 import { Button } from '@/components/ui/button';
 import { Trade, TradeWithMetrics } from '@/types';
-import { TradeMetrics } from '@/components/TradeMetrics';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TradeCommentsList } from '@/components/journal/TradeCommentsList';
@@ -55,11 +54,8 @@ export default function TradeDetail() {
     navigate(`/trade/${id}/edit`);
   };
   
-  // Convert the single trade to a TradeWithMetrics object and wrap it in an array for the TradeMetrics component
-  const tradeWithMetrics: TradeWithMetrics = {
-    ...trade,
-    metrics: calculateTradeMetrics(trade)
-  };
+  // Calculate metrics for displaying risk/reward information
+  const metrics = trade ? calculateTradeMetrics(trade) : null;
   
   return (
     <div className="container mx-auto py-8 px-4">
@@ -197,11 +193,45 @@ export default function TradeDetail() {
         <div>
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Trade Metrics</CardTitle>
-              <CardDescription>Key performance indicators</CardDescription>
+              <CardTitle>Risk/Reward</CardTitle>
+              <CardDescription>Trade risk metrics</CardDescription>
             </CardHeader>
             <CardContent>
-              <TradeMetrics trades={[tradeWithMetrics]} showOnlyKeyMetrics={true} />
+              {metrics && (
+                <div className="space-y-4">
+                  {metrics.profitLoss !== undefined && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">P&L:</h3>
+                      <p className={`text-xl font-semibold ${metrics.profitLoss >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        ${metrics.profitLoss.toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {metrics.profitLossPercentage !== undefined && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">P&L (%):</h3>
+                      <p className={`text-xl font-semibold ${metrics.profitLossPercentage >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {metrics.profitLossPercentage.toFixed(2)}%
+                      </p>
+                    </div>
+                  )}
+                  
+                  {metrics.riskedAmount !== undefined && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Risk Amount:</h3>
+                      <p className="text-xl font-semibold">${metrics.riskedAmount.toFixed(2)}</p>
+                    </div>
+                  )}
+                  
+                  {metrics.riskRewardRatio !== undefined && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Risk/Reward Ratio:</h3>
+                      <p className="text-xl font-semibold">{metrics.riskRewardRatio.toFixed(2)}:1</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

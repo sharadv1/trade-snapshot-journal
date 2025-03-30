@@ -10,18 +10,24 @@ import {
   saveWeeklyReflection, 
   getWeeklyReflection, 
   saveMonthlyReflection, 
-  getMonthlyReflection 
+  getMonthlyReflection,
+  getAllWeeklyReflections,
+  getAllMonthlyReflections
 } from '@/utils/journalStorage';
 import { 
   format, 
   startOfWeek, 
   endOfWeek, 
   startOfMonth, 
-  endOfMonth, 
+  endOfMonth,
+  addWeeks,
+  subWeeks,
+  addMonths,
+  subMonths,
   parse,
   parseISO
 } from 'date-fns';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { TradeList } from '@/components/trade-list/TradeList';
@@ -83,6 +89,8 @@ export default function WeeklyJournal() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasChanged, setHasChanged] = useState(false);
   const [periodTrades, setPeriodTrades] = useState<TradeWithMetrics[]>([]);
+  const [allWeeklyReflections, setAllWeeklyReflections] = useState<Record<string, any>>({});
+  const [allMonthlyReflections, setAllMonthlyReflections] = useState<Record<string, any>>({});
 
   // Date calculations
   const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -92,6 +100,27 @@ export default function WeeklyJournal() {
 
   const formattedWeekRange = `${format(currentWeekStart, 'MMM dd')} - ${format(currentWeekEnd, 'MMM dd, yyyy')}`;
   const formattedMonth = format(currentMonthStart, 'MMMM yyyy');
+  
+  // Load all reflections to check existence
+  useEffect(() => {
+    const loadAllReflections = () => {
+      setAllWeeklyReflections(getAllWeeklyReflections());
+      setAllMonthlyReflections(getAllMonthlyReflections());
+    };
+    
+    loadAllReflections();
+    
+    // Listen for journal updates
+    const handleJournalUpdated = () => {
+      loadAllReflections();
+    };
+    
+    window.addEventListener('journal-updated', handleJournalUpdated);
+    
+    return () => {
+      window.removeEventListener('journal-updated', handleJournalUpdated);
+    };
+  }, []);
   
   // Load trades for the current period (week or month)
   useEffect(() => {
@@ -143,8 +172,56 @@ export default function WeeklyJournal() {
     };
   }, [isMonthView, currentWeekStart, currentWeekEnd, currentMonthStart, currentMonthEnd]);
   
+  // Check if entry exists
+  const currentEntryExists = isMonthView 
+    ? !!allMonthlyReflections[monthId]
+    : !!allWeeklyReflections[weekId];
+  
   const goBackToList = () => {
     navigate(isMonthView ? '/journal/monthly' : '/journal/weekly');
+  };
+
+  // Navigation functions
+  const goToPreviousPeriod = () => {
+    if (hasChanged) {
+      // Save current changes before navigating
+      saveReflections();
+    }
+    
+    if (isMonthView) {
+      const newDate = subMonths(currentDate, 1);
+      const newMonthId = format(newDate, 'yyyy-MM');
+      setCurrentDate(newDate);
+      setMonthId(newMonthId);
+      navigate(`/journal/monthly/${newMonthId}`);
+    } else {
+      const newDate = subWeeks(currentDate, 1);
+      const newWeekId = format(newDate, 'yyyy-MM-dd');
+      setCurrentDate(newDate);
+      setWeekId(newWeekId);
+      navigate(`/journal/weekly/${newWeekId}`);
+    }
+  };
+  
+  const goToNextPeriod = () => {
+    if (hasChanged) {
+      // Save current changes before navigating
+      saveReflections();
+    }
+    
+    if (isMonthView) {
+      const newDate = addMonths(currentDate, 1);
+      const newMonthId = format(newDate, 'yyyy-MM');
+      setCurrentDate(newDate);
+      setMonthId(newMonthId);
+      navigate(`/journal/monthly/${newMonthId}`);
+    } else {
+      const newDate = addWeeks(currentDate, 1);
+      const newWeekId = format(newDate, 'yyyy-MM-dd');
+      setCurrentDate(newDate);
+      setWeekId(newWeekId);
+      navigate(`/journal/weekly/${newWeekId}`);
+    }
   };
 
   // Load data whenever weekId, monthId, or isMonthView changes
@@ -308,6 +385,27 @@ export default function WeeklyJournal() {
               ? "Reflect on your trading month." 
               : "Reflect on your trading week."}
           </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={goToPreviousPeriod}
+            title={isMonthView ? "Previous Month" : "Previous Week"}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <span className="font-medium">
+            {isMonthView ? formattedMonth : formattedWeekRange}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={goToNextPeriod}
+            title={isMonthView ? "Next Month" : "Next Week"}
+          >
+            <ArrowRight className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 

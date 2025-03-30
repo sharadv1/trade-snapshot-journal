@@ -1,4 +1,3 @@
-
 import { WeeklyReflection, MonthlyReflection } from '@/types';
 
 const WEEKLY_REFLECTIONS_KEY = 'trade-journal-weekly-reflections';
@@ -331,5 +330,31 @@ export const deleteMonthlyReflection = (monthId: string): void => {
     console.log(`Monthly reflection deleted successfully for ${monthId}`);
   } catch (error) {
     console.error('Error deleting monthly reflection:', error);
+  }
+};
+
+// Add this function to expose all weekly reflections
+export const getAllWeeklyReflections = () => {
+  const reflectionsString = localStorage.getItem('trade-journal-weekly-reflections');
+  if (!reflectionsString) return {};
+  
+  try {
+    return JSON.parse(reflectionsString);
+  } catch (e) {
+    console.error('Error parsing weekly reflections from storage', e);
+    return {};
+  }
+};
+
+// Add this function to expose all monthly reflections
+export const getAllMonthlyReflections = () => {
+  const reflectionsString = localStorage.getItem('trade-journal-monthly-reflections');
+  if (!reflectionsString) return {};
+  
+  try {
+    return JSON.parse(reflectionsString);
+  } catch (e) {
+    console.error('Error parsing monthly reflections from storage', e);
+    return {};
   }
 };
