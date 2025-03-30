@@ -2,8 +2,7 @@
 /**
  * Utilities for futures contract calculations
  */
-import { Trade } from '@/types';
-import { COMMON_FUTURES_CONTRACTS } from '@/types';
+import { Trade, COMMON_FUTURES_CONTRACTS } from '@/types';
 
 /**
  * Get the point value for a futures contract

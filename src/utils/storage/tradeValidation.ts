@@ -17,7 +17,8 @@ export const normalizeTrade = (trade: Trade): Trade => {
     ...trade,
     id: trade.id || crypto.randomUUID(),
     direction: trade.direction || 'long',
-    type: trade.type || 'equity',
+    // Convert 'equity' type to 'stock' for backwards compatibility
+    type: trade.type === 'equity' ? 'stock' : trade.type || 'stock',
     status: trade.status || 'closed',
     partialExits: Array.isArray(trade.partialExits) ? trade.partialExits : [],
     tags: Array.isArray(trade.tags) ? trade.tags : [],

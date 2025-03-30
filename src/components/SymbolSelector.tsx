@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -19,14 +18,14 @@ import { getAllSymbols, addCustomSymbol, SymbolDetails, getSymbolMeaning } from 
 interface SymbolSelectorProps {
   value: string;
   onChange: (value: string) => void;
-  tradeType?: 'equity' | 'futures' | 'option';
-  onTypeChange?: (type: 'equity' | 'futures' | 'option') => void;
+  tradeType?: 'stock' | 'futures' | 'forex' | 'crypto' | 'options';
+  onTypeChange?: (type: 'stock' | 'futures' | 'forex' | 'crypto' | 'options') => void;
 }
 
 export function SymbolSelector({ 
   value, 
   onChange, 
-  tradeType = 'equity',
+  tradeType = 'stock',
   onTypeChange
 }: SymbolSelectorProps) {
   const [open, setOpen] = useState(false);
@@ -54,8 +53,13 @@ export function SymbolSelector({
     
     // Auto-select type if a symbol with specific type is selected
     if (selectedSymbol && onTypeChange) {
-      if (selectedSymbol.type === 'futures' || selectedSymbol.type === 'equity' || selectedSymbol.type === 'option') {
-        onTypeChange(selectedSymbol.type);
+      // Convert 'equity' to 'stock' for compatibility
+      const normalizedType = selectedSymbol.type === 'equity' ? 'stock' : selectedSymbol.type;
+      
+      if (normalizedType === 'futures' || normalizedType === 'stock' || 
+          normalizedType === 'forex' || normalizedType === 'crypto' || 
+          normalizedType === 'options') {
+        onTypeChange(normalizedType);
       }
     }
     
@@ -64,10 +68,13 @@ export function SymbolSelector({
 
   const handleCreateOption = () => {
     if (inputValue && !symbols.some(s => s.symbol === inputValue)) {
+      // Convert 'equity' to 'stock' for compatibility
+      const normalizedType = tradeType === 'equity' ? 'stock' : tradeType;
+      
       // Add to storage and update local state
       const newSymbols = addCustomSymbol({
         symbol: inputValue,
-        type: tradeType // Default to current tradeType
+        type: normalizedType as SymbolDetails['type']
       });
       setSymbols(getAllSymbols());
       onChange(inputValue);

@@ -7,7 +7,7 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
   const [trade, setTrade] = useState<Partial<Trade>>(
     initialTrade || {
       symbol: '',
-      type: 'equity',
+      type: 'stock', // Changed from 'equity' to 'stock'
       direction: 'long',
       entryDate: new Date().toISOString().slice(0, 16),
       entryPrice: 0,
@@ -45,7 +45,7 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
           symbol: idea.symbol,
           ideaId: idea.id,
           direction: idea.direction || 'long',
-          notes: prev.notes ? `${prev.notes}\n\nBased on trade idea: ${idea.description}` : `Based on trade idea: ${idea.description}`
+          notes: prev.notes ? `${prev.notes}\n\nBased on trade idea: ${idea.description || 'No description'}` : `Based on trade idea: ${idea.description || 'No description'}`
         }));
       } else {
         console.log('No idea found for ID:', ideaIdFromProps);
@@ -87,9 +87,12 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
     setContractDetails(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleTypeChange = (type: 'equity' | 'futures' | 'option') => {
-    handleChange('type', type);
-    if (type !== 'futures' && trade.type === 'futures') {
+  const handleTypeChange = (type: string) => {
+    // Convert 'equity' to 'stock' for compatibility
+    const normalizedType = type === 'equity' ? 'stock' : type;
+    handleChange('type', normalizedType as Trade['type']);
+    
+    if (normalizedType !== 'futures' && trade.type === 'futures') {
       handleChange('symbol', '');
     }
   };
