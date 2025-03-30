@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -69,7 +70,7 @@ export function SymbolSelector({
   const handleCreateOption = () => {
     if (inputValue && !symbols.some(s => s.symbol === inputValue)) {
       // Convert 'equity' to 'stock' for compatibility
-      const normalizedType = tradeType === 'equity' ? 'stock' : tradeType;
+      const normalizedType = tradeType === 'stock' ? 'stock' : tradeType;
       
       // Add to storage and update local state
       const newSymbols = addCustomSymbol({

@@ -14,7 +14,7 @@ import { getIdeas } from '@/utils/ideaStorage';
 interface TradeDetailsFormProps {
   trade: Partial<Trade>;
   handleChange: (field: keyof Trade, value: any) => void;
-  handleTypeChange: (type: 'equity' | 'futures' | 'option') => void;
+  handleTypeChange: (type: 'stock' | 'futures' | 'forex' | 'crypto' | 'options') => void;
   contractDetails: Partial<FuturesContractDetails>;
   pointValue: number;
   isEditing?: boolean;
@@ -46,20 +46,20 @@ export function TradeDetailsForm({
         <Label>Trade Type</Label>
         <RadioGroup
           value={trade.type}
-          onValueChange={(value) => handleTypeChange(value as 'equity' | 'futures' | 'option')}
+          onValueChange={(value) => handleTypeChange(value as 'stock' | 'futures' | 'forex' | 'crypto' | 'options')}
           className="flex space-x-2"
         >
           <div className="flex items-center space-x-1">
-            <RadioGroupItem value="equity" id="equity" />
-            <Label htmlFor="equity" className="cursor-pointer">Stock</Label>
+            <RadioGroupItem value="stock" id="stock" />
+            <Label htmlFor="stock" className="cursor-pointer">Stock</Label>
           </div>
           <div className="flex items-center space-x-1">
             <RadioGroupItem value="futures" id="futures" />
             <Label htmlFor="futures" className="cursor-pointer">Futures</Label>
           </div>
           <div className="flex items-center space-x-1">
-            <RadioGroupItem value="option" id="option" />
-            <Label htmlFor="option" className="cursor-pointer">Option</Label>
+            <RadioGroupItem value="options" id="options" />
+            <Label htmlFor="options" className="cursor-pointer">Options</Label>
           </div>
         </RadioGroup>
       </div>

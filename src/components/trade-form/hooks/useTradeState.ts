@@ -87,7 +87,7 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
     setContractDetails(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleTypeChange = (type: string) => {
+  const handleTypeChange = (type: Trade['type']) => {
     // Convert 'equity' to 'stock' for compatibility
     const normalizedType = type === 'equity' ? 'stock' : type;
     handleChange('type', normalizedType as Trade['type']);

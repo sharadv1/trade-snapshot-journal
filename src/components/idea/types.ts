@@ -5,7 +5,7 @@ export interface IdeaFormData {
   id?: string;
   date: string;
   symbol: string;
-  description: string;
+  description?: string; // Make description optional to match TradeIdea
   status: 'still valid' | 'invalidated' | 'taken' | 'missed';
   direction: 'long' | 'short';  // This is now required, no undefined
   images: string[];

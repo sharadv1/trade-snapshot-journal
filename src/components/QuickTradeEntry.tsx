@@ -18,7 +18,7 @@ interface QuickTradeEntryProps {
 }
 
 export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEntryProps) {
-  const [tradeType, setTradeType] = useState<'equity' | 'futures' | 'option'>('equity');
+  const [tradeType, setTradeType] = useState<'stock' | 'futures' | 'options'>('stock');
   const [symbol, setSymbol] = useState('');
   const [direction, setDirection] = useState<'long' | 'short'>('long');
   const [strategy, setStrategy] = useState('');
@@ -83,11 +83,11 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
       </CardHeader>
       <CardContent>
         {!compact && (
-          <Tabs defaultValue="equity" onValueChange={(value) => setTradeType(value as any)}>
+          <Tabs defaultValue="stock" onValueChange={(value) => setTradeType(value as any)}>
             <TabsList className="grid grid-cols-3 w-full max-w-xs mb-6">
-              <TabsTrigger value="equity">Equity</TabsTrigger>
+              <TabsTrigger value="stock">Stock</TabsTrigger>
               <TabsTrigger value="futures">Futures</TabsTrigger>
-              <TabsTrigger value="option">Options</TabsTrigger>
+              <TabsTrigger value="options">Options</TabsTrigger>
             </TabsList>
           </Tabs>
         )}

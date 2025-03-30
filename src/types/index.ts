@@ -80,7 +80,7 @@ export interface WeeklyReflection {
   wins: string;
   losses: string;
   improvements: string;
-  weekId?: string;
+  weekId: string; // Make weekId required
   weekStart?: string;
   weekEnd?: string;
   grade?: string;
@@ -95,7 +95,7 @@ export interface MonthlyReflection {
   summary: string;
   lessons: string;
   goals: string;
-  monthId?: string;
+  monthId: string; // Make monthId required
   monthStart?: string;
   monthEnd?: string;
   grade?: string;
