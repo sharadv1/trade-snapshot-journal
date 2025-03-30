@@ -41,13 +41,6 @@ import {
 } from '@/components/ui/table';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
 
 export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
@@ -107,7 +100,6 @@ export default function WeeklyJournal() {
   const [periodTrades, setPeriodTrades] = useState<TradeWithMetrics[]>([]);
   const [allWeeklyReflections, setAllWeeklyReflections] = useState<Record<string, any>>({});
   const [allMonthlyReflections, setAllMonthlyReflections] = useState<Record<string, any>>({});
-  const [availableEntries, setAvailableEntries] = useState<string[]>([]);
 
   // Date calculations
   const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -126,19 +118,6 @@ export default function WeeklyJournal() {
       
       setAllWeeklyReflections(weeklyReflections);
       setAllMonthlyReflections(monthlyReflections);
-      
-      // Create a list of available entries for the jump menu
-      if (isMonthView) {
-        const entries = Object.keys(monthlyReflections).sort((a, b) => 
-          new Date(b).getTime() - new Date(a).getTime()
-        );
-        setAvailableEntries(entries);
-      } else {
-        const entries = Object.keys(weeklyReflections).sort((a, b) => 
-          new Date(b).getTime() - new Date(a).getTime()
-        );
-        setAvailableEntries(entries);
-      }
     };
     
     loadAllReflections();
@@ -254,59 +233,6 @@ export default function WeeklyJournal() {
       setCurrentDate(newDate);
       setWeekId(newWeekId);
       navigate(`/journal/weekly/${newWeekId}`);
-    }
-  };
-
-  // Handle jumping to a specific entry
-  const handleJumpToEntry = (entryId: string) => {
-    if (hasChanged) {
-      // Save current changes before navigating
-      saveReflections();
-    }
-    
-    if (isMonthView) {
-      setCurrentDate(new Date(entryId + '-01')); // Add day for valid date
-      setMonthId(entryId);
-      navigate(`/journal/monthly/${entryId}`);
-    } else {
-      setCurrentDate(new Date(entryId));
-      setWeekId(entryId);
-      navigate(`/journal/weekly/${entryId}`);
-    }
-  };
-
-  // Format display text for entry selector
-  const formatEntryDisplay = (entryId: string) => {
-    if (isMonthView) {
-      try {
-        // Check if entry is in YYYY-MM format
-        if (entryId.match(/^\d{4}-\d{2}$/)) {
-          const date = new Date(entryId + '-01');
-          if (isValid(date)) {
-            return format(date, 'MMMM yyyy');
-          }
-        }
-        // If not, try to format it as a date
-        const date = new Date(entryId);
-        if (isValid(date)) {
-          return format(date, 'MMMM yyyy');
-        }
-      } catch (e) {
-        console.error("Error formatting month entry", entryId, e);
-      }
-      return entryId; // Fallback
-    } else {
-      try {
-        const date = new Date(entryId);
-        if (isValid(date)) {
-          const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-          const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
-          return `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
-        }
-      } catch (e) {
-        console.error("Error formatting week entry", entryId, e);
-      }
-      return entryId; // Fallback
     }
   };
 
@@ -441,28 +367,6 @@ export default function WeeklyJournal() {
     return () => clearInterval(autoSaveInterval);
   }, [saveReflections, hasChanged]);
 
-  // Entry selector - only shown on detail view
-  const renderEntrySelector = () => {
-    if (availableEntries.length <= 1) return null;
-    
-    return (
-      <div className="mb-4">
-        <Select onValueChange={handleJumpToEntry} value={isMonthView ? monthId : weekId}>
-          <SelectTrigger className="w-[300px]">
-            <SelectValue placeholder="Jump to reflection" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableEntries.map(entry => (
-              <SelectItem key={entry} value={entry}>
-                {formatEntryDisplay(entry)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    );
-  };
-
   // Don't render until loading is complete to avoid flickering
   if (isLoading) {
     return (
@@ -516,9 +420,6 @@ export default function WeeklyJournal() {
           </Button>
         </div>
       </div>
-
-      {/* Jump to entry selector - only shown on detail view */}
-      {renderEntrySelector()}
 
       {/* Add summary metrics at the top */}
       <div className="mb-8">

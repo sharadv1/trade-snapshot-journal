@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -9,7 +8,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { 
   Table, 
   TableBody, 
@@ -27,6 +26,7 @@ import { formatCurrency } from '@/utils/calculations/formatters';
 export function ReflectionsList() {
   const navigate = useNavigate();
   const location = useLocation();
+  
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
   const [reflectionStats, setReflectionStats] = useState<Record<string, {
     totalPnL: number,
@@ -34,17 +34,12 @@ export function ReflectionsList() {
     tradeCount: number
   }>>({});
   
-  const isWeeklyView = !location.pathname.includes('/monthly');
-  
   useEffect(() => {
-    if (isWeeklyView) {
-      loadReflections();
-    }
+    loadReflections();
     
-    const handleStorageChange = (event: Event) => {
-      if (isWeeklyView) {
-        loadReflections();
-      }
+    // Listen for storage changes
+    const handleStorageChange = () => {
+      loadReflections();
     };
     
     window.addEventListener('storage', handleStorageChange);
@@ -53,52 +48,59 @@ export function ReflectionsList() {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('journalUpdated', handleStorageChange);
     };
-  }, [isWeeklyView]);
+  }, []);
   
   const loadReflections = () => {
     console.log("Loading weekly reflections...");
     const reflectionsMap = getWeeklyReflections();
     console.log("Weekly reflections map:", reflectionsMap);
     
+    // Convert to array and sort by date
     let reflectionsArray = Object.entries(reflectionsMap).map(([weekId, reflection]) => ({
       ...reflection,
       id: reflection.id || weekId,
-      weekId: reflection.weekId || weekId
+      weekId: weekId
     }));
     
+    // Deduplicate reflections by weekStart - only keep the latest entry for each week
     const weekMap = new Map<string, WeeklyReflection>();
     reflectionsArray.forEach(reflection => {
       if (reflection.weekStart) {
-        const weekKey = new Date(reflection.weekStart).toISOString().slice(0, 10);
+        const weekKey = new Date(reflection.weekStart).toISOString().slice(0, 10); // YYYY-MM-DD
         const existing = weekMap.get(weekKey);
         
+        // Only replace if this is a newer entry or if no entry exists
         if (!existing || (reflection.lastUpdated && existing.lastUpdated && 
             new Date(reflection.lastUpdated) > new Date(existing.lastUpdated))) {
           weekMap.set(weekKey, reflection);
         }
       } else {
+        // For entries without weekStart, use the weekId as the key
         weekMap.set(reflection.weekId, reflection);
       }
     });
     
+    // Convert back to array
     reflectionsArray = Array.from(weekMap.values());
     
-    reflectionsArray.sort((a, b) => {
-      if (a.weekStart && b.weekStart) {
-        return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
-      }
-      return new Date(b.weekId || '').getTime() - new Date(a.weekId || '').getTime();
-    });
-    
     console.log("Weekly reflections array after deduplication:", reflectionsArray);
+    
+    // Sort by date (newest first)
+    reflectionsArray.sort((a, b) => 
+      new Date(b.weekStart || '').getTime() - new Date(a.weekStart || '').getTime()
+    );
+    
     setReflections(reflectionsArray);
     
+    // Calculate stats for each reflection
     const allTrades = getTradesWithMetrics();
     const stats: Record<string, { totalPnL: number, totalR: number, tradeCount: number }> = {};
     
     reflectionsArray.forEach(reflection => {
+      // Initialize week trades array
       let weekTrades = [];
       
+      // First check by date range
       if (reflection.weekStart && reflection.weekEnd) {
         const weekStart = new Date(reflection.weekStart);
         const weekEnd = new Date(reflection.weekEnd);
@@ -145,20 +147,15 @@ export function ReflectionsList() {
   
   const handleEditReflection = (weekId: string) => {
     if (!weekId) return;
-    // Navigate directly to the specific week's journal using its exact ID
     navigate(`/journal/weekly/${weekId}`);
   };
   
   const handleCreateNew = () => {
-    // Create a new entry with today's date as the week start
+    // Use current date for new reflection
     const today = new Date();
-    const monday = new Date(today);
-    // Adjust to the most recent Monday
-    monday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
-    const weekId = format(monday, 'yyyy-MM-dd');
+    const formattedDate = format(today, 'yyyy-MM-dd');
     
-    // Always navigate to create/edit page, even if entry exists
-    navigate(`/journal/weekly/${weekId}`);
+    navigate(`/journal/weekly/${formattedDate}`);
   };
   
   const getGradeColor = (grade: string = '') => {
@@ -168,26 +165,8 @@ export function ReflectionsList() {
     return 'bg-red-100 text-red-800';
   };
   
-  const formatDateRange = (start?: string, end?: string) => {
-    if (!start || !end) return 'Unknown date range';
-    
-    try {
-      const startDate = parseISO(start);
-      const endDate = parseISO(end);
-      
-      if (!isValid(startDate) || !isValid(endDate)) {
-        return 'Invalid date range';
-      }
-      
-      return `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`;
-    } catch (error) {
-      console.error('Error formatting date range:', error);
-      return 'Error in date range';
-    }
-  };
-  
   return (
-    <Card>
+    <Card className="mt-0">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Weekly Trading Journal Reflections</CardTitle>
         <div className="flex items-center space-x-2">
@@ -204,7 +183,7 @@ export function ReflectionsList() {
               You haven't created any weekly reflections yet.
             </p>
             <Button onClick={handleCreateNew}>
-              Create Your First Reflection
+              Create Your First Weekly Reflection
             </Button>
           </div>
         ) : (
@@ -221,12 +200,8 @@ export function ReflectionsList() {
             </TableHeader>
             <TableBody>
               {reflections.map((reflection) => {
-                const reflectionId = reflection.id || reflection.weekId || '';
-                const stats = reflectionId ? (reflectionStats[reflectionId] || { 
-                  totalPnL: 0, 
-                  totalR: 0, 
-                  tradeCount: 0 
-                }) : { 
+                const reflectionId = reflection.id;
+                const stats = reflectionStats[reflectionId] || { 
                   totalPnL: 0, 
                   totalR: 0, 
                   tradeCount: 0 
@@ -235,7 +210,9 @@ export function ReflectionsList() {
                 return (
                   <TableRow key={reflectionId || Math.random().toString()}>
                     <TableCell>
-                      {formatDateRange(reflection.weekStart, reflection.weekEnd)}
+                      {reflection.weekStart && reflection.weekEnd ? 
+                        `${format(parseISO(reflection.weekStart), 'MMM d')} - ${format(parseISO(reflection.weekEnd), 'MMM d, yyyy')}` :
+                        'Unknown week'}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={getGradeColor(reflection.grade)}>

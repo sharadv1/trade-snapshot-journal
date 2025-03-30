@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
@@ -8,6 +8,12 @@ import { Home } from 'lucide-react';
 export function JournalLayout() {
   const location = useLocation();
   const path = location.pathname;
+  const [mounted, setMounted] = useState(false);
+  
+  // Set mounted state when component mounts
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Determine the current view based on the path
   const isMonthlyView = path.includes('/journal/monthly');
@@ -20,6 +26,11 @@ export function JournalLayout() {
   
   // Determine back link based on current view
   const backLinkPath = path.includes('/monthly') ? '/journal/monthly' : '/journal/weekly';
+  
+  // Don't render until mounted to prevent flashing
+  if (!mounted) {
+    return null;
+  }
   
   return (
     <div className="space-y-6">
