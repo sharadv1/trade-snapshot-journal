@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit } from 'lucide-react';
+import { ArrowLeft, Edit, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { getTradeById } from '@/utils/storage/tradeOperations';
 import { Button } from '@/components/ui/button';
@@ -10,13 +10,14 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbS
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TradeCommentsList } from '@/components/journal/TradeCommentsList';
 import { PartialExitsList } from '@/components/PartialExitsList';
-import { calculateTradeMetrics } from '@/utils/calculations/metricsCalculator';
+import { calculateTradeMetrics, formatCurrency } from '@/utils/calculations';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [trade, setTrade] = useState<Trade | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showCalculationDetails, setShowCalculationDetails] = useState(false);
   
   useEffect(() => {
     if (!id) {
@@ -73,7 +74,7 @@ export default function TradeDetail() {
         </Breadcrumb>
       </div>
       
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-6">
         <div>
           <Button
             variant="outline"
@@ -84,12 +85,18 @@ export default function TradeDetail() {
             Back to Dashboard
           </Button>
           <h1 className="text-3xl font-bold">
-            {trade.type === 'futures' ? 'Futures' : 'Stock'} Trade: {trade.symbol}
+            {trade.symbol} {trade.type === 'futures' ? '(Futures)' : '(Stock)'}
           </h1>
-          <p className="text-muted-foreground">
-            Entry: {format(new Date(trade.entryDate), 'MMMM d, yyyy')}
-            {trade.exitDate && ` • Exit: ${format(new Date(trade.exitDate), 'MMMM d, yyyy')}`}
-          </p>
+          <div className="flex items-center space-x-4 mt-1">
+            <span className="px-3 py-1 bg-muted rounded-full text-sm">{trade.status === 'closed' ? 'Closed' : 'Open'}</span>
+            <span className="px-3 py-1 bg-muted rounded-full text-sm">{trade.strategy || 'No Strategy'}</span>
+            {trade.grade && (
+              <span className="flex items-center px-3 py-1 bg-muted rounded-full text-sm">
+                <Star className="h-3.5 w-3.5 mr-1 text-yellow-500 fill-yellow-500" />
+                Grade: {trade.grade}
+              </span>
+            )}
+          </div>
         </div>
         <Button onClick={handleEditClick}>
           <Edit className="mr-2 h-4 w-4" />
@@ -97,191 +104,246 @@ export default function TradeDetail() {
         </Button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Trade Details</CardTitle>
-              <CardDescription>Detailed information about the trade.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <ul className="list-none pl-0 space-y-3">
-                    <li>
-                      <span className="font-medium text-muted-foreground">Symbol:</span> {trade.symbol}
-                    </li>
-                    <li>
-                      <span className="font-medium text-muted-foreground">Type:</span> {trade.type}
-                    </li>
-                    <li>
-                      <span className="font-medium text-muted-foreground">Strategy:</span> {trade.strategy || 'N/A'}
-                    </li>
-                    <li>
-                      <span className="font-medium text-muted-foreground">Direction:</span> {trade.direction === 'long' ? 'Long' : 'Short'}
-                    </li>
-                    <li>
-                      <span className="font-medium text-muted-foreground">Status:</span> {trade.status}
-                    </li>
-                    <li>
-                      <span className="font-medium text-muted-foreground">Grade:</span> {trade.grade || 'N/A'}
-                    </li>
-                    <li>
-                      <span className="font-medium text-muted-foreground">Timeframe:</span> {trade.timeframe || 'N/A'}
-                    </li>
-                    <li>
-                      <span className="font-medium text-muted-foreground">PSP Time:</span> {trade.pspTime || 'N/A'}
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <ul className="list-none pl-0 space-y-3">
-                    <li>
-                      <span className="font-medium text-muted-foreground">Entry Date:</span> {format(new Date(trade.entryDate), 'MMMM d, yyyy, h:mm a')}
-                    </li>
-                    <li>
-                      <span className="font-medium text-muted-foreground">Entry Price:</span> {trade.entryPrice}
-                    </li>
-                    <li>
-                      <span className="font-medium text-muted-foreground">Quantity:</span> {trade.quantity}
-                    </li>
-                    <li>
-                      <span className="font-medium text-muted-foreground">Stop Loss:</span> {trade.stopLoss || 'N/A'}
-                    </li>
-                    <li>
-                      <span className="font-medium text-muted-foreground">Take Profit:</span> {trade.takeProfit || 'N/A'}
-                    </li>
-                    <li>
-                      <span className="font-medium text-muted-foreground">Fees:</span> {trade.fees ? `$${trade.fees.toFixed(2)}` : 'N/A'}
-                    </li>
-                    {trade.contractDetails && trade.type === 'futures' && (
-                      <li>
-                        <span className="font-medium text-muted-foreground">Contract Value:</span> {trade.contractDetails.tickValue ? `$${trade.contractDetails.tickValue}` : 'N/A'}
-                      </li>
-                    )}
-                  </ul>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Trade Details</CardTitle>
+            <CardDescription>Key information about this trade</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Entry Date</p>
+                <p className="font-medium">{format(new Date(trade.entryDate), 'MM/dd/yyyy')}</p>
               </div>
-              {trade.exitDate && (
-                <div className="mt-4 pt-4 border-t">
-                  <h3 className="font-medium text-lg mb-2">Exit Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <ul className="list-none pl-0 space-y-3">
-                      <li>
-                        <span className="font-medium text-muted-foreground">Exit Date:</span> {format(new Date(trade.exitDate), 'MMMM d, yyyy, h:mm a')}
-                      </li>
-                      <li>
-                        <span className="font-medium text-muted-foreground">Exit Price:</span> {trade.exitPrice || 'N/A'}
-                      </li>
-                      <li>
-                        <span className="font-medium text-muted-foreground">Exit Reason:</span> {trade.exitReason || 'N/A'}
-                      </li>
-                    </ul>
+              <div>
+                <p className="text-sm text-muted-foreground">Entry Price</p>
+                <p className="font-medium">{trade.entryPrice}</p>
+              </div>
+              
+              {trade.exitDate && trade.exitPrice && (
+                <>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Exit Date</p>
+                    <p className="font-medium">{format(new Date(trade.exitDate), 'MM/dd/yyyy')}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Exit Price</p>
+                    <p className="font-medium">{trade.exitPrice}</p>
+                  </div>
+                </>
+              )}
+              
+              <div>
+                <p className="text-sm text-muted-foreground">Quantity</p>
+                <p className="font-medium">{trade.quantity}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Type</p>
+                <p className="font-medium">{trade.type.charAt(0).toUpperCase() + trade.type.slice(1)}</p>
+              </div>
+              
+              {trade.pspTime && (
+                <div>
+                  <p className="text-sm text-muted-foreground">PSP Time</p>
+                  <p className="font-medium">{trade.pspTime}</p>
+                </div>
+              )}
+              
+              {trade.timeframe && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Timeframe</p>
+                  <p className="font-medium">{trade.timeframe}</p>
+                </div>
+              )}
+              
+              {trade.direction && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Direction</p>
+                  <p className="font-medium">{trade.direction === 'long' ? 'Long' : 'Short'}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Risk & Reward</CardTitle>
+            <CardDescription>Trade performance and risk metrics</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-y-4 mb-6">
+              {trade.stopLoss && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Stop Loss</p>
+                  <p className="font-medium">{trade.stopLoss}</p>
+                </div>
+              )}
+              
+              {trade.takeProfit && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Take Profit</p>
+                  <p className="font-medium">{trade.takeProfit}</p>
+                </div>
+              )}
+              
+              {trade.fees !== undefined && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Fees</p>
+                  <p className="font-medium">${trade.fees.toFixed(2)}</p>
+                </div>
+              )}
+              
+              {metrics && metrics.riskedAmount !== undefined && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Risked Amount</p>
+                  <p className="font-medium">${metrics.riskedAmount.toFixed(2)}</p>
+                </div>
+              )}
+              
+              {metrics && metrics.maxPotentialGain !== undefined && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Potential Reward</p>
+                  <p className="font-medium">${metrics.maxPotentialGain.toFixed(2)}</p>
+                </div>
+              )}
+            </div>
+            
+            {metrics && (
+              <>
+                <div className="border-t pt-4 mb-4">
+                  <h3 className="font-medium mb-3">Trade Results</h3>
+                  <div className="grid grid-cols-2 gap-y-4">
+                    {metrics.profitLoss !== undefined && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">P&L</p>
+                        <p className={`font-medium ${metrics.profitLoss >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          ${metrics.profitLoss.toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {metrics.profitLossPercentage !== undefined && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">P&L %</p>
+                        <p className={`font-medium ${metrics.profitLossPercentage >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {metrics.profitLossPercentage.toFixed(2)}%
+                        </p>
+                      </div>
+                    )}
+                    
+                    {metrics.riskRewardRatio !== undefined && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">R Multiple</p>
+                        <p className={`font-medium ${metrics.riskRewardRatio >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {metrics.riskRewardRatio > 0 ? `+${metrics.riskRewardRatio.toFixed(2)}` : metrics.riskRewardRatio.toFixed(2)}R
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {trade.partialExits && trade.partialExits.length > 0 && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Partial Exits</CardTitle>
-                <CardDescription>List of partial exits for this trade.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PartialExitsList trade={trade} onUpdate={() => {}} allowEditing={false} />
-              </CardContent>
-            </Card>
-          )}
-
+                
+                <button 
+                  className="w-full flex justify-between items-center px-4 py-2 border rounded-md"
+                  onClick={() => setShowCalculationDetails(!showCalculationDetails)}
+                >
+                  <span>Calculation Details</span>
+                  {showCalculationDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+                
+                {showCalculationDetails && metrics.calculationExplanation && (
+                  <div className="mt-4 p-3 bg-muted/30 rounded-md text-sm whitespace-pre-wrap">
+                    {metrics.calculationExplanation}
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+        
+        {trade.type === 'futures' && trade.contractDetails && (
           <Card>
             <CardHeader>
-              <CardTitle>Trade Comments</CardTitle>
-              <CardDescription>Comments and analysis on the trade.</CardDescription>
+              <CardTitle>Contract Specifications</CardTitle>
+              <CardDescription>Futures contract details</CardDescription>
             </CardHeader>
             <CardContent>
-              {trade.notes ? (
-                <div className="bg-accent/30 p-4 rounded-md whitespace-pre-wrap">{trade.notes}</div>
-              ) : (
-                <p className="text-muted-foreground">No comments for this trade.</p>
-              )}
+              <div className="grid grid-cols-2 gap-y-4">
+                {trade.contractDetails.exchange && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Exchange</p>
+                    <p className="font-medium">{trade.contractDetails.exchange}</p>
+                  </div>
+                )}
+                
+                {trade.contractDetails.tickSize && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tick Size</p>
+                    <p className="font-medium">{trade.contractDetails.tickSize}</p>
+                  </div>
+                )}
+                
+                {trade.contractDetails.contractSize && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Contract Size</p>
+                    <p className="font-medium">{trade.contractDetails.contractSize}</p>
+                  </div>
+                )}
+                
+                {trade.contractDetails.tickValue && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Point Value</p>
+                    <p className="font-medium">${trade.contractDetails.tickValue}</p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
-        </div>
-
-        <div>
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Risk/Reward</CardTitle>
-              <CardDescription>Trade risk metrics</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {metrics && (
-                <div className="space-y-4">
-                  {metrics.profitLoss !== undefined && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">P&L:</h3>
-                      <p className={`text-xl font-semibold ${metrics.profitLoss >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        ${metrics.profitLoss.toFixed(2)}
-                        {metrics.riskRewardRatio !== undefined && (
-                          <span className="ml-2 text-base">
-                            ({metrics.riskRewardRatio > 0 ? '+' : ''}{metrics.riskRewardRatio.toFixed(2)}R)
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {metrics.profitLossPercentage !== undefined && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">P&L (%):</h3>
-                      <p className={`text-xl font-semibold ${metrics.profitLossPercentage >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        {metrics.profitLossPercentage.toFixed(2)}%
-                      </p>
-                    </div>
-                  )}
-                  
-                  {metrics.riskedAmount !== undefined && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Risk Amount:</h3>
-                      <p className="text-xl font-semibold">${metrics.riskedAmount.toFixed(2)}</p>
-                    </div>
-                  )}
-                  
-                  {metrics.riskRewardRatio !== undefined && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Risk/Reward Ratio:</h3>
-                      <p className="text-xl font-semibold">{metrics.riskRewardRatio.toFixed(2)}:1</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          {trade.images && trade.images.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Trade Images</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-2">
-                  {trade.images.map((image, index) => (
-                    <div key={index} className="overflow-hidden rounded-md border">
-                      <img 
-                        src={image} 
-                        alt={`Trade chart ${index + 1}`} 
-                        className="h-auto w-full object-cover aspect-square cursor-pointer" 
-                      />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        )}
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Notes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {trade.notes ? (
+              <div className="whitespace-pre-wrap">{trade.notes}</div>
+            ) : (
+              <p className="text-muted-foreground">No notes for this trade.</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
+      
+      {trade.partialExits && trade.partialExits.length > 0 && (
+        <div className="mt-6">
+          <PartialExitsList trade={trade} onUpdate={() => {}} allowEditing={false} />
+        </div>
+      )}
+      
+      {trade.images && trade.images.length > 0 && (
+        <div className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Trade Images</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {trade.images.map((image, index) => (
+                  <div key={index} className="overflow-hidden rounded-md border">
+                    <img 
+                      src={image} 
+                      alt={`Trade chart ${index + 1}`} 
+                      className="h-auto w-full object-cover cursor-pointer" 
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
