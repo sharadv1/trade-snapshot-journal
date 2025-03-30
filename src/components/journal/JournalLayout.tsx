@@ -66,7 +66,8 @@ export function JournalLayout() {
           </Tabs>
         )}
       </div>
-      <Outlet />
+      {/* Add key to Outlet to ensure full remounting when path changes */}
+      <Outlet key={location.pathname} />
     </div>
   );
 }

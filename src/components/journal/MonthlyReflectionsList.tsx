@@ -18,10 +18,17 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Pencil, Calendar } from 'lucide-react';
-import { getMonthlyReflections, monthlyReflectionExists } from '@/utils/journalStorage';
+import { getMonthlyReflections } from '@/utils/journalStorage';
 import { MonthlyReflection } from '@/types';
-import { getTradesWithMetrics } from '@/utils/tradeStorage';
+import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { formatCurrency } from '@/utils/calculations/formatters';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function MonthlyReflectionsList() {
   const navigate = useNavigate();
@@ -148,19 +155,18 @@ export function MonthlyReflectionsList() {
     navigate(`/journal/monthly/${monthId}`);
   };
   
+  const handleJumpToReflection = (monthId: string) => {
+    if (!monthId) return;
+    navigate(`/journal/monthly/${monthId}`);
+  };
+  
   const handleCreateNew = () => {
     // Use current month for new reflection
     const today = new Date();
     const formattedDate = format(today, 'yyyy-MM');
     
-    // Check if the current month already has a reflection
-    if (monthlyReflectionExists(formattedDate)) {
-      // If an entry exists, just navigate to it
-      navigate(`/journal/monthly/${formattedDate}`);
-    } else {
-      // If no entry exists, create a new one
-      navigate(`/journal/monthly/${formattedDate}`);
-    }
+    // Always navigate to the monthly journal for the current month
+    navigate(`/journal/monthly/${formattedDate}`);
   };
   
   const getGradeColor = (grade: string = '') => {
@@ -170,20 +176,26 @@ export function MonthlyReflectionsList() {
     return 'bg-red-100 text-red-800';
   };
   
-  // Get the current month's ID to check if it already has a reflection
-  const currentMonthId = format(new Date(), 'yyyy-MM');
-  const currentMonthHasReflection = monthlyReflectionExists(currentMonthId);
-  
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Monthly Trading Journal Reflections</CardTitle>
         <div className="flex items-center space-x-2">
-          <Button 
-            onClick={handleCreateNew}
-            disabled={currentMonthHasReflection}
-            title={currentMonthHasReflection ? "This month already has a reflection" : "Create new reflection"}
-          >
+          {reflections.length > 0 && (
+            <Select onValueChange={handleJumpToReflection}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Jump to reflection" />
+              </SelectTrigger>
+              <SelectContent>
+                {reflections.map((reflection) => (
+                  <SelectItem key={reflection.monthId} value={reflection.monthId}>
+                    {format(parseISO(reflection.monthStart), 'MMMM yyyy')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button onClick={handleCreateNew}>
             <Calendar className="mr-2 h-4 w-4" />
             New Reflection
           </Button>
@@ -191,7 +203,7 @@ export function MonthlyReflectionsList() {
       </CardHeader>
       <CardContent>
         {reflections.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-8" key="empty-state">
             <p className="text-muted-foreground mb-4">
               You haven't created any monthly reflections yet.
             </p>

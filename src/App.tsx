@@ -44,14 +44,14 @@ function App() {
             <Route index element={<Navigate to="/journal/weekly" replace />} />
             
             {/* Explicit weekly and monthly list views */}
-            <Route path="weekly" element={<ReflectionsList />} />
-            <Route path="monthly" element={<MonthlyReflectionsList />} />
+            <Route path="weekly" element={<ReflectionsList key="weekly-list" />} />
+            <Route path="monthly" element={<MonthlyReflectionsList key="monthly-list" />} />
             
             {/* Weekly detail view */}
-            <Route path="weekly/:weekId" element={<WeeklyJournal />} />
+            <Route path="weekly/:weekId" element={<WeeklyJournal key="weekly-detail" />} />
             
             {/* Monthly detail view */}
-            <Route path="monthly/:monthId" element={<WeeklyJournal />} />
+            <Route path="monthly/:monthId" element={<WeeklyJournal key="monthly-detail" />} />
             
             {/* Legacy route for backward compatibility */}
             <Route path=":weekId" element={<LegacyWeekRedirect />} />

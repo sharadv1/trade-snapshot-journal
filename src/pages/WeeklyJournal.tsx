@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +26,7 @@ import {
   parse,
   parseISO
 } from 'date-fns';
-import { ArrowLeft, ArrowRight, Save, Calendar, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { TradeWithMetrics } from '@/types';
@@ -41,7 +40,6 @@ import {
 } from '@/components/ui/table';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationEllipsis } from '@/components/ui/pagination';
 import { 
   Select,
   SelectContent,
@@ -108,7 +106,6 @@ export default function WeeklyJournal() {
   const [periodTrades, setPeriodTrades] = useState<TradeWithMetrics[]>([]);
   const [allWeeklyReflections, setAllWeeklyReflections] = useState<Record<string, any>>({});
   const [allMonthlyReflections, setAllMonthlyReflections] = useState<Record<string, any>>({});
-  const [showJumpMenu, setShowJumpMenu] = useState(false);
   const [availableEntries, setAvailableEntries] = useState<string[]>([]);
 
   // Date calculations
@@ -407,44 +404,6 @@ export default function WeeklyJournal() {
     
     return () => clearInterval(autoSaveInterval);
   }, [saveReflections, hasChanged]);
-
-  // Generate pagination items
-  const renderPagination = () => {
-    // Limit to 10 entries max
-    const maxEntries = 5;
-    const entries = availableEntries.slice(0, maxEntries);
-    
-    if (entries.length <= 1) return null;
-    
-    return (
-      <Pagination className="mb-4">
-        <PaginationContent>
-          {entries.map((entry) => {
-            const isActive = isMonthView 
-              ? entry === monthId
-              : entry === weekId;
-            
-            const displayText = isMonthView
-              ? format(new Date(entry + '-01'), 'MMM yyyy')
-              : format(new Date(entry), 'MMM d');
-              
-            return (
-              <PaginationItem key={entry}>
-                <PaginationLink isActive={isActive} onClick={() => handleJumpToEntry(entry)}>
-                  {displayText}
-                </PaginationLink>
-              </PaginationItem>
-            );
-          })}
-          {availableEntries.length > maxEntries && (
-            <PaginationItem>
-              <PaginationEllipsis />
-            </PaginationItem>
-          )}
-        </PaginationContent>
-      </Pagination>
-    );
-  };
 
   // Entry selector
   const renderEntrySelector = () => {

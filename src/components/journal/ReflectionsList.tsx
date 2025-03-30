@@ -18,11 +18,18 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Pencil, Calendar } from 'lucide-react';
+import { Pencil, Calendar, ChevronDown } from 'lucide-react';
 import { getWeeklyReflections, weeklyReflectionExists } from '@/utils/journalStorage';
 import { WeeklyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { formatCurrency } from '@/utils/calculations/formatters';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function ReflectionsList() {
   const navigate = useNavigate();
@@ -157,14 +164,14 @@ export function ReflectionsList() {
     monday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
     const weekId = format(monday, 'yyyy-MM-dd');
     
-    // Check if this week already has an entry
-    if (weeklyReflectionExists(weekId)) {
-      // If an entry exists, just navigate to it
-      navigate(`/journal/weekly/${weekId}`);
-    } else {
-      // If no entry exists, create a new one
-      navigate(`/journal/weekly/${weekId}`);
-    }
+    // Always navigate to create/edit page, even if entry exists
+    navigate(`/journal/weekly/${weekId}`);
+  };
+  
+  // Jump to a specific reflection when selected from dropdown
+  const handleJumpToReflection = (weekId: string) => {
+    if (!weekId) return;
+    navigate(`/journal/weekly/${weekId}`);
   };
   
   const getGradeColor = (grade: string = '') => {
@@ -192,23 +199,26 @@ export function ReflectionsList() {
     }
   };
   
-  // Get the current week's ID to check if it already has a reflection
-  const today = new Date();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
-  const currentWeekId = format(monday, 'yyyy-MM-dd');
-  const currentWeekHasReflection = weeklyReflectionExists(currentWeekId);
-  
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Weekly Trading Journal Reflections</CardTitle>
         <div className="flex items-center space-x-2">
-          <Button 
-            onClick={handleCreateNew}
-            disabled={currentWeekHasReflection}
-            title={currentWeekHasReflection ? "This week already has a reflection" : "Create new reflection"}
-          >
+          {reflections.length > 0 && (
+            <Select onValueChange={handleJumpToReflection}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Jump to reflection" />
+              </SelectTrigger>
+              <SelectContent>
+                {reflections.map((reflection) => (
+                  <SelectItem key={reflection.weekId} value={reflection.weekId}>
+                    {formatDateRange(reflection.weekStart, reflection.weekEnd)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button onClick={handleCreateNew}>
             <Calendar className="mr-2 h-4 w-4" />
             New Reflection
           </Button>
@@ -216,7 +226,7 @@ export function ReflectionsList() {
       </CardHeader>
       <CardContent>
         {reflections.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-8" key="empty-state">
             <p className="text-muted-foreground mb-4">
               You haven't created any weekly reflections yet.
             </p>
