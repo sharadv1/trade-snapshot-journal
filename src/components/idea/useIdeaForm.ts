@@ -27,10 +27,12 @@ export function useIdeaForm({
 
   useEffect(() => {
     if (initialIdea) {
-      // Convert TradeIdea to IdeaFormData, ensuring direction always has a default value
+      // Convert TradeIdea to IdeaFormData, ensuring all required fields are present
       setIdea({
         ...initialIdea,
+        description: initialIdea.description || '',
         direction: initialIdea.direction || 'long',
+        status: initialIdea.status || 'still valid',
         images: initialIdea.images || []
       });
       setImages(initialIdea.images || []);

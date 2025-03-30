@@ -88,7 +88,7 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
   };
 
   const handleTypeChange = (type: Trade['type']) => {
-    // Convert 'equity' to 'stock' for compatibility
+    // Always use the normalized type, never directly compare with 'equity'
     const normalizedType = type === 'equity' ? 'stock' : type;
     handleChange('type', normalizedType as Trade['type']);
     
