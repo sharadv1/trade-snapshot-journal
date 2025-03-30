@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -8,7 +9,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { format, parseISO, isValid, addWeeks, subWeeks } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { 
   Table, 
   TableBody, 
@@ -17,7 +18,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Pencil, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Calendar } from 'lucide-react';
 import { getWeeklyReflections } from '@/utils/journalStorage';
 import { WeeklyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
@@ -31,13 +32,6 @@ export function ReflectionsList() {
     totalPnL: number,
     totalR: number
   }>>({});
-  const [currentWeekDate, setCurrentWeekDate] = useState(new Date());
-  const [currentWeekId, setCurrentWeekId] = useState(() => {
-    const weekStart = new Date(currentWeekDate);
-    weekStart.setDate(currentWeekDate.getDate() - currentWeekDate.getDay() + (currentWeekDate.getDay() === 0 ? -6 : 1));
-    return format(weekStart, 'yyyy-MM-dd');
-  });
-  const [hasCurrentWeekReflection, setHasCurrentWeekReflection] = useState(false);
   
   const isWeeklyView = !location.pathname.includes('/monthly');
   
@@ -59,16 +53,6 @@ export function ReflectionsList() {
       window.removeEventListener('journalUpdated', handleStorageChange);
     };
   }, [isWeeklyView]);
-  
-  useEffect(() => {
-    const weekStart = new Date(currentWeekDate);
-    weekStart.setDate(currentWeekDate.getDate() - currentWeekDate.getDay() + (currentWeekDate.getDay() === 0 ? -6 : 1));
-    const weekId = format(weekStart, 'yyyy-MM-dd');
-    setCurrentWeekId(weekId);
-    
-    const reflectionsMap = getWeeklyReflections();
-    setHasCurrentWeekReflection(!!reflectionsMap[weekId]);
-  }, [currentWeekDate]);
   
   const loadReflections = () => {
     console.log("Loading weekly reflections...");
@@ -141,8 +125,6 @@ export function ReflectionsList() {
     });
     
     setReflectionStats(stats);
-    
-    setHasCurrentWeekReflection(!!reflectionsMap[currentWeekId]);
   };
   
   const handleEditReflection = (weekId: string) => {
@@ -150,17 +132,20 @@ export function ReflectionsList() {
   };
   
   const handleCreateNew = () => {
-    navigate(`/journal/weekly/${currentWeekId}`);
-  };
-
-  const goToPreviousWeek = () => {
-    const newDate = subWeeks(currentWeekDate, 1);
-    setCurrentWeekDate(newDate);
-  };
-
-  const goToNextWeek = () => {
-    const newDate = addWeeks(currentWeekDate, 1);
-    setCurrentWeekDate(newDate);
+    // Create a new entry with today's date as the week start
+    const today = new Date();
+    const monday = new Date(today);
+    // Adjust to the most recent Monday
+    monday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+    const weekId = format(monday, 'yyyy-MM-dd');
+    
+    // Check if this week already has an entry
+    const reflectionsMap = getWeeklyReflections();
+    if (reflectionsMap[weekId]) {
+      navigate(`/journal/weekly/${weekId}`);
+    } else {
+      navigate(`/journal/weekly/${weekId}`);
+    }
   };
   
   const getGradeColor = (grade: string = '') => {
@@ -188,33 +173,14 @@ export function ReflectionsList() {
     }
   };
   
-  const weekStart = new Date(currentWeekDate);
-  weekStart.setDate(currentWeekDate.getDate() - currentWeekDate.getDay() + (currentWeekDate.getDay() === 0 ? -6 : 1));
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  const currentWeekFormatted = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
-  
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Weekly Trading Journal Reflections</CardTitle>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={goToPreviousWeek} className="flex items-center">
-            <ChevronLeft className="h-4 w-4" />
-            <span className="hidden sm:inline ml-1">Previous Week</span>
-          </Button>
-          <span className="text-sm font-medium px-3 py-1 bg-primary/10 rounded-md">{currentWeekFormatted}</span>
-          <Button variant="outline" onClick={goToNextWeek} className="flex items-center">
-            <span className="hidden sm:inline mr-1">Next Week</span>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button 
-            onClick={handleCreateNew} 
-            disabled={hasCurrentWeekReflection}
-            title={hasCurrentWeekReflection ? "An entry already exists for this week" : "Create new reflection"}
-          >
+          <Button onClick={handleCreateNew}>
             <Calendar className="mr-2 h-4 w-4" />
-            {hasCurrentWeekReflection ? "Entry Exists" : "New Reflection"}
+            New Reflection
           </Button>
         </div>
       </CardHeader>
@@ -224,7 +190,7 @@ export function ReflectionsList() {
             <p className="text-muted-foreground mb-4">
               You haven't created any weekly reflections yet.
             </p>
-            <Button onClick={handleCreateNew} disabled={hasCurrentWeekReflection}>
+            <Button onClick={handleCreateNew}>
               Create Your First Reflection
             </Button>
           </div>

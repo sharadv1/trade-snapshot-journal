@@ -30,8 +30,16 @@ import {
 import { ArrowLeft, ArrowRight, Save, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
-import { TradeList } from '@/components/trade-list/TradeList';
 import { TradeWithMetrics } from '@/types';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { formatCurrency } from '@/utils/calculations/formatters';
 
 export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
@@ -503,7 +511,37 @@ export default function WeeklyJournal() {
         </CardHeader>
         <CardContent>
           {periodTrades.length > 0 ? (
-            <TradeList initialTrades={periodTrades} />
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Symbol</TableHead>
+                  <TableHead>Direction</TableHead>
+                  <TableHead>Entry Date</TableHead>
+                  <TableHead>Exit Date</TableHead>
+                  <TableHead>P&L</TableHead>
+                  <TableHead>R Value</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {periodTrades.map((trade) => (
+                  <TableRow key={trade.id}>
+                    <TableCell>{trade.symbol}</TableCell>
+                    <TableCell>{trade.direction}</TableCell>
+                    <TableCell>{format(new Date(trade.entryDate), 'MMM d, yyyy')}</TableCell>
+                    <TableCell>
+                      {trade.exitDate ? format(new Date(trade.exitDate), 'MMM d, yyyy') : '-'}
+                    </TableCell>
+                    <TableCell className={trade.metrics.profitLoss >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                      {formatCurrency(trade.metrics.profitLoss || 0)}
+                    </TableCell>
+                    <TableCell className={trade.metrics.riskRewardRatio >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                      {trade.metrics.riskRewardRatio > 0 ? '+' : ''}
+                      {trade.metrics.riskRewardRatio.toFixed(2)}R
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           ) : (
             <div className="text-center py-6 text-muted-foreground">
               No trades found for this {isMonthView ? 'month' : 'week'}.
