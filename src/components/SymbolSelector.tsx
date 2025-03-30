@@ -54,8 +54,10 @@ export function SymbolSelector({
     
     // Auto-select type if a symbol with specific type is selected
     if (selectedSymbol && onTypeChange) {
-      // Convert 'equity' to 'stock' for compatibility
-      const normalizedType = selectedSymbol.type === 'equity' ? 'stock' : selectedSymbol.type;
+      // Convert 'equity' to 'stock' and 'option' to 'options' for compatibility
+      let normalizedType = selectedSymbol.type;
+      if (normalizedType === 'equity') normalizedType = 'stock' as any;
+      if (normalizedType === 'option') normalizedType = 'options' as any;
       
       if (normalizedType === 'futures' || normalizedType === 'stock' || 
           normalizedType === 'forex' || normalizedType === 'crypto' || 

@@ -7,21 +7,21 @@ import { toast } from './toast';
 // Default preset symbols that should be in the system 
 const PRESET_SYMBOLS = [
   // Common stocks with their types
-  { symbol: 'AAPL', type: 'equity' as const },
-  { symbol: 'MSFT', type: 'equity' as const },
-  { symbol: 'GOOGL', type: 'equity' as const },
-  { symbol: 'AMZN', type: 'equity' as const },
-  { symbol: 'META', type: 'equity' as const },
-  { symbol: 'TSLA', type: 'equity' as const },
-  { symbol: 'NVDA', type: 'equity' as const },
-  { symbol: 'AMD', type: 'equity' as const },
+  { symbol: 'AAPL', type: 'stock' as const }, // Changed from 'equity' to 'stock'
+  { symbol: 'MSFT', type: 'stock' as const }, // Changed from 'equity' to 'stock'
+  { symbol: 'GOOGL', type: 'stock' as const }, // Changed from 'equity' to 'stock'
+  { symbol: 'AMZN', type: 'stock' as const }, // Changed from 'equity' to 'stock'
+  { symbol: 'META', type: 'stock' as const }, // Changed from 'equity' to 'stock'
+  { symbol: 'TSLA', type: 'stock' as const }, // Changed from 'equity' to 'stock'
+  { symbol: 'NVDA', type: 'stock' as const }, // Changed from 'equity' to 'stock'
+  { symbol: 'AMD', type: 'stock' as const }, // Changed from 'equity' to 'stock'
 ];
 
 const CUSTOM_SYMBOLS_KEY = 'customSymbols';
 
 export interface SymbolDetails {
   symbol: string;
-  type: 'equity' | 'futures' | 'option' | 'forex' | 'crypto';
+  type: 'stock' | 'futures' | 'options' | 'forex' | 'crypto'; // Changed from 'equity'/'option' to 'stock'/'options'
   isPreset?: boolean;
   meaning?: string; // Adding support for custom meanings
 }

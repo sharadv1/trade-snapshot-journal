@@ -88,9 +88,14 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
   };
 
   const handleTypeChange = (type: Trade['type']) => {
-    // Always use the normalized type, never directly compare with 'equity'
-    const normalizedType = type === 'equity' ? 'stock' : type;
-    handleChange('type', normalizedType as Trade['type']);
+    // Never directly compare with 'equity', always convert to 'stock'
+    let normalizedType = type;
+    
+    // Convert legacy values to their modern equivalents
+    if (type === 'equity') normalizedType = 'stock';
+    if (type === 'option') normalizedType = 'options';
+    
+    handleChange('type', normalizedType);
     
     if (normalizedType !== 'futures' && trade.type === 'futures') {
       handleChange('symbol', '');
