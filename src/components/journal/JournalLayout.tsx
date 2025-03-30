@@ -10,9 +10,10 @@ export function JournalLayout() {
   const path = location.pathname;
   
   // Determine the current view based on the path
-  const isMonthlyView = path === '/journal/monthly';
-  const isWeeklyView = path === '/journal/weekly' || path === '/journal';
-  const isDetailView = !isWeeklyView && !isMonthlyView;
+  const isMonthlyView = path.includes('/journal/monthly');
+  const isWeeklyView = path.includes('/journal/weekly') || path === '/journal';
+  const isDetailView = (isWeeklyView && path.includes('/journal/weekly/')) || 
+                       (isMonthlyView && path.includes('/journal/monthly/'));
   
   // Determine which tab is active
   const activeTab = isMonthlyView ? 'monthly' : 'weekly';
@@ -66,8 +67,7 @@ export function JournalLayout() {
           </Tabs>
         )}
       </div>
-      {/* Add key to Outlet to ensure full remounting when path changes */}
-      <Outlet key={location.pathname} />
+      <Outlet />
     </div>
   );
 }

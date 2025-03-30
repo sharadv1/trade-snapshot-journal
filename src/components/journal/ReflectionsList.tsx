@@ -18,18 +18,11 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Pencil, Calendar, ChevronDown } from 'lucide-react';
-import { getWeeklyReflections, weeklyReflectionExists } from '@/utils/journalStorage';
+import { Pencil, Calendar } from 'lucide-react';
+import { getWeeklyReflections } from '@/utils/journalStorage';
 import { WeeklyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { formatCurrency } from '@/utils/calculations/formatters';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export function ReflectionsList() {
   const navigate = useNavigate();
@@ -168,12 +161,6 @@ export function ReflectionsList() {
     navigate(`/journal/weekly/${weekId}`);
   };
   
-  // Jump to a specific reflection when selected from dropdown
-  const handleJumpToReflection = (weekId: string) => {
-    if (!weekId) return;
-    navigate(`/journal/weekly/${weekId}`);
-  };
-  
   const getGradeColor = (grade: string = '') => {
     if (grade.startsWith('A')) return 'bg-green-100 text-green-800';
     if (grade.startsWith('B')) return 'bg-blue-100 text-blue-800';
@@ -204,20 +191,6 @@ export function ReflectionsList() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Weekly Trading Journal Reflections</CardTitle>
         <div className="flex items-center space-x-2">
-          {reflections.length > 0 && (
-            <Select onValueChange={handleJumpToReflection}>
-              <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="Jump to reflection" />
-              </SelectTrigger>
-              <SelectContent>
-                {reflections.map((reflection) => (
-                  <SelectItem key={reflection.weekId} value={reflection.weekId}>
-                    {formatDateRange(reflection.weekStart, reflection.weekEnd)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
           <Button onClick={handleCreateNew}>
             <Calendar className="mr-2 h-4 w-4" />
             New Reflection

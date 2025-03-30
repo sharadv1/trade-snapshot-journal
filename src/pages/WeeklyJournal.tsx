@@ -24,7 +24,8 @@ import {
   addMonths,
   subMonths,
   parse,
-  parseISO
+  parseISO,
+  isValid
 } from 'date-fns';
 import { ArrowLeft, ArrowRight, Save, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
@@ -274,6 +275,41 @@ export default function WeeklyJournal() {
     }
   };
 
+  // Format display text for entry selector
+  const formatEntryDisplay = (entryId: string) => {
+    if (isMonthView) {
+      try {
+        // Check if entry is in YYYY-MM format
+        if (entryId.match(/^\d{4}-\d{2}$/)) {
+          const date = new Date(entryId + '-01');
+          if (isValid(date)) {
+            return format(date, 'MMMM yyyy');
+          }
+        }
+        // If not, try to format it as a date
+        const date = new Date(entryId);
+        if (isValid(date)) {
+          return format(date, 'MMMM yyyy');
+        }
+      } catch (e) {
+        console.error("Error formatting month entry", entryId, e);
+      }
+      return entryId; // Fallback
+    } else {
+      try {
+        const date = new Date(entryId);
+        if (isValid(date)) {
+          const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+          const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+          return `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
+        }
+      } catch (e) {
+        console.error("Error formatting week entry", entryId, e);
+      }
+      return entryId; // Fallback
+    }
+  };
+
   // Load data whenever weekId, monthId, or isMonthView changes
   useEffect(() => {
     setIsLoading(true);
@@ -405,26 +441,22 @@ export default function WeeklyJournal() {
     return () => clearInterval(autoSaveInterval);
   }, [saveReflections, hasChanged]);
 
-  // Entry selector
+  // Entry selector - only shown on detail view
   const renderEntrySelector = () => {
     if (availableEntries.length <= 1) return null;
     
     return (
       <div className="mb-4">
         <Select onValueChange={handleJumpToEntry} value={isMonthView ? monthId : weekId}>
-          <SelectTrigger className="w-[250px]">
-            <SelectValue placeholder="Jump to entry" />
+          <SelectTrigger className="w-[300px]">
+            <SelectValue placeholder="Jump to reflection" />
           </SelectTrigger>
           <SelectContent>
-            {availableEntries.map(entry => {
-              const displayText = isMonthView
-                ? format(new Date(entry + '-01'), 'MMMM yyyy')
-                : format(new Date(entry), 'MMM d, yyyy');
-                
-              return (
-                <SelectItem key={entry} value={entry}>{displayText}</SelectItem>
-              );
-            })}
+            {availableEntries.map(entry => (
+              <SelectItem key={entry} value={entry}>
+                {formatEntryDisplay(entry)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -485,7 +517,7 @@ export default function WeeklyJournal() {
         </div>
       </div>
 
-      {/* Jump to entry selector */}
+      {/* Jump to entry selector - only shown on detail view */}
       {renderEntrySelector()}
 
       {/* Add summary metrics at the top */}

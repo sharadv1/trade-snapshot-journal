@@ -22,13 +22,6 @@ import { getMonthlyReflections } from '@/utils/journalStorage';
 import { MonthlyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { formatCurrency } from '@/utils/calculations/formatters';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export function MonthlyReflectionsList() {
   const navigate = useNavigate();
@@ -155,11 +148,6 @@ export function MonthlyReflectionsList() {
     navigate(`/journal/monthly/${monthId}`);
   };
   
-  const handleJumpToReflection = (monthId: string) => {
-    if (!monthId) return;
-    navigate(`/journal/monthly/${monthId}`);
-  };
-  
   const handleCreateNew = () => {
     // Use current month for new reflection
     const today = new Date();
@@ -181,20 +169,6 @@ export function MonthlyReflectionsList() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Monthly Trading Journal Reflections</CardTitle>
         <div className="flex items-center space-x-2">
-          {reflections.length > 0 && (
-            <Select onValueChange={handleJumpToReflection}>
-              <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="Jump to reflection" />
-              </SelectTrigger>
-              <SelectContent>
-                {reflections.map((reflection) => (
-                  <SelectItem key={reflection.monthId} value={reflection.monthId}>
-                    {format(parseISO(reflection.monthStart), 'MMMM yyyy')}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
           <Button onClick={handleCreateNew}>
             <Calendar className="mr-2 h-4 w-4" />
             New Reflection
