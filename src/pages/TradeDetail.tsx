@@ -123,6 +123,15 @@ export default function TradeDetail() {
                     <li>
                       <span className="font-medium text-muted-foreground">Status:</span> {trade.status}
                     </li>
+                    <li>
+                      <span className="font-medium text-muted-foreground">Grade:</span> {trade.grade || 'N/A'}
+                    </li>
+                    <li>
+                      <span className="font-medium text-muted-foreground">Timeframe:</span> {trade.timeframe || 'N/A'}
+                    </li>
+                    <li>
+                      <span className="font-medium text-muted-foreground">PSP Time:</span> {trade.pspTime || 'N/A'}
+                    </li>
                   </ul>
                 </div>
                 <div>
@@ -142,6 +151,14 @@ export default function TradeDetail() {
                     <li>
                       <span className="font-medium text-muted-foreground">Take Profit:</span> {trade.takeProfit || 'N/A'}
                     </li>
+                    <li>
+                      <span className="font-medium text-muted-foreground">Fees:</span> {trade.fees ? `$${trade.fees.toFixed(2)}` : 'N/A'}
+                    </li>
+                    {trade.contractDetails && trade.type === 'futures' && (
+                      <li>
+                        <span className="font-medium text-muted-foreground">Contract Value:</span> {trade.contractDetails.tickValue ? `$${trade.contractDetails.tickValue}` : 'N/A'}
+                      </li>
+                    )}
                   </ul>
                 </div>
               </div>
@@ -155,6 +172,9 @@ export default function TradeDetail() {
                       </li>
                       <li>
                         <span className="font-medium text-muted-foreground">Exit Price:</span> {trade.exitPrice || 'N/A'}
+                      </li>
+                      <li>
+                        <span className="font-medium text-muted-foreground">Exit Reason:</span> {trade.exitReason || 'N/A'}
                       </li>
                     </ul>
                   </div>
@@ -204,6 +224,11 @@ export default function TradeDetail() {
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">P&L:</h3>
                       <p className={`text-xl font-semibold ${metrics.profitLoss >= 0 ? "text-green-600" : "text-red-600"}`}>
                         ${metrics.profitLoss.toFixed(2)}
+                        {metrics.riskRewardRatio !== undefined && (
+                          <span className="ml-2 text-base">
+                            ({metrics.riskRewardRatio > 0 ? '+' : ''}{metrics.riskRewardRatio.toFixed(2)}R)
+                          </span>
+                        )}
                       </p>
                     </div>
                   )}
@@ -234,6 +259,27 @@ export default function TradeDetail() {
               )}
             </CardContent>
           </Card>
+          
+          {trade.images && trade.images.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Trade Images</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2">
+                  {trade.images.map((image, index) => (
+                    <div key={index} className="overflow-hidden rounded-md border">
+                      <img 
+                        src={image} 
+                        alt={`Trade chart ${index + 1}`} 
+                        className="h-auto w-full object-cover aspect-square cursor-pointer" 
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
