@@ -93,6 +93,7 @@ export function MonthlyReflectionsList() {
     const stats: Record<string, { totalPnL: number, totalR: number, tradeCount: number }> = {};
     
     reflectionsArray.forEach(reflection => {
+      // Initialize month trades array
       let monthTrades = [];
       
       // First check by date range
@@ -118,9 +119,7 @@ export function MonthlyReflectionsList() {
         const allMonthTradesMap = new Map();
         
         [...monthTrades, ...tradesByIds].forEach(trade => {
-          if (!allMonthTradesMap.has(trade.id)) {
-            allMonthTradesMap.set(trade.id, trade);
-          }
+          allMonthTradesMap.set(trade.id, trade);
         });
         
         monthTrades = Array.from(allMonthTradesMap.values());
@@ -145,8 +144,7 @@ export function MonthlyReflectionsList() {
   const handleEditReflection = (monthId: string) => {
     if (!monthId) return;
     
-    console.log(`Navigating to monthly reflection: ${monthId}`);
-    // Use the monthId directly for navigation
+    // Use the exact monthId for navigation to ensure we go to the correct entry
     navigate(`/journal/monthly/${monthId}`);
   };
   

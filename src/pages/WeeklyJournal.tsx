@@ -27,7 +27,7 @@ import {
   parse,
   parseISO
 } from 'date-fns';
-import { ArrowLeft, ArrowRight, Save, Calendar } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Calendar, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { TradeWithMetrics } from '@/types';
@@ -41,6 +41,14 @@ import {
 } from '@/components/ui/table';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationEllipsis } from '@/components/ui/pagination';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 
 export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
@@ -100,6 +108,8 @@ export default function WeeklyJournal() {
   const [periodTrades, setPeriodTrades] = useState<TradeWithMetrics[]>([]);
   const [allWeeklyReflections, setAllWeeklyReflections] = useState<Record<string, any>>({});
   const [allMonthlyReflections, setAllMonthlyReflections] = useState<Record<string, any>>({});
+  const [showJumpMenu, setShowJumpMenu] = useState(false);
+  const [availableEntries, setAvailableEntries] = useState<string[]>([]);
 
   // Date calculations
   const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -113,8 +123,24 @@ export default function WeeklyJournal() {
   // Load all reflections to check existence
   useEffect(() => {
     const loadAllReflections = () => {
-      setAllWeeklyReflections(getAllWeeklyReflections());
-      setAllMonthlyReflections(getAllMonthlyReflections());
+      const weeklyReflections = getAllWeeklyReflections();
+      const monthlyReflections = getAllMonthlyReflections();
+      
+      setAllWeeklyReflections(weeklyReflections);
+      setAllMonthlyReflections(monthlyReflections);
+      
+      // Create a list of available entries for the jump menu
+      if (isMonthView) {
+        const entries = Object.keys(monthlyReflections).sort((a, b) => 
+          new Date(b).getTime() - new Date(a).getTime()
+        );
+        setAvailableEntries(entries);
+      } else {
+        const entries = Object.keys(weeklyReflections).sort((a, b) => 
+          new Date(b).getTime() - new Date(a).getTime()
+        );
+        setAvailableEntries(entries);
+      }
     };
     
     loadAllReflections();
@@ -129,7 +155,7 @@ export default function WeeklyJournal() {
     return () => {
       window.removeEventListener('journal-updated', handleJournalUpdated);
     };
-  }, []);
+  }, [isMonthView]);
   
   // Load trades for the current period (week or month)
   useEffect(() => {
@@ -230,6 +256,24 @@ export default function WeeklyJournal() {
       setCurrentDate(newDate);
       setWeekId(newWeekId);
       navigate(`/journal/weekly/${newWeekId}`);
+    }
+  };
+
+  // Handle jumping to a specific entry
+  const handleJumpToEntry = (entryId: string) => {
+    if (hasChanged) {
+      // Save current changes before navigating
+      saveReflections();
+    }
+    
+    if (isMonthView) {
+      setCurrentDate(new Date(entryId + '-01')); // Add day for valid date
+      setMonthId(entryId);
+      navigate(`/journal/monthly/${entryId}`);
+    } else {
+      setCurrentDate(new Date(entryId));
+      setWeekId(entryId);
+      navigate(`/journal/weekly/${entryId}`);
     }
   };
 
@@ -364,6 +408,70 @@ export default function WeeklyJournal() {
     return () => clearInterval(autoSaveInterval);
   }, [saveReflections, hasChanged]);
 
+  // Generate pagination items
+  const renderPagination = () => {
+    // Limit to 10 entries max
+    const maxEntries = 5;
+    const entries = availableEntries.slice(0, maxEntries);
+    
+    if (entries.length <= 1) return null;
+    
+    return (
+      <Pagination className="mb-4">
+        <PaginationContent>
+          {entries.map((entry) => {
+            const isActive = isMonthView 
+              ? entry === monthId
+              : entry === weekId;
+            
+            const displayText = isMonthView
+              ? format(new Date(entry + '-01'), 'MMM yyyy')
+              : format(new Date(entry), 'MMM d');
+              
+            return (
+              <PaginationItem key={entry}>
+                <PaginationLink isActive={isActive} onClick={() => handleJumpToEntry(entry)}>
+                  {displayText}
+                </PaginationLink>
+              </PaginationItem>
+            );
+          })}
+          {availableEntries.length > maxEntries && (
+            <PaginationItem>
+              <PaginationEllipsis />
+            </PaginationItem>
+          )}
+        </PaginationContent>
+      </Pagination>
+    );
+  };
+
+  // Entry selector
+  const renderEntrySelector = () => {
+    if (availableEntries.length <= 1) return null;
+    
+    return (
+      <div className="mb-4">
+        <Select onValueChange={handleJumpToEntry} value={isMonthView ? monthId : weekId}>
+          <SelectTrigger className="w-[250px]">
+            <SelectValue placeholder="Jump to entry" />
+          </SelectTrigger>
+          <SelectContent>
+            {availableEntries.map(entry => {
+              const displayText = isMonthView
+                ? format(new Date(entry + '-01'), 'MMMM yyyy')
+                : format(new Date(entry), 'MMM d, yyyy');
+                
+              return (
+                <SelectItem key={entry} value={entry}>{displayText}</SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  };
+
   // Don't render until loading is complete to avoid flickering
   if (isLoading) {
     return (
@@ -375,7 +483,7 @@ export default function WeeklyJournal() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="mb-8 flex justify-between items-center">
+      <div className="mb-4 flex justify-between items-center">
         <div>
           <Button 
             variant="outline" 
@@ -417,6 +525,9 @@ export default function WeeklyJournal() {
           </Button>
         </div>
       </div>
+
+      {/* Jump to entry selector */}
+      {renderEntrySelector()}
 
       {/* Add summary metrics at the top */}
       <div className="mb-8">

@@ -121,9 +121,7 @@ export function ReflectionsList() {
         const allWeekTradesMap = new Map();
         
         [...weekTrades, ...tradesByIds].forEach(trade => {
-          if (!allWeekTradesMap.has(trade.id)) {
-            allWeekTradesMap.set(trade.id, trade);
-          }
+          allWeekTradesMap.set(trade.id, trade);
         });
         
         weekTrades = Array.from(allWeekTradesMap.values());
@@ -146,7 +144,8 @@ export function ReflectionsList() {
   };
   
   const handleEditReflection = (weekId: string) => {
-    // Navigate directly to the specific week's journal
+    if (!weekId) return;
+    // Navigate directly to the specific week's journal using its exact ID
     navigate(`/journal/weekly/${weekId}`);
   };
   
@@ -268,7 +267,7 @@ export function ReflectionsList() {
                     </TableCell>
                     <TableCell>{stats.tradeCount} trades</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditReflection(reflectionId)}>
+                      <Button variant="ghost" size="sm" onClick={() => handleEditReflection(reflection.weekId)}>
                         <Pencil className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
