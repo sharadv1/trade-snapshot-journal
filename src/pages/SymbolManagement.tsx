@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -68,7 +67,7 @@ import { COMMON_FUTURES_CONTRACTS } from '@/types';
 export default function SymbolManagement() {
   const [symbols, setSymbols] = useState<SymbolDetails[]>([]);
   const [newSymbol, setNewSymbol] = useState('');
-  const [newSymbolType, setNewSymbolType] = useState<'equity' | 'futures' | 'option' | 'forex' | 'crypto'>('equity');
+  const [newSymbolType, setNewSymbolType] = useState<'stock' | 'futures' | 'options' | 'forex' | 'crypto'>('stock');
   const [newSymbolMeaning, setNewSymbolMeaning] = useState('');
   const [editingSymbol, setEditingSymbol] = useState<SymbolDetails | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -90,11 +89,11 @@ export default function SymbolManagement() {
   // Get badge color based on symbol type
   const getTypeColor = (type: string): string => {
     switch(type) {
-      case 'equity':
+      case 'stock':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'futures':
         return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'option':
+      case 'options':
         return 'bg-amber-100 text-amber-800 border-amber-200';
       case 'forex':
         return 'bg-green-100 text-green-800 border-green-200';
@@ -167,17 +166,14 @@ export default function SymbolManagement() {
       return;
     }
     
-    // Create updated symbol details
     const updatedSymbolDetails: SymbolDetails = {
       symbol: formattedSymbol,
       type: editingSymbol.type,
       meaning: editingSymbol.meaning?.trim() || undefined
     };
     
-    // Original symbol for comparison
     const originalSymbol = symbols.find(s => s.symbol === editingSymbol.symbol)?.symbol || '';
     
-    // Update the symbol
     updateCustomSymbol(originalSymbol, updatedSymbolDetails);
     setSymbols(getAllSymbols());
     setIsEditDialogOpen(false);
@@ -218,9 +214,9 @@ export default function SymbolManagement() {
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="equity">Equity</SelectItem>
+                  <SelectItem value="stock">Stock</SelectItem>
                   <SelectItem value="futures">Futures</SelectItem>
-                  <SelectItem value="option">Option</SelectItem>
+                  <SelectItem value="options">Options</SelectItem>
                   <SelectItem value="forex">Forex</SelectItem>
                   <SelectItem value="crypto">Crypto</SelectItem>
                 </SelectContent>
@@ -418,9 +414,9 @@ export default function SymbolManagement() {
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="equity">Equity</SelectItem>
+                  <SelectItem value="stock">Stock</SelectItem>
                   <SelectItem value="futures">Futures</SelectItem>
-                  <SelectItem value="option">Option</SelectItem>
+                  <SelectItem value="options">Options</SelectItem>
                   <SelectItem value="forex">Forex</SelectItem>
                   <SelectItem value="crypto">Crypto</SelectItem>
                 </SelectContent>

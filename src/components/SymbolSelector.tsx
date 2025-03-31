@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -54,12 +53,9 @@ export function SymbolSelector({
     
     // Auto-select type if a symbol with specific type is selected
     if (selectedSymbol && onTypeChange) {
-      // Convert 'equity' to 'stock' and 'option' to 'options' for compatibility
+      // Convert legacy types to their modern equivalents
       let normalizedType = selectedSymbol.type;
-      if (normalizedType === 'equity') normalizedType = 'stock' as any;
-      if (normalizedType === 'option') normalizedType = 'options' as any;
-      
-      if (normalizedType === 'futures' || normalizedType === 'stock' || 
+      if (normalizedType === 'stock' || normalizedType === 'futures' || 
           normalizedType === 'forex' || normalizedType === 'crypto' || 
           normalizedType === 'options') {
         onTypeChange(normalizedType);
@@ -71,13 +67,10 @@ export function SymbolSelector({
 
   const handleCreateOption = () => {
     if (inputValue && !symbols.some(s => s.symbol === inputValue)) {
-      // Convert 'equity' to 'stock' for compatibility
-      const normalizedType = tradeType === 'stock' ? 'stock' : tradeType;
-      
       // Add to storage and update local state
       const newSymbols = addCustomSymbol({
         symbol: inputValue,
-        type: normalizedType as SymbolDetails['type']
+        type: tradeType as SymbolDetails['type']
       });
       setSymbols(getAllSymbols());
       onChange(inputValue);

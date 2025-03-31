@@ -7,14 +7,14 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
   const [trade, setTrade] = useState<Partial<Trade>>(
     initialTrade || {
       symbol: '',
-      type: 'stock', // Changed from 'equity' to 'stock'
+      type: 'stock',
       direction: 'long',
       entryDate: new Date().toISOString().slice(0, 16),
       entryPrice: 0,
       quantity: 0,
       fees: 0,
       status: 'open',
-      strategy: 'default-strategy', // Ensure strategy always has a default value
+      strategy: 'default-strategy',
       images: [],
       tags: [],
       partialExits: [],
@@ -88,16 +88,10 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
   };
 
   const handleTypeChange = (type: Trade['type']) => {
-    // Never directly compare with 'equity', always convert to 'stock'
-    let normalizedType = type;
+    // Simply set the type directly - the type system will enforce valid values
+    handleChange('type', type);
     
-    // Convert legacy values to their modern equivalents
-    if (type === 'equity') normalizedType = 'stock';
-    if (type === 'option') normalizedType = 'options';
-    
-    handleChange('type', normalizedType);
-    
-    if (normalizedType !== 'futures' && trade.type === 'futures') {
+    if (type !== 'futures' && trade.type === 'futures') {
       handleChange('symbol', '');
     }
   };

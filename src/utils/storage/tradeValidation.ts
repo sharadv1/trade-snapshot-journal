@@ -13,19 +13,11 @@ export const isValidTrade = (trade: any): boolean => {
 
 // Normalize trade data to ensure all required fields exist
 export const normalizeTrade = (trade: Trade): Trade => {
-  // Create a normalized type variable first
-  let normalizedType = trade.type;
-  
-  // Convert legacy types to their modern equivalents
-  if (normalizedType === 'equity') normalizedType = 'stock';
-  if (normalizedType === 'option') normalizedType = 'options';
-  
   return {
     ...trade,
     id: trade.id || crypto.randomUUID(),
     direction: trade.direction || 'long',
-    // Use the normalized type
-    type: normalizedType || 'stock',
+    type: trade.type || 'stock',
     status: trade.status || 'closed',
     partialExits: Array.isArray(trade.partialExits) ? trade.partialExits : [],
     tags: Array.isArray(trade.tags) ? trade.tags : [],
