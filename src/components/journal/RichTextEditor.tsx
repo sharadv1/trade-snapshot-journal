@@ -62,10 +62,11 @@ export function RichTextEditor({ id, content, onChange, placeholder }: RichTextE
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result && editor) {
+          // Use addImage instead of setImage for inserting images
           editor
             .chain()
             .focus()
-            .setImage({ src: event.target.result as string })
+            .insertContent(`<img src="${event.target.result}" alt="Uploaded image" />`)
             .run();
         }
       };
