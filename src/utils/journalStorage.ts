@@ -1,4 +1,3 @@
-
 import { WeeklyReflection, MonthlyReflection } from '@/types';
 
 const WEEKLY_REFLECTIONS_KEY = 'trade-journal-weekly-reflections';
@@ -146,13 +145,13 @@ export const associateTradeWithReflections = (tradeId: string, tradeDate: string
   }
 };
 
-export const saveWeeklyReflection = (weekId: string, reflection: string, grade?: string): void => {
+export const saveWeeklyReflection = (weekId: string, reflection: string, grade?: string, weeklyPlan?: string): void => {
   if (!weekId) {
     console.error('Cannot save weekly reflection: weekId is empty');
     return;
   }
   
-  console.log(`Saving weekly reflection for ${weekId}:`, reflection);
+  console.log(`Saving weekly reflection for ${weekId}:`, reflection, grade, weeklyPlan);
   try {
     const reflections = getWeeklyReflections();
     
@@ -171,6 +170,7 @@ export const saveWeeklyReflection = (weekId: string, reflection: string, grade?:
       weekStart: reflections[weekId]?.weekStart || weekStart.toISOString(),
       weekEnd: reflections[weekId]?.weekEnd || weekEnd.toISOString(),
       reflection,
+      weeklyPlan: weeklyPlan || '', // Save weekly plan
       grade: grade || '',
       lastUpdated: new Date().toISOString(),
       tradeIds: reflections[weekId]?.tradeIds || []

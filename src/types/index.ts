@@ -1,4 +1,3 @@
-
 export interface Trade {
   id: string;
   symbol: string;
@@ -85,6 +84,7 @@ export interface WeeklyReflection {
   weekEnd?: string;
   grade?: string;
   reflection?: string;
+  weeklyPlan?: string; // Add weekly plan field
   tradeIds?: string[];
   lastUpdated?: string;
 }

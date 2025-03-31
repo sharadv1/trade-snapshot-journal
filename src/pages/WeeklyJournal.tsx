@@ -6,6 +6,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { 
   saveWeeklyReflection, 
   getWeeklyReflection, 
   saveMonthlyReflection, 
@@ -92,6 +99,7 @@ export default function WeeklyJournal() {
   });
   
   const [reflection, setReflection] = useState<string>('');
+  const [weeklyPlan, setWeeklyPlan] = useState<string>(''); // Add state for weekly plan
   const [monthlyReflection, setMonthlyReflection] = useState<string>('');
   const [weekGrade, setWeekGrade] = useState<string>('');
   const [monthGrade, setMonthGrade] = useState<string>('');
@@ -245,10 +253,12 @@ export default function WeeklyJournal() {
       if (savedReflection) {
         console.log('Loaded weekly reflection for', weekId, savedReflection);
         setReflection(savedReflection.reflection || '');
+        setWeeklyPlan(savedReflection.weeklyPlan || ''); // Load weekly plan
         setWeekGrade(savedReflection.grade || '');
       } else {
         console.log('No existing weekly reflection found for', weekId);
         setReflection('');
+        setWeeklyPlan(''); // Reset weekly plan
         setWeekGrade('');
       }
     }
@@ -282,6 +292,13 @@ export default function WeeklyJournal() {
     setHasChanged(true);
   };
   
+  const handleWeeklyPlanChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    console.log('Weekly plan changed:', newValue);
+    setWeeklyPlan(newValue);
+    setHasChanged(true);
+  };
+  
   const handleMonthlyReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     console.log('Monthly reflection changed:', newValue);
@@ -289,15 +306,13 @@ export default function WeeklyJournal() {
     setHasChanged(true);
   };
   
-  const handleWeekGradeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setWeekGrade(newValue);
+  const handleWeekGradeChange = (value: string) => {
+    setWeekGrade(value);
     setHasChanged(true);
   };
   
-  const handleMonthGradeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setMonthGrade(newValue);
+  const handleMonthGradeChange = (value: string) => {
+    setMonthGrade(value);
     setHasChanged(true);
   };
   
@@ -306,8 +321,8 @@ export default function WeeklyJournal() {
     if (isLoading || !hasChanged) return false;
     
     if (!isMonthView && weekId) {
-      console.log(`Saving weekly reflection for ${weekId}:`, reflection, weekGrade);
-      saveWeeklyReflection(weekId, reflection || '', weekGrade);
+      console.log(`Saving weekly reflection for ${weekId}:`, reflection, weekGrade, weeklyPlan);
+      saveWeeklyReflection(weekId, reflection || '', weekGrade, weeklyPlan || '');
       setHasChanged(false);
       return true;
     }
@@ -320,13 +335,13 @@ export default function WeeklyJournal() {
     }
     
     return false;
-  }, [weekId, reflection, weekGrade, monthId, monthlyReflection, monthGrade, isMonthView, isLoading, hasChanged]);
+  }, [weekId, reflection, weekGrade, weeklyPlan, monthId, monthlyReflection, monthGrade, isMonthView, isLoading, hasChanged]);
   
   // Add a function to explicitly save the reflection and return to list
   const handleSaveWeekly = () => {
     if (!isLoading && weekId) {
-      console.log(`Explicitly saving weekly reflection for ${weekId}:`, reflection, weekGrade);
-      saveWeeklyReflection(weekId, reflection || '', weekGrade);
+      console.log(`Explicitly saving weekly reflection for ${weekId}:`, reflection, weekGrade, weeklyPlan);
+      saveWeeklyReflection(weekId, reflection || '', weekGrade, weeklyPlan || '');
       toast.success("Weekly reflection saved successfully");
       navigate('/journal/weekly');
     }
@@ -375,6 +390,23 @@ export default function WeeklyJournal() {
       </div>
     );
   }
+
+  // Grade options for the dropdown
+  const gradeOptions = [
+    { value: 'A+', label: 'A+' },
+    { value: 'A', label: 'A' },
+    { value: 'A-', label: 'A-' },
+    { value: 'B+', label: 'B+' },
+    { value: 'B', label: 'B' },
+    { value: 'B-', label: 'B-' },
+    { value: 'C+', label: 'C+' },
+    { value: 'C', label: 'C' },
+    { value: 'C-', label: 'C-' },
+    { value: 'D+', label: 'D+' },
+    { value: 'D', label: 'D' },
+    { value: 'D-', label: 'D-' },
+    { value: 'F', label: 'F' }
+  ];
 
   return (
     <div className="container mx-auto py-8">
@@ -433,6 +465,19 @@ export default function WeeklyJournal() {
             <CardTitle>Weekly Reflection - {formattedWeekRange}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
+            {/* Weekly Plan Section (New) */}
+            <div className="grid gap-2">
+              <Label htmlFor="weekly-plan">Weekly Plan</Label>
+              <Textarea
+                id="weekly-plan"
+                name="weekly-plan"
+                placeholder="Write your plan for the week."
+                value={weeklyPlan}
+                onChange={handleWeeklyPlanChange}
+                rows={4}
+              />
+            </div>
+            
             <div className="grid gap-2">
               <Label htmlFor="reflection">Reflection</Label>
               <Textarea
@@ -444,17 +489,26 @@ export default function WeeklyJournal() {
                 rows={6}
               />
             </div>
+            
             <div className="grid gap-2">
               <Label htmlFor="week-grade">Week Grade</Label>
-              <Input
-                type="text"
-                id="week-grade"
-                name="week-grade"
-                placeholder="Enter your grade for the week (e.g., A, B, C)"
+              <Select
                 value={weekGrade}
-                onChange={handleWeekGradeChange}
-              />
+                onValueChange={handleWeekGradeChange}
+              >
+                <SelectTrigger id="week-grade">
+                  <SelectValue placeholder="Select a grade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {gradeOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+            
             <div className="flex justify-center mt-4">
               <Button 
                 onClick={handleSaveWeekly} 
@@ -487,14 +541,21 @@ export default function WeeklyJournal() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="month-grade">Month Grade</Label>
-              <Input
-                type="text"
-                id="month-grade"
-                name="month-grade"
-                placeholder="Enter your grade for the month (e.g., A, B, C)"
+              <Select
                 value={monthGrade}
-                onChange={handleMonthGradeChange}
-              />
+                onValueChange={handleMonthGradeChange}
+              >
+                <SelectTrigger id="month-grade">
+                  <SelectValue placeholder="Select a grade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {gradeOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex justify-center mt-4">
               <Button 
