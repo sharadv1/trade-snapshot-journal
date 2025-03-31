@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
@@ -48,6 +47,7 @@ import {
 } from '@/components/ui/table';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics';
+import { RichTextEditor } from '@/components/journal/RichTextEditor';
 
 export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
@@ -391,22 +391,33 @@ export default function WeeklyJournal() {
     );
   }
 
-  // Grade options for the dropdown
+  // Grade options for the simplified dropdown
   const gradeOptions = [
-    { value: 'A+', label: 'A+' },
     { value: 'A', label: 'A' },
-    { value: 'A-', label: 'A-' },
-    { value: 'B+', label: 'B+' },
     { value: 'B', label: 'B' },
-    { value: 'B-', label: 'B-' },
-    { value: 'C+', label: 'C+' },
     { value: 'C', label: 'C' },
-    { value: 'C-', label: 'C-' },
-    { value: 'D+', label: 'D+' },
     { value: 'D', label: 'D' },
-    { value: 'D-', label: 'D-' },
     { value: 'F', label: 'F' }
   ];
+
+  // Handlers for rich text
+  const handleRichReflectionChange = (content: string) => {
+    console.log('Weekly reflection changed:', content);
+    setReflection(content);
+    setHasChanged(true);
+  };
+  
+  const handleRichWeeklyPlanChange = (content: string) => {
+    console.log('Weekly plan changed:', content);
+    setWeeklyPlan(content);
+    setHasChanged(true);
+  };
+  
+  const handleRichMonthlyReflectionChange = (content: string) => {
+    console.log('Monthly reflection changed:', content);
+    setMonthlyReflection(content);
+    setHasChanged(true);
+  };
 
   return (
     <div className="container mx-auto py-8">
@@ -465,28 +476,24 @@ export default function WeeklyJournal() {
             <CardTitle>Weekly Reflection - {formattedWeekRange}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
-            {/* Weekly Plan Section (New) */}
+            {/* Weekly Plan Section (Rich Text) */}
             <div className="grid gap-2">
               <Label htmlFor="weekly-plan">Weekly Plan</Label>
-              <Textarea
+              <RichTextEditor 
                 id="weekly-plan"
-                name="weekly-plan"
+                content={weeklyPlan}
+                onChange={handleRichWeeklyPlanChange}
                 placeholder="Write your plan for the week."
-                value={weeklyPlan}
-                onChange={handleWeeklyPlanChange}
-                rows={4}
               />
             </div>
             
             <div className="grid gap-2">
               <Label htmlFor="reflection">Reflection</Label>
-              <Textarea
+              <RichTextEditor
                 id="reflection"
-                name="reflection"
+                content={reflection}
+                onChange={handleRichReflectionChange}
                 placeholder="Write your weekly reflection here."
-                value={reflection}
-                onChange={handleReflectionChange}
-                rows={6}
               />
             </div>
             
@@ -496,8 +503,8 @@ export default function WeeklyJournal() {
                 value={weekGrade}
                 onValueChange={handleWeekGradeChange}
               >
-                <SelectTrigger id="week-grade">
-                  <SelectValue placeholder="Select a grade" />
+                <SelectTrigger id="week-grade" className="w-[100px]">
+                  <SelectValue placeholder="Grade" />
                 </SelectTrigger>
                 <SelectContent>
                   {gradeOptions.map(option => (
@@ -530,13 +537,11 @@ export default function WeeklyJournal() {
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="monthly-reflection">Reflection</Label>
-              <Textarea
+              <RichTextEditor
                 id="monthly-reflection"
-                name="monthly-reflection"
+                content={monthlyReflection}
+                onChange={handleRichMonthlyReflectionChange}
                 placeholder="Write your monthly reflection here."
-                value={monthlyReflection}
-                onChange={handleMonthlyReflectionChange}
-                rows={6}
               />
             </div>
             <div className="grid gap-2">
@@ -545,8 +550,8 @@ export default function WeeklyJournal() {
                 value={monthGrade}
                 onValueChange={handleMonthGradeChange}
               >
-                <SelectTrigger id="month-grade">
-                  <SelectValue placeholder="Select a grade" />
+                <SelectTrigger id="month-grade" className="w-[100px]">
+                  <SelectValue placeholder="Grade" />
                 </SelectTrigger>
                 <SelectContent>
                   {gradeOptions.map(option => (
