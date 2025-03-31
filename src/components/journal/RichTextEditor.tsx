@@ -1,7 +1,5 @@
 
 import React, { useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { 
   Bold, 
   Italic, 
@@ -149,9 +147,7 @@ export function RichTextEditor({ id, content, onChange, placeholder }: RichTextE
         
         <TabsContent value="preview" className="p-3 mt-0 prose prose-sm max-w-none min-h-[200px]">
           {content ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {content}
-            </ReactMarkdown>
+            <pre className="whitespace-pre-wrap break-words">{content}</pre>
           ) : (
             <p className="text-muted-foreground">{placeholder || 'Nothing to preview'}</p>
           )}
