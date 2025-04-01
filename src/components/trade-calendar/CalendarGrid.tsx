@@ -52,28 +52,19 @@ export function CalendarGrid({ currentMonth, dailyPnL, onDayClick }: CalendarGri
   return (
     <div className="grid grid-cols-7 gap-1">
       {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-        <div key={day} className="text-center pb-1 text-sm font-medium text-gray-500">
-          {day.substring(0, 3)}
+        <div key={day} className="text-center p-2 font-medium text-muted-foreground">
+          {day}
         </div>
       ))}
       
-      {calendarDays.flat().map((day, i) => {
-        if (!day) {
-          return <DayCell key={`empty-${i}`} day={null} onDayClick={handleDayClick} />;
-        }
-        
-        const dateKey = format(day, 'yyyy-MM-dd');
-        const dayData = dailyPnL[dateKey];
-        
-        return (
-          <DayCell 
-            key={dateKey} 
-            day={day} 
-            dayData={dayData}
-            onDayClick={handleDayClick}
-          />
-        );
-      })}
+      {calendarDays.flat().map((day, i) => (
+        <DayCell 
+          key={day ? format(day, 'yyyy-MM-dd') : `empty-${i}`}
+          day={day} 
+          dayData={day ? dailyPnL[format(day, 'yyyy-MM-dd')] : undefined}
+          onDayClick={handleDayClick}
+        />
+      ))}
     </div>
   );
 }

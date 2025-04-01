@@ -16,7 +16,7 @@ interface DayCellProps {
 
 export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
   if (!day) {
-    return <div className="h-16 rounded-xl" />;
+    return <div className="border rounded-md p-2 h-24 flex flex-col items-center bg-muted/20"></div>;
   }
   
   const isToday = day.toDateString() === new Date().toDateString();
@@ -29,39 +29,43 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
       onDayClick(day);
     }
   };
-  
+
   return (
-    <button
+    <div
       className={cn(
-        "relative h-16 p-0 w-full rounded-xl border border-gray-200",
-        hasTrades ? 'cursor-pointer' : 'cursor-default',
-        hasTrades && isProfitable ? "bg-green-100" : "",
-        hasTrades && !isProfitable ? "bg-red-100" : "",
-        isToday ? 'border-primary' : ''
+        "border rounded-md p-2 h-24 flex flex-col",
+        !hasTrades && "bg-background",
+        hasTrades && isProfitable && "bg-profit/20 cursor-pointer hover:shadow-md transition-shadow",
+        hasTrades && !isProfitable && "bg-loss/20 cursor-pointer hover:shadow-md transition-shadow",
+        isToday && "ring-2 ring-primary font-bold bg-background shadow-md"
       )}
-      onClick={handleClick}
-      disabled={!hasTrades}
+      onClick={hasTrades ? handleClick : undefined}
     >
       {/* Date number at top right */}
-      <div className="absolute top-1 right-2 text-base font-semibold text-gray-800">
+      <div className={cn(
+        "self-end text-sm font-medium",
+        isToday && "bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center"
+      )}>
         {format(day, 'd')}
       </div>
       
       {/* PnL and trade data */}
-      {hasTrades && (
-        <div className="absolute inset-x-0 bottom-0 p-2 flex flex-col items-center">
+      {hasTrades ? (
+        <div className="flex flex-col items-center justify-center flex-1 gap-1">
           <div className={cn(
             "text-lg font-bold",
-            isProfitable ? "text-green-500" : "text-red-500"
+            isProfitable ? "text-profit" : "text-loss"
           )}>
             {isProfitable ? formatCurrency(dayData.pnl) : formatCurrency(dayData.pnl)}
           </div>
           
-          <div className="text-sm text-gray-500">
+          <div className="text-xs text-muted-foreground">
             {dayData.tradeCount} {dayData.tradeCount === 1 ? 'trade' : 'trades'}
           </div>
         </div>
+      ) : (
+        <div className="flex-1"></div>
       )}
-    </button>
+    </div>
   );
 }
