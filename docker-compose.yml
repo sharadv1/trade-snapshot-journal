@@ -31,6 +31,39 @@ services:
             retries: 3
             start_period: 10s
 
+    # UAT service
+    trade-journal-uat:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: trade-journal-uat:latest
+        container_name: trade-journal-uat
+        ports:
+            - "3003:4000" # Expose UAT app on port 3003
+        restart: unless-stopped
+        environment:
+            - PORT=4000
+            - DATA_DIR=/data
+            - NODE_ENV=uat
+        volumes:
+            - trade-journal-uat-data:/data # Use a separate volume for UAT data
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "wget",
+                    "--no-verbose",
+                    "--tries=1",
+                    "--spider",
+                    "http://localhost:4000/api/ping",
+                ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 10s
+
 volumes:
     trade-journal-data:
+        driver: local
+    trade-journal-uat-data:
         driver: local
