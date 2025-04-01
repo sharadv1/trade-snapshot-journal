@@ -16,7 +16,7 @@ interface DayCellProps {
 
 export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
   if (!day) {
-    return <div className="aspect-square p-1" />;
+    return <div className="aspect-square p-1 border" />;
   }
   
   const isToday = day.toDateString() === new Date().toDateString();
@@ -39,16 +39,16 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
   return (
     <button
       className={cn(
-        "aspect-square p-1 w-full",
-        hasTrades ? 'cursor-pointer' : 'cursor-default'
+        "h-24 p-1 w-full border",
+        hasTrades ? 'cursor-pointer' : 'cursor-default',
+        isToday ? 'border-2 border-primary' : ''
       )}
       onClick={handleClick}
       disabled={!hasTrades}
     >
       <div
         className={cn(
-          "h-full w-full rounded-md flex flex-col items-center p-1",
-          isToday ? "bg-primary/10 border border-primary" : "",
+          "h-full w-full flex flex-col justify-between p-1",
           hasTrades && isProfitable ? "bg-green-100" : "",
           hasTrades && !isProfitable ? "bg-red-100" : ""
         )}
@@ -65,22 +65,13 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
         
         {/* PnL and trade data in the center */}
         {hasTrades && (
-          <div className="w-full flex-1 flex flex-col justify-center items-center mt-1 space-y-0.5">
+          <div className="w-full flex-grow flex flex-col justify-center items-center mt-1 space-y-0.5">
             <div className={cn(
               "text-base font-semibold",
               getPnLColor(dayData.pnl)
             )}>
               {formatCurrency(dayData.pnl)}
             </div>
-            
-            {dayData.rValue !== undefined && (
-              <div className={cn(
-                "text-sm font-medium",
-                getPnLColor(dayData.rValue)
-              )}>
-                {dayData.rValue > 0 ? "+" : ""}{dayData.rValue.toFixed(1)}R
-              </div>
-            )}
             
             <div className="text-xs text-muted-foreground">
               {dayData.tradeCount} {dayData.tradeCount === 1 ? 'trade' : 'trades'}

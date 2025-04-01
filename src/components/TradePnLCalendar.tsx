@@ -47,7 +47,7 @@ export function TradePnLCalendar() {
   };
 
   return (
-    <Card className="shadow-subtle border">
+    <Card className="shadow-subtle border rounded-lg">
       <CardHeader className="pb-2">
         <CalendarHeader 
           currentMonth={currentMonth}
@@ -62,7 +62,7 @@ export function TradePnLCalendar() {
           onRefresh={loadTrades}
         />
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-2">
         <CalendarGrid 
           currentMonth={currentMonth}
           dailyPnL={dailyPnL}
