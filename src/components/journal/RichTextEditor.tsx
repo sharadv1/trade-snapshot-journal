@@ -48,6 +48,16 @@ export function RichTextEditor({
             class: 'font-bold',
           },
         },
+        blockquote: {
+          HTMLAttributes: {
+            class: 'pl-4 border-l-2 border-gray-300 my-2',
+          },
+        },
+        code: {
+          HTMLAttributes: {
+            class: 'bg-muted rounded px-1.5 py-0.5 font-mono text-sm',
+          }
+        }
       }),
       Placeholder.configure({
         placeholder: placeholder || 'Start typing...',
@@ -68,6 +78,9 @@ export function RichTextEditor({
       const newContent = editor.getHTML();
       onChange(newContent);
     },
+    // Enable Markdown input processing
+    enableInputRules: true,
+    enablePasteRules: true,
   });
 
   // Update editor content when content prop changes from outside
@@ -76,6 +89,61 @@ export function RichTextEditor({
       editor.commands.setContent(content);
     }
   }, [content, editor]);
+
+  // Add custom styles for our Markdown elements
+  useEffect(() => {
+    // Add additional styling to the editor container
+    if (!editor) return;
+
+    const updateCSS = () => {
+      document.head.querySelectorAll('.tiptap-custom-styles').forEach(el => el.remove());
+      
+      const style = document.createElement('style');
+      style.className = 'tiptap-custom-styles';
+      style.textContent = `
+        .ProseMirror ul, .ProseMirror ol {
+          padding-left: 1.5rem;
+        }
+        .ProseMirror ul li {
+          list-style-type: disc;
+        }
+        .ProseMirror ol li {
+          list-style-type: decimal;
+        }
+        .ProseMirror h1 {
+          font-size: 1.5rem;
+          margin: 1rem 0;
+        }
+        .ProseMirror h2 {
+          font-size: 1.25rem;
+          margin: 0.75rem 0;
+        }
+        .ProseMirror h3 {
+          font-size: 1.125rem;
+          margin: 0.5rem 0;
+        }
+        .ProseMirror blockquote {
+          border-left: 3px solid var(--border);
+          padding-left: 1rem;
+          font-style: italic;
+          margin: 1rem 0;
+        }
+        .ProseMirror p {
+          margin: 0.5rem 0;
+        }
+        .ProseMirror hr {
+          margin: 1rem 0;
+        }
+      `;
+      
+      document.head.appendChild(style);
+    };
+    
+    updateCSS();
+    return () => {
+      document.head.querySelectorAll('.tiptap-custom-styles').forEach(el => el.remove());
+    };
+  }, [editor]);
 
   return <EditorContent editor={editor} />;
 }

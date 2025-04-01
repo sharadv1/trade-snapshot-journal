@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { 
   Select,
   SelectContent,
@@ -28,10 +26,7 @@ import {
   addWeeks,
   subWeeks,
   addMonths,
-  subMonths,
-  parse,
-  parseISO,
-  isValid
+  subMonths
 } from 'date-fns';
 import { ArrowLeft, ArrowRight, Save, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
@@ -48,6 +43,7 @@ import {
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
+import { Label } from '@/components/ui/label';
 
 export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
@@ -454,7 +450,7 @@ export default function WeeklyJournal() {
                 id="weekly-plan"
                 content={weeklyPlan}
                 onChange={handleRichWeeklyPlanChange}
-                placeholder="Write your plan for the week. Use markdown: **bold**, # Heading, - bullet points, --- for dividers"
+                placeholder="Write your plan for the week. Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
               />
             </div>
             
@@ -464,7 +460,7 @@ export default function WeeklyJournal() {
                 id="reflection"
                 content={reflection}
                 onChange={handleRichReflectionChange}
-                placeholder="Write your weekly reflection here. Use markdown: **bold**, # Heading, - bullet points, --- for dividers"
+                placeholder="Write your weekly reflection here. Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
               />
             </div>
             
@@ -512,7 +508,7 @@ export default function WeeklyJournal() {
                 id="monthly-reflection"
                 content={monthlyReflection}
                 onChange={handleRichMonthlyReflectionChange}
-                placeholder="Write your monthly reflection here. Use markdown: **bold**, # Heading, - bullet points, --- for dividers"
+                placeholder="Write your monthly reflection here. Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
               />
             </div>
             <div className="grid gap-2">

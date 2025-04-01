@@ -27,7 +27,7 @@ export function NotesAndImagesForm({
           id="notes" 
           content={trade.notes || ''} 
           onChange={(content) => handleChange('notes', content)}
-          placeholder="Enter your observations, strategy details, or lessons learned... Use markdown: **bold**, # Heading, - bullet points, --- for dividers"
+          placeholder="Enter your observations, strategy details, or lessons learned... Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
           className="min-h-32"
         />
       </div>
