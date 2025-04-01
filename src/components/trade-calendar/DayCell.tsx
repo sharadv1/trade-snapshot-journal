@@ -16,18 +16,12 @@ interface DayCellProps {
 
 export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
   if (!day) {
-    return <div className="border h-14 p-1" />;
+    return <div className="h-16 rounded-xl" />;
   }
   
   const isToday = day.toDateString() === new Date().toDateString();
   const hasTrades = dayData && dayData.tradeCount > 0;
   const isProfitable = dayData && dayData.pnl > 0;
-  
-  const getPnLColor = (pnl: number) => {
-    if (pnl > 0) return 'text-green-600';
-    if (pnl < 0) return 'text-red-600';
-    return 'text-gray-600';
-  };
   
   const handleClick = () => {
     if (hasTrades) {
@@ -39,46 +33,35 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
   return (
     <button
       className={cn(
-        "h-14 p-0 w-full border",
+        "relative h-16 p-0 w-full rounded-xl border border-gray-200",
         hasTrades ? 'cursor-pointer' : 'cursor-default',
-        isToday ? 'border-2 border-primary' : ''
+        hasTrades && isProfitable ? "bg-green-100" : "",
+        hasTrades && !isProfitable ? "bg-red-100" : "",
+        isToday ? 'border-primary' : ''
       )}
       onClick={handleClick}
       disabled={!hasTrades}
     >
-      <div
-        className={cn(
-          "h-full w-full flex flex-row justify-between p-1",
-          hasTrades && isProfitable ? "bg-green-50" : "",
-          hasTrades && !isProfitable ? "bg-red-50" : ""
-        )}
-      >
-        {/* Date number at the left */}
-        <div className="flex items-start">
-          <span className={cn(
-            "text-xs font-medium pt-0.5",
-            isToday ? "text-primary" : "text-foreground"
-          )}>
-            {format(day, 'd')}
-          </span>
-        </div>
-        
-        {/* PnL and trade data on the right */}
-        {hasTrades && (
-          <div className="flex flex-col items-end">
-            <div className={cn(
-              "text-xs font-semibold",
-              getPnLColor(dayData.pnl)
-            )}>
-              {formatCurrency(dayData.pnl)}
-            </div>
-            
-            <div className="text-xs text-muted-foreground">
-              {dayData.tradeCount}
-            </div>
-          </div>
-        )}
+      {/* Date number at top right */}
+      <div className="absolute top-1 right-2 text-base font-semibold text-gray-800">
+        {format(day, 'd')}
       </div>
+      
+      {/* PnL and trade data */}
+      {hasTrades && (
+        <div className="absolute inset-x-0 bottom-0 p-2 flex flex-col items-center">
+          <div className={cn(
+            "text-lg font-bold",
+            isProfitable ? "text-green-500" : "text-red-500"
+          )}>
+            {isProfitable ? formatCurrency(dayData.pnl) : formatCurrency(dayData.pnl)}
+          </div>
+          
+          <div className="text-sm text-gray-500">
+            {dayData.tradeCount} {dayData.tradeCount === 1 ? 'trade' : 'trades'}
+          </div>
+        </div>
+      )}
     </button>
   );
 }

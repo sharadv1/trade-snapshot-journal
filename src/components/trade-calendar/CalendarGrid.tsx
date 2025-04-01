@@ -50,10 +50,10 @@ export function CalendarGrid({ currentMonth, dailyPnL, onDayClick }: CalendarGri
   };
 
   return (
-    <div className="grid grid-cols-7 gap-0 border rounded-lg">
-      {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-        <div key={day} className="text-center py-1 text-xs font-medium text-muted-foreground border-b">
-          {day}
+    <div className="grid grid-cols-7 gap-1">
+      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+        <div key={day} className="text-center pb-1 text-sm font-medium text-gray-500">
+          {day.substring(0, 3)}
         </div>
       ))}
       

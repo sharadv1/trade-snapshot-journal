@@ -47,7 +47,7 @@ export function TradePnLCalendar() {
   };
 
   return (
-    <Card className="shadow-subtle border rounded-lg" style={{ maxHeight: '450px' }}>
+    <Card className="shadow-subtle border rounded-lg overflow-hidden" style={{ maxHeight: '400px' }}>
       <CardHeader className="pb-1 pt-3 px-4">
         <CalendarHeader 
           currentMonth={currentMonth}
