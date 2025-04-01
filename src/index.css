@@ -116,7 +116,7 @@
   [data-rendered-markdown] blockquote,
   .rendered-markdown blockquote,
   .content-display blockquote {
-    @apply border-l-2 border-muted-foreground/30 pl-4 py-0.5 my-2 italic;
+    @apply border-l-4 border-muted-foreground pl-4 py-0.5 my-2 italic;
   }
   
   [data-rendered-markdown] ul,
@@ -152,7 +152,7 @@
   [data-rendered-markdown] hr,
   .rendered-markdown hr,
   .content-display hr {
-    @apply my-4 border-t border-muted;
+    @apply my-4 border-t-2 border-muted-foreground/30;
   }
 }
 

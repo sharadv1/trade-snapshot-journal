@@ -34,7 +34,7 @@ export function RichTextEditor({
         },
         horizontalRule: {
           HTMLAttributes: {
-            class: 'my-4 border-t',
+            class: 'my-4 border-t-2 border-gray-300',
           },
         },
         heading: {
@@ -50,7 +50,7 @@ export function RichTextEditor({
         },
         blockquote: {
           HTMLAttributes: {
-            class: 'pl-4 border-l-2 border-gray-300 my-2',
+            class: 'pl-4 border-l-4 border-gray-400 my-2',
           },
         },
         code: {
@@ -123,7 +123,7 @@ export function RichTextEditor({
           margin: 0.5rem 0;
         }
         .ProseMirror blockquote {
-          border-left: 3px solid var(--border);
+          border-left: 4px solid #a0a0a0;
           padding-left: 1rem;
           font-style: italic;
           margin: 1rem 0;
@@ -133,6 +133,7 @@ export function RichTextEditor({
         }
         .ProseMirror hr {
           margin: 1rem 0;
+          border-top: 2px solid #a0a0a0;
         }
       `;
       
