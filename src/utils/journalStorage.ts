@@ -1,3 +1,4 @@
+
 import { WeeklyReflection, MonthlyReflection } from '@/types';
 
 const WEEKLY_REFLECTIONS_KEY = 'trade-journal-weekly-reflections';
@@ -192,7 +193,7 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
     return;
   }
   
-  console.log(`Saving monthly reflection for ${monthId}:`, reflection);
+  console.log(`Saving monthly reflection for ${monthId}:`, reflection, grade);
   try {
     const reflections = getMonthlyReflections();
     
@@ -235,6 +236,7 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
       tradeIds: reflections[exactMonthId]?.tradeIds || []
     };
     
+    console.log("Saving monthly reflection object:", reflections[exactMonthId]);
     localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
     
     // Dispatch a storage event to notify other components

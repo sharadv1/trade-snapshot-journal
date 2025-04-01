@@ -55,51 +55,44 @@ export default function WeeklyJournal() {
   const location = useLocation();
   const isInitialMount = useRef(true);
   
-  // Determine if we're viewing monthly or weekly reflection
   const isMonthView = location.pathname.includes('/journal/monthly/');
   
-  // State variables
   const [currentDate, setCurrentDate] = useState(() => {
-    // If we have a monthId, use it to create a date in that month
     if (isMonthView && paramMonthId) {
       try {
-        // First try to parse it as YYYY-MM format for months
         if (paramMonthId.match(/^\d{4}-\d{2}$/)) {
           const year = parseInt(paramMonthId.split('-')[0], 10);
-          const month = parseInt(paramMonthId.split('-')[1], 10) - 1; // JS months are 0-indexed
+          const month = parseInt(paramMonthId.split('-')[1], 10) - 1;
           return new Date(year, month, 1);
         }
-        // If that didn't work, try to parse it as a date string
         return new Date(paramMonthId);
       } catch (e) {
         console.error("Failed to parse monthId", paramMonthId, e);
         return new Date();
       }
     }
-    // Otherwise use weekId or current date
     return paramWeekId ? new Date(paramWeekId) : new Date();
   });
   
   const [weekId, setWeekId] = useState(() => {
-    // Ensure we're using the received weekId or current date
-    return paramWeekId || format(currentDate, 'yyyy-MM-dd');
+    if (paramWeekId) {
+      return paramWeekId;
+    }
+    return format(currentDate, 'yyyy-MM-dd');
   });
   
   const [monthId, setMonthId] = useState(() => {
     if (isMonthView && paramMonthId) {
-      // For month view, always preserve the exact format from the URL
-      // This ensures we don't change the ID format when editing
       if (paramMonthId.match(/^\d{4}-\d{2}$/)) {
         return paramMonthId;
       }
-      // If not in YYYY-MM format, format it properly
       return format(new Date(paramMonthId), 'yyyy-MM');
     }
     return format(currentDate, 'yyyy-MM');
   });
   
   const [reflection, setReflection] = useState<string>('');
-  const [weeklyPlan, setWeeklyPlan] = useState<string>(''); // Add state for weekly plan
+  const [weeklyPlan, setWeeklyPlan] = useState<string>('');
   const [monthlyReflection, setMonthlyReflection] = useState<string>('');
   const [weekGrade, setWeekGrade] = useState<string>('');
   const [monthGrade, setMonthGrade] = useState<string>('');
@@ -109,7 +102,6 @@ export default function WeeklyJournal() {
   const [allWeeklyReflections, setAllWeeklyReflections] = useState<Record<string, any>>({});
   const [allMonthlyReflections, setAllMonthlyReflections] = useState<Record<string, any>>({});
 
-  // Date calculations
   const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const currentWeekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const currentMonthStart = startOfMonth(currentDate);
@@ -118,7 +110,6 @@ export default function WeeklyJournal() {
   const formattedWeekRange = `${format(currentWeekStart, 'MMM dd')} - ${format(currentWeekEnd, 'MMM dd, yyyy')}`;
   const formattedMonth = format(currentMonthStart, 'MMMM yyyy');
   
-  // Load all reflections to check existence
   useEffect(() => {
     const loadAllReflections = () => {
       const weeklyReflections = getAllWeeklyReflections();
@@ -130,7 +121,6 @@ export default function WeeklyJournal() {
     
     loadAllReflections();
     
-    // Listen for journal updates
     const handleJournalUpdated = () => {
       loadAllReflections();
     };
@@ -142,14 +132,12 @@ export default function WeeklyJournal() {
     };
   }, [isMonthView]);
   
-  // Load trades for the current period (week or month)
   useEffect(() => {
     const loadPeriodTrades = () => {
       const allTrades = getTradesWithMetrics();
       let filteredTrades: TradeWithMetrics[] = [];
       
       if (isMonthView) {
-        // Get trades for the current month
         const startDate = currentMonthStart;
         const endDate = currentMonthEnd;
         
@@ -161,7 +149,6 @@ export default function WeeklyJournal() {
           return false;
         });
       } else {
-        // Get trades for the current week
         const startDate = currentWeekStart;
         const endDate = currentWeekEnd;
         
@@ -180,7 +167,6 @@ export default function WeeklyJournal() {
     
     loadPeriodTrades();
     
-    // Listen for trade updates
     const handleTradeUpdated = () => {
       loadPeriodTrades();
     };
@@ -192,7 +178,6 @@ export default function WeeklyJournal() {
     };
   }, [isMonthView, currentWeekStart, currentWeekEnd, currentMonthStart, currentMonthEnd]);
   
-  // Check if entry exists
   const currentEntryExists = isMonthView 
     ? !!allMonthlyReflections[monthId]
     : !!allWeeklyReflections[weekId];
@@ -201,10 +186,8 @@ export default function WeeklyJournal() {
     navigate(isMonthView ? '/journal/monthly' : '/journal/weekly');
   };
 
-  // Navigation functions
   const goToPreviousPeriod = () => {
     if (hasChanged) {
-      // Save current changes before navigating
       saveReflections();
     }
     
@@ -225,7 +208,6 @@ export default function WeeklyJournal() {
   
   const goToNextPeriod = () => {
     if (hasChanged) {
-      // Save current changes before navigating
       saveReflections();
     }
     
@@ -244,7 +226,6 @@ export default function WeeklyJournal() {
     }
   };
 
-  // Load data whenever weekId, monthId, or isMonthView changes
   useEffect(() => {
     setIsLoading(true);
     if (!isMonthView && weekId) {
@@ -253,12 +234,12 @@ export default function WeeklyJournal() {
       if (savedReflection) {
         console.log('Loaded weekly reflection for', weekId, savedReflection);
         setReflection(savedReflection.reflection || '');
-        setWeeklyPlan(savedReflection.weeklyPlan || ''); // Load weekly plan
+        setWeeklyPlan(savedReflection.weeklyPlan || '');
         setWeekGrade(savedReflection.grade || '');
       } else {
         console.log('No existing weekly reflection found for', weekId);
         setReflection('');
-        setWeeklyPlan(''); // Reset weekly plan
+        setWeeklyPlan('');
         setWeekGrade('');
       }
     }
@@ -316,7 +297,6 @@ export default function WeeklyJournal() {
     setHasChanged(true);
   };
   
-  // Define a function to save reflections
   const saveReflections = useCallback(() => {
     if (isLoading || !hasChanged) return false;
     
@@ -337,7 +317,6 @@ export default function WeeklyJournal() {
     return false;
   }, [weekId, reflection, weekGrade, weeklyPlan, monthId, monthlyReflection, monthGrade, isMonthView, isLoading, hasChanged]);
   
-  // Add a function to explicitly save the reflection and return to list
   const handleSaveWeekly = () => {
     if (!isLoading && weekId) {
       console.log(`Explicitly saving weekly reflection for ${weekId}:`, reflection, weekGrade, weeklyPlan);
@@ -356,7 +335,6 @@ export default function WeeklyJournal() {
     }
   };
   
-  // Save when user navigates away or component unmounts
   useEffect(() => {
     return () => {
       console.log("Component unmounting, saving reflections if needed");
@@ -366,7 +344,6 @@ export default function WeeklyJournal() {
     };
   }, [saveReflections, hasChanged]);
 
-  // Auto-save changes periodically (every 5 seconds), but only if content has changed
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -382,7 +359,6 @@ export default function WeeklyJournal() {
     return () => clearInterval(autoSaveInterval);
   }, [saveReflections, hasChanged]);
 
-  // Don't render until loading is complete to avoid flickering
   if (isLoading) {
     return (
       <div className="container mx-auto py-8">
@@ -391,7 +367,6 @@ export default function WeeklyJournal() {
     );
   }
 
-  // Grade options for the simplified dropdown
   const gradeOptions = [
     { value: 'A', label: 'A' },
     { value: 'B', label: 'B' },
@@ -400,7 +375,6 @@ export default function WeeklyJournal() {
     { value: 'F', label: 'F' }
   ];
 
-  // Handlers for rich text
   const handleRichReflectionChange = (content: string) => {
     console.log('Weekly reflection changed:', content);
     setReflection(content);
@@ -464,19 +438,16 @@ export default function WeeklyJournal() {
         </div>
       </div>
 
-      {/* Add summary metrics at the top */}
       <div className="mb-8">
         <WeeklySummaryMetrics trades={periodTrades} />
       </div>
 
-      {/* Show only weekly or monthly form based on view */}
       {!isMonthView && (
         <Card className="mb-8">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Weekly Reflection - {formattedWeekRange}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
-            {/* Weekly Plan Section (Rich Text) */}
             <div className="grid gap-2">
               <Label htmlFor="weekly-plan">Weekly Plan</Label>
               <RichTextEditor 
@@ -575,7 +546,6 @@ export default function WeeklyJournal() {
         </Card>
       )}
 
-      {/* Add trades list for the current period */}
       <Card>
         <CardHeader>
           <CardTitle>
