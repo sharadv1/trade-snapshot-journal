@@ -30,14 +30,14 @@ export function CalendarHeader({
   onRefresh
 }: CalendarHeaderProps) {
   return (
-    <div className="flex-row justify-between items-center pb-2 flex">
+    <div className="flex-row justify-between items-center pb-1 flex">
       <div className="flex gap-2 items-center">
-        <div className="text-xl font-semibold">
+        <div className="text-base font-semibold">
           {format(currentMonth, 'MMMM yyyy')}
         </div>
         
-        <Button variant="outline" size="sm" onClick={onToday}>
-          <CalendarDays className="h-4 w-4 mr-1" />
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={onToday}>
+          <CalendarDays className="h-3 w-3 mr-1" />
           Today
         </Button>
       </div>
@@ -53,11 +53,11 @@ export function CalendarHeader({
         />
         
         <div className="flex gap-1">
-          <Button variant="outline" size="icon" onClick={onPrevMonth}>
-            <ChevronLeft className="h-4 w-4" />
+          <Button variant="outline" size="icon" className="h-7 w-7" onClick={onPrevMonth}>
+            <ChevronLeft className="h-3 w-3" />
           </Button>
-          <Button variant="outline" size="icon" onClick={onNextMonth}>
-            <ChevronRight className="h-4 w-4" />
+          <Button variant="outline" size="icon" className="h-7 w-7" onClick={onNextMonth}>
+            <ChevronRight className="h-3 w-3" />
           </Button>
         </div>
       </div>

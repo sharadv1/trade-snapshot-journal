@@ -16,7 +16,7 @@ interface DayCellProps {
 
 export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
   if (!day) {
-    return <div className="aspect-square p-1 border" />;
+    return <div className="border h-14 p-1" />;
   }
   
   const isToday = day.toDateString() === new Date().toDateString();
@@ -39,7 +39,7 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
   return (
     <button
       className={cn(
-        "h-24 p-1 w-full border",
+        "h-14 p-0 w-full border",
         hasTrades ? 'cursor-pointer' : 'cursor-default',
         isToday ? 'border-2 border-primary' : ''
       )}
@@ -48,33 +48,33 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
     >
       <div
         className={cn(
-          "h-full w-full flex flex-col justify-between p-1",
-          hasTrades && isProfitable ? "bg-green-100" : "",
-          hasTrades && !isProfitable ? "bg-red-100" : ""
+          "h-full w-full flex flex-row justify-between p-1",
+          hasTrades && isProfitable ? "bg-green-50" : "",
+          hasTrades && !isProfitable ? "bg-red-50" : ""
         )}
       >
-        {/* Date number at the top right */}
-        <div className="w-full text-right">
+        {/* Date number at the left */}
+        <div className="flex items-start">
           <span className={cn(
-            "inline-block px-1 text-sm font-medium",
+            "text-xs font-medium pt-0.5",
             isToday ? "text-primary" : "text-foreground"
           )}>
             {format(day, 'd')}
           </span>
         </div>
         
-        {/* PnL and trade data in the center */}
+        {/* PnL and trade data on the right */}
         {hasTrades && (
-          <div className="w-full flex-grow flex flex-col justify-center items-center mt-1 space-y-0.5">
+          <div className="flex flex-col items-end">
             <div className={cn(
-              "text-base font-semibold",
+              "text-xs font-semibold",
               getPnLColor(dayData.pnl)
             )}>
               {formatCurrency(dayData.pnl)}
             </div>
             
             <div className="text-xs text-muted-foreground">
-              {dayData.tradeCount} {dayData.tradeCount === 1 ? 'trade' : 'trades'}
+              {dayData.tradeCount}
             </div>
           </div>
         )}
