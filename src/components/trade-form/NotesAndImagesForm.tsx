@@ -1,8 +1,8 @@
 
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { ImageUpload } from '@/components/ImageUpload';
 import { Trade } from '@/types';
+import { RichTextEditor } from '@/components/journal/RichTextEditor';
 
 interface NotesAndImagesFormProps {
   trade: Partial<Trade>;
@@ -23,11 +23,11 @@ export function NotesAndImagesForm({
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="notes">Trade Notes</Label>
-        <Textarea 
+        <RichTextEditor 
           id="notes" 
-          value={trade.notes || ''} 
-          onChange={(e) => handleChange('notes', e.target.value)}
-          placeholder="Enter your observations, strategy details, or lessons learned..."
+          content={trade.notes || ''} 
+          onChange={(content) => handleChange('notes', content)}
+          placeholder="Enter your observations, strategy details, or lessons learned... Use markdown: **bold**, # Heading, - bullet points, --- for dividers"
           className="min-h-32"
         />
       </div>

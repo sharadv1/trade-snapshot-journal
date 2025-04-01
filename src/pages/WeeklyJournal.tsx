@@ -454,7 +454,7 @@ export default function WeeklyJournal() {
                 id="weekly-plan"
                 content={weeklyPlan}
                 onChange={handleRichWeeklyPlanChange}
-                placeholder="Write your plan for the week."
+                placeholder="Write your plan for the week. Use markdown: **bold**, # Heading, - bullet points, --- for dividers"
               />
             </div>
             
@@ -464,7 +464,7 @@ export default function WeeklyJournal() {
                 id="reflection"
                 content={reflection}
                 onChange={handleRichReflectionChange}
-                placeholder="Write your weekly reflection here."
+                placeholder="Write your weekly reflection here. Use markdown: **bold**, # Heading, - bullet points, --- for dividers"
               />
             </div>
             
@@ -512,7 +512,7 @@ export default function WeeklyJournal() {
                 id="monthly-reflection"
                 content={monthlyReflection}
                 onChange={handleRichMonthlyReflectionChange}
-                placeholder="Write your monthly reflection here."
+                placeholder="Write your monthly reflection here. Use markdown: **bold**, # Heading, - bullet points, --- for dividers"
               />
             </div>
             <div className="grid gap-2">
