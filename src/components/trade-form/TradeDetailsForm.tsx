@@ -47,21 +47,41 @@ export function TradeDetailsForm({
         </Select>
       </div>
 
-      {/* Symbol Selection */}
-      <div className="space-y-2">
-        <Label htmlFor="symbol">Symbol</Label>
-        {trade.type === 'futures' ? (
-          <FuturesContractSelector
-            value={trade.symbol}
-            onChange={(symbol) => handleChange('symbol', symbol)}
-          />
-        ) : (
-          <SymbolSelector
-            value={trade.symbol}
-            onChange={(symbol) => handleChange('symbol', symbol)}
-            tradeType={trade.type as 'stock' | 'futures' | 'forex' | 'crypto' | 'options'}
-          />
-        )}
+      {/* Symbol and Direction Selections - Side by Side */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Symbol Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="symbol">Symbol</Label>
+          {trade.type === 'futures' ? (
+            <FuturesContractSelector
+              value={trade.symbol}
+              onChange={(symbol) => handleChange('symbol', symbol)}
+            />
+          ) : (
+            <SymbolSelector
+              value={trade.symbol}
+              onChange={(symbol) => handleChange('symbol', symbol)}
+              tradeType={trade.type as 'stock' | 'futures' | 'forex' | 'crypto' | 'options'}
+            />
+          )}
+        </div>
+        
+        {/* Trade Direction */}
+        <div className="space-y-2">
+          <Label htmlFor="direction">Direction</Label>
+          <Select
+            value={trade.direction}
+            onValueChange={(value: 'long' | 'short') => handleChange('direction', value)}
+          >
+            <SelectTrigger id="direction">
+              <SelectValue placeholder="Select Direction" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="long">Long</SelectItem>
+              <SelectItem value="short">Short</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Contract Details for Futures */}
@@ -73,23 +93,6 @@ export function TradeDetailsForm({
           value={pointValue}
         />
       )}
-
-      {/* Trade Direction */}
-      <div className="space-y-2">
-        <Label htmlFor="direction">Direction</Label>
-        <Select
-          value={trade.direction}
-          onValueChange={(value: 'long' | 'short') => handleChange('direction', value)}
-        >
-          <SelectTrigger id="direction">
-            <SelectValue placeholder="Select Direction" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="long">Long</SelectItem>
-            <SelectItem value="short">Short</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       {/* Entry Date/Time */}
       <div className="space-y-2">
