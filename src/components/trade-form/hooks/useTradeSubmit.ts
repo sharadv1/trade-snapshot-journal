@@ -1,4 +1,3 @@
-
 import { Trade } from '@/types';
 import { addTrade, updateTrade } from '@/utils/tradeStorage';
 import { markIdeaAsTaken } from '@/utils/ideaStorage';
