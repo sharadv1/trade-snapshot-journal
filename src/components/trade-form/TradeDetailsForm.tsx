@@ -32,13 +32,16 @@ export function TradeDetailsForm({
   
   useEffect(() => {
     // Load valid and taken ideas
-    const allIdeas = getIdeas();
+    const allIdeas = getIdeas() || [];
     const availableIdeas = allIdeas.filter(idea => 
       idea.status === 'still valid' || 
       (idea.status === 'taken' && idea.id === trade.ideaId)
     );
     setIdeas(availableIdeas);
   }, [trade.ideaId]);
+  
+  // Ensure we always have an array of ideas, even if empty
+  const safeIdeas = ideas || [];
   
   return (
     <div className="space-y-4">
@@ -97,18 +100,16 @@ export function TradeDetailsForm({
             <SelectValue placeholder="Select a trade idea (optional)" />
           </SelectTrigger>
           <SelectContent>
-            {ideas.length === 0 ? (
-              <SelectItem value="no-available">No available ideas</SelectItem>
+            <SelectItem value="none">None</SelectItem>
+            {safeIdeas.length > 0 ? (
+              safeIdeas.map(idea => (
+                <SelectItem key={idea.id || `idea-${crypto.randomUUID()}`} value={idea.id || ''}>
+                  {idea.symbol} - {idea.description?.slice(0, 30)}
+                  {idea.description && idea.description.length > 30 ? '...' : ''}
+                </SelectItem>
+              ))
             ) : (
-              <>
-                <SelectItem value="none">None</SelectItem>
-                {ideas.map(idea => (
-                  <SelectItem key={idea.id} value={idea.id || `idea-${crypto.randomUUID()}`}>
-                    {idea.symbol} - {idea.description?.slice(0, 30)}
-                    {idea.description && idea.description.length > 30 ? '...' : ''}
-                  </SelectItem>
-                ))}
-              </>
+              <SelectItem value="no-available" disabled>No available ideas</SelectItem>
             )}
           </SelectContent>
         </Select>

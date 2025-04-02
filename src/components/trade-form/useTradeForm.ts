@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Trade } from '@/types';
 import { getTradeIdea } from '@/utils/tradeOperations';
@@ -65,7 +64,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
           symbol: idea.symbol,
           direction: idea.direction || 'long',
           notes: idea.description || '',
-          ideaId: ideaId
+          ideaId: ideaId || ''
         }));
       }
     }
