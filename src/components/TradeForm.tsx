@@ -40,7 +40,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     handleContractDetailsChange,
     handleImageUpload,
     handleRemoveImage,
-    handleSubmit: submitHandler,
+    handleSubmit: submitForm,
     pointValue,
   } = useTradeForm(initialTrade, isEditing, ideaIdFromProps);
 
@@ -114,7 +114,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     return true;
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Submitting trade form with data:', trade);
     
@@ -127,7 +127,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     }
     
     try {
-      const success = submitHandler(e, handleFormSuccess);
+      const success = submitForm(e, handleFormSuccess);
       
       if (success) {
         // Dispatch a storage event to notify other components to refresh
@@ -147,7 +147,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   };
 
   return (
-    <form onSubmit={onSubmit} className="w-full" id="trade-form" name="trade-form">
+    <form onSubmit={handleSubmit} className="w-full" id="trade-form" name="trade-form">
       <Card className="border">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">{isEditing ? "Edit Trade Details" : "New Trade"}</CardTitle>

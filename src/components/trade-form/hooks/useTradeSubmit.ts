@@ -27,10 +27,24 @@ export function useTradeSubmit(
       // Ensure strategy has a default value if empty
       const finalStrategy = trade.strategy || 'default-strategy';
       
+      // Filter out any extremely large data URLs to prevent storage quota issues
+      const filteredImages = images.filter(img => {
+        // Check if image is a data URL and if it's too large (>2MB)
+        if (img.startsWith('data:') && img.length > 2 * 1024 * 1024) {
+          console.warn('Skipping large data URL to prevent storage quota issues');
+          return false;
+        }
+        return true;
+      });
+      
+      if (filteredImages.length < images.length) {
+        toast.warning("Some media files were too large and won't be saved to prevent storage issues");
+      }
+      
       const tradeToSave = {
         ...trade,
         strategy: finalStrategy,
-        images,
+        images: filteredImages,
         mistakes: trade.mistakes || [],
         contractDetails: trade.type === 'futures' ? contractDetails : undefined
       };
@@ -78,7 +92,11 @@ export function useTradeSubmit(
       return true;
     } catch (error) {
       console.error("Error saving trade:", error);
-      toast.error("Failed to save trade: " + (error instanceof Error ? error.message : "Unknown error"));
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        toast.error("Storage limit exceeded. Try removing some images or videos before saving.");
+      } else {
+        toast.error("Failed to save trade: " + (error instanceof Error ? error.message : "Unknown error"));
+      }
       return false;
     }
   };
