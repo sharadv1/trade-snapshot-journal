@@ -69,6 +69,7 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
+      // Ensure mistakes is always an array before trying to use array methods
       const mistakesArray = Array.isArray(mistakes) ? mistakes : [];
       
       if (
