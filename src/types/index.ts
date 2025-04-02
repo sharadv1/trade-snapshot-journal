@@ -27,6 +27,8 @@ export interface Trade {
   tags?: string[];
   // For futures contracts only
   contractDetails?: FuturesContractDetails;
+  grade?: string; // Add grade field
+  pspTime?: string; // Add pspTime field
 }
 
 export interface TradeWithMetrics extends Trade {

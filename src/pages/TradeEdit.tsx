@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TradeForm } from '@/components/TradeForm';
@@ -106,7 +105,8 @@ export default function TradeEdit() {
             <CardContent>
               <ExitTradeForm 
                 trade={trade} 
-                onSuccess={handleTradeUpdate}
+                onClose={() => {}} 
+                onUpdate={handleTradeUpdate}
                 remainingQuantity={remainingQuantity}
               />
             </CardContent>
@@ -120,11 +120,9 @@ export default function TradeEdit() {
             </CardHeader>
             <CardContent>
               <PartialExitsList 
-                partialExits={trade.partialExits || []} 
-                tradeId={trade.id}
+                trade={trade}
                 onUpdate={handleTradeUpdate}
-                initialQuantity={trade.quantity}
-                remainingQuantity={remainingQuantity}
+                allowEditing={true}
               />
             </CardContent>
           </Card>

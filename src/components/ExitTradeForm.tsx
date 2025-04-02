@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,16 +7,16 @@ import { FullExitForm } from './trade-exit/FullExitForm';
 import { PartialExitForm } from './trade-exit/PartialExitForm';
 import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
-// Remove the DialogTitle import
 import { useEffect } from 'react';
 
 interface ExitTradeFormProps {
   trade: Trade;
   onClose: () => void;
   onUpdate: () => void;
+  remainingQuantity?: number;
 }
 
-export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) {
+export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: propRemainingQuantity }: ExitTradeFormProps) {
   const {
     activeTab,
     setActiveTab,
@@ -44,7 +43,8 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
     handlePartialExit
   } = useExitTradeLogic(trade, onUpdate, onClose);
 
-  // Log component initialization
+  const actualRemainingQuantity = propRemainingQuantity !== undefined ? propRemainingQuantity : remainingQuantity;
+
   useEffect(() => {
     console.log('ExitTradeForm mounted for trade:', trade.id);
     return () => {
@@ -52,19 +52,18 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
     };
   }, [trade.id]);
 
-  // Wrapper functions to ensure trade updates are visible immediately
   const handleSubmitFullExit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Submitting full exit form');
     await handleFullExit();
-    onUpdate(); // Ensure parent component refreshes data
+    onUpdate();
   };
 
   const handleSubmitPartialExit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Submitting partial exit form');
     await handlePartialExit();
-    onUpdate(); // Ensure parent component refreshes data
+    onUpdate();
   };
 
   return (
@@ -76,7 +75,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
             <X className="h-4 w-4" />
           </Button>
         </div>
-        {/* Remove DialogTitle - it must be used within Dialog context */}
         <VisuallyHidden>Exit Trade</VisuallyHidden>
       </CardHeader>
       
@@ -84,7 +82,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
         <div className="px-6">
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="full">Full Exit</TabsTrigger>
-            <TabsTrigger value="partial" disabled={remainingQuantity === 0}>
+            <TabsTrigger value="partial" disabled={actualRemainingQuantity === 0}>
               Partial Exit
             </TabsTrigger>
           </TabsList>
@@ -111,7 +109,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate }: ExitTradeFormProps) 
             <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
               <PartialExitForm 
                 trade={trade}
-                remainingQuantity={remainingQuantity}
+                remainingQuantity={actualRemainingQuantity}
                 partialQuantity={partialQuantity}
                 setPartialQuantity={setPartialQuantity}
                 partialExitPrice={partialExitPrice}

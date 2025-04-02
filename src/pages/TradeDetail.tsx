@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, ChevronDown, ChevronUp, Star } from 'lucide-react';
@@ -15,7 +14,6 @@ import { ContentRenderer } from '@/components/journal/ContentRenderer';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
 import { Badge } from '@/components/ui/badge';
 
-// Helper function to get the display value for timeframe
 const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
   if (!timeframe) return '';
   
@@ -178,7 +176,7 @@ export default function TradeDetail() {
                 <p className="font-medium">
                   {trade.type === 'stock' ? 'Stock' : 
                    trade.type === 'futures' ? 'Futures' : 
-                   trade.type === 'options' ? 'Options' : 
+                   trade.type === 'option' ? 'Options' : 
                    trade.type.charAt(0).toUpperCase() + trade.type.slice(1)}
                 </p>
               </div>

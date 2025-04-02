@@ -19,7 +19,7 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
       tags: [],
       mistakes: [],
       partialExits: [],
-      pspTime: '',
+      pspTime: '', // Properly included now that it's defined in Trade interface
       timeframe: undefined,
       ideaId: ideaIdFromProps || ''
     }

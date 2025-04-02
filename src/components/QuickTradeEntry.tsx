@@ -18,7 +18,8 @@ interface QuickTradeEntryProps {
 }
 
 export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEntryProps) {
-  const [tradeType, setTradeType] = useState<'stock' | 'futures' | 'options'>('stock');
+  // Changed "options" to "option" to match the Trade type
+  const [tradeType, setTradeType] = useState<'stock' | 'futures' | 'option'>('stock');
   const [symbol, setSymbol] = useState('');
   const [direction, setDirection] = useState<'long' | 'short'>('long');
   const [strategy, setStrategy] = useState('');
