@@ -42,26 +42,28 @@ interface MistakesFieldProps {
 
 export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
   const [open, setOpen] = React.useState(false);
-  const [mistakes, setMistakes] = React.useState<string[]>(DEFAULT_MISTAKES);
+  const [customMistakes, setCustomMistakes] = React.useState<string[]>([]);
   const [inputValue, setInputValue] = React.useState("");
 
-  // Ensure value is always an array, even if undefined is passed
+  // Ensure value is always an array
   const safeValue = React.useMemo(() => Array.isArray(value) ? value : [], [value]);
   
-  // Ensure mistakes is always a valid array
-  const safeMistakes = React.useMemo(() => 
-    Array.isArray(mistakes) ? mistakes : DEFAULT_MISTAKES, 
-    [mistakes]
-  );
+  // Combine default mistakes with any custom ones
+  const allMistakes = React.useMemo(() => {
+    return [...DEFAULT_MISTAKES, ...customMistakes];
+  }, [customMistakes]);
 
   const handleSelect = React.useCallback(
-    (mistake: string) => {
+    (selectedMistake: string) => {
       setInputValue("");
-      if (safeValue.includes(mistake)) {
-        onChange(safeValue.filter((item) => item !== mistake));
-      } else {
-        onChange([...safeValue, mistake]);
-      }
+      
+      if (!selectedMistake) return;
+      
+      onChange(
+        safeValue.includes(selectedMistake)
+          ? safeValue.filter((item) => item !== selectedMistake)
+          : [...safeValue, selectedMistake]
+      );
     },
     [safeValue, onChange]
   );
@@ -75,19 +77,22 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (
-        e.key === "Enter" &&
-        inputValue &&
-        !safeMistakes.includes(inputValue) &&
-        !safeValue.includes(inputValue)
-      ) {
+      if (e.key === "Enter" && inputValue && inputValue.trim()) {
         e.preventDefault();
-        setMistakes((prev) => [...(Array.isArray(prev) ? prev : []), inputValue]);
-        onChange([...safeValue, inputValue]);
+        
+        // Only add if it doesn't already exist in either list
+        if (!safeValue.includes(inputValue) && !allMistakes.includes(inputValue)) {
+          setCustomMistakes((prev) => [...prev, inputValue]);
+          onChange([...safeValue, inputValue]);
+        } else if (!safeValue.includes(inputValue)) {
+          // If it exists in the list of mistakes but not in selected values, just select it
+          onChange([...safeValue, inputValue]);
+        }
+        
         setInputValue("");
       }
     },
-    [inputValue, safeMistakes, safeValue, onChange]
+    [inputValue, safeValue, allMistakes, onChange]
   );
 
   return (
@@ -100,16 +105,19 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
             aria-expanded={open}
             className="w-full justify-between"
           >
-            Select mistakes
+            {safeValue.length > 0 
+              ? `${safeValue.length} mistake${safeValue.length > 1 ? 's' : ''} selected` 
+              : "Select mistakes"}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0">
-          <Command onKeyDown={handleKeyDown}>
+          <Command>
             <CommandInput
               placeholder="Search mistakes or add new"
               value={inputValue}
               onValueChange={setInputValue}
+              onKeyDown={handleKeyDown}
             />
             <CommandEmpty>
               {inputValue ? (
@@ -121,11 +129,11 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
               )}
             </CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {safeMistakes.map((mistake) => (
+              {allMistakes.map((mistake) => (
                 <CommandItem
                   key={mistake}
                   value={mistake}
-                  onSelect={() => handleSelect(mistake)}
+                  onSelect={handleSelect}
                 >
                   <Check
                     className={cn(
