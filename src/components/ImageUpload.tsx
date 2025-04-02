@@ -5,7 +5,7 @@ import { Upload, X } from 'lucide-react';
 
 interface ImageUploadProps {
   images: string[];
-  onImageUpload: (base64Image: string) => void;
+  onImageUpload: (file: File) => void;
   onImageRemove: (index: number) => void;
   disabled?: boolean;
 }
@@ -24,24 +24,11 @@ export function ImageUpload({
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      processImageFile(file);
+      setUploading(true);
+      onImageUpload(file);
+      setUploading(false);
     }
   };
-
-  const processImageFile = useCallback((file: File) => {
-    setUploading(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      onImageUpload(base64String);
-      setUploading(false);
-    };
-    reader.onerror = () => {
-      console.error("Error reading file");
-      setUploading(false);
-    };
-    reader.readAsDataURL(file);
-  }, [onImageUpload]);
 
   // Improved drag event handlers
   const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -79,10 +66,12 @@ export function ImageUpload({
       const imageFile = files[0];
       
       if (imageFile && imageFile.type.startsWith('image/')) {
-        processImageFile(imageFile);
+        setUploading(true);
+        onImageUpload(imageFile);
+        setUploading(false);
       }
     }
-  }, [disabled, processImageFile]);
+  }, [disabled, onImageUpload]);
 
   const handleImageBtnClick = () => {
     fileInputRef.current?.click();
