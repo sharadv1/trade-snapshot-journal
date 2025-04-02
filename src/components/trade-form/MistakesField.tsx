@@ -12,9 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// Remove the default mistakes array
-const DEFAULT_MISTAKES: string[] = [];
-
 interface MistakesFieldProps {
   value: string[] | undefined;
   onChange: (value: string[]) => void;
@@ -28,19 +25,33 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
   // Ensure value is always an array
   const safeValue = React.useMemo(() => Array.isArray(value) ? value : [], [value]);
   
-  // Combine default mistakes with any custom ones
-  const allMistakes = React.useMemo(() => {
-    return [...DEFAULT_MISTAKES, ...customMistakes];
+  // Load saved custom mistakes on component mount
+  React.useEffect(() => {
+    const savedMistakes = localStorage.getItem('tradingJournal_customMistakes');
+    if (savedMistakes) {
+      try {
+        setCustomMistakes(JSON.parse(savedMistakes));
+      } catch (error) {
+        console.error('Error parsing saved mistakes:', error);
+      }
+    }
+  }, []);
+
+  // Save custom mistakes whenever they change
+  React.useEffect(() => {
+    if (customMistakes.length > 0) {
+      localStorage.setItem('tradingJournal_customMistakes', JSON.stringify(customMistakes));
+    }
   }, [customMistakes]);
 
   // Filter available mistakes based on input value
   const filteredMistakes = React.useMemo(() => {
-    if (!inputValue.trim()) return allMistakes;
+    if (!inputValue.trim()) return customMistakes;
     
-    return allMistakes.filter(mistake => 
+    return customMistakes.filter(mistake => 
       mistake.toLowerCase().includes(inputValue.toLowerCase())
     );
-  }, [allMistakes, inputValue]);
+  }, [customMistakes, inputValue]);
 
   const handleToggleMistake = React.useCallback(
     (mistake: string) => {
@@ -56,20 +67,26 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
   const handleRemove = React.useCallback(
     (mistake: string) => {
       onChange(safeValue.filter((item) => item !== mistake));
-      
-      // Also remove from custom mistakes if it exists there
-      if (customMistakes.includes(mistake)) {
-        setCustomMistakes(prev => prev.filter(item => item !== mistake));
+    },
+    [safeValue, onChange]
+  );
+
+  const handleRemoveCustomMistake = React.useCallback(
+    (mistake: string) => {
+      setCustomMistakes(prev => prev.filter(item => item !== mistake));
+      // Also remove from selected values if it's there
+      if (safeValue.includes(mistake)) {
+        onChange(safeValue.filter((item) => item !== mistake));
       }
     },
-    [safeValue, onChange, customMistakes]
+    [safeValue, onChange]
   );
 
   const handleAddCustom = React.useCallback(() => {
     if (!inputValue.trim()) return;
 
     // Only add if it doesn't already exist
-    if (!allMistakes.includes(inputValue)) {
+    if (!customMistakes.includes(inputValue)) {
       setCustomMistakes(prev => [...prev, inputValue]);
     }
     
@@ -79,7 +96,7 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
     }
     
     setInputValue("");
-  }, [inputValue, safeValue, allMistakes, onChange]);
+  }, [inputValue, safeValue, customMistakes, onChange]);
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -107,65 +124,65 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[240px] p-4" align="start">
-          <div className="flex items-center space-x-2 mb-4">
+        <PopoverContent className="w-[220px] p-3" align="start">
+          <div className="flex items-center space-x-2 mb-3">
             <Input
-              placeholder="Enter new mistake"
+              placeholder="New mistake"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1"
+              className="flex-1 h-8 text-sm"
             />
             <Button 
               type="button" 
               size="sm" 
               onClick={handleAddCustom}
               disabled={!inputValue.trim()}
-              className="shrink-0"
+              className="shrink-0 h-8 w-8 p-0"
             >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
           
-          {allMistakes.length > 0 ? (
-            <ScrollArea className="h-[200px] max-h-[50vh]">
+          {customMistakes.length > 0 ? (
+            <ScrollArea className="h-[180px] max-h-[40vh]">
               <div className="space-y-1">
                 {filteredMistakes.map((mistake) => (
                   <div
                     key={mistake}
                     className={cn(
-                      "flex items-center justify-between rounded-md px-2 py-1.5 text-sm cursor-pointer",
+                      "flex items-center justify-between rounded-md px-2 py-1 text-sm",
                       safeValue.includes(mistake) 
                         ? "bg-accent text-accent-foreground"
                         : "hover:bg-muted"
                     )}
                   >
                     <div 
-                      className="flex-1 flex items-center"
+                      className="flex-1 flex items-center cursor-pointer"
                       onClick={() => handleToggleMistake(mistake)}
                     >
                       <Check
                         className={cn(
-                          "mr-2 h-4 w-4",
+                          "mr-2 h-3.5 w-3.5",
                           safeValue.includes(mistake) ? "opacity-100" : "opacity-0"
                         )}
                       />
-                      {mistake}
+                      <span className="text-sm truncate">{mistake}</span>
                     </div>
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100"
-                      onClick={() => handleRemove(mistake)}
+                      className="h-5 w-5 p-0 opacity-70 hover:opacity-100"
+                      onClick={() => handleRemoveCustomMistake(mistake)}
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
               </div>
             </ScrollArea>
           ) : (
-            <div className="py-6 text-center text-sm text-muted-foreground">
+            <div className="py-4 text-center text-xs text-muted-foreground">
               No mistakes added yet
             </div>
           )}
