@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, Play } from 'lucide-react';
 import { toast } from '@/utils/toast';
 
 interface MediaFile {
@@ -27,7 +27,7 @@ export function MediaUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropAreaRef = useRef<HTMLDivElement>(null);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 100 * 1024 * 1024) { // 100MB limit
@@ -36,8 +36,15 @@ export function MediaUpload({
       }
       
       setUploading(true);
-      onMediaUpload(file);
-      setUploading(false);
+      try {
+        await onMediaUpload(file);
+      } catch (error) {
+        console.error('Error uploading:', error);
+      } finally {
+        setUploading(false);
+        // Clear the input value so the same file can be uploaded again
+        if (event.target.value) event.target.value = '';
+      }
     }
   };
 
@@ -65,7 +72,7 @@ export function MediaUpload({
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -83,8 +90,13 @@ export function MediaUpload({
         }
         
         setUploading(true);
-        onMediaUpload(mediaFile);
-        setUploading(false);
+        try {
+          await onMediaUpload(mediaFile);
+        } catch (error) {
+          console.error('Error uploading:', error);
+        } finally {
+          setUploading(false);
+        }
       } else {
         toast.error('Unsupported file type. Please upload an image or video.');
       }
@@ -114,9 +126,7 @@ export function MediaUpload({
                 </video>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="w-8 h-8 bg-black/40 rounded-full flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
+                    <Play className="h-4 w-4 text-white" />
                   </span>
                 </div>
               </div>

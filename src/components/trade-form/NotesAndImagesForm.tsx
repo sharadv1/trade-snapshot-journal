@@ -1,10 +1,10 @@
+
 import { useState } from 'react';
 import { Trade } from '@/types';
 import { Label } from '@/components/ui/label';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { MediaUpload } from '@/components/MediaUpload';
 import { toast } from '@/utils/toast';
-import { v4 as uuidv4 } from 'uuid';
 
 interface MediaFile {
   url: string;
@@ -32,41 +32,13 @@ export function NotesAndImagesForm({
   // Convert legacy images array to media format
   const media: MediaFile[] = images.map(url => ({
     url,
-    type: 'image'
+    type: url.includes('.mp4') || url.includes('.webm') || url.startsWith('data:video/') ? 'video' : 'image'
   }));
   
-  // Function to handle media uploads (both images and videos)
   const handleMediaUpload = async (file: File) => {
-    if (!file) return;
-    
     setIsUploading(true);
-    
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        // For backwards compatibility, keep using the images array
-        // but it now contains URLs to the server instead of base64
-        onImageUpload(file);
-        
-        // Notify the user
-        toast.success(`${file.type.startsWith('image/') ? 'Image' : 'Video'} uploaded successfully`);
-      } else {
-        throw new Error(result.error || 'Upload failed');
-      }
-      
+      await onImageUpload(file);
     } catch (error) {
       console.error('Error uploading media:', error);
       toast.error('Failed to upload media');
