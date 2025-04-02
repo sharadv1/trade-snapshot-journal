@@ -47,6 +47,12 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
 
   // Ensure value is always an array, even if undefined is passed
   const safeValue = React.useMemo(() => Array.isArray(value) ? value : [], [value]);
+  
+  // Ensure mistakes is always a valid array
+  const safeMistakes = React.useMemo(() => 
+    Array.isArray(mistakes) ? mistakes : DEFAULT_MISTAKES, 
+    [mistakes]
+  );
 
   const handleSelect = React.useCallback(
     (mistake: string) => {
@@ -69,13 +75,10 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
-      // Ensure mistakes is always an array before trying to use array methods
-      const mistakesArray = Array.isArray(mistakes) ? mistakes : [];
-      
       if (
         e.key === "Enter" &&
         inputValue &&
-        !mistakesArray.includes(inputValue) &&
+        !safeMistakes.includes(inputValue) &&
         !safeValue.includes(inputValue)
       ) {
         e.preventDefault();
@@ -84,7 +87,7 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
         setInputValue("");
       }
     },
-    [inputValue, mistakes, safeValue, onChange]
+    [inputValue, safeMistakes, safeValue, onChange]
   );
 
   return (
@@ -118,7 +121,7 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
               )}
             </CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {(Array.isArray(mistakes) ? mistakes : []).map((mistake) => (
+              {safeMistakes.map((mistake) => (
                 <CommandItem
                   key={mistake}
                   value={mistake}
