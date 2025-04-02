@@ -8,7 +8,10 @@ import { SymbolSelector } from '@/components/SymbolSelector';
 import { FuturesContractSelector } from '@/components/FuturesContractSelector';
 import { FuturesContractDetails as FuturesContractDetailsComponent } from '@/components/FuturesContractDetails';
 import { MistakesField } from './MistakesField';
-import { TrendingDown, TrendingUp } from 'lucide-react';
+import { TrendingDown, TrendingUp, Ratio, Target } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Strategy } from '@/types';
+import { getStrategies } from '@/utils/strategyStorage';
 
 interface TradeDetailsFormProps {
   trade: Partial<Trade>;
@@ -25,6 +28,32 @@ export function TradeDetailsForm({
   contractDetails,
   pointValue
 }: TradeDetailsFormProps) {
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Load strategies from storage
+    const loadedStrategies = getStrategies();
+    setStrategies(loadedStrategies);
+  }, []);
+
+  // Calculate risk-reward ratio when stopLoss or takeProfit changes
+  useEffect(() => {
+    if (trade.stopLoss && trade.takeProfit && trade.entryPrice) {
+      const riskPerUnit = Math.abs(trade.entryPrice - trade.stopLoss);
+      const rewardPerUnit = Math.abs(trade.takeProfit - trade.entryPrice);
+      
+      if (riskPerUnit > 0) {
+        const ratio = rewardPerUnit / riskPerUnit;
+        setRiskRewardRatio(ratio);
+      } else {
+        setRiskRewardRatio(null);
+      }
+    } else {
+      setRiskRewardRatio(null);
+    }
+  }, [trade.stopLoss, trade.takeProfit, trade.entryPrice]);
+
   return (
     <div className="space-y-4">
       {/* Trade Type Selection */}
@@ -120,83 +149,113 @@ export function TradeDetailsForm({
         />
       </div>
       
-      {/* Stop Loss - Moved from RiskParametersForm */}
-      <div className="space-y-2">
-        <Label htmlFor="stopLoss" className="flex items-center gap-1">
-          <TrendingDown className="h-4 w-4 text-loss" />
-          Stop Loss Price
-        </Label>
-        <Input 
-          id="stopLoss" 
-          type="number" 
-          min="0" 
-          step="0.01"
-          value={trade.stopLoss || ''}
-          onChange={(e) => handleChange('stopLoss', parseFloat(e.target.value))}
-        />
+      {/* Stop Loss and Take Profit - Side by Side */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Stop Loss */}
+        <div className="space-y-2">
+          <Label htmlFor="stopLoss" className="flex items-center gap-1">
+            <TrendingDown className="h-4 w-4 text-loss" />
+            Stop Loss Price
+          </Label>
+          <Input 
+            id="stopLoss" 
+            type="number" 
+            min="0" 
+            step="0.01"
+            value={trade.stopLoss || ''}
+            onChange={(e) => handleChange('stopLoss', parseFloat(e.target.value))}
+          />
+        </div>
+        
+        {/* Take Profit */}
+        <div className="space-y-2">
+          <Label htmlFor="takeProfit" className="flex items-center gap-1">
+            <TrendingUp className="h-4 w-4 text-profit" />
+            Take Profit Price
+          </Label>
+          <Input 
+            id="takeProfit" 
+            type="number" 
+            min="0" 
+            step="0.01"
+            value={trade.takeProfit || ''}
+            onChange={(e) => handleChange('takeProfit', parseFloat(e.target.value))}
+          />
+        </div>
       </div>
       
-      {/* Take Profit - Moved from RiskParametersForm */}
-      <div className="space-y-2">
-        <Label htmlFor="takeProfit" className="flex items-center gap-1">
-          <TrendingUp className="h-4 w-4 text-profit" />
-          Take Profit Price
-        </Label>
-        <Input 
-          id="takeProfit" 
-          type="number" 
-          min="0" 
-          step="0.01"
-          value={trade.takeProfit || ''}
-          onChange={(e) => handleChange('takeProfit', parseFloat(e.target.value))}
-        />
+      {riskRewardRatio !== null && (
+        <div className="bg-muted/30 p-3 rounded-md flex items-center">
+          <Ratio className="h-5 w-5 mr-2 text-primary" />
+          <div>
+            <span className="font-medium">Risk-Reward Ratio: </span>
+            <span className="font-mono">{riskRewardRatio.toFixed(2)}:1</span>
+          </div>
+        </div>
+      )}
+      
+      {/* Quantity and Fees - Side by Side */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Quantity */}
+        <div className="space-y-2">
+          <Label htmlFor="quantity">
+            Quantity {trade.type === 'futures' ? '(# of Contracts)' : '(# of Shares)'}
+          </Label>
+          <Input
+            type="number"
+            id="quantity"
+            placeholder="0"
+            value={trade.quantity || ''}
+            onChange={(e) => handleChange('quantity', parseFloat(e.target.value) || 0)}
+          />
+        </div>
+        
+        {/* Fees */}
+        <div className="space-y-2">
+          <Label htmlFor="fees">Fees</Label>
+          <Input
+            type="number"
+            id="fees"
+            placeholder="0.00"
+            step="0.01"
+            value={trade.fees || ''}
+            onChange={(e) => handleChange('fees', parseFloat(e.target.value) || 0)}
+          />
+        </div>
       </div>
       
-      {/* Quantity */}
-      <div className="space-y-2">
-        <Label htmlFor="quantity">
-          Quantity {trade.type === 'futures' ? '(# of Contracts)' : '(# of Shares)'}
-        </Label>
-        <Input
-          type="number"
-          id="quantity"
-          placeholder="0"
-          value={trade.quantity || ''}
-          onChange={(e) => handleChange('quantity', parseFloat(e.target.value) || 0)}
-        />
-      </div>
-      
-      {/* Fees */}
-      <div className="space-y-2">
-        <Label htmlFor="fees">Fees</Label>
-        <Input
-          type="number"
-          id="fees"
-          placeholder="0.00"
-          step="0.01"
-          value={trade.fees || ''}
-          onChange={(e) => handleChange('fees', parseFloat(e.target.value) || 0)}
-        />
-      </div>
-      
-      {/* Trading Strategy - Moved before timeframe */}
+      {/* Strategy - Moved before timeframe */}
       <div className="space-y-2">
         <Label htmlFor="strategy">Strategy</Label>
-        <Select
+        <Select 
           value={trade.strategy || 'default-strategy'}
           onValueChange={(value) => handleChange('strategy', value)}
         >
           <SelectTrigger id="strategy">
-            <SelectValue placeholder="Select Strategy" />
+            <SelectValue placeholder="Select strategy" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="default-strategy">Default Strategy</SelectItem>
-            <SelectItem value="breakout">Breakout</SelectItem>
-            <SelectItem value="reversal">Reversal</SelectItem>
-            <SelectItem value="trend-following">Trend Following</SelectItem>
-            <SelectItem value="scalping">Scalping</SelectItem>
-            <SelectItem value="swing">Swing</SelectItem>
-            <SelectItem value="custom">Custom</SelectItem>
+            {strategies && strategies.length > 0 ? (
+              strategies.map((strategy) => {
+                // Ensure strategy name is never empty and always a string
+                const strategyName = strategy.name || `strategy-${strategy.id}`;
+                return (
+                  <SelectItem key={strategy.id} value={strategyName || `strategy-${strategy.id}`}>
+                    <div className="flex items-center">
+                      {strategy.color && (
+                        <div 
+                          className="w-3 h-3 rounded-full mr-2" 
+                          style={{ backgroundColor: strategy.color }} 
+                        />
+                      )}
+                      {strategyName}
+                    </div>
+                  </SelectItem>
+                );
+              })
+            ) : (
+              <SelectItem value="default-strategy">Default Strategy</SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -222,7 +281,7 @@ export function TradeDetailsForm({
         </Select>
       </div>
       
-      {/* Timeframe - Moved after Strategy */}
+      {/* Timeframe - Moved after strategy */}
       <div className="space-y-2">
         <Label htmlFor="timeframe">Timeframe</Label>
         <Select
@@ -252,6 +311,16 @@ export function TradeDetailsForm({
           value={trade.mistakes} 
           onChange={(mistakes) => handleChange('mistakes', mistakes)} 
         />
+      </div>
+      
+      <div className="border rounded-md p-4 bg-muted/30 mt-4">
+        <h3 className="text-sm font-medium mb-2 flex items-center">
+          <Target className="h-4 w-4 mr-2" />
+          Risk Management
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Setting a stop loss and take profit helps you maintain discipline and automatically calculates your risk-to-reward ratio.
+        </p>
       </div>
     </div>
   );
