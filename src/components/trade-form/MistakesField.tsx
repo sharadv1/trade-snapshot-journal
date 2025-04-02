@@ -1,21 +1,16 @@
 
 import * as React from "react";
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const DEFAULT_MISTAKES = [
   "Missed the entry",
@@ -53,17 +48,22 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
     return [...DEFAULT_MISTAKES, ...customMistakes];
   }, [customMistakes]);
 
-  const handleSelect = React.useCallback(
-    (selectedMistake: string) => {
-      setInputValue("");
-      
-      if (!selectedMistake) return;
-      
-      onChange(
-        safeValue.includes(selectedMistake)
-          ? safeValue.filter((item) => item !== selectedMistake)
-          : [...safeValue, selectedMistake]
-      );
+  // Filter available mistakes based on input value
+  const filteredMistakes = React.useMemo(() => {
+    if (!inputValue.trim()) return allMistakes;
+    
+    return allMistakes.filter(mistake => 
+      mistake.toLowerCase().includes(inputValue.toLowerCase())
+    );
+  }, [allMistakes, inputValue]);
+
+  const handleToggleMistake = React.useCallback(
+    (mistake: string) => {
+      if (safeValue.includes(mistake)) {
+        onChange(safeValue.filter((item) => item !== mistake));
+      } else {
+        onChange([...safeValue, mistake]);
+      }
     },
     [safeValue, onChange]
   );
@@ -75,24 +75,30 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
     [safeValue, onChange]
   );
 
+  const handleAddCustom = React.useCallback(() => {
+    if (!inputValue.trim()) return;
+
+    // Only add if it doesn't already exist
+    if (!allMistakes.includes(inputValue)) {
+      setCustomMistakes(prev => [...prev, inputValue]);
+    }
+    
+    // Always select the new/existing mistake
+    if (!safeValue.includes(inputValue)) {
+      onChange([...safeValue, inputValue]);
+    }
+    
+    setInputValue("");
+  }, [inputValue, safeValue, allMistakes, onChange]);
+
   const handleKeyDown = React.useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === "Enter" && inputValue && inputValue.trim()) {
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
         e.preventDefault();
-        
-        // Only add if it doesn't already exist in either list
-        if (!safeValue.includes(inputValue) && !allMistakes.includes(inputValue)) {
-          setCustomMistakes((prev) => [...prev, inputValue]);
-          onChange([...safeValue, inputValue]);
-        } else if (!safeValue.includes(inputValue)) {
-          // If it exists in the list of mistakes but not in selected values, just select it
-          onChange([...safeValue, inputValue]);
-        }
-        
-        setInputValue("");
+        handleAddCustom();
       }
     },
-    [inputValue, safeValue, allMistakes, onChange]
+    [handleAddCustom]
   );
 
   return (
@@ -111,41 +117,58 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0">
-          <Command>
-            <CommandInput
+        <PopoverContent className="w-full p-4" align="start">
+          <div className="flex items-center space-x-2 mb-4">
+            <Input
               placeholder="Search mistakes or add new"
               value={inputValue}
-              onValueChange={setInputValue}
+              onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
+              className="flex-1"
             />
-            <CommandEmpty>
-              {inputValue ? (
-                <div className="p-2 text-sm">
-                  Press Enter to add "{inputValue}"
-                </div>
-              ) : (
-                "No mistakes found."
-              )}
-            </CommandEmpty>
-            <CommandGroup className="max-h-64 overflow-auto">
-              {allMistakes.map((mistake) => (
-                <CommandItem
-                  key={mistake}
-                  value={mistake}
-                  onSelect={handleSelect}
-                >
-                  <Check
+            <Button 
+              type="button" 
+              size="sm" 
+              onClick={handleAddCustom}
+              disabled={!inputValue.trim()}
+              className="shrink-0"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <ScrollArea className="h-[200px]">
+            {filteredMistakes.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                No mistakes found
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {filteredMistakes.map((mistake) => (
+                  <div
+                    key={mistake}
                     className={cn(
-                      "mr-2 h-4 w-4",
-                      safeValue.includes(mistake) ? "opacity-100" : "opacity-0"
+                      "flex items-center justify-between rounded-md px-2 py-1.5 text-sm cursor-pointer",
+                      safeValue.includes(mistake) 
+                        ? "bg-accent text-accent-foreground"
+                        : "hover:bg-muted"
                     )}
-                  />
-                  {mistake}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </Command>
+                    onClick={() => handleToggleMistake(mistake)}
+                  >
+                    <div className="flex items-center">
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          safeValue.includes(mistake) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {mistake}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
         </PopoverContent>
       </Popover>
 
