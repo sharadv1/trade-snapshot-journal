@@ -8,7 +8,7 @@ export interface Trade {
   entryPrice: number;
   exitDate?: string;
   exitPrice?: number;
-  exitReason?: string; // Adding exitReason property
+  exitReason?: string;
   status: 'open' | 'closed';
   stopLoss?: number;
   takeProfit?: number;
@@ -22,7 +22,8 @@ export interface Trade {
   ideaId?: string;
   partialExits?: PartialExit[];
   contractDetails?: FuturesContractDetails;
-  tags?: string[]; // Adding tags property
+  tags?: string[];
+  mistakes?: string[];
 }
 
 export interface TradeWithMetrics extends Trade {
@@ -79,12 +80,12 @@ export interface WeeklyReflection {
   wins: string;
   losses: string;
   improvements: string;
-  weekId: string; // Make weekId required
+  weekId: string;
   weekStart?: string;
   weekEnd?: string;
   grade?: string;
   reflection?: string;
-  weeklyPlan?: string; // Add weekly plan field
+  weeklyPlan?: string;
   tradeIds?: string[];
   lastUpdated?: string;
 }
@@ -95,7 +96,7 @@ export interface MonthlyReflection {
   summary: string;
   lessons: string;
   goals: string;
-  monthId: string; // Make monthId required
+  monthId: string;
   monthStart?: string;
   monthEnd?: string;
   grade?: string;
@@ -111,7 +112,6 @@ export interface Strategy {
   color: string;
 }
 
-// Common futures contracts data
 export const COMMON_FUTURES_CONTRACTS = [
   {
     symbol: 'ES',

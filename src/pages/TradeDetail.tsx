@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, ChevronDown, ChevronUp, Star } from 'lucide-react';
@@ -13,6 +12,7 @@ import { PartialExitsList } from '@/components/PartialExitsList';
 import { calculateTradeMetrics, formatCurrency } from '@/utils/calculations';
 import { ContentRenderer } from '@/components/journal/ContentRenderer';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
+import { Badge } from '@/components/ui/badge';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -68,7 +68,6 @@ export default function TradeDetail() {
     setIsImageViewerOpen(false);
   };
   
-  // Calculate metrics for displaying risk/reward information
   const metrics = trade ? calculateTradeMetrics(trade) : null;
   
   return (
@@ -117,7 +116,6 @@ export default function TradeDetail() {
         </Button>
       </div>
       
-      {/* First row of cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -328,6 +326,24 @@ export default function TradeDetail() {
             )}
           </CardContent>
         </Card>
+
+        {trade.mistakes && trade.mistakes.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Mistakes Analysis</CardTitle>
+              <CardDescription>Learning from what went wrong</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {trade.mistakes.map((mistake, index) => (
+                  <Badge key={index} variant="secondary" className="text-sm">
+                    {mistake}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
       
       {trade.partialExits && trade.partialExits.length > 0 && (
@@ -363,7 +379,6 @@ export default function TradeDetail() {
         </div>
       )}
       
-      {/* Image Viewer Dialog */}
       {trade.images && trade.images.length > 0 && selectedImageIndex >= 0 && (
         <ImageViewerDialog 
           images={trade.images}

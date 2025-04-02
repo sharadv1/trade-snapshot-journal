@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Trade, FuturesContractDetails, COMMON_FUTURES_CONTRACTS } from '@/types';
 import { getIdeaById } from '@/utils/ideaStorage';
@@ -17,6 +16,7 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
       strategy: 'default-strategy',
       images: [],
       tags: [],
+      mistakes: [],
       partialExits: [],
       pspTime: '',
       timeframe: undefined,
@@ -33,7 +33,6 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
     }
   );
 
-  // Handle pre-filling from trade idea
   useEffect(() => {
     if (!isEditing && ideaIdFromProps) {
       console.log('Loading idea data for ID:', ideaIdFromProps);
@@ -53,7 +52,6 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
     }
   }, [ideaIdFromProps, isEditing]);
 
-  // Update contract details when symbol changes for futures contracts
   useEffect(() => {
     if (trade.type === 'futures' && trade.symbol) {
       const contract = COMMON_FUTURES_CONTRACTS.find(c => c.symbol === trade.symbol);
@@ -68,7 +66,6 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
     }
   }, [trade.type, trade.symbol]);
 
-  // Calculate point value for futures contracts
   const pointValue = trade.type === 'futures' && contractDetails.tickSize && contractDetails.tickValue
     ? contractDetails.tickValue / contractDetails.tickSize
     : 0;
@@ -88,7 +85,6 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
   };
 
   const handleTypeChange = (type: Trade['type']) => {
-    // Simply set the type directly - the type system will enforce valid values
     handleChange('type', type);
     
     if (type !== 'futures' && trade.type === 'futures') {

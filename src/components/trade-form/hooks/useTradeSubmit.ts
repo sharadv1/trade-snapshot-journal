@@ -30,6 +30,7 @@ export function useTradeSubmit(
         ...trade,
         strategy: finalStrategy,
         images,
+        mistakes: trade.mistakes || [],
         contractDetails: trade.type === 'futures' ? contractDetails : undefined
       };
       

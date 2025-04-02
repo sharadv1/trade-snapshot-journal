@@ -1,41 +1,62 @@
 
-import { Label } from '@/components/ui/label';
-import { ImageUpload } from '@/components/ImageUpload';
+import { useState } from 'react';
 import { Trade } from '@/types';
+import { Label } from '@/components/ui/label';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
+import { ImageUpload } from '@/components/ImageUpload';
+import { MistakesField } from './MistakesField';
 
 interface NotesAndImagesFormProps {
   trade: Partial<Trade>;
   handleChange: (field: keyof Trade, value: any) => void;
   images: string[];
-  onImageUpload: (base64Image: string) => void;
+  onImageUpload: (file: File) => void;
   onImageRemove: (index: number) => void;
 }
 
-export function NotesAndImagesForm({ 
-  trade, 
-  handleChange, 
-  images, 
-  onImageUpload, 
-  onImageRemove 
+export function NotesAndImagesForm({
+  trade,
+  handleChange,
+  images,
+  onImageUpload,
+  onImageRemove
 }: NotesAndImagesFormProps) {
+  const [notes, setNotes] = useState(trade.notes || '');
+
+  const handleNotesChange = (value: string) => {
+    setNotes(value);
+    handleChange('notes', value);
+  };
+  
+  const handleMistakesChange = (mistakes: string[]) => {
+    handleChange('mistakes', mistakes);
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="notes">Trade Notes</Label>
-        <RichTextEditor 
-          id="notes" 
-          content={trade.notes || ''} 
-          onChange={(content) => handleChange('notes', content)}
-          placeholder="Enter your observations, strategy details, or lessons learned... Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
-          className="min-h-32"
+        <Label htmlFor="notes">Notes</Label>
+        <div className="min-h-[200px]">
+          <RichTextEditor
+            value={notes}
+            onChange={handleNotesChange}
+            placeholder="Add your trade notes here..."
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="mistakes">Mistakes Made</Label>
+        <MistakesField 
+          value={trade.mistakes} 
+          onChange={handleMistakesChange} 
         />
       </div>
       
-      <div className="space-y-3">
-        <Label>Trade Images</Label>
-        <ImageUpload 
-          images={images} 
+      <div className="space-y-2">
+        <Label htmlFor="images">Images</Label>
+        <ImageUpload
+          images={images}
           onImageUpload={onImageUpload}
           onImageRemove={onImageRemove}
         />
