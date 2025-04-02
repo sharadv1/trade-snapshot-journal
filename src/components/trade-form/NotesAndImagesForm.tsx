@@ -38,7 +38,7 @@ export function NotesAndImagesForm({
         <Label htmlFor="notes">Notes</Label>
         <div className="min-h-[200px]">
           <RichTextEditor
-            value={notes}
+            content={notes}
             onChange={handleNotesChange}
             placeholder="Add your trade notes here..."
           />

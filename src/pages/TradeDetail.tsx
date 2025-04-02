@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, ChevronDown, ChevronUp, Star } from 'lucide-react';
@@ -13,6 +14,23 @@ import { calculateTradeMetrics, formatCurrency } from '@/utils/calculations';
 import { ContentRenderer } from '@/components/journal/ContentRenderer';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
 import { Badge } from '@/components/ui/badge';
+
+// Helper function to get the display value for timeframe
+const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
+  if (!timeframe) return '';
+  
+  const timeframeDisplayMap: Record<string, string> = {
+    'm5': '5 Minutes (M5)',
+    'm15': '15 Minutes (M15)',
+    'h1': '1 Hour (H1)',
+    'h4': '4 Hours (H4)',
+    'd1': 'Daily (D1)',
+    'w1': 'Weekly (W1)',
+    'm1': 'Monthly (M1)'
+  };
+  
+  return timeframeDisplayMap[timeframe] || timeframe;
+};
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -105,7 +123,12 @@ export default function TradeDetail() {
             {trade.grade && (
               <span className="flex items-center px-3 py-1 bg-muted rounded-full text-sm">
                 <Star className="h-3.5 w-3.5 mr-1 text-yellow-500 fill-yellow-500" />
-                Grade: {trade.grade}
+                Grade: {trade.grade === 'A' ? 'A - Excellent' : 
+                        trade.grade === 'B' ? 'B - Good' : 
+                        trade.grade === 'C' ? 'C - Average' : 
+                        trade.grade === 'D' ? 'D - Poor' : 
+                        trade.grade === 'F' ? 'F - Failed' : 
+                        trade.grade}
               </span>
             )}
           </div>
@@ -152,7 +175,12 @@ export default function TradeDetail() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Type</p>
-                <p className="font-medium">{trade.type.charAt(0).toUpperCase() + trade.type.slice(1)}</p>
+                <p className="font-medium">
+                  {trade.type === 'stock' ? 'Stock' : 
+                   trade.type === 'futures' ? 'Futures' : 
+                   trade.type === 'options' ? 'Options' : 
+                   trade.type.charAt(0).toUpperCase() + trade.type.slice(1)}
+                </p>
               </div>
               
               {trade.pspTime && (
@@ -165,7 +193,7 @@ export default function TradeDetail() {
               {trade.timeframe && (
                 <div>
                   <p className="text-sm text-muted-foreground">Timeframe</p>
-                  <p className="font-medium">{trade.timeframe}</p>
+                  <p className="font-medium">{getTimeframeDisplayValue(trade.timeframe)}</p>
                 </div>
               )}
               
