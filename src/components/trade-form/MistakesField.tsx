@@ -12,23 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const DEFAULT_MISTAKES = [
-  "Missed the entry",
-  "Position sizing too large",
-  "Position sizing too small",
-  "Moving stop loss",
-  "Premature exit",
-  "Chasing the price",
-  "Ignored the plan",
-  "FOMO trade",
-  "Revenge trading",
-  "Averaging down",
-  "Trading distracted",
-  "No defined stop loss",
-  "Trading news",
-  "Overtrading",
-  "Trading against the trend"
-];
+// Remove the default mistakes array
+const DEFAULT_MISTAKES: string[] = [];
 
 interface MistakesFieldProps {
   value: string[] | undefined;
@@ -71,8 +56,13 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
   const handleRemove = React.useCallback(
     (mistake: string) => {
       onChange(safeValue.filter((item) => item !== mistake));
+      
+      // Also remove from custom mistakes if it exists there
+      if (customMistakes.includes(mistake)) {
+        setCustomMistakes(prev => prev.filter(item => item !== mistake));
+      }
     },
-    [safeValue, onChange]
+    [safeValue, onChange, customMistakes]
   );
 
   const handleAddCustom = React.useCallback(() => {
@@ -113,14 +103,14 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
           >
             {safeValue.length > 0 
               ? `${safeValue.length} mistake${safeValue.length > 1 ? 's' : ''} selected` 
-              : "Select mistakes"}
+              : "Add mistakes"}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-4" align="start">
+        <PopoverContent className="w-[240px] p-4" align="start">
           <div className="flex items-center space-x-2 mb-4">
             <Input
-              placeholder="Search mistakes or add new"
+              placeholder="Enter new mistake"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -137,12 +127,8 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
             </Button>
           </div>
           
-          <ScrollArea className="h-[200px]">
-            {filteredMistakes.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                No mistakes found
-              </div>
-            ) : (
+          {allMistakes.length > 0 ? (
+            <ScrollArea className="h-[200px] max-h-[50vh]">
               <div className="space-y-1">
                 {filteredMistakes.map((mistake) => (
                   <div
@@ -153,9 +139,11 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
                         ? "bg-accent text-accent-foreground"
                         : "hover:bg-muted"
                     )}
-                    onClick={() => handleToggleMistake(mistake)}
                   >
-                    <div className="flex items-center">
+                    <div 
+                      className="flex-1 flex items-center"
+                      onClick={() => handleToggleMistake(mistake)}
+                    >
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
@@ -164,11 +152,23 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
                       />
                       {mistake}
                     </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100"
+                      onClick={() => handleRemove(mistake)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 ))}
               </div>
-            )}
-          </ScrollArea>
+            </ScrollArea>
+          ) : (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No mistakes added yet
+            </div>
+          )}
         </PopoverContent>
       </Popover>
 
