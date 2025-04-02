@@ -9,8 +9,7 @@ import {
   PencilRuler, 
   Sparkles, 
   Book,
-  Tags,
-  CircleSlash 
+  Tags
 } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 
@@ -19,10 +18,10 @@ export function SimpleSidebar() {
   
   // In the updated sidebar component, we should use the 'state' property
   // instead of 'isOpen' to determine if the sidebar is expanded
-  if (state === "collapsed") return null;
+  const isCollapsed = state === "collapsed";
   
   return (
-    <div className="hidden md:block w-64 shrink-0 border-r pt-16 bg-background z-10">
+    <div className={`${isCollapsed ? 'hidden' : ''} md:block w-64 shrink-0 border-r pt-16 bg-background z-10`}>
       <div className="space-y-1 p-2">
         <NavItem to="/" icon={<Home size={18} />} label="Dashboard" />
         <NavItem to="/analytics" icon={<BarChartBig size={18} />} label="Analytics" />

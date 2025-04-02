@@ -11,6 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { TradeCommentsList } from '@/components/journal/TradeCommentsList';
 import { PartialExitsList } from '@/components/PartialExitsList';
 import { calculateTradeMetrics, formatCurrency } from '@/utils/calculations';
+import { ContentRenderer } from '@/components/journal/ContentRenderer';
+import { ImageViewerDialog } from '@/components/ImageViewerDialog';
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +20,8 @@ export default function TradeDetail() {
   const [trade, setTrade] = useState<Trade | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showCalculationDetails, setShowCalculationDetails] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   
   useEffect(() => {
     if (!id) {
@@ -53,6 +57,15 @@ export default function TradeDetail() {
   
   const handleEditClick = () => {
     navigate(`/trade/${id}/edit`);
+  };
+  
+  const handleImageClick = (index: number) => {
+    setSelectedImageIndex(index);
+    setIsImageViewerOpen(true);
+  };
+
+  const handleImageClose = () => {
+    setIsImageViewerOpen(false);
   };
   
   // Calculate metrics for displaying risk/reward information
@@ -104,6 +117,7 @@ export default function TradeDetail() {
         </Button>
       </div>
       
+      {/* First row of cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -308,7 +322,7 @@ export default function TradeDetail() {
           </CardHeader>
           <CardContent>
             {trade.notes ? (
-              <div className="whitespace-pre-wrap">{trade.notes}</div>
+              <ContentRenderer content={trade.notes} />
             ) : (
               <p className="text-muted-foreground">No notes for this trade.</p>
             )}
@@ -331,11 +345,15 @@ export default function TradeDetail() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {trade.images.map((image, index) => (
-                  <div key={index} className="overflow-hidden rounded-md border">
+                  <div 
+                    key={index} 
+                    className="overflow-hidden rounded-md border hover:opacity-90 transition-opacity cursor-pointer"
+                    onClick={() => handleImageClick(index)}
+                  >
                     <img 
                       src={image} 
                       alt={`Trade chart ${index + 1}`} 
-                      className="h-auto w-full object-cover cursor-pointer" 
+                      className="h-auto w-full object-cover" 
                     />
                   </div>
                 ))}
@@ -343,6 +361,18 @@ export default function TradeDetail() {
             </CardContent>
           </Card>
         </div>
+      )}
+      
+      {/* Image Viewer Dialog */}
+      {trade.images && trade.images.length > 0 && selectedImageIndex >= 0 && (
+        <ImageViewerDialog 
+          images={trade.images}
+          currentIndex={selectedImageIndex}
+          isOpen={isImageViewerOpen}
+          onClose={handleImageClose}
+          onIndexChange={setSelectedImageIndex}
+          image=""
+        />
       )}
     </div>
   );

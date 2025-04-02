@@ -11,6 +11,7 @@ interface RichTextEditorProps {
   onChange: (content: string) => void;
   placeholder?: string;
   className?: string;
+  readonly?: boolean;
 }
 
 export function RichTextEditor({ 
@@ -18,7 +19,8 @@ export function RichTextEditor({
   content, 
   onChange, 
   placeholder, 
-  className 
+  className,
+  readonly = false
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -81,6 +83,7 @@ export function RichTextEditor({
     // Enable Markdown input processing
     enableInputRules: true,
     enablePasteRules: true,
+    editable: !readonly,
   });
 
   // Update editor content when content prop changes from outside
