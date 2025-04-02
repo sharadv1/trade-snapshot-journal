@@ -84,7 +84,7 @@ export function NotesAndImagesForm({
         <MediaUpload
           media={media}
           onMediaUpload={handleMediaUpload}
-          onMediaRemove={onMediaRemove}
+          onMediaRemove={onImageRemove}
         />
         {isUploading && (
           <div className="text-sm text-muted-foreground">Uploading media...</div>
