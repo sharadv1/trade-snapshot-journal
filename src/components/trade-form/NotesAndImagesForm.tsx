@@ -4,7 +4,6 @@ import { Trade } from '@/types';
 import { Label } from '@/components/ui/label';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { ImageUpload } from '@/components/ImageUpload';
-import { MistakesField } from './MistakesField';
 
 interface NotesAndImagesFormProps {
   trade: Partial<Trade>;
@@ -27,10 +26,6 @@ export function NotesAndImagesForm({
     setNotes(value);
     handleChange('notes', value);
   };
-  
-  const handleMistakesChange = (mistakes: string[]) => {
-    handleChange('mistakes', mistakes);
-  };
 
   return (
     <div className="space-y-6">
@@ -43,14 +38,6 @@ export function NotesAndImagesForm({
             placeholder="Add your trade notes here..."
           />
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="mistakes">Mistakes Made</Label>
-        <MistakesField 
-          value={trade.mistakes} 
-          onChange={handleMistakesChange} 
-        />
       </div>
       
       <div className="space-y-2">

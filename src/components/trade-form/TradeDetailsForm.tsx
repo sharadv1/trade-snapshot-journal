@@ -1,23 +1,19 @@
-
-import { Input } from '@/components/ui/input';
+import React from 'react';
+import { Trade, FuturesContractDetails } from '@/types';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Trade, FuturesContractDetails, TradeIdea } from '@/types';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SymbolSelector } from '@/components/SymbolSelector';
 import { FuturesContractSelector } from '@/components/FuturesContractSelector';
-import { FuturesContractDetails as FuturesDetails } from '@/components/FuturesContractDetails';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useEffect, useState } from 'react';
-import { getIdeas } from '@/utils/ideaStorage';
+import { FuturesContractDetails as FuturesContractDetailsComponent } from '@/components/FuturesContractDetails';
+import { MistakesField } from './MistakesField';
 
 interface TradeDetailsFormProps {
   trade: Partial<Trade>;
   handleChange: (field: keyof Trade, value: any) => void;
-  handleTypeChange: (type: 'stock' | 'futures' | 'forex' | 'crypto' | 'options') => void;
+  handleTypeChange: (type: Trade['type']) => void;
   contractDetails: Partial<FuturesContractDetails>;
-  pointValue: number;
-  isEditing?: boolean;
+  pointValue: number | undefined;
 }
 
 export function TradeDetailsForm({
@@ -25,221 +21,178 @@ export function TradeDetailsForm({
   handleChange,
   handleTypeChange,
   contractDetails,
-  pointValue,
-  isEditing = false
+  pointValue
 }: TradeDetailsFormProps) {
-  const [ideas, setIdeas] = useState<TradeIdea[]>([]);
-  
-  useEffect(() => {
-    // Load valid and taken ideas
-    const allIdeas = getIdeas() || [];
-    const availableIdeas = allIdeas.filter(idea => 
-      idea.status === 'still valid' || 
-      (idea.status === 'taken' && idea.id === trade.ideaId)
-    );
-    setIdeas(availableIdeas);
-  }, [trade.ideaId]);
-  
-  // Ensure we always have an array of ideas, even if empty
-  const safeIdeas = ideas || [];
-  
   return (
     <div className="space-y-4">
+      {/* Trade Type Selection */}
       <div className="space-y-2">
-        <Label>Trade Type</Label>
-        <RadioGroup
+        <Label htmlFor="type">Trade Type</Label>
+        <Select
           value={trade.type}
-          onValueChange={(value) => handleTypeChange(value as 'stock' | 'futures' | 'forex' | 'crypto' | 'options')}
-          className="flex space-x-2"
+          onValueChange={(value: Trade['type']) => handleTypeChange(value)}
         >
-          <div className="flex items-center space-x-1">
-            <RadioGroupItem value="stock" id="stock" />
-            <Label htmlFor="stock" className="cursor-pointer">Stock</Label>
-          </div>
-          <div className="flex items-center space-x-1">
-            <RadioGroupItem value="futures" id="futures" />
-            <Label htmlFor="futures" className="cursor-pointer">Futures</Label>
-          </div>
-          <div className="flex items-center space-x-1">
-            <RadioGroupItem value="options" id="options" />
-            <Label htmlFor="options" className="cursor-pointer">Options</Label>
-          </div>
-        </RadioGroup>
+          <SelectTrigger id="type">
+            <SelectValue placeholder="Select Trade Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="stock">Stock</SelectItem>
+            <SelectItem value="option">Option</SelectItem>
+            <SelectItem value="futures">Futures</SelectItem>
+            <SelectItem value="crypto">Cryptocurrency</SelectItem>
+            <SelectItem value="forex">Forex</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-      
+
+      {/* Symbol Selection */}
       <div className="space-y-2">
-        <Label htmlFor="symbol">Symbol <span className="text-destructive">*</span></Label>
+        <Label htmlFor="symbol">Symbol</Label>
         {trade.type === 'futures' ? (
-          <FuturesContractSelector 
-            value={trade.symbol || ''} 
-            onChange={(value) => handleChange('symbol', value)} 
+          <FuturesContractSelector
+            value={trade.symbol}
+            onChange={(symbol) => handleChange('symbol', symbol)}
           />
         ) : (
-          <SymbolSelector 
-            value={trade.symbol || ''}
-            onChange={(value) => handleChange('symbol', value)}
+          <SymbolSelector
+            value={trade.symbol}
+            onChange={(symbol) => handleChange('symbol', symbol)}
+            type={trade.type}
           />
         )}
       </div>
 
+      {/* Contract Details for Futures */}
       {trade.type === 'futures' && trade.symbol && (
-        <FuturesDetails
-          symbol={trade.symbol}
+        <FuturesContractDetailsComponent
           contractDetails={contractDetails}
-          pointValue={pointValue}
+          onChange={(details) => handleChange('contractDetails', details)}
+          symbol={trade.symbol}
         />
       )}
-      
+
+      {/* Trade Direction */}
       <div className="space-y-2">
-        <Label htmlFor="ideaId">Trade Idea</Label>
-        <Select 
-          value={trade.ideaId || 'none'}
-          onValueChange={(value) => handleChange('ideaId', value === 'none' ? '' : value)}
-        >
-          <SelectTrigger id="ideaId">
-            <SelectValue placeholder="Select a trade idea (optional)" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            {safeIdeas.length > 0 ? (
-              safeIdeas.map(idea => (
-                <SelectItem key={idea.id || `idea-${crypto.randomUUID()}`} value={idea.id || ''}>
-                  {idea.symbol} - {idea.description?.slice(0, 30)}
-                  {idea.description && idea.description.length > 30 ? '...' : ''}
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem value="no-available" disabled>No available ideas</SelectItem>
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="space-y-2">
-        <Label>Direction</Label>
-        <RadioGroup
+        <Label htmlFor="direction">Direction</Label>
+        <Select
           value={trade.direction}
-          onValueChange={(value) => handleChange('direction', value as 'long' | 'short')}
-          className="flex space-x-2"
+          onValueChange={(value: 'long' | 'short') => handleChange('direction', value)}
         >
-          <div className="flex items-center space-x-1">
-            <RadioGroupItem value="long" id="long" />
-            <Label htmlFor="long" className="cursor-pointer">Long</Label>
-          </div>
-          <div className="flex items-center space-x-1">
-            <RadioGroupItem value="short" id="short" />
-            <Label htmlFor="short" className="cursor-pointer">Short</Label>
-          </div>
-        </RadioGroup>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="grade">Trade Grade</Label>
-        <Select 
-          value={trade.grade || 'no-grade'}
-          onValueChange={(value) => handleChange('grade', value === 'no-grade' ? undefined : value)}
-        >
-          <SelectTrigger id="grade">
-            <SelectValue placeholder="Select a grade (optional)" />
+          <SelectTrigger id="direction">
+            <SelectValue placeholder="Select Direction" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="no-grade">None</SelectItem>
-            <SelectItem value="A">A - Excellent</SelectItem>
-            <SelectItem value="B">B - Good</SelectItem>
-            <SelectItem value="C">C - Average</SelectItem>
-            <SelectItem value="D">D - Poor</SelectItem>
-            <SelectItem value="F">F - Failed</SelectItem>
+            <SelectItem value="long">Long</SelectItem>
+            <SelectItem value="short">Short</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <Separator />
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="entryDate">Entry Date & Time</Label>
-          <Input 
-            id="entryDate" 
-            type="datetime-local"
-            value={trade.entryDate || ''}
-            onChange={(e) => handleChange('entryDate', e.target.value)}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="entryPrice">Entry Price <span className="text-destructive">*</span></Label>
-          <Input 
-            id="entryPrice" 
-            type="number"
-            min="0"
-            step="0.01"
-            value={trade.entryPrice || ''}
-            onChange={(e) => handleChange('entryPrice', parseFloat(e.target.value))}
-            required
-          />
-        </div>
+      {/* Trading Strategy */}
+      <div className="space-y-2">
+        <Label htmlFor="strategy">Strategy</Label>
+        <Select
+          value={trade.strategy || 'default-strategy'}
+          onValueChange={(value) => handleChange('strategy', value)}
+        >
+          <SelectTrigger id="strategy">
+            <SelectValue placeholder="Select Strategy" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default-strategy">Default Strategy</SelectItem>
+            <SelectItem value="breakout">Breakout</SelectItem>
+            <SelectItem value="reversal">Reversal</SelectItem>
+            <SelectItem value="trend-following">Trend Following</SelectItem>
+            <SelectItem value="scalping">Scalping</SelectItem>
+            <SelectItem value="swing">Swing</SelectItem>
+            <SelectItem value="custom">Custom</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="quantity">Quantity <span className="text-destructive">*</span></Label>
-          <Input 
-            id="quantity" 
-            type="number"
-            min="1"
-            step="1"
-            value={trade.quantity || ''}
-            onChange={(e) => handleChange('quantity', parseInt(e.target.value))}
-            required
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="fees">Fees & Commissions</Label>
-          <Input 
-            id="fees" 
-            type="number"
-            min="0"
-            step="0.01"
-            value={trade.fees || ''}
-            onChange={(e) => handleChange('fees', parseFloat(e.target.value))}
-          />
-        </div>
+      {/* Entry Date/Time */}
+      <div className="space-y-2">
+        <Label htmlFor="entryDate">Entry Date & Time</Label>
+        <Input
+          type="datetime-local"
+          id="entryDate"
+          value={trade.entryDate ? trade.entryDate.slice(0, 16) : ''}
+          onChange={(e) => handleChange('entryDate', e.target.value)}
+        />
+      </div>
+
+      {/* Entry Price */}
+      <div className="space-y-2">
+        <Label htmlFor="entryPrice">
+          Entry Price {trade.type === 'futures' && pointValue ? `($${pointValue.toFixed(2)} per point)` : ''}
+        </Label>
+        <Input
+          type="number"
+          id="entryPrice"
+          placeholder="0.00"
+          step="0.01"
+          value={trade.entryPrice || ''}
+          onChange={(e) => handleChange('entryPrice', parseFloat(e.target.value) || 0)}
+        />
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="pspTime">PSP Time (HH:MM)</Label>
-          <Input 
-            id="pspTime" 
-            type="time"
-            value={trade.pspTime || ''}
-            onChange={(e) => handleChange('pspTime', e.target.value)}
-            placeholder="Enter PSP time (e.g., 09:30)"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="timeframe">Timeframe</Label>
-          <Select
-            value={trade.timeframe || 'none'}
-            onValueChange={(value) => handleChange('timeframe', value === 'none' ? undefined : value)}
-          >
-            <SelectTrigger id="timeframe" className="w-full">
-              <SelectValue placeholder="Select timeframe" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              <SelectItem value="m5">5 Minutes (M5)</SelectItem>
-              <SelectItem value="m15">15 Minutes (M15)</SelectItem>
-              <SelectItem value="h1">1 Hour (H1)</SelectItem>
-              <SelectItem value="h4">4 Hours (H4)</SelectItem>
-              <SelectItem value="d1">Daily (D1)</SelectItem>
-              <SelectItem value="w1">Weekly (W1)</SelectItem>
-              <SelectItem value="m1">Monthly (M1)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Quantity */}
+      <div className="space-y-2">
+        <Label htmlFor="quantity">
+          Quantity {trade.type === 'futures' ? '(# of Contracts)' : '(# of Shares)'}
+        </Label>
+        <Input
+          type="number"
+          id="quantity"
+          placeholder="0"
+          value={trade.quantity || ''}
+          onChange={(e) => handleChange('quantity', parseFloat(e.target.value) || 0)}
+        />
+      </div>
+      
+      {/* Fees */}
+      <div className="space-y-2">
+        <Label htmlFor="fees">Fees</Label>
+        <Input
+          type="number"
+          id="fees"
+          placeholder="0.00"
+          step="0.01"
+          value={trade.fees || ''}
+          onChange={(e) => handleChange('fees', parseFloat(e.target.value) || 0)}
+        />
+      </div>
+      
+      {/* Timeframe */}
+      <div className="space-y-2">
+        <Label htmlFor="timeframe">Timeframe</Label>
+        <Select
+          value={trade.timeframe || ''}
+          onValueChange={(value) => handleChange('timeframe', value)}
+        >
+          <SelectTrigger id="timeframe">
+            <SelectValue placeholder="Select Timeframe" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="1m">1 Minute</SelectItem>
+            <SelectItem value="5m">5 Minutes</SelectItem>
+            <SelectItem value="15m">15 Minutes</SelectItem>
+            <SelectItem value="30m">30 Minutes</SelectItem>
+            <SelectItem value="1h">1 Hour</SelectItem>
+            <SelectItem value="4h">4 Hours</SelectItem>
+            <SelectItem value="1d">Daily</SelectItem>
+            <SelectItem value="1w">Weekly</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {/* Mistakes Field - Added here */}
+      <div className="space-y-2">
+        <Label htmlFor="mistakes">Mistakes Made</Label>
+        <MistakesField 
+          value={trade.mistakes} 
+          onChange={(mistakes) => handleChange('mistakes', mistakes)} 
+        />
       </div>
     </div>
   );
