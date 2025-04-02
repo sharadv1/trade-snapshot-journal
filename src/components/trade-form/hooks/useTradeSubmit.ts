@@ -1,4 +1,3 @@
-
 import { Trade } from '@/types';
 import { addTrade, updateTrade } from '@/utils/tradeStorage';
 import { markIdeaAsTaken } from '@/utils/ideaStorage';
@@ -28,7 +27,13 @@ export function useTradeSubmit(
       const finalStrategy = trade.strategy || 'default-strategy';
       
       // Filter out any extremely large data URLs to prevent storage quota issues
+      // But keep server media paths (they start with "/media/")
       const filteredImages = images.filter(img => {
+        // Always keep server media paths
+        if (img.startsWith('/media/')) {
+          return true;
+        }
+        
         // Check if image is a data URL and if it's too large (>2MB)
         if (img.startsWith('data:') && img.length > 2 * 1024 * 1024) {
           console.warn('Skipping large data URL to prevent storage quota issues');

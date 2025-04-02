@@ -36,9 +36,15 @@ export function NotesAndImagesForm({
   }));
   
   function isVideoUrl(url: string): boolean {
+    // Check if it's a server path or data URL
     return url.endsWith('.mp4') || 
            url.endsWith('.webm') || 
            url.endsWith('.mov') ||
+           url.includes('/media/') && (
+             url.includes('.mp4') || 
+             url.includes('.webm') || 
+             url.includes('.mov')
+           ) ||
            url.includes('/video/') ||
            url.startsWith('data:video/');
   }
@@ -78,7 +84,7 @@ export function NotesAndImagesForm({
         <MediaUpload
           media={media}
           onMediaUpload={handleMediaUpload}
-          onMediaRemove={onImageRemove}
+          onMediaRemove={onMediaRemove}
         />
         {isUploading && (
           <div className="text-sm text-muted-foreground">Uploading media...</div>
