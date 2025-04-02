@@ -17,6 +17,7 @@ export function useTradeSubmit(
     e.preventDefault();
     console.log('Trade form submitted with data:', trade);
     
+    // Validate required fields
     if (!trade.symbol || !trade.entryPrice || !trade.quantity) {
       toast.error("Please fill in all required fields");
       return false;
@@ -59,7 +60,8 @@ export function useTradeSubmit(
         const newTrade = {
           ...tradeToSave,
           id: newId,
-          partialExits: []
+          partialExits: [],
+          status: 'open' // Ensure new trades are created with an open status
         } as Trade;
         
         console.log('Adding new trade:', newTrade);

@@ -29,11 +29,19 @@ export function NotesAndImagesForm({
   const [notes, setNotes] = useState(trade.notes || '');
   const [isUploading, setIsUploading] = useState(false);
 
-  // Convert legacy images array to media format
+  // Convert legacy images array to media format, and properly detect video types
   const media: MediaFile[] = images.map(url => ({
     url,
-    type: url.includes('.mp4') || url.includes('.webm') || url.startsWith('data:video/') ? 'video' : 'image'
+    type: isVideoUrl(url) ? 'video' : 'image'
   }));
+  
+  function isVideoUrl(url: string): boolean {
+    return url.endsWith('.mp4') || 
+           url.endsWith('.webm') || 
+           url.endsWith('.mov') ||
+           url.includes('/video/') ||
+           url.startsWith('data:video/');
+  }
   
   const handleMediaUpload = async (file: File) => {
     setIsUploading(true);

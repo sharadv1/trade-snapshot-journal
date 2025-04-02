@@ -40,6 +40,7 @@ export function MediaUpload({
         await onMediaUpload(file);
       } catch (error) {
         console.error('Error uploading:', error);
+        toast.error('Failed to upload file');
       } finally {
         setUploading(false);
         // Clear the input value so the same file can be uploaded again
@@ -94,6 +95,7 @@ export function MediaUpload({
           await onMediaUpload(mediaFile);
         } catch (error) {
           console.error('Error uploading:', error);
+          toast.error('Failed to upload file');
         } finally {
           setUploading(false);
         }
@@ -120,8 +122,14 @@ export function MediaUpload({
               />
             ) : (
               <div className="relative w-full h-full bg-black/5 flex items-center justify-center">
-                <video className="max-h-full max-w-full">
-                  <source src={item.url} type="video/mp4" />
+                <video 
+                  className="max-h-full max-w-full" 
+                  controls={false}
+                  muted
+                  loop
+                  preload="metadata"
+                >
+                  <source src={item.url} />
                   Your browser does not support the video tag.
                 </video>
                 <div className="absolute inset-0 flex items-center justify-center">

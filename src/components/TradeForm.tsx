@@ -8,8 +8,9 @@ import { RiskParametersForm } from './trade-form/RiskParametersForm';
 import { NotesAndImagesForm } from './trade-form/NotesAndImagesForm';
 import { useTradeForm } from './trade-form/useTradeForm';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from '@/utils/toast';
+import { AlertCircle } from 'lucide-react';
 
 interface TradeFormProps {
   initialTrade?: Trade;
@@ -23,6 +24,8 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const ideaIdFromProps = ideaId || searchParams.get('ideaId');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   console.log('TradeForm rendering. Idea ID from props or URL:', ideaIdFromProps);
   
@@ -49,6 +52,11 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
       return;
     }
   }, [trade]);
+
+  useEffect(() => {
+    // Clear validation errors when user changes tab
+    setValidationErrors([]);
+  }, [activeTab]);
 
   console.log('Current trade state:', {
     symbol: trade.symbol,
@@ -84,9 +92,39 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     }
   };
 
+  const validateForm = (): boolean => {
+    const errors: string[] = [];
+    
+    if (!trade.symbol) errors.push('Symbol is required');
+    if (!trade.entryPrice) errors.push('Entry price is required');
+    if (!trade.quantity) errors.push('Quantity is required');
+    if (!trade.entryDate) errors.push('Entry date is required');
+    
+    setValidationErrors(errors);
+    
+    if (errors.length > 0) {
+      // Determine which tab to switch to based on errors
+      if (!trade.symbol || !trade.entryPrice || !trade.quantity || !trade.entryDate) {
+        setActiveTab('details');
+      }
+      
+      return false;
+    }
+    
+    return true;
+  };
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Submitting trade form with data:', trade);
+    
+    setIsSubmitting(true);
+    
+    if (!validateForm()) {
+      toast.error('Please fill in all required fields');
+      setIsSubmitting(false);
+      return;
+    }
     
     try {
       const success = submitHandler(e, handleFormSuccess);
@@ -103,6 +141,8 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
       } else {
         toast.error('Failed to submit trade form');
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -120,6 +160,22 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
             }
           </CardDescription>
         </CardHeader>
+        
+        {validationErrors.length > 0 && (
+          <div className="px-6 pb-2">
+            <div className="bg-destructive/15 text-destructive rounded-md p-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <p className="text-sm font-medium">Please correct the following errors:</p>
+              </div>
+              <ul className="mt-2 ml-6 text-sm list-disc">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="px-6">
@@ -168,8 +224,13 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
           >
             Cancel
           </Button>
-          <Button type="submit" form="trade-form">
-            {isEditing ? "Update Trade" : "Save Trade"}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting 
+              ? 'Saving...' 
+              : isEditing 
+                ? "Update Trade" 
+                : "Save Trade"
+            }
           </Button>
         </CardFooter>
       </Card>

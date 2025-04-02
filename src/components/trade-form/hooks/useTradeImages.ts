@@ -11,32 +11,36 @@ export function useTradeImages(initialImages: string[] = []) {
     
     setIsUploading(true);
     try {
-      // Create form data for upload
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // Upload to server
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
+      // For now, since the server upload is not working,
+      // we'll use a data URL approach for both images and videos
+      return new Promise<string[]>((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          try {
+            if (!e.target || typeof e.target.result !== 'string') {
+              throw new Error('Failed to read file');
+            }
+            
+            // Add the file path to images array
+            const newImages = [...images, e.target.result];
+            setImages(newImages);
+            toast.success('File uploaded successfully');
+            resolve(newImages);
+          } catch (error) {
+            reject(error);
+          } finally {
+            setIsUploading(false);
+          }
+        };
+        
+        reader.onerror = (error) => {
+          setIsUploading(false);
+          reject(error);
+        };
+        
+        reader.readAsDataURL(file);
       });
-      
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        // Add the file path to images array
-        const newImages = [...images, result.filePath];
-        setImages(newImages);
-        toast.success(`File uploaded successfully`);
-        setIsUploading(false);
-        return newImages;
-      } else {
-        throw new Error(result.error || 'Upload failed');
-      }
     } catch (error) {
       console.error('Error uploading file:', error);
       toast.error('Failed to upload media');
