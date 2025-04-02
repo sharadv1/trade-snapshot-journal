@@ -3,11 +3,11 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import cors from "cors";
-const app = express();
-const PORT = process.env.PORT || 4000;
+import multer from "multer";
 import { fileURLToPath } from "url";
 
-console.log(`Starting server in ${process.env.NODE_ENV || "development"} mode`);
+const app = express();
+const PORT = process.env.PORT || 4000;
 
 // Handle __dirname in ES module and CommonJS environments
 let __dirname;
@@ -29,12 +29,19 @@ const TRADES_FILE = path.join(DATA_DIR, "trades.json");
 const IDEAS_FILE = path.join(DATA_DIR, "ideas.json");
 const STRATEGIES_FILE = path.join(DATA_DIR, "strategies.json");
 const SYMBOLS_FILE = path.join(DATA_DIR, "symbols.json");
+const MEDIA_DIR = path.join(DATA_DIR, "media"); // Directory for storing media files
 
 // Ensure data directory exists
 console.log(`Ensuring data directory exists: ${DATA_DIR}`);
 if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     console.log(`Created data directory: ${DATA_DIR}`);
+}
+
+// Ensure media directory exists
+if (!fs.existsSync(MEDIA_DIR)) {
+    fs.mkdirSync(MEDIA_DIR, { recursive: true });
+    console.log(`Created media directory: ${MEDIA_DIR}`);
 }
 
 // Initialize empty files if they don't exist
@@ -58,10 +65,40 @@ if (!fs.existsSync(SYMBOLS_FILE)) {
     console.log(`Initialized empty symbols file: ${SYMBOLS_FILE}`);
 }
 
+// Configure media storage
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, MEDIA_DIR);
+    },
+    filename: (req, file, cb) => {
+        // Create unique filename with original extension
+        const uniquePrefix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, `${uniquePrefix}${ext}`);
+    }
+});
+
+// File upload middleware
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
+    fileFilter: (req, file, cb) => {
+        // Accept images and videos
+        if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Unsupported file type'), false);
+        }
+    }
+});
+
 // Middlewares
 app.use(cors());
 app.use(express.json({ limit: "50mb" })); // For handling large requests with images
 app.use(express.static("dist")); // Serve static files
+
+// Serve media files
+app.use('/media', express.static(MEDIA_DIR));
 
 // API Routes for trades
 app.get("/api/trades", (req, res) => {
@@ -147,6 +184,27 @@ app.put("/api/symbols", (req, res) => {
     }
 });
 
+// Media upload endpoint
+app.post("/api/upload", upload.single('file'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded" });
+        }
+        
+        // Return the file path that can be saved in the trade
+        const filePath = `/media/${req.file.filename}`;
+        res.json({ 
+            success: true, 
+            filePath,
+            fileType: req.file.mimetype,
+            isVideo: req.file.mimetype.startsWith('video/')
+        });
+    } catch (error) {
+        console.error("Error uploading file:", error);
+        res.status(500).json({ error: "Failed to upload file" });
+    }
+});
+
 // Health check endpoint
 app.get("/api/ping", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
@@ -171,6 +229,7 @@ app.get("*", (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Health check available at http://localhost:${PORT}/api/ping`);
+    console.log(`Media files available at http://localhost:${PORT}/media/`);
 });
 
 // Handle process termination
