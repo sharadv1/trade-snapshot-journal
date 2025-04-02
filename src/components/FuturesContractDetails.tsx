@@ -6,6 +6,7 @@ export function FuturesContractDetails({
   value,
   symbol,
   contractDetails,
+  onChange,
   pointValue
 }: FuturesContractDetailsProps) {
   // Support both old and new prop structures
@@ -13,6 +14,15 @@ export function FuturesContractDetails({
   const actualValue = pointValue || value;
   
   if (!actualDetails?.exchange) return null;
+  
+  const handleChange = (field: string, value: any) => {
+    if (onChange) {
+      onChange({
+        ...actualDetails,
+        [field]: value
+      });
+    }
+  };
   
   return (
     <dl className="grid grid-cols-2 gap-x-4 gap-y-2">

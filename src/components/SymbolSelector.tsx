@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Command,
-  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { COMMON_FUTURES_CONTRACTS } from '@/types';
 import { getAllSymbols, addCustomSymbol, SymbolDetails, getSymbolMeaning } from '@/utils/symbolStorage';
 
-interface SymbolSelectorProps {
+export interface SymbolSelectorProps {
   value: string;
   onChange: (value: string) => void;
   tradeType?: 'stock' | 'futures' | 'forex' | 'crypto' | 'options';
@@ -30,15 +30,12 @@ export function SymbolSelector({
 }: SymbolSelectorProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value || '');
-  const [symbols, setSymbols] = useState<SymbolDetails[]>(() => {
-    // Get combined symbols (preset + custom)
-    return getAllSymbols();
-  });
+  const [symbols, setSymbols] = useState<SymbolDetails[]>(() => getAllSymbols());
 
-  // Filter symbols based on trade type
+  // Filter symbols based on trade type - ensure we always have an array even if filtering returns nothing
   const filteredSymbols = tradeType === 'futures' 
     ? symbols.filter(s => s.type === 'futures')
-    : symbols;
+    : symbols.filter(s => s.type !== 'futures') || [];
 
   // Refresh symbols when component mounts
   useEffect(() => {

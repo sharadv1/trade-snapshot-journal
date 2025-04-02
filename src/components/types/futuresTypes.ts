@@ -3,15 +3,16 @@ import { FuturesContractDetails } from '@/types';
 
 export interface FuturesContractSelectorProps {
   selectedValue?: string;
-  value?: string; 
-  onSelect?: (value: FuturesContractDetails) => void;
-  onChange?: (value: any) => void;
+  value?: string;
+  onSelect?: (details: Partial<FuturesContractDetails>) => void;
+  onChange?: (value: string) => void;
 }
 
 export interface FuturesContractDetailsProps {
   details?: Partial<FuturesContractDetails>;
-  value?: number;
-  symbol?: string;
   contractDetails?: Partial<FuturesContractDetails>;
+  value?: number;
   pointValue?: number;
+  symbol?: string;
+  onChange?: (details: Partial<FuturesContractDetails>) => void;
 }
