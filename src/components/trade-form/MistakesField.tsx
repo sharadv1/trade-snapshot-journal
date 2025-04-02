@@ -45,40 +45,45 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
   const [mistakes, setMistakes] = React.useState<string[]>(DEFAULT_MISTAKES);
   const [inputValue, setInputValue] = React.useState("");
 
+  // Ensure value is always an array, even if undefined is passed
+  const safeValue = React.useMemo(() => Array.isArray(value) ? value : [], [value]);
+
   const handleSelect = React.useCallback(
     (mistake: string) => {
       setInputValue("");
-      if (value.includes(mistake)) {
-        onChange(value.filter((item) => item !== mistake));
+      if (safeValue.includes(mistake)) {
+        onChange(safeValue.filter((item) => item !== mistake));
       } else {
-        onChange([...value, mistake]);
+        onChange([...safeValue, mistake]);
       }
     },
-    [value, onChange]
+    [safeValue, onChange]
   );
 
   const handleRemove = React.useCallback(
     (mistake: string) => {
-      onChange(value.filter((item) => item !== mistake));
+      onChange(safeValue.filter((item) => item !== mistake));
     },
-    [value, onChange]
+    [safeValue, onChange]
   );
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const mistakesArray = Array.isArray(mistakes) ? mistakes : [];
+      
       if (
         e.key === "Enter" &&
         inputValue &&
-        !mistakes.includes(inputValue) &&
-        !value.includes(inputValue)
+        !mistakesArray.includes(inputValue) &&
+        !safeValue.includes(inputValue)
       ) {
         e.preventDefault();
-        setMistakes((prev) => [...prev, inputValue]);
-        onChange([...value, inputValue]);
+        setMistakes((prev) => [...(Array.isArray(prev) ? prev : []), inputValue]);
+        onChange([...safeValue, inputValue]);
         setInputValue("");
       }
     },
-    [inputValue, mistakes, value, onChange]
+    [inputValue, mistakes, safeValue, onChange]
   );
 
   return (
@@ -112,7 +117,7 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
               )}
             </CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {mistakes.map((mistake) => (
+              {(Array.isArray(mistakes) ? mistakes : []).map((mistake) => (
                 <CommandItem
                   key={mistake}
                   value={mistake}
@@ -121,7 +126,7 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value.includes(mistake) ? "opacity-100" : "opacity-0"
+                      safeValue.includes(mistake) ? "opacity-100" : "opacity-0"
                     )}
                   />
                   {mistake}
@@ -132,9 +137,9 @@ export function MistakesField({ value = [], onChange }: MistakesFieldProps) {
         </PopoverContent>
       </Popover>
 
-      {value.length > 0 && (
+      {safeValue.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {value.map((mistake) => (
+          {safeValue.map((mistake) => (
             <Badge key={mistake} variant="secondary" className="text-sm">
               {mistake}
               <X

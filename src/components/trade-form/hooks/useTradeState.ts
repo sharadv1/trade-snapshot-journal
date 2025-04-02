@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Trade, FuturesContractDetails, COMMON_FUTURES_CONTRACTS } from '@/types';
 import { getIdeaById } from '@/utils/ideaStorage';
