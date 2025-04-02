@@ -1,3 +1,4 @@
+
 import { Trade } from '@/types';
 import { addTrade, updateTrade } from '@/utils/tradeStorage';
 import { markIdeaAsTaken } from '@/utils/ideaStorage';
@@ -51,6 +52,7 @@ export function useTradeSubmit(
         strategy: finalStrategy,
         images: filteredImages,
         mistakes: trade.mistakes || [],
+        ssmtQuarters: trade.ssmtQuarters || '', // Include SSMT Quarters in saved trade
         contractDetails: trade.type === 'futures' ? contractDetails : undefined
       };
       

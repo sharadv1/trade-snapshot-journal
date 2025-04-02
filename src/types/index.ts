@@ -1,29 +1,32 @@
 export interface Trade {
   id: string;
   symbol: string;
-  type: 'stock' | 'futures' | 'forex' | 'crypto' | 'options';
+  type: 'stock' | 'option' | 'futures' | 'crypto' | 'forex';
   direction: 'long' | 'short';
-  quantity: number;
-  entryDate: string;
   entryPrice: number;
-  exitDate?: string;
+  entryDate: string;
+  quantity: number;
   exitPrice?: number;
-  exitReason?: string;
-  status: 'open' | 'closed';
+  exitDate?: string;
   stopLoss?: number;
   takeProfit?: number;
   fees?: number;
+  commissions?: number;
+  slippage?: number;
+  profitLoss?: number;
   notes?: string;
+  images?: string[];
+  status: 'open' | 'closed' | 'cancelled';
   strategy?: string;
   timeframe?: string;
-  grade?: string;
-  pspTime?: string; 
-  images?: string[];
-  ideaId?: string;
-  partialExits?: PartialExit[];
-  contractDetails?: FuturesContractDetails;
-  tags?: string[];
+  ssmtQuarters?: string; // New field for SSMT Quarters
   mistakes?: string[];
+  partialExits?: PartialExit[];
+  ideaId?: string;
+  sentiment?: 'bullish' | 'bearish' | 'neutral';
+  tags?: string[];
+  // For futures contracts only
+  contractDetails?: FuturesContractDetails;
 }
 
 export interface TradeWithMetrics extends Trade {

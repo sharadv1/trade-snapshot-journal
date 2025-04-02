@@ -8,6 +8,7 @@ import { SymbolSelector } from '@/components/SymbolSelector';
 import { FuturesContractSelector } from '@/components/FuturesContractSelector';
 import { FuturesContractDetails as FuturesContractDetailsComponent } from '@/components/FuturesContractDetails';
 import { MistakesField } from './MistakesField';
+import { TrendingDown, TrendingUp } from 'lucide-react';
 
 interface TradeDetailsFormProps {
   trade: Partial<Trade>;
@@ -90,28 +91,6 @@ export function TradeDetailsForm({
         </Select>
       </div>
 
-      {/* Trading Strategy */}
-      <div className="space-y-2">
-        <Label htmlFor="strategy">Strategy</Label>
-        <Select
-          value={trade.strategy || 'default-strategy'}
-          onValueChange={(value) => handleChange('strategy', value)}
-        >
-          <SelectTrigger id="strategy">
-            <SelectValue placeholder="Select Strategy" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="default-strategy">Default Strategy</SelectItem>
-            <SelectItem value="breakout">Breakout</SelectItem>
-            <SelectItem value="reversal">Reversal</SelectItem>
-            <SelectItem value="trend-following">Trend Following</SelectItem>
-            <SelectItem value="scalping">Scalping</SelectItem>
-            <SelectItem value="swing">Swing</SelectItem>
-            <SelectItem value="custom">Custom</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
       {/* Entry Date/Time */}
       <div className="space-y-2">
         <Label htmlFor="entryDate">Entry Date & Time</Label>
@@ -135,6 +114,38 @@ export function TradeDetailsForm({
           step="0.01"
           value={trade.entryPrice || ''}
           onChange={(e) => handleChange('entryPrice', parseFloat(e.target.value) || 0)}
+        />
+      </div>
+      
+      {/* Stop Loss - Moved from RiskParametersForm */}
+      <div className="space-y-2">
+        <Label htmlFor="stopLoss" className="flex items-center gap-1">
+          <TrendingDown className="h-4 w-4 text-loss" />
+          Stop Loss Price
+        </Label>
+        <Input 
+          id="stopLoss" 
+          type="number" 
+          min="0" 
+          step="0.01"
+          value={trade.stopLoss || ''}
+          onChange={(e) => handleChange('stopLoss', parseFloat(e.target.value))}
+        />
+      </div>
+      
+      {/* Take Profit - Moved from RiskParametersForm */}
+      <div className="space-y-2">
+        <Label htmlFor="takeProfit" className="flex items-center gap-1">
+          <TrendingUp className="h-4 w-4 text-profit" />
+          Take Profit Price
+        </Label>
+        <Input 
+          id="takeProfit" 
+          type="number" 
+          min="0" 
+          step="0.01"
+          value={trade.takeProfit || ''}
+          onChange={(e) => handleChange('takeProfit', parseFloat(e.target.value))}
         />
       </div>
       
@@ -165,7 +176,50 @@ export function TradeDetailsForm({
         />
       </div>
       
-      {/* Timeframe */}
+      {/* Trading Strategy - Moved before timeframe */}
+      <div className="space-y-2">
+        <Label htmlFor="strategy">Strategy</Label>
+        <Select
+          value={trade.strategy || 'default-strategy'}
+          onValueChange={(value) => handleChange('strategy', value)}
+        >
+          <SelectTrigger id="strategy">
+            <SelectValue placeholder="Select Strategy" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default-strategy">Default Strategy</SelectItem>
+            <SelectItem value="breakout">Breakout</SelectItem>
+            <SelectItem value="reversal">Reversal</SelectItem>
+            <SelectItem value="trend-following">Trend Following</SelectItem>
+            <SelectItem value="scalping">Scalping</SelectItem>
+            <SelectItem value="swing">Swing</SelectItem>
+            <SelectItem value="custom">Custom</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {/* SSMT Quarters - New field */}
+      <div className="space-y-2">
+        <Label htmlFor="ssmtQuarters">SSMT Quarters</Label>
+        <Select
+          value={trade.ssmtQuarters || ''}
+          onValueChange={(value) => handleChange('ssmtQuarters', value)}
+        >
+          <SelectTrigger id="ssmtQuarters">
+            <SelectValue placeholder="Select SSMT Quarters" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="q1/q2">Q1/Q2</SelectItem>
+            <SelectItem value="q2/q3">Q2/Q3</SelectItem>
+            <SelectItem value="q3/q4">Q3/Q4</SelectItem>
+            <SelectItem value="q4/q5">Q4/Q5</SelectItem>
+            <SelectItem value="q5/q1">Q5/Q1</SelectItem>
+            <SelectItem value="q4/q1">Q4/Q1</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {/* Timeframe - Moved after Strategy */}
       <div className="space-y-2">
         <Label htmlFor="timeframe">Timeframe</Label>
         <Select
@@ -188,7 +242,7 @@ export function TradeDetailsForm({
         </Select>
       </div>
       
-      {/* Mistakes Field - Added here */}
+      {/* Mistakes Field */}
       <div className="space-y-2">
         <Label htmlFor="mistakes">Mistakes Made</Label>
         <MistakesField 

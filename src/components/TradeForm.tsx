@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trade } from '@/types';
 import { TradeDetailsForm } from './trade-form/TradeDetailsForm';
-import { RiskParametersForm } from './trade-form/RiskParametersForm';
 import { NotesAndImagesForm } from './trade-form/NotesAndImagesForm';
 import { useTradeForm } from './trade-form/useTradeForm';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -103,11 +102,8 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     setValidationErrors(errors);
     
     if (errors.length > 0) {
-      // Determine which tab to switch to based on errors
-      if (!trade.symbol || !trade.entryPrice || !trade.quantity || !trade.entryDate) {
-        setActiveTab('details');
-      }
-      
+      // Always switch to details tab on errors since all required fields are now there
+      setActiveTab('details');
       return false;
     }
     
@@ -179,9 +175,8 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="px-6">
-            <TabsList className="grid grid-cols-3 w-full">
+            <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="details">Trade Details</TabsTrigger>
-              <TabsTrigger value="risk">Risk Parameters</TabsTrigger>
               <TabsTrigger value="notes">Notes & Images</TabsTrigger>
             </TabsList>
           </div>
@@ -194,13 +189,6 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
                 handleTypeChange={handleTypeChange}
                 contractDetails={contractDetails}
                 pointValue={pointValue}
-              />
-            </TabsContent>
-            
-            <TabsContent value="risk" className="space-y-4 mt-0">
-              <RiskParametersForm 
-                trade={trade}
-                handleChange={handleChange}
               />
             </TabsContent>
             
