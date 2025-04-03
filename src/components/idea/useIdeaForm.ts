@@ -30,6 +30,7 @@ export function useIdeaForm({
       // Convert TradeIdea to IdeaFormData, ensuring all required fields are present
       setIdea({
         ...initialIdea,
+        date: initialIdea.date || initialIdea.createdAt || new Date().toISOString().slice(0, 16),
         description: initialIdea.description || '',
         direction: initialIdea.direction || 'long',
         status: initialIdea.status || 'still valid',

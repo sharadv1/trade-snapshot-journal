@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ interface QuickTradeEntryProps {
 }
 
 export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEntryProps) {
-  const [tradeType, setTradeType] = useState<'stock' | 'futures' | 'option'>('stock');
+  const [tradeType, setTradeType] = useState<'stock' | 'futures' | 'options'>('stock');
   const [symbol, setSymbol] = useState('');
   const [direction, setDirection] = useState<'long' | 'short'>('long');
   const [strategy, setStrategy] = useState('');
@@ -85,7 +86,7 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
             <TabsList className="grid grid-cols-3 w-full max-w-xs mb-6">
               <TabsTrigger value="stock">Stock</TabsTrigger>
               <TabsTrigger value="futures">Futures</TabsTrigger>
-              <TabsTrigger value="option">Options</TabsTrigger>
+              <TabsTrigger value="options">Options</TabsTrigger>
             </TabsList>
           </Tabs>
         )}

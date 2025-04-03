@@ -186,7 +186,7 @@ export default function TradeDetail() {
                 <p className="font-medium">
                   {trade.type === 'stock' ? 'Stock' : 
                    trade.type === 'futures' ? 'Futures' : 
-                   trade.type === 'option' ? 'Options' : 
+                   trade.type === 'options' ? 'Options' : 
                    trade.type.charAt(0).toUpperCase() + trade.type.slice(1)}
                 </p>
               </div>

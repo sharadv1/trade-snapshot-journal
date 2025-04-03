@@ -58,7 +58,7 @@ export function MonthlyReflectionsList() {
       ...reflection,
       id: reflection.id || monthId, // Ensure id is always set
       monthId: monthId // Ensure monthId is always set
-    }));
+    })) as MonthlyReflection[];
     
     // Deduplicate reflections by monthStart - only keep the latest entry for each month
     const monthMap = new Map<string, MonthlyReflection>();

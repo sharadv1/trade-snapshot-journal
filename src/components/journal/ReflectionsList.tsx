@@ -60,7 +60,7 @@ export function ReflectionsList() {
       ...reflection,
       id: reflection.id || weekId,
       weekId: weekId
-    }));
+    })) as WeeklyReflection[];
     
     // Deduplicate reflections by weekStart - only keep the latest entry for each week
     const weekMap = new Map<string, WeeklyReflection>();
