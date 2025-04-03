@@ -8,6 +8,7 @@ import { TradePnLCalendar } from '@/components/TradePnLCalendar';
 import { TradeWithMetrics } from '@/types';
 import { DashboardHeader } from './dashboard/DashboardHeader';
 import { DashboardMetrics } from './dashboard/DashboardMetrics';
+import { WeeklyPnLSummary } from '@/components/WeeklyPnLSummary';
 
 export default function Dashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -56,7 +57,14 @@ export default function Dashboard() {
       
       <div className="animate-in fade-in">
         {/* Key Metrics */}
-        <DashboardMetrics trades={trades} />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="md:col-span-3">
+            <DashboardMetrics trades={trades} />
+          </div>
+          <div>
+            <WeeklyPnLSummary trades={trades} />
+          </div>
+        </div>
         
         <div className="grid gap-6 mt-6">
           <div>
