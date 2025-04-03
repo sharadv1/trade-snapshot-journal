@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Trade, FuturesContractDetails } from '@/types';
 import { Label } from '@/components/ui/label';
@@ -111,8 +110,8 @@ export function TradeDetailsForm({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="stock">Stock</SelectItem>
-            <SelectItem value="futures">Futures</SelectItem>
             <SelectItem value="option">Options</SelectItem>
+            <SelectItem value="futures">Futures</SelectItem>
             <SelectItem value="forex">Forex</SelectItem>
             <SelectItem value="crypto">Crypto</SelectItem>
           </SelectContent>
@@ -133,7 +132,7 @@ export function TradeDetailsForm({
             <SymbolSelector
               value={trade.symbol}
               onChange={(symbol) => handleChange('symbol', symbol)}
-              tradeType={trade.type as 'stock' | 'futures' | 'forex' | 'crypto' | 'option'}
+              tradeType={trade.type as 'stock' | 'futures' | 'forex' | 'crypto' | 'options'}
             />
           )}
         </div>

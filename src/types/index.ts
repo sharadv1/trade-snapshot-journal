@@ -114,7 +114,7 @@ export interface Trade {
   fees?: number;
   notes?: string;
   status: 'open' | 'closed';
-  type: 'stock' | 'option' | 'futures' | 'crypto' | 'forex';
+  type: 'stock' | 'options' | 'futures' | 'crypto' | 'forex'; // Changed 'option' to 'options'
   direction?: 'long' | 'short';
   images?: string[];
   contractDetails?: FuturesContractDetails;
