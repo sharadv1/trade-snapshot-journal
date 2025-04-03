@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Trade, FuturesContractDetails } from '@/types';
 import { Label } from '@/components/ui/label';
@@ -21,7 +22,7 @@ interface TradeDetailsFormProps {
   contractDetails: Partial<FuturesContractDetails>;
   pointValue: number | undefined;
   maxRisk?: number;
-  disableEdits: boolean;
+  disableEdits?: boolean;
 }
 
 export function TradeDetailsForm({
@@ -31,7 +32,7 @@ export function TradeDetailsForm({
   contractDetails,
   pointValue,
   maxRisk,
-  disableEdits
+  disableEdits = false
 }: TradeDetailsFormProps) {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null);

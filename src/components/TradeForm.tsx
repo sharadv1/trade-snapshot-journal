@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -203,6 +202,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
                 contractDetails={contractDetails}
                 pointValue={pointValue}
                 maxRisk={maxRisk}
+                disableEdits={false}
               />
             </TabsContent>
             

@@ -1,3 +1,4 @@
+
 import { ReactNode } from 'react';
 
 export const COMMON_FUTURES_CONTRACTS = [
@@ -143,6 +144,7 @@ export interface TradeWithMetrics extends Trade {
   };
 }
 
+// Fixed PartialExit interface to not use getters/setters which aren't allowed in interfaces
 export interface PartialExit {
   id: string;
   date: string;
@@ -150,10 +152,9 @@ export interface PartialExit {
   quantity: number;
   fees?: number;
   notes?: string;
-  get exitDate(): string { return this.date; }
-  set exitDate(value: string) { this.date = value; }
-  get exitPrice(): number { return this.price; }
-  set exitPrice(value: number) { this.price = value; }
+  // These fields are provided for backward compatibility
+  exitDate?: string;
+  exitPrice?: number;
 }
 
 export interface FuturesContractDetails {
@@ -184,6 +185,8 @@ export interface TradeIdea {
   direction?: 'long' | 'short';
   tradeId?: string;
   notes?: string;
+  // For backward compatibility with older idea formats that used date instead of createdAt
+  date?: string;
 }
 
 export type LegacyTradeIdeaStatus = 'still valid' | 'invalidated' | 'taken' | 'missed';
