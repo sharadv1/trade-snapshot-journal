@@ -23,7 +23,10 @@ export function IdeaStatusField({ value, onChange, isReadOnly }: IdeaStatusField
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="still valid">Still Valid</SelectItem>
+          <SelectItem value="open">Open</SelectItem>
           <SelectItem value="invalidated">Invalidated</SelectItem>
+          <SelectItem value="expired">Expired</SelectItem>
+          <SelectItem value="invalid">Invalid</SelectItem>
           <SelectItem value="taken">Taken</SelectItem>
           <SelectItem value="missed">Missed</SelectItem>
         </SelectContent>

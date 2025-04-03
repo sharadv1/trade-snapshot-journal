@@ -141,6 +141,8 @@ export interface TradeWithMetrics extends Trade {
     riskRewardRatio?: number;
     maxPotentialGain?: number;
     calculationExplanation?: string;
+    latestExitDate?: string; // Added for trade calendar
+    weightedExitPrice?: number; // Added for metrics calculator
   };
 }
 
@@ -180,7 +182,7 @@ export interface TradeIdea {
   symbol: string;
   description?: string;
   images?: string[];
-  status: 'open' | 'taken' | 'expired' | 'invalid';
+  status: 'open' | 'taken' | 'expired' | 'invalid' | 'still valid' | 'invalidated' | 'missed'; // Combining all status types
   createdAt: string;
   direction?: 'long' | 'short';
   tradeId?: string;
@@ -256,6 +258,20 @@ export interface ReflectionEntry {
   content: string;
   type: 'weekly' | 'monthly';
   tags?: string[];
+  // Added fields for weekly reflections
+  weekId?: string;
+  weekStart?: string;
+  weekEnd?: string;
+  reflection?: string;
+  weeklyPlan?: string;
+  grade?: string;
+  // Added fields for monthly reflections
+  monthId?: string;
+  monthStart?: string;
+  monthEnd?: string;
+  // Common fields for both reflection types
+  lastUpdated?: string;
+  tradeIds?: string[];
 }
 
 export type WeeklyReflection = ReflectionEntry;
