@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, LineChart, Lightbulb, BarChart3, BookOpen, Map, Tag, Settings } from 'lucide-react';
@@ -48,44 +49,78 @@ export function SimpleSidebar() {
     }
   };
 
+  // Desktop sidebar
+  const DesktopSidebar = () => (
+    <div className="hidden md:flex flex-col w-64 bg-background border-r h-full overflow-y-auto">
+      <div className="px-4 py-4">
+        <h2 className="text-lg font-semibold">Trading Journal</h2>
+      </div>
+      <nav className="flex-1">
+        <ul className="space-y-1 px-2">
+          {navigationItems.map((item) => (
+            <li key={item.name}>
+              <Link
+                to={item.href}
+                className={cn(
+                  'flex items-center space-x-3 py-2 px-3 rounded-md transition-colors duration-200',
+                  location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href))
+                    ? 'bg-secondary text-secondary-foreground'
+                    : 'hover:bg-accent hover:text-accent-foreground'
+                )}
+              >
+                {getIcon(item.icon)}
+                <span>{item.name}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+  );
+
+  // Mobile sidebar with Sheet
   return (
-    <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleMenu}>
-          <Home className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-64 p-0">
-        <nav className="flex flex-col h-full">
-          <div className="px-4 py-6 flex-shrink-0">
-            <Link to="/" className="flex items-center space-x-2 font-semibold">
-              <Home className="h-6 w-6" />
-              <span>Trading Journal</span>
-            </Link>
-          </div>
-          <div className="flex-grow p-4">
-            <ul className="space-y-2">
-              {navigationItems.map((item) => (
-                <li key={item.name}>
-                  <Link
-                    to={item.href}
-                    className={cn(
-                      'flex items-center space-x-3 py-2 px-4 rounded-md transition-colors duration-200',
-                      location.pathname === item.href
-                        ? 'bg-secondary text-secondary-foreground'
-                        : 'hover:bg-accent hover:text-accent-foreground'
-                    )}
-                    onClick={closeMenu}
-                  >
-                    {getIcon(item.icon)}
-                    <span>{item.name}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </nav>
-      </SheetContent>
-    </Sheet>
+    <>
+      <DesktopSidebar />
+      
+      <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleMenu}>
+            <Home className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-64 p-0">
+          <nav className="flex flex-col h-full">
+            <div className="px-4 py-6 flex-shrink-0">
+              <Link to="/" className="flex items-center space-x-2 font-semibold">
+                <Home className="h-6 w-6" />
+                <span>Trading Journal</span>
+              </Link>
+            </div>
+            <div className="flex-grow p-4">
+              <ul className="space-y-2">
+                {navigationItems.map((item) => (
+                  <li key={item.name}>
+                    <Link
+                      to={item.href}
+                      className={cn(
+                        'flex items-center space-x-3 py-2 px-4 rounded-md transition-colors duration-200',
+                        location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href))
+                          ? 'bg-secondary text-secondary-foreground'
+                          : 'hover:bg-accent hover:text-accent-foreground'
+                      )}
+                      onClick={closeMenu}
+                    >
+                      {getIcon(item.icon)}
+                      <span>{item.name}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </nav>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
