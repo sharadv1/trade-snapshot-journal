@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Trade, FuturesContractDetails } from '@/types';
 import { Label } from '@/components/ui/label';
@@ -22,6 +21,7 @@ interface TradeDetailsFormProps {
   contractDetails: Partial<FuturesContractDetails>;
   pointValue: number | undefined;
   maxRisk?: number;
+  disableEdits: boolean;
 }
 
 export function TradeDetailsForm({
@@ -30,7 +30,8 @@ export function TradeDetailsForm({
   handleTypeChange,
   contractDetails,
   pointValue,
-  maxRisk
+  maxRisk,
+  disableEdits
 }: TradeDetailsFormProps) {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null);
@@ -101,17 +102,18 @@ export function TradeDetailsForm({
         <Label htmlFor="type">Trade Type</Label>
         <Select
           value={trade.type}
-          onValueChange={(value: Trade['type']) => handleTypeChange(value)}
+          onValueChange={(value) => handleTypeChange(value as Trade["type"])}
+          disabled={disableEdits}
         >
-          <SelectTrigger id="type">
-            <SelectValue placeholder="Select Trade Type" />
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select type" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="stock">Stock</SelectItem>
-            <SelectItem value="option">Option</SelectItem>
             <SelectItem value="futures">Futures</SelectItem>
-            <SelectItem value="crypto">Cryptocurrency</SelectItem>
+            <SelectItem value="option">Options</SelectItem>
             <SelectItem value="forex">Forex</SelectItem>
+            <SelectItem value="crypto">Crypto</SelectItem>
           </SelectContent>
         </Select>
       </div>

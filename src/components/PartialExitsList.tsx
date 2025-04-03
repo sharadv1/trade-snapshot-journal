@@ -46,7 +46,7 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
 
   // Sort partial exits by date (newest first)
   const sortedExits = [...currentTrade.partialExits].sort((a, b) => 
-    new Date(b.exitDate).getTime() - new Date(a.exitDate).getTime()
+    new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
   // Calculate total quantity exited so far
@@ -107,16 +107,16 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-sm font-medium">
-                      {exit.quantity} units @ {formatCurrency(exit.exitPrice)}
+                      {exit.quantity} units @ {formatCurrency(exit.price)}
                     </span>
                     <div className="text-sm text-muted-foreground">
-                      {new Date(exit.exitDate).toLocaleDateString('en-US', {
+                      {new Date(exit.date).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric'
                       })}
                       {' '}
-                      {new Date(exit.exitDate).toLocaleTimeString('en-US', {
+                      {new Date(exit.date).toLocaleTimeString('en-US', {
                         hour: '2-digit',
                         minute: '2-digit'
                       })}

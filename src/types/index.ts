@@ -1,15 +1,113 @@
-
 import { ReactNode } from 'react';
+
+export const COMMON_FUTURES_CONTRACTS = [
+  {
+    symbol: 'ES',
+    name: 'E-mini S&P 500',
+    exchange: 'CME',
+    tickSize: 0.25,
+    pointValue: 50,
+    description: 'E-mini S&P 500 Futures'
+  },
+  {
+    symbol: 'MES',
+    name: 'Micro E-mini S&P 500',
+    exchange: 'CME',
+    tickSize: 0.25,
+    pointValue: 5,
+    description: 'Micro E-mini S&P 500 Futures'
+  },
+  {
+    symbol: 'NQ',
+    name: 'E-mini Nasdaq 100',
+    exchange: 'CME',
+    tickSize: 0.25,
+    pointValue: 20,
+    description: 'E-mini Nasdaq 100 Futures'
+  },
+  {
+    symbol: 'MNQ',
+    name: 'Micro E-mini Nasdaq 100',
+    exchange: 'CME',
+    tickSize: 0.25,
+    pointValue: 2,
+    description: 'Micro E-mini Nasdaq 100 Futures'
+  },
+  {
+    symbol: 'YM',
+    name: 'E-mini Dow Jones',
+    exchange: 'CBOT',
+    tickSize: 1.0,
+    pointValue: 5,
+    description: 'E-mini Dow Jones Futures'
+  },
+  {
+    symbol: 'MYM',
+    name: 'Micro E-mini Dow Jones',
+    exchange: 'CBOT',
+    tickSize: 1.0,
+    pointValue: 0.5,
+    description: 'Micro E-mini Dow Jones Futures'
+  },
+  {
+    symbol: 'RTY',
+    name: 'E-mini Russell 2000',
+    exchange: 'CME',
+    tickSize: 0.10,
+    pointValue: 50,
+    description: 'E-mini Russell 2000 Futures'
+  },
+  {
+    symbol: 'M2K',
+    name: 'Micro E-mini Russell 2000',
+    exchange: 'CME',
+    tickSize: 0.10,
+    pointValue: 5,
+    description: 'Micro E-mini Russell 2000 Futures'
+  },
+  {
+    symbol: 'CL',
+    name: 'Crude Oil',
+    exchange: 'NYMEX',
+    tickSize: 0.01,
+    pointValue: 1000,
+    description: 'Crude Oil Futures'
+  },
+  {
+    symbol: 'MCL',
+    name: 'Micro WTI Crude Oil',
+    exchange: 'NYMEX',
+    tickSize: 0.01,
+    pointValue: 100,
+    description: 'Micro WTI Crude Oil Futures'
+  },
+  {
+    symbol: 'GC',
+    name: 'Gold',
+    exchange: 'COMEX',
+    tickSize: 0.10,
+    pointValue: 100,
+    description: 'Gold Futures'
+  },
+  {
+    symbol: 'MGC',
+    name: 'Micro Gold',
+    exchange: 'COMEX',
+    tickSize: 0.10,
+    pointValue: 10,
+    description: 'Micro Gold Futures'
+  }
+];
 
 export interface Trade {
   id: string;
   symbol: string;
-  date?: string; // For backward compatibility
+  date?: string;
   entryDate: string;
   exitDate?: string;
   entryPrice: number;
   exitPrice?: number;
-  stopLoss?: number; // Now required in the UI but keeping optional in the type for backwards compatibility
+  stopLoss?: number;
   takeProfit?: number;
   quantity: number;
   fees?: number;
@@ -28,9 +126,9 @@ export interface Trade {
   mistakes?: string[];
   partialExits?: PartialExit[];
   ideaId?: string;
-  ssmtQuarters?: string; // SSMT Quarters
-  pspTime?: string; // PSP Time
-  account?: string; // Added the account property
+  ssmtQuarters?: string;
+  pspTime?: string;
+  account?: string;
 }
 
 export interface TradeWithMetrics extends Trade {
@@ -52,6 +150,10 @@ export interface PartialExit {
   quantity: number;
   fees?: number;
   notes?: string;
+  get exitDate(): string { return this.date; }
+  set exitDate(value: string) { this.date = value; }
+  get exitPrice(): number { return this.price; }
+  set exitPrice(value: number) { this.price = value; }
 }
 
 export interface FuturesContractDetails {
@@ -84,6 +186,8 @@ export interface TradeIdea {
   notes?: string;
 }
 
+export type LegacyTradeIdeaStatus = 'still valid' | 'invalidated' | 'taken' | 'missed';
+
 export interface ValidationError {
   field: string;
   message: string;
@@ -107,7 +211,7 @@ export interface SidebarNavItem {
   title: string;
   disabled?: boolean;
   external?: boolean;
-  icon?: keyof typeof icons;
+  icon?: string;
   href?: string;
   items?: SidebarNavItem[];
 }
@@ -151,6 +255,9 @@ export interface ReflectionEntry {
   tags?: string[];
 }
 
+export type WeeklyReflection = ReflectionEntry;
+export type MonthlyReflection = ReflectionEntry;
+
 export interface TradeComment {
   id: string;
   tradeId: string;
@@ -163,7 +270,7 @@ export interface TradingJournalConfig {
   userId?: string;
   serverUrl?: string;
   autoSync?: boolean;
-  syncFrequency?: number; // in minutes
+  syncFrequency?: number;
   apiKey?: string;
 }
 

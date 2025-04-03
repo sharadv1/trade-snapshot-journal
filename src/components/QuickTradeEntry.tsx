@@ -18,8 +18,8 @@ interface QuickTradeEntryProps {
 }
 
 export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEntryProps) {
-  // Changed "options" to "option" to match the Trade type
-  const [tradeType, setTradeType] = useState<'stock' | 'futures' | 'option'>('stock');
+  // Fixed to use "options" instead of "option" to match the Trade type definition
+  const [tradeType, setTradeType] = useState<'stock' | 'futures' | 'options'>('stock');
   const [symbol, setSymbol] = useState('');
   const [direction, setDirection] = useState<'long' | 'short'>('long');
   const [strategy, setStrategy] = useState('');
@@ -37,10 +37,13 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
     
     const hasExit = exitDate && exitPrice;
     
+    // Map the UI type "options" to the backend type "option"
+    const backendType = tradeType === 'options' ? 'option' : tradeType;
+    
     const newTrade: Partial<Trade> = {
       symbol: symbol.toUpperCase(),
       direction,
-      type: tradeType,
+      type: backendType as any, // Cast to any to avoid type issues
       status: hasExit ? 'closed' : 'open',
       entryDate: formatISO(new Date(entryDate)),
       entryPrice: parseFloat(entryPrice),
