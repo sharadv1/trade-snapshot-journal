@@ -1,34 +1,36 @@
+
+import { ReactNode } from 'react';
+
 export interface Trade {
   id: string;
   symbol: string;
-  type: 'stock' | 'option' | 'futures' | 'crypto' | 'forex';
-  direction: 'long' | 'short';
-  entryPrice: number;
+  date?: string; // For backward compatibility
   entryDate: string;
-  quantity: number;
-  exitPrice?: number;
   exitDate?: string;
-  stopLoss?: number;
+  entryPrice: number;
+  exitPrice?: number;
+  stopLoss?: number; // Now required in the UI but keeping optional in the type for backwards compatibility
   takeProfit?: number;
+  quantity: number;
   fees?: number;
-  commissions?: number;
-  slippage?: number;
-  profitLoss?: number;
   notes?: string;
+  status: 'open' | 'closed';
+  type: 'stock' | 'option' | 'futures' | 'crypto' | 'forex';
+  direction?: 'long' | 'short';
   images?: string[];
-  status: 'open' | 'closed' | 'cancelled';
+  contractDetails?: FuturesContractDetails;
   strategy?: string;
+  tags?: string[];
   timeframe?: string;
-  ssmtQuarters?: string; // New field for SSMT Quarters
+  commission?: number;
+  grade?: 'A' | 'B' | 'C' | 'D' | 'F';
+  results?: string;
   mistakes?: string[];
   partialExits?: PartialExit[];
   ideaId?: string;
-  sentiment?: 'bullish' | 'bearish' | 'neutral';
-  tags?: string[];
-  // For futures contracts only
-  contractDetails?: FuturesContractDetails;
-  grade?: string; // Add grade field
-  pspTime?: string; // Add pspTime field
+  ssmtQuarters?: string; // SSMT Quarters
+  pspTime?: string; // PSP Time
+  account?: string; // Added the account property
 }
 
 export interface TradeWithMetrics extends Trade {
@@ -36,184 +38,150 @@ export interface TradeWithMetrics extends Trade {
     profitLoss?: number;
     profitLossPercentage?: number;
     riskedAmount?: number;
-    maxPotentialGain?: number;
+    rMultiple?: number;
     riskRewardRatio?: number;
+    maxPotentialGain?: number;
     calculationExplanation?: string;
-    weightedExitPrice?: number;
-    latestExitDate?: string;
   };
 }
 
 export interface PartialExit {
   id: string;
-  exitDate: string;
-  exitPrice: number;
+  date: string;
+  price: number;
   quantity: number;
   fees?: number;
   notes?: string;
 }
 
-export interface TradeIdea {
-  id: string;
-  symbol: string;
-  direction: 'long' | 'short';
-  entryPrice: number;
-  stopLoss: number;
-  takeProfit: number;
-  notes?: string;
-  date: string;
-  image?: string;
-  isTaken: boolean;
-  status?: 'still valid' | 'invalidated' | 'taken' | 'missed';
-  description?: string;
-  images?: string[];
-  reflection?: string;
-  weekId?: string;
-  monthId?: string;
-}
-
 export interface FuturesContractDetails {
   exchange?: string;
-  tickSize?: number;
   contractSize?: number;
+  tickSize?: number;
   tickValue?: number;
-}
-
-export interface WeeklyReflection {
-  id: string;
-  date: string;
-  wins: string;
-  losses: string;
-  improvements: string;
-  weekId: string;
-  weekStart?: string;
-  weekEnd?: string;
-  grade?: string;
-  reflection?: string;
-  weeklyPlan?: string;
-  tradeIds?: string[];
-  lastUpdated?: string;
-}
-
-export interface MonthlyReflection {
-  id: string;
-  date: string;
-  summary: string;
-  lessons: string;
-  goals: string;
-  monthId: string;
-  monthStart?: string;
-  monthEnd?: string;
-  grade?: string;
-  reflection?: string;
-  tradeIds?: string[];
-  lastUpdated?: string;
+  margin?: number;
+  maintenanceMargin?: number;
+  expirationDate?: string;
 }
 
 export interface Strategy {
   id: string;
   name: string;
-  description: string;
-  color: string;
+  description?: string;
+  color?: string;
+  tags?: string[];
 }
 
-export const COMMON_FUTURES_CONTRACTS = [
-  {
-    symbol: 'ES',
-    name: 'E-mini S&P 500',
-    exchange: 'CME',
-    tickSize: 0.25,
-    pointValue: 50
-  },
-  {
-    symbol: 'MES',
-    name: 'Micro E-mini S&P 500',
-    exchange: 'CME',
-    tickSize: 0.25,
-    pointValue: 5
-  },
-  {
-    symbol: 'NQ',
-    name: 'E-mini Nasdaq-100',
-    exchange: 'CME',
-    tickSize: 0.25,
-    pointValue: 20
-  },
-  {
-    symbol: 'MNQ',
-    name: 'Micro E-mini Nasdaq-100',
-    exchange: 'CME',
-    tickSize: 0.25,
-    pointValue: 2
-  },
-  {
-    symbol: 'YM',
-    name: 'E-mini Dow',
-    exchange: 'CBOT',
-    tickSize: 1.0,
-    pointValue: 5
-  },
-  {
-    symbol: 'MYM',
-    name: 'Micro E-mini Dow',
-    exchange: 'CBOT',
-    tickSize: 1.0,
-    pointValue: 0.5
-  },
-  {
-    symbol: 'RTY',
-    name: 'E-mini Russell 2000',
-    exchange: 'CME',
-    tickSize: 0.1,
-    pointValue: 50
-  },
-  {
-    symbol: 'M2K',
-    name: 'Micro E-mini Russell 2000',
-    exchange: 'CME',
-    tickSize: 0.1,
-    pointValue: 5
-  },
-  {
-    symbol: 'CL',
-    name: 'Crude Oil',
-    exchange: 'NYMEX',
-    tickSize: 0.01,
-    pointValue: 1000
-  },
-  {
-    symbol: 'GC',
-    name: 'Gold',
-    exchange: 'COMEX',
-    tickSize: 0.1,
-    pointValue: 100
-  },
-  {
-    symbol: 'SI',
-    name: 'Silver',
-    exchange: 'COMEX',
-    tickSize: 0.005,
-    pointValue: 5000
-  },
-  {
-    symbol: 'ZB',
-    name: '30-Year U.S. Treasury Bond',
-    exchange: 'CBOT',
-    tickSize: 1/32,
-    pointValue: 1000
-  },
-  {
-    symbol: 'ZN',
-    name: '10-Year U.S. Treasury Note',
-    exchange: 'CBOT',
-    tickSize: 1/32,
-    pointValue: 1000
-  },
-  {
-    symbol: 'ZF',
-    name: '5-Year U.S. Treasury Note',
-    exchange: 'CBOT',
-    tickSize: 1/32,
-    pointValue: 1000
-  }
-];
+export interface TradeIdea {
+  id: string;
+  symbol: string;
+  description?: string;
+  images?: string[];
+  status: 'open' | 'taken' | 'expired' | 'invalid';
+  createdAt: string;
+  direction?: 'long' | 'short';
+  tradeId?: string;
+  notes?: string;
+}
+
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+export interface MenuItem {
+  title: string;
+  href: string;
+  icon?: React.ElementType;
+  disabled?: boolean;
+  external?: boolean;
+  label?: string;
+}
+
+export interface SidebarNavItem {
+  title: string;
+  disabled?: boolean;
+  external?: boolean;
+  icon?: keyof typeof icons;
+  href?: string;
+  items?: SidebarNavItem[];
+}
+
+export interface NavItem {
+  title: string;
+  href?: string;
+  disabled?: boolean;
+  external?: boolean;
+  icon?: React.ReactNode;
+  label?: string;
+  description?: string;
+  items?: NavItem[];
+}
+
+export interface NavItemWithChildren extends NavItem {
+  items: NavItemWithChildren[];
+}
+
+export interface FooterItem {
+  title: string;
+  items: {
+    title: string;
+    href: string;
+    external?: boolean;
+  }[];
+}
+
+export interface Metadata {
+  title: string;
+  description: string;
+  cardImage: string;
+}
+
+export interface ReflectionEntry {
+  id: string;
+  date: string;
+  title: string;
+  content: string;
+  type: 'weekly' | 'monthly';
+  tags?: string[];
+}
+
+export interface TradeComment {
+  id: string;
+  tradeId: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface TradingJournalConfig {
+  userId?: string;
+  serverUrl?: string;
+  autoSync?: boolean;
+  syncFrequency?: number; // in minutes
+  apiKey?: string;
+}
+
+export interface ImageProps {
+  width: number;
+  height?: number;
+  className?: string;
+  src: string;
+  alt: string;
+  priority?: boolean;
+}
+
+export interface Symbol {
+  symbol: string;
+  name?: string;
+  exchange?: string;
+  type?: 'stock' | 'futures' | 'forex' | 'crypto' | 'option';
+  sector?: string;
+  industry?: string;
+  contractDetails?: FuturesContractDetails;
+}

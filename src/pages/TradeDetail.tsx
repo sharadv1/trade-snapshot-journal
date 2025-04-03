@@ -116,6 +116,9 @@ export default function TradeDetail() {
             {trade.symbol} {trade.type === 'futures' ? '(Futures)' : '(Stock)'}
           </h1>
           <div className="flex items-center space-x-4 mt-1">
+            {trade.account && (
+              <span className="px-3 py-1 bg-muted rounded-full text-sm">{trade.account}</span>
+            )}
             <span className="px-3 py-1 bg-muted rounded-full text-sm">{trade.status === 'closed' ? 'Closed' : 'Open'}</span>
             <span className="px-3 py-1 bg-muted rounded-full text-sm">{trade.strategy || 'No Strategy'}</span>
             {trade.grade && (
@@ -145,6 +148,13 @@ export default function TradeDetail() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-y-4">
+              {trade.account && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Account</p>
+                  <p className="font-medium">{trade.account}</p>
+                </div>
+              )}
+              
               <div>
                 <p className="text-sm text-muted-foreground">Entry Date</p>
                 <p className="font-medium">{format(new Date(trade.entryDate), 'MM/dd/yyyy')}</p>

@@ -10,6 +10,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { toast } from '@/utils/toast';
 import { AlertCircle } from 'lucide-react';
+import { MaxRiskField } from './trade-form/MaxRiskField';
+import { Label } from '@/components/ui/label';
 
 interface TradeFormProps {
   initialTrade?: Trade;
@@ -25,6 +27,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   const ideaIdFromProps = ideaId || searchParams.get('ideaId');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [maxRisk, setMaxRisk] = useState<number | undefined>(undefined);
   
   console.log('TradeForm rendering. Idea ID from props or URL:', ideaIdFromProps);
   
@@ -98,6 +101,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     if (!trade.entryPrice) errors.push('Entry price is required');
     if (!trade.quantity) errors.push('Quantity is required');
     if (!trade.entryDate) errors.push('Entry date is required');
+    if (!trade.stopLoss) errors.push('Stop loss is required'); // Added stop loss as required
     
     setValidationErrors(errors);
     
@@ -155,6 +159,15 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
                 : "Enter the details of your new trade"
             }
           </CardDescription>
+
+          {/* Max Risk Selection */}
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="maxRisk">Max Risk Per Trade</Label>
+            <MaxRiskField
+              value={maxRisk}
+              onChange={setMaxRisk}
+            />
+          </div>
         </CardHeader>
         
         {validationErrors.length > 0 && (
@@ -189,6 +202,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
                 handleTypeChange={handleTypeChange}
                 contractDetails={contractDetails}
                 pointValue={pointValue}
+                maxRisk={maxRisk}
               />
             </TabsContent>
             

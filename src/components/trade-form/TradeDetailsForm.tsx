@@ -8,10 +8,12 @@ import { SymbolSelector } from '@/components/SymbolSelector';
 import { FuturesContractSelector } from '@/components/FuturesContractSelector';
 import { FuturesContractDetails as FuturesContractDetailsComponent } from '@/components/FuturesContractDetails';
 import { MistakesField } from './MistakesField';
-import { TrendingDown, TrendingUp, Ratio, Target } from 'lucide-react';
+import { TrendingDown, TrendingUp, Ratio, Target, AlertCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Strategy } from '@/types';
 import { getStrategies } from '@/utils/strategyStorage';
+import { AccountField } from './AccountField';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface TradeDetailsFormProps {
   trade: Partial<Trade>;
@@ -19,6 +21,7 @@ interface TradeDetailsFormProps {
   handleTypeChange: (type: Trade['type']) => void;
   contractDetails: Partial<FuturesContractDetails>;
   pointValue: number | undefined;
+  maxRisk?: number;
 }
 
 export function TradeDetailsForm({
@@ -26,10 +29,13 @@ export function TradeDetailsForm({
   handleChange,
   handleTypeChange,
   contractDetails,
-  pointValue
+  pointValue,
+  maxRisk
 }: TradeDetailsFormProps) {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null);
+  const [calculatedRisk, setCalculatedRisk] = useState<number | null>(null);
+  const [isRiskExceeded, setIsRiskExceeded] = useState(false);
 
   useEffect(() => {
     // Load strategies from storage
@@ -54,8 +60,42 @@ export function TradeDetailsForm({
     }
   }, [trade.stopLoss, trade.takeProfit, trade.entryPrice]);
 
+  // Calculate total risk amount when necessary values change
+  useEffect(() => {
+    if (trade.entryPrice && trade.stopLoss && trade.quantity) {
+      const riskPerUnit = Math.abs(trade.entryPrice - trade.stopLoss);
+      let totalRisk = riskPerUnit * trade.quantity;
+
+      // Apply point value for futures
+      if (trade.type === 'futures' && pointValue) {
+        totalRisk = riskPerUnit * trade.quantity * pointValue;
+      }
+
+      setCalculatedRisk(totalRisk);
+      
+      // Check if risk exceeds max risk
+      if (maxRisk && totalRisk > maxRisk) {
+        setIsRiskExceeded(true);
+      } else {
+        setIsRiskExceeded(false);
+      }
+    } else {
+      setCalculatedRisk(null);
+      setIsRiskExceeded(false);
+    }
+  }, [trade.entryPrice, trade.stopLoss, trade.quantity, trade.type, pointValue, maxRisk]);
+
   return (
     <div className="space-y-4">
+      {/* Account Selection - New */}
+      <div className="space-y-2">
+        <Label htmlFor="account">Account</Label>
+        <AccountField 
+          value={trade.account} 
+          onChange={(value) => handleChange('account', value)} 
+        />
+      </div>
+
       {/* Trade Type Selection */}
       <div className="space-y-2">
         <Label htmlFor="type">Trade Type</Label>
@@ -90,7 +130,7 @@ export function TradeDetailsForm({
             <SymbolSelector
               value={trade.symbol}
               onChange={(symbol) => handleChange('symbol', symbol)}
-              tradeType={trade.type as 'stock' | 'futures' | 'forex' | 'crypto' | 'options'}
+              tradeType={trade.type as 'stock' | 'futures' | 'forex' | 'crypto' | 'option'}
             />
           )}
         </div>
@@ -155,7 +195,7 @@ export function TradeDetailsForm({
         <div className="space-y-2">
           <Label htmlFor="stopLoss" className="flex items-center gap-1">
             <TrendingDown className="h-4 w-4 text-loss" />
-            Stop Loss Price
+            Stop Loss Price <span className="text-red-500">*</span>
           </Label>
           <Input 
             id="stopLoss" 
@@ -164,6 +204,7 @@ export function TradeDetailsForm({
             step="0.01"
             value={trade.stopLoss || ''}
             onChange={(e) => handleChange('stopLoss', parseFloat(e.target.value))}
+            required
           />
         </div>
         
@@ -184,12 +225,28 @@ export function TradeDetailsForm({
         </div>
       </div>
       
+      {/* Risk Warning Alert - Show when risk exceeds max risk */}
+      {isRiskExceeded && maxRisk && calculatedRisk && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Risk amount (${calculatedRisk.toFixed(2)}) exceeds your max risk limit of ${maxRisk}
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {/* Risk Reward Ratio Display */}
       {riskRewardRatio !== null && (
         <div className="bg-muted/30 p-3 rounded-md flex items-center">
           <Ratio className="h-5 w-5 mr-2 text-primary" />
           <div>
             <span className="font-medium">Risk-Reward Ratio: </span>
             <span className="font-mono">{riskRewardRatio.toFixed(2)}:1</span>
+            {calculatedRisk !== null && (
+              <span className="ml-2 text-muted-foreground">
+                (Risk: ${calculatedRisk.toFixed(2)})
+              </span>
+            )}
           </div>
         </div>
       )}
