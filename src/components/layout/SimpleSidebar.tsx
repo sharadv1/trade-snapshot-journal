@@ -18,9 +18,7 @@ import {
   SidebarMenu, 
   SidebarGroup, 
   SidebarMenuItem, 
-  SidebarMenuButton, 
-  SidebarMenuItemIcon, 
-  SidebarMenuItemLabel 
+  SidebarMenuButton
 } from '@/components/ui/sidebar';
 
 export function SimpleSidebar() {
