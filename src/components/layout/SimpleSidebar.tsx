@@ -24,7 +24,7 @@ import {
 export function SimpleSidebar() {
   return (
     <Sidebar>
-      <SidebarContent className="mt-0">
+      <SidebarContent className="mt-14 pt-4">
         <SidebarMenu>
           <SidebarGroup>
             <SidebarMenuItem>
