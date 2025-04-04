@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { getAccounts, saveAccounts } from '@/utils/accountStorage';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface AccountFieldProps {
   value: string | undefined;
@@ -69,14 +70,7 @@ export function AccountField({ value, onChange }: AccountFieldProps) {
 
   // Don't render command components until accounts are loaded
   if (isLoading) {
-    return (
-      <Button
-        variant="outline"
-        className="w-full justify-between"
-      >
-        Loading accounts...
-      </Button>
-    );
+    return <Skeleton className="h-10 w-full" />;
   }
 
   return (

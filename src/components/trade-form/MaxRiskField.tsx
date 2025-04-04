@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getMaxRiskValues, getCurrentMaxRisk, setCurrentMaxRisk } from '@/utils/maxRiskStorage';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface MaxRiskFieldProps {
   value: number | undefined;
@@ -44,13 +45,9 @@ export function MaxRiskField({ value, onChange }: MaxRiskFieldProps) {
     }
   };
 
-  // Don't render until values are loaded
+  // Don't render the Select component until values are loaded
   if (!isLoaded) {
-    return (
-      <SelectTrigger>
-        <SelectValue placeholder="Loading..." />
-      </SelectTrigger>
-    );
+    return <Skeleton className="h-10 w-full" />;
   }
 
   return (
