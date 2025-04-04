@@ -10,7 +10,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
     trade.exitDate || new Date().toISOString().slice(0, 16)
   );
   const [fees, setFees] = useState<number | undefined>(trade.fees);
-  const [notes, setNotes] = useState<string>('');
+  const [notes, setNotes] = useState<string>(trade.notes || '');
 
   const [partialQuantity, setPartialQuantity] = useState<number>(
     Math.floor(trade.quantity / 2) // Default to half the position
@@ -85,7 +85,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
           exitPrice: weightedSum / latestTrade.quantity,
           fees: fees,
           partialExits: partialExits,
-          notes: notes ? (latestTrade.notes ? `${latestTrade.notes}\n\nExit Notes: ${notes}` : notes) : latestTrade.notes
+          notes: notes ? notes : latestTrade.notes
         };
         
         updateTrade(updatedTrade);
@@ -108,7 +108,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
           fees,
           status: 'closed',
           partialExits: [...(latestTrade.partialExits || []), fullExit],
-          notes: notes ? (latestTrade.notes ? `${latestTrade.notes}\n\nExit Notes: ${notes}` : notes) : latestTrade.notes
+          notes: notes ? notes : latestTrade.notes
         };
         
         updateTrade(updatedTrade);
@@ -201,6 +201,47 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
     }
   };
 
+  const handleReopenTrade = async () => {
+    try {
+      const latestTrade = getTradeById(trade.id);
+      if (!latestTrade) {
+        toast.error("Failed to retrieve latest trade data");
+        return;
+      }
+      
+      if (latestTrade.partialExits && latestTrade.partialExits.length > 0) {
+        const updatedTrade: Trade = {
+          ...latestTrade,
+          status: 'open',
+          exitDate: undefined,
+          exitPrice: undefined
+        };
+        updateTrade(updatedTrade);
+      } else {
+        const updatedTrade: Trade = {
+          ...latestTrade,
+          status: 'open',
+          exitDate: undefined,
+          exitPrice: undefined,
+          partialExits: []
+        };
+        updateTrade(updatedTrade);
+      }
+      
+      toast.success("Trade reopened successfully");
+      
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'trade-journal-trades',
+        newValue: JSON.stringify(localStorage.getItem('trade-journal-trades'))
+      }));
+      
+      onUpdate();
+    } catch (error) {
+      console.error("Error reopening trade:", error);
+      toast.error("Failed to reopen trade");
+    }
+  };
+
   function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       const r = Math.random() * 16 | 0, 
@@ -232,6 +273,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
     setPartialNotes,
     remainingQuantity,
     handleFullExit,
-    handlePartialExit
+    handlePartialExit,
+    handleReopenTrade
   };
 }

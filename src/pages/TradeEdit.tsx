@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TradeForm } from '@/components/TradeForm';
@@ -6,8 +7,9 @@ import { Trade } from '@/types';
 import { getTradeById } from '@/utils/storage/tradeOperations';
 import { toast } from '@/utils/toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PartialExitsList } from '@/components/PartialExitsList';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 export default function TradeEdit() {
   const { id } = useParams<{ id: string }>();
@@ -69,17 +71,22 @@ export default function TradeEdit() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold tracking-tight mb-6">
-        Manage Trade: {trade.symbol}
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold tracking-tight">
+          Manage Trade: {trade.symbol}
+        </h1>
+        <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+      </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="edit">Edit Details</TabsTrigger>
-          <TabsTrigger value="exit" disabled={trade.status === 'closed'}>
-            {trade.status === 'closed' ? 'Trade Closed' : 'Exit Position'}
+          <TabsTrigger value="exit">
+            {trade.status === 'closed' ? 'Exit Info' : 'Exit Position'}
           </TabsTrigger>
-          <TabsTrigger value="partials">Partial Exits</TabsTrigger>
         </TabsList>
         
         <TabsContent value="edit">
@@ -100,7 +107,9 @@ export default function TradeEdit() {
         <TabsContent value="exit">
           <Card>
             <CardHeader className="py-4">
-              <CardTitle className="text-lg">Exit Position</CardTitle>
+              <CardTitle className="text-lg">
+                {trade.status === 'closed' ? 'Exit Information' : 'Exit Position'}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <ExitTradeForm 
@@ -108,21 +117,6 @@ export default function TradeEdit() {
                 onClose={() => {}} 
                 onUpdate={handleTradeUpdate}
                 remainingQuantity={remainingQuantity}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="partials">
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-lg">Partial Exits</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PartialExitsList 
-                trade={trade}
-                onUpdate={handleTradeUpdate}
-                allowEditing={true}
               />
             </CardContent>
           </Card>
