@@ -6,6 +6,8 @@ import { EditPartialExitModal } from './trade-exit/EditPartialExitModal';
 import { DeletePartialExitButton } from './trade-exit/DeletePartialExitButton';
 import { useEffect, useState } from 'react';
 import { getTradeById } from '@/utils/tradeStorage';
+import { Badge } from '@/components/ui/badge';
+import { formatTradeDate, formatTradeDateWithTime } from '@/utils/calculations/tradeStatus';
 
 interface PartialExitsListProps {
   trade: Trade;
@@ -45,9 +47,12 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
   }
 
   // Sort partial exits by date (newest first)
-  const sortedExits = [...currentTrade.partialExits].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const sortedExits = [...currentTrade.partialExits].sort((a, b) => {
+    // Handle potential invalid dates
+    const dateA = new Date(a.date || '').getTime() || 0;
+    const dateB = new Date(b.date || '').getTime() || 0;
+    return dateB - dateA;
+  });
 
   // Calculate total quantity exited so far
   const totalExitedQuantity = sortedExits.reduce(
@@ -57,6 +62,9 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
 
   // Calculate remaining quantity
   const remainingQuantity = currentTrade.quantity - totalExitedQuantity;
+
+  // Determine if the trade is fully exited through partial exits
+  const isFullyExited = totalExitedQuantity >= currentTrade.quantity;
 
   // Calculate max quantity for each exit (original quantity + current exit quantity)
   const getMaxQuantityForExit = (currentExit: PartialExit) => {
@@ -95,8 +103,8 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
             </div>
             <div className="flex justify-between text-sm mt-1">
               <span>Status:</span>
-              <span className={`font-medium ${totalExitedQuantity === currentTrade.quantity ? 'text-red-500' : 'text-green-500'}`}>
-                {totalExitedQuantity === currentTrade.quantity ? 'closed' : 'open'}
+              <span className={`font-medium ${isFullyExited || currentTrade.status === 'closed' ? 'text-red-500' : 'text-green-500'}`}>
+                {isFullyExited || currentTrade.status === 'closed' ? 'closed' : 'open'}
               </span>
             </div>
           </div>
@@ -110,16 +118,7 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
                       {exit.quantity} units @ {formatCurrency(exit.price)}
                     </span>
                     <div className="text-sm text-muted-foreground">
-                      {new Date(exit.date).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                      {' '}
-                      {new Date(exit.date).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {formatTradeDateWithTime(exit.date)}
                     </div>
                     
                     {exit.notes && (

@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { isTradeFullyExited, getRemainingQuantity } from '@/utils/calculations/tradeStatus';
 
 export default function TradeEdit() {
   const { id } = useParams<{ id: string }>();
@@ -42,8 +43,21 @@ export default function TradeEdit() {
     loadTradeData();
   }, [id, navigate]);
   
+  useEffect(() => {
+    // Listen for storage events to refresh trade data
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'trade-journal-trades') {
+        loadTradeData();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [id]);
+  
   const handleTradeUpdate = () => {
     loadTradeData();
+    toast.success("Trade data refreshed");
   };
   
   if (isLoading) {
@@ -62,12 +76,9 @@ export default function TradeEdit() {
     );
   }
 
-  const totalExitedQuantity = (trade.partialExits || []).reduce(
-    (total, exit) => total + exit.quantity, 
-    0
-  );
-  
-  const remainingQuantity = trade.quantity - totalExitedQuantity;
+  const isClosed = trade.status === 'closed';
+  const isFullyExited = isTradeFullyExited(trade);
+  const remainingQuantity = getRemainingQuantity(trade);
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -85,7 +96,7 @@ export default function TradeEdit() {
         <TabsList className="mb-4">
           <TabsTrigger value="edit">Edit Details</TabsTrigger>
           <TabsTrigger value="exit">
-            {trade.status === 'closed' ? 'Exit Info' : 'Exit Position'}
+            {isClosed ? 'Exit Info' : 'Exit Position'}
           </TabsTrigger>
         </TabsList>
         
@@ -108,7 +119,7 @@ export default function TradeEdit() {
           <Card>
             <CardHeader className="py-4">
               <CardTitle className="text-lg">
-                {trade.status === 'closed' ? 'Exit Information' : 'Exit Position'}
+                {isClosed ? 'Exit Information' : 'Exit Position'}
               </CardTitle>
             </CardHeader>
             <CardContent>
