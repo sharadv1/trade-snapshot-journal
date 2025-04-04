@@ -1,20 +1,21 @@
+
 import { useState, useEffect } from 'react';
 import { Trade, PartialExit } from '@/types';
-import { updateTrade, getTradeById } from '@/utils/tradeStorage';
+import { updateTrade, getTradeById } from '@/utils/storage/tradeOperations';
 import { toast } from '@/utils/toast';
-import { dispatchStorageEvents } from '@/utils/storage/storageUtils';
+import { generateUUID } from '@/utils/generateUUID';
 
 export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: () => void) {
   // State variables for full exit
   const [exitPrice, setExitPrice] = useState<number | undefined>(trade.exitPrice);
-  const [exitDate, setExitDate] = useState<string>(trade.exitDate || new Date().toISOString());
+  const [exitDate, setExitDate] = useState<string>(trade.exitDate || new Date().toISOString().slice(0, 16));
   const [fees, setFees] = useState<number | undefined>(trade.fees);
   const [notes, setNotes] = useState<string | undefined>(trade.notes);
   
   // State variables for partial exit
   const [partialQuantity, setPartialQuantity] = useState<number | undefined>(undefined);
   const [partialExitPrice, setPartialExitPrice] = useState<number | undefined>(undefined);
-  const [partialExitDate, setPartialExitDate] = useState<string>(new Date().toISOString());
+  const [partialExitDate, setPartialExitDate] = useState<string>(new Date().toISOString().slice(0, 16));
   const [partialFees, setPartialFees] = useState<number | undefined>(undefined);
   const [partialNotes, setPartialNotes] = useState<string | undefined>(undefined);
   
@@ -30,7 +31,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       trade.partialExits.reduce((sum, exit) => sum + exit.quantity, 0) : 0;
     
     setRemainingQuantity(trade.quantity - partialQuantitySum);
-  }, [trade, remainingQuantity]);
+  }, [trade]);
   
   const handleFullExit = async () => {
     console.log('handleFullExit called with exitPrice:', exitPrice);
@@ -68,13 +69,14 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       // for the remaining quantity, then close the trade
       if (latestTrade.partialExits && latestTrade.partialExits.length > 0) {
         const finalExit: PartialExit = {
-          id: Date.now().toString(),
+          id: generateUUID(),
           date: exitDate,
           exitDate: exitDate,
           exitPrice: exitPrice,
+          price: exitPrice,
           quantity: currentRemainingQuantity,
           fees: fees || 0,
-          price: exitPrice
+          notes: notes
         };
         
         const updatedPartialExits = [...latestTrade.partialExits, finalExit];
@@ -82,7 +84,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         // Create weighted average exit price from all exits
         const totalQuantity = updatedPartialExits.reduce((sum, exit) => sum + exit.quantity, 0);
         const weightedExitPrice = updatedPartialExits.reduce(
-          (sum, exit) => sum + (exit.price * exit.quantity),
+          (sum, exit) => sum + (exit.exitPrice * exit.quantity),
           0
         ) / totalQuantity;
         
@@ -93,20 +95,21 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
           exitDate: exitDate,
           fees: updatedPartialExits.reduce((sum, exit) => sum + (exit.fees || 0), 0),
           partialExits: updatedPartialExits,
-          notes: notes ? notes : latestTrade.notes
+          notes: notes !== undefined ? notes : latestTrade.notes
         };
         
         console.log('Updating trade with full exit (remaining units):', updatedTrade);
         await updateTrade(updatedTrade);
       } else {
         const fullExit: PartialExit = {
-          id: Date.now().toString(),
+          id: generateUUID(),
           date: exitDate,
           exitDate: exitDate,
           price: exitPrice,
           exitPrice: exitPrice,
           quantity: latestTrade.quantity,
-          fees: fees || 0
+          fees: fees || 0,
+          notes: notes
         };
         
         // If no partial exits, just close the trade with the exit price
@@ -117,7 +120,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
           exitDate: exitDate,
           fees: fees !== undefined ? fees : latestTrade.fees,
           partialExits: [fullExit],
-          notes: notes ? notes : latestTrade.notes
+          notes: notes !== undefined ? notes : latestTrade.notes
         };
         
         console.log('Updating trade with full exit (all units):', updatedTrade);
@@ -125,6 +128,9 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       }
       
       toast.success("Trade closed successfully");
+      
+      // Dispatch custom event to ensure UI updates
+      document.dispatchEvent(new CustomEvent('trade-updated'));
       
       // Trigger storage events to notify other components
       window.dispatchEvent(new StorageEvent('storage', {
@@ -171,9 +177,11 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       }
       
       const partialExit: PartialExit = {
-        id: Date.now().toString(),
+        id: generateUUID(),
         date: partialExitDate,
+        exitDate: partialExitDate,
         price: partialExitPrice,
+        exitPrice: partialExitPrice,
         quantity: partialQuantity,
         fees: partialFees || 0,
         notes: partialNotes
@@ -197,7 +205,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       if (updatedRemainingQuantity <= 0) {
         const totalQuantity = updatedPartialExits.reduce((sum, exit) => sum + exit.quantity, 0);
         updatedTrade.exitPrice = updatedPartialExits.reduce(
-          (sum, exit) => sum + (exit.price * exit.quantity),
+          (sum, exit) => sum + (exit.exitPrice * exit.quantity),
           0
         ) / totalQuantity;
         
@@ -212,15 +220,20 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       console.log('Updating trade with partial exit:', updatedTrade);
       await updateTrade(updatedTrade);
       
+      // Dispatch custom event to ensure UI updates
+      document.dispatchEvent(new CustomEvent('trade-updated'));
+      
       // Trigger storage events to notify other components
-      dispatchStorageEvents();
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'trade-journal-trades'
+      }));
       
       toast.success("Partial exit recorded successfully");
       
       // Reset partial exit form
       setPartialQuantity(undefined);
       setPartialExitPrice(undefined);
-      setPartialExitDate(new Date().toISOString());
+      setPartialExitDate(new Date().toISOString().slice(0, 16));
       setPartialFees(undefined);
       setPartialNotes(undefined);
       
@@ -253,8 +266,13 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       
       toast.success("Trade reopened successfully");
       
+      // Dispatch custom event to ensure UI updates
+      document.dispatchEvent(new CustomEvent('trade-updated'));
+      
       // Trigger storage events to notify other components
-      dispatchStorageEvents();
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'trade-journal-trades'
+      }));
       
       onUpdate();
       onClose();

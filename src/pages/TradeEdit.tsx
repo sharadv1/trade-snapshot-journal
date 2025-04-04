@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { TradeForm } from '@/components/TradeForm';
 import { ExitTradeForm } from '@/components/ExitTradeForm';
 import { Trade } from '@/types';
-import { getTradeById } from '@/utils/tradeStorage';
+import { getTradeById } from '@/utils/storage/tradeOperations';
 import { toast } from '@/utils/toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,18 +41,21 @@ export default function TradeEdit() {
   
   useEffect(() => {
     loadTradeData();
-  }, [id, navigate]);
+  }, [id]);
   
   useEffect(() => {
     // Listen for storage events to refresh trade data
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'trade-journal-trades') {
-        loadTradeData();
-      }
+    const handleStorageChange = () => {
+      loadTradeData();
     };
     
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    document.addEventListener('trade-updated', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      document.removeEventListener('trade-updated', handleStorageChange);
+    };
   }, [id]);
   
   const handleTradeUpdate = () => {

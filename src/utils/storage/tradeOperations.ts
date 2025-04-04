@@ -28,6 +28,9 @@ export const addTrade = async (trade: Trade): Promise<void> => {
     associateTradeWithReflections(trade.id, trade.exitDate);
   }
   
+  // Dispatch custom event to notify components
+  document.dispatchEvent(new CustomEvent('trade-updated'));
+  
   console.log('Trade added successfully:', trade.id);
 };
 
@@ -58,6 +61,9 @@ export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
       associateTradeWithReflections(updatedTrade.id, updatedTrade.exitDate);
     }
     
+    // Dispatch custom event to notify components
+    document.dispatchEvent(new CustomEvent('trade-updated'));
+    
     console.log('Trade updated successfully:', updatedTrade.id);
   } else {
     console.error('Trade not found for update:', updatedTrade.id);
@@ -74,10 +80,13 @@ export const deleteTrade = async (tradeId: string): Promise<void> => {
   // Trigger storage events
   dispatchStorageEvents();
   
+  // Dispatch custom event to notify components
+  document.dispatchEvent(new CustomEvent('trade-updated'));
+  
   console.log('Trade deleted successfully:', tradeId);
 };
 
-// Get a single trade by ID - non-Promise version to fix TS errors
+// Get a single trade by ID
 export const getTradeById = (tradeId: string): Trade | undefined => {
   console.log('storage/tradeOperations.getTradeById called with ID:', tradeId);
   const trades = getTradesSync();
