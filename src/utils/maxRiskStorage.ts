@@ -24,3 +24,25 @@ export function saveMaxRiskValues(values: number[]): void {
     console.error('Error saving max risk values to localStorage:', error);
   }
 }
+
+export function getCurrentMaxRisk(): number | null {
+  try {
+    const value = localStorage.getItem('trading-journal-current-max-risk');
+    return value ? JSON.parse(value) : null;
+  } catch (error) {
+    console.error('Error loading current max risk value from localStorage:', error);
+    return null;
+  }
+}
+
+export function setCurrentMaxRisk(value: number | null): void {
+  try {
+    if (value === null) {
+      localStorage.removeItem('trading-journal-current-max-risk');
+    } else {
+      localStorage.setItem('trading-journal-current-max-risk', JSON.stringify(value));
+    }
+  } catch (error) {
+    console.error('Error saving current max risk value to localStorage:', error);
+  }
+}

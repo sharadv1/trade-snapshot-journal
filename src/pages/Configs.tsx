@@ -5,14 +5,15 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash } from 'lucide-react';
-import { toast } from 'sonner';
-import { getMaxRiskValues, saveMaxRiskValues } from '@/utils/maxRiskStorage';
+import { toast } from '@/utils/toast';
+import { getMaxRiskValues, saveMaxRiskValues, getCurrentMaxRisk, setCurrentMaxRisk } from '@/utils/maxRiskStorage';
 import { getMaxLossValues, saveMaxLossValues, getCurrentMaxLoss, setCurrentMaxLoss } from '@/utils/maxLossStorage';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function Configs() {
   const [maxRiskValues, setMaxRiskValues] = useState<number[]>([]);
   const [newMaxRiskValue, setNewMaxRiskValue] = useState('');
+  const [selectedMaxRisk, setSelectedMaxRisk] = useState<number | null>(null);
   
   const [maxLossValues, setMaxLossValues] = useState<number[]>([]);
   const [newMaxLossValue, setNewMaxLossValue] = useState('');
@@ -22,6 +23,10 @@ export default function Configs() {
     // Load max risk values
     const loadedRiskValues = getMaxRiskValues();
     setMaxRiskValues(loadedRiskValues);
+    
+    // Load current max risk setting
+    const currentMaxRisk = getCurrentMaxRisk();
+    setSelectedMaxRisk(currentMaxRisk);
     
     // Load max loss values
     const loadedLossValues = getMaxLossValues();
@@ -62,6 +67,13 @@ export default function Configs() {
     const updatedValues = maxRiskValues.filter(v => v !== value);
     setMaxRiskValues(updatedValues);
     saveMaxRiskValues(updatedValues);
+    
+    // If the selected max risk is being deleted, clear the selection
+    if (selectedMaxRisk === value) {
+      setSelectedMaxRisk(null);
+      setCurrentMaxRisk(null);
+    }
+    
     toast.success('Max risk value removed');
   };
   
@@ -77,6 +89,18 @@ export default function Configs() {
     }
     
     toast.success('Max loss value removed');
+  };
+  
+  const handleSelectMaxRisk = (value: number) => {
+    setSelectedMaxRisk(value);
+    setCurrentMaxRisk(value);
+    toast.success(`Max risk per trade set to $${value}`);
+  };
+  
+  const handleClearMaxRisk = () => {
+    setSelectedMaxRisk(null);
+    setCurrentMaxRisk(null);
+    toast.success('Max risk per trade cleared');
   };
   
   const handleSelectMaxLoss = (value: number) => {
@@ -103,7 +127,7 @@ export default function Configs() {
           <CardHeader>
             <CardTitle>Trade Max Risk Values</CardTitle>
             <CardDescription>
-              Configure the default max risk values available for trade entries
+              Configure the max risk values for trade entries and set a warning threshold
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -133,8 +157,22 @@ export default function Configs() {
                 <div className="mt-2 space-y-2">
                   {maxRiskValues.length > 0 ? (
                     maxRiskValues.map((value) => (
-                      <div key={value} className="flex items-center justify-between bg-muted p-2 rounded-md">
-                        <span>${value}</span>
+                      <div 
+                        key={value} 
+                        className={`flex items-center justify-between p-2 rounded-md ${
+                          selectedMaxRisk === value ? 'bg-primary/20 border border-primary' : 'bg-muted'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant={selectedMaxRisk === value ? "default" : "outline"} 
+                            size="sm" 
+                            onClick={() => handleSelectMaxRisk(value)}
+                          >
+                            {selectedMaxRisk === value ? 'Selected' : 'Select'}
+                          </Button>
+                          <span>${value}</span>
+                        </div>
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -149,6 +187,15 @@ export default function Configs() {
                   )}
                 </div>
               </div>
+              
+              {selectedMaxRisk && (
+                <Alert>
+                  <AlertDescription className="flex justify-between items-center">
+                    <span>Current max risk per trade: <strong>${selectedMaxRisk}</strong></span>
+                    <Button size="sm" variant="outline" onClick={handleClearMaxRisk}>Clear</Button>
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           </CardContent>
         </Card>

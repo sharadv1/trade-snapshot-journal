@@ -11,6 +11,7 @@ import { toast } from '@/utils/toast';
 import { AlertCircle } from 'lucide-react';
 import { MaxRiskField } from './trade-form/MaxRiskField';
 import { Label } from '@/components/ui/label';
+import { getCurrentMaxRisk } from '@/utils/maxRiskStorage';
 
 interface TradeFormProps {
   initialTrade?: Trade;
@@ -28,7 +29,12 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [maxRisk, setMaxRisk] = useState<number | undefined>(undefined);
   
-  console.log('TradeForm rendering. Idea ID from props or URL:', ideaIdFromProps);
+  useEffect(() => {
+    const storedMaxRisk = getCurrentMaxRisk();
+    if (storedMaxRisk !== null) {
+      setMaxRisk(storedMaxRisk);
+    }
+  }, []);
   
   const {
     trade,
@@ -46,7 +52,6 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   } = useTradeForm(initialTrade, isEditing, ideaIdFromProps);
 
   useEffect(() => {
-    // Validate essential components
     if (!trade) {
       console.error('Trade object is undefined or null');
       toast.error('There was an error loading the trade form');
@@ -55,7 +60,6 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   }, [trade]);
 
   useEffect(() => {
-    // Clear validation errors when user changes tab
     setValidationErrors([]);
   }, [activeTab]);
 
@@ -67,28 +71,23 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   });
 
   const handleCancel = () => {
-    // If we came from the ideas page (has ideaId), go back to ideas
     if (ideaIdFromProps) {
       navigate('/ideas');
       return;
     }
     
-    // If editing, go back to trade detail
     if (isEditing && initialTrade) {
       navigate(`/trade/${initialTrade.id}`);
       return;
     }
     
-    // Default: go to dashboard
     navigate('/');
   };
 
   const handleFormSuccess = (tradeId: string) => {
-    // If onSuccess prop is provided, call it
     if (onSuccess) {
       onSuccess(tradeId);
     } else {
-      // Otherwise, navigate to the trade detail page
       navigate(`/trade/${tradeId}`);
     }
   };
@@ -100,12 +99,11 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     if (!trade.entryPrice) errors.push('Entry price is required');
     if (!trade.quantity) errors.push('Quantity is required');
     if (!trade.entryDate) errors.push('Entry date is required');
-    if (!trade.stopLoss) errors.push('Stop loss is required'); // Added stop loss as required
+    if (!trade.stopLoss) errors.push('Stop loss is required');
     
     setValidationErrors(errors);
     
     if (errors.length > 0) {
-      // Always switch to details tab on errors since all required fields are now there
       setActiveTab('details');
       return false;
     }
@@ -129,12 +127,10 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
       const success = submitForm(e, handleFormSuccess);
       
       if (success) {
-        // Dispatch a storage event to notify other components to refresh
         window.dispatchEvent(new Event('storage'));
       }
     } catch (error) {
       console.error('Error submitting form:', error);
-      // Call the onError callback if provided
       if (onError) {
         onError(error);
       } else {
@@ -159,7 +155,6 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
             }
           </CardDescription>
 
-          {/* Max Risk Selection */}
           <div className="mt-4 space-y-2">
             <Label htmlFor="maxRisk">Max Risk Per Trade</Label>
             <MaxRiskField
