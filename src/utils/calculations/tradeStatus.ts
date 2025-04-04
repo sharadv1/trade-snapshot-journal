@@ -16,6 +16,7 @@ export function isTradeFullyExited(trade: Trade): boolean {
     (total, exit) => total + exit.quantity, 0
   );
   
+  // Consider a trade fully exited if the exited quantity equals or exceeds the trade quantity
   return totalExitedQuantity >= trade.quantity;
 }
 

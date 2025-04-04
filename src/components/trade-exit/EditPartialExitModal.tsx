@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { 
   Dialog, 
@@ -112,7 +113,7 @@ export function EditPartialExitModal({
           (sum, exit) => sum + (exit.fees || 0), 0
         );
       } 
-      else if (latestTrade.status === 'closed') {
+      else if (latestTrade.status === 'closed' && totalExitedQuantity < updatedTrade.quantity) {
         // If we're updating an exit and the new total is less than the quantity,
         // we need to reopen the trade since it's no longer fully exited
         updatedTrade.status = 'open';

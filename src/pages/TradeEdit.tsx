@@ -71,10 +71,11 @@ export default function TradeEdit() {
     toast.success("Trade data refreshed");
   };
 
+  // Modified to not navigate automatically when exiting/reopening
   const handleCloseModal = () => {
-    // This only navigates when explicitly closing the modal or completing the final exit
-    console.log('ExitTradeForm close callback called, navigating to trade detail');
-    navigate(`/trade/${id}`);
+    console.log('ExitTradeForm close callback called, refreshing trade data');
+    // Instead of navigating, just refresh the data to stay on the same page
+    loadTradeData();
   };
   
   if (isLoading) {
@@ -97,7 +98,7 @@ export default function TradeEdit() {
   const isFullyExited = isTradeFullyExited(trade);
   const remainingQuantity = getRemainingQuantity(trade);
 
-  console.log('Trade edit rendering with status:', trade.status, 'Remaining quantity:', remainingQuantity);
+  console.log('Trade edit rendering with status:', trade.status, 'Remaining quantity:', remainingQuantity, 'Is fully exited:', isFullyExited);
 
   return (
     <div className="container mx-auto py-8 px-4">
