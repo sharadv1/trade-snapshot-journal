@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Trade, PartialExit } from '@/types';
 import { updateTrade, getTradeById } from '@/utils/tradeStorage';
@@ -88,7 +89,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
           notes: notes ? notes : latestTrade.notes
         };
         
-        updateTrade(updatedTrade);
+        await updateTrade(updatedTrade);
       } else {
         const fullExit: PartialExit = {
           id: crypto.randomUUID ? crypto.randomUUID() : generateUUID(),
@@ -111,7 +112,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
           notes: notes ? notes : latestTrade.notes
         };
         
-        updateTrade(updatedTrade);
+        await updateTrade(updatedTrade);
       }
       
       toast.success("Trade closed successfully");
@@ -185,7 +186,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         if (updatedTrade.exitPrice !== undefined) updatedTrade.exitPrice = undefined;
       }
       
-      updateTrade(updatedTrade);
+      await updateTrade(updatedTrade);
       
       window.dispatchEvent(new StorageEvent('storage', {
         key: 'trade-journal-trades',
@@ -216,7 +217,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         exitPrice: undefined
       };
       
-      updateTrade(updatedTrade);
+      await updateTrade(updatedTrade);
       
       toast.success("Trade reopened successfully");
       

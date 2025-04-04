@@ -54,11 +54,11 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
   const isClosed = trade.status === 'closed';
 
   useEffect(() => {
-    console.log('ExitTradeForm mounted for trade:', trade.id);
+    console.log('ExitTradeForm mounted for trade:', trade.id, 'Status:', trade.status);
     return () => {
       console.log('ExitTradeForm unmounted for trade:', trade.id);
     };
-  }, [trade.id]);
+  }, [trade.id, trade.status]);
 
   const handleSubmitFullExit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +66,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     console.log('Submitting full exit form');
     try {
       await handleFullExit();
-      onUpdate();
     } finally {
       setIsSubmitting(false);
     }
@@ -78,7 +77,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     console.log('Submitting partial exit form');
     try {
       await handlePartialExit();
-      onUpdate();
     } finally {
       setIsSubmitting(false);
     }
@@ -88,7 +86,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     setIsSubmitting(true);
     try {
       await handleReopenTrade();
-      onUpdate();
     } finally {
       setIsSubmitting(false);
     }
