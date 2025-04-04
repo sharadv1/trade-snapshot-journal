@@ -68,12 +68,22 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     };
   }, [trade.id, trade.status, actualRemainingQuantity]);
 
+  // If remaining quantity is 0, force the 'full' tab
+  useEffect(() => {
+    if (actualRemainingQuantity <= 0 && activeTab === 'partial') {
+      setActiveTab('full');
+    }
+  }, [actualRemainingQuantity, activeTab, setActiveTab]);
+
   const handleSubmitFullExit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     console.log('Submitting full exit form');
     try {
-      await handleFullExit();
+      const success = await handleFullExit();
+      if (success) {
+        console.log("Full exit successful, modal should close");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -84,7 +94,10 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     setIsSubmitting(true);
     console.log('Submitting partial exit form');
     try {
-      await handlePartialExit();
+      const success = await handlePartialExit();
+      if (success) {
+        console.log("Partial exit successful");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -93,7 +106,10 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
   const handleTradeReopen = async () => {
     setIsSubmitting(true);
     try {
-      await handleReopenTrade();
+      const success = await handleReopenTrade();
+      if (success) {
+        console.log("Reopen successful, modal should close");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -101,7 +117,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
 
   const handleManualClose = () => {
     console.log('Manual close button clicked, calling onClose callback');
-    if (onClose) onClose();
+    onClose();
   };
 
   return (

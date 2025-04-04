@@ -35,15 +35,28 @@ export function PartialExitForm({
   partialNotes,
   setPartialNotes
 }: PartialExitFormProps) {
-  // Ensure partial quantity is never greater than remaining quantity
-  useEffect(() => {
-    if (partialQuantity > remainingQuantity) {
-      setPartialQuantity(remainingQuantity);
-    }
-  }, [remainingQuantity, partialQuantity, setPartialQuantity]);
-
   // Ensure remaining quantity is never negative
   const actualRemainingQuantity = Math.max(0, remainingQuantity);
+  
+  // Ensure partial quantity is never greater than remaining quantity
+  useEffect(() => {
+    if (partialQuantity > actualRemainingQuantity) {
+      setPartialQuantity(actualRemainingQuantity);
+    }
+  }, [actualRemainingQuantity, partialQuantity, setPartialQuantity]);
+
+  // If there's no remaining quantity, disable the form
+  if (actualRemainingQuantity <= 0) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-destructive/15 p-3 rounded-md mb-4">
+          <p className="text-sm text-muted-foreground">
+            There is no remaining quantity to exit.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -68,7 +81,7 @@ export function PartialExitForm({
           onChange={(e) => {
             const value = parseInt(e.target.value);
             if (!isNaN(value)) {
-              setPartialQuantity(Math.min(value, actualRemainingQuantity));
+              setPartialQuantity(Math.min(Math.max(1, value), actualRemainingQuantity));
             }
           }}
           required

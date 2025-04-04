@@ -31,6 +31,7 @@ export default function TradeEdit() {
     const tradeData = getTradeById(id);
     if (tradeData) {
       setTrade(tradeData);
+      console.log('Trade loaded successfully:', tradeData.id, 'Status:', tradeData.status);
     } else {
       console.error('Trade not found with ID:', id);
       toast.error('Trade not found');
@@ -46,19 +47,26 @@ export default function TradeEdit() {
   useEffect(() => {
     // Listen for storage events to refresh trade data
     const handleStorageChange = () => {
+      console.log('Storage event detected, reloading trade data');
+      loadTradeData();
+    };
+    
+    const handleTradeUpdated = () => {
+      console.log('Trade-updated event detected, reloading trade data');
       loadTradeData();
     };
     
     window.addEventListener('storage', handleStorageChange);
-    document.addEventListener('trade-updated', handleStorageChange);
+    document.addEventListener('trade-updated', handleTradeUpdated);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      document.removeEventListener('trade-updated', handleStorageChange);
+      document.removeEventListener('trade-updated', handleTradeUpdated);
     };
   }, [id]);
   
   const handleTradeUpdate = () => {
+    console.log('handleTradeUpdate called, refreshing trade data');
     loadTradeData();
     toast.success("Trade data refreshed");
   };
@@ -88,6 +96,8 @@ export default function TradeEdit() {
   const isClosed = trade.status === 'closed';
   const isFullyExited = isTradeFullyExited(trade);
   const remainingQuantity = getRemainingQuantity(trade);
+
+  console.log('Trade edit rendering with status:', trade.status, 'Remaining quantity:', remainingQuantity);
 
   return (
     <div className="container mx-auto py-8 px-4">

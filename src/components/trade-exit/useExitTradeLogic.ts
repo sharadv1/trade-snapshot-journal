@@ -38,7 +38,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
 
     // Set initial partial quantity to 1 or remaining (whichever is smaller)
     if (quantity > 0) {
-      setPartialQuantity(1);
+      setPartialQuantity(Math.min(1, quantity));
     }
   }, [trade, activeTab]);
   
@@ -79,14 +79,15 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       // Calculate remaining quantity based on partial exits
       const currentRemainingQuantity = getRemainingQuantity(latestTrade);
       
-      if (currentRemainingQuantity <= 0) {
+      // If the trade is already fully exited, show an error
+      if (currentRemainingQuantity <= 0 && latestTrade.status !== 'closed') {
         toast.error("No remaining quantity to exit");
         return;
       }
       
       // If there are partial exits and remaining quantity, create a final partial exit 
       // for the remaining quantity, then close the trade
-      if (latestTrade.partialExits && latestTrade.partialExits.length > 0) {
+      if (latestTrade.partialExits && latestTrade.partialExits.length > 0 && currentRemainingQuantity > 0) {
         const finalExit: PartialExit = {
           id: generateUUID(),
           date: exitDate,
@@ -120,6 +121,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         console.log('Updating trade with full exit (remaining units):', updatedTrade);
         await updateTrade(updatedTrade);
       } else {
+        // Create a single exit record for the full quantity
         const fullExit: PartialExit = {
           id: generateUUID(),
           date: exitDate,
@@ -131,7 +133,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
           notes: notes
         };
         
-        // If no partial exits, just close the trade with the exit price
+        // If no partial exits or the trade is being closed directly, just close the trade with the exit price
         const updatedTrade: Trade = {
           ...latestTrade,
           status: 'closed',
@@ -150,36 +152,39 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       
       dispatchUpdateEvents();
       
-      console.log("Calling onUpdate and onClose callbacks");
+      console.log("Calling onClose callback");
       // Always call onClose after successful completion
       if (onClose) {
         setTimeout(() => onClose(), 100); // Small delay to ensure state is updated
       }
+      
+      return true;
     } catch (error) {
       console.error("Error closing trade:", error);
       toast.error("Failed to close trade");
+      return false;
     }
   };
   
   const handlePartialExit = async () => {
     if (!partialQuantity || partialQuantity <= 0) {
       toast.error("Please enter a valid quantity");
-      return;
+      return false;
     }
     
     if (!partialExitPrice) {
       toast.error("Please enter an exit price");
-      return;
+      return false;
     }
     
     if (!partialExitDate) {
       toast.error("Please enter an exit date");
-      return;
+      return false;
     }
     
     if (partialQuantity > remainingQuantity) {
       toast.error(`Cannot exit more than the remaining quantity (${remainingQuantity})`);
-      return;
+      return false;
     }
     
     try {
@@ -188,7 +193,16 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       
       if (!latestTrade) {
         toast.error("Trade not found. It may have been deleted.");
-        return;
+        return false;
+      }
+      
+      // Calculate current remaining quantity from the latest trade data
+      const currentRemainingQuantity = getRemainingQuantity(latestTrade);
+      
+      // Additional check to ensure we're not exiting more than available
+      if (partialQuantity > currentRemainingQuantity) {
+        toast.error(`Cannot exit more than the remaining quantity (${currentRemainingQuantity})`);
+        return false;
       }
       
       const partialExit: PartialExit = {
@@ -205,7 +219,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       const updatedPartialExits = latestTrade.partialExits ? 
         [...latestTrade.partialExits, partialExit] : [partialExit];
       
-      // Calculate remaining quantity
+      // Calculate remaining quantity after this exit
       const partialQuantitySum = updatedPartialExits.reduce((sum, exit) => sum + exit.quantity, 0);
       const updatedRemainingQuantity = Math.max(0, latestTrade.quantity - partialQuantitySum);
       
@@ -226,10 +240,6 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         
         updatedTrade.exitDate = new Date().toISOString();
         updatedTrade.fees = updatedPartialExits.reduce((sum, exit) => sum + (exit.fees || 0), 0);
-      } else {
-        // If not closing, make sure these fields are undefined
-        if (updatedTrade.exitDate !== undefined) updatedTrade.exitDate = undefined;
-        if (updatedTrade.exitPrice !== undefined) updatedTrade.exitPrice = undefined;
       }
       
       console.log('Updating trade with partial exit:', updatedTrade);
@@ -247,15 +257,22 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       setPartialFees(undefined);
       setPartialNotes(undefined);
       
+      // Update the remaining quantity state
+      setRemainingQuantity(updatedRemainingQuantity);
+      
       // If the trade is now closed after this partial exit, close the modal
       if (updatedRemainingQuantity <= 0) {
         if (onClose) {
+          console.log("Trade fully exited via partials, calling onClose");
           setTimeout(() => onClose(), 100);
         }
       }
+      
+      return true;
     } catch (error) {
       console.error("Error recording partial exit:", error);
       toast.error("Failed to record partial exit");
+      return false;
     }
   };
   
@@ -266,7 +283,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       
       if (!latestTrade) {
         toast.error("Trade not found. It may have been deleted.");
-        return;
+        return false;
       }
       
       const updatedTrade: Trade = {
@@ -287,9 +304,12 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       if (onClose) {
         setTimeout(() => onClose(), 100);
       }
+      
+      return true;
     } catch (error) {
       console.error("Error reopening trade:", error);
       toast.error("Failed to reopen trade");
+      return false;
     }
   };
   
