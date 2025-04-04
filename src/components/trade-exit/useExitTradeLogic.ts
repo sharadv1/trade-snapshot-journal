@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Trade, PartialExit } from '@/types';
-import { updateTrade, getTradeById } from '@/utils/tradeStorage';
+import { updateTrade, getTradeById } from '@/utils/tradeOperations';
 import { toast } from '@/utils/toast';
 
 export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: () => void) {
@@ -37,6 +37,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
   }, [trade, remainingQuantity]);
   
   const handleFullExit = async () => {
+    console.log('handleFullExit called with exitPrice:', exitPrice);
     if (!exitPrice) {
       toast.error("Please enter an exit price");
       return;
@@ -89,6 +90,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
           notes: notes ? notes : latestTrade.notes
         };
         
+        console.log('Updating trade with full exit (remaining units):', updatedTrade);
         await updateTrade(updatedTrade);
       } else {
         const fullExit: PartialExit = {
@@ -112,14 +114,16 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
           notes: notes ? notes : latestTrade.notes
         };
         
+        console.log('Updating trade with full exit (all units):', updatedTrade);
         await updateTrade(updatedTrade);
       }
       
       toast.success("Trade closed successfully");
       
+      // Trigger a storage event to notify other components
       window.dispatchEvent(new StorageEvent('storage', {
         key: 'trade-journal-trades',
-        newValue: JSON.stringify(localStorage.getItem('trade-journal-trades'))
+        newValue: localStorage.getItem('trade-journal-trades')
       }));
       
       onUpdate();
@@ -186,11 +190,13 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         if (updatedTrade.exitPrice !== undefined) updatedTrade.exitPrice = undefined;
       }
       
+      console.log('Updating trade with partial exit:', updatedTrade);
       await updateTrade(updatedTrade);
       
+      // Trigger a storage event to notify other components
       window.dispatchEvent(new StorageEvent('storage', {
         key: 'trade-journal-trades',
-        newValue: JSON.stringify(localStorage.getItem('trade-journal-trades'))
+        newValue: localStorage.getItem('trade-journal-trades')
       }));
       
       toast.success("Partial exit recorded successfully");
@@ -217,13 +223,15 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         exitPrice: undefined
       };
       
+      console.log('Reopening trade:', updatedTrade);
       await updateTrade(updatedTrade);
       
       toast.success("Trade reopened successfully");
       
+      // Trigger a storage event to notify other components
       window.dispatchEvent(new StorageEvent('storage', {
         key: 'trade-journal-trades',
-        newValue: JSON.stringify(localStorage.getItem('trade-journal-trades'))
+        newValue: localStorage.getItem('trade-journal-trades')
       }));
       
       onUpdate();

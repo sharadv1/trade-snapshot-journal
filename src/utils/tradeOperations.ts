@@ -19,6 +19,7 @@ export const addTrade = async (trade: Trade): Promise<void> => {
 
 // Update an existing trade
 export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
+  console.log('tradeOperations.updateTrade called with trade:', updatedTrade.id);
   const trades = await getTrades();
   const index = trades.findIndex(trade => trade.id === updatedTrade.id);
   
@@ -30,6 +31,9 @@ export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
     
     trades[index] = updatedTrade;
     await saveTrades(trades);
+    console.log('Trade updated successfully:', updatedTrade.id);
+  } else {
+    console.error('Trade not found for update:', updatedTrade.id);
   }
 };
 

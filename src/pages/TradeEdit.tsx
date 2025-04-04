@@ -59,6 +59,12 @@ export default function TradeEdit() {
     loadTradeData();
     toast.success("Trade data refreshed");
   };
+
+  const handleCloseModal = () => {
+    // This function intentionally left empty as we don't need to navigate away
+    // When form closes on TradeEdit page
+    console.log('ExitTradeForm close callback called');
+  };
   
   if (isLoading) {
     return (
@@ -125,7 +131,7 @@ export default function TradeEdit() {
             <CardContent>
               <ExitTradeForm 
                 trade={trade} 
-                onClose={() => {}} 
+                onClose={handleCloseModal} 
                 onUpdate={handleTradeUpdate}
                 remainingQuantity={remainingQuantity}
               />

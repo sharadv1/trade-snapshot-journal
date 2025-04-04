@@ -113,7 +113,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <VisuallyHidden>Exit Trade</VisuallyHidden>
       </CardHeader>
       
       {isClosed ? (
