@@ -10,18 +10,26 @@ interface MaxRiskFieldProps {
 
 export function MaxRiskField({ value, onChange }: MaxRiskFieldProps) {
   const [maxRiskValues, setMaxRiskValues] = useState<number[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     // Load max risk values from storage
-    const loadedValues = getMaxRiskValues();
-    setMaxRiskValues(loadedValues);
-    
-    // Load current max risk setting if not already set
-    if (value === undefined) {
-      const currentMaxRisk = getCurrentMaxRisk();
-      if (currentMaxRisk !== null) {
-        onChange(currentMaxRisk);
+    try {
+      const loadedValues = getMaxRiskValues();
+      setMaxRiskValues(Array.isArray(loadedValues) ? loadedValues : []);
+      
+      // Load current max risk setting if not already set
+      if (value === undefined) {
+        const currentMaxRisk = getCurrentMaxRisk();
+        if (currentMaxRisk !== null) {
+          onChange(currentMaxRisk);
+        }
       }
+    } catch (error) {
+      console.error('Error loading max risk values:', error);
+      setMaxRiskValues([]);
+    } finally {
+      setIsLoaded(true);
     }
   }, [value, onChange]);
 
@@ -36,6 +44,15 @@ export function MaxRiskField({ value, onChange }: MaxRiskFieldProps) {
     }
   };
 
+  // Don't render until values are loaded
+  if (!isLoaded) {
+    return (
+      <SelectTrigger>
+        <SelectValue placeholder="Loading..." />
+      </SelectTrigger>
+    );
+  }
+
   return (
     <Select
       value={value ? value.toString() : 'none'}
@@ -46,11 +63,15 @@ export function MaxRiskField({ value, onChange }: MaxRiskFieldProps) {
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="none">No max risk</SelectItem>
-        {maxRiskValues.map((riskValue) => (
-          <SelectItem key={riskValue} value={riskValue.toString()}>
-            ${riskValue}
-          </SelectItem>
-        ))}
+        {maxRiskValues.length > 0 ? (
+          maxRiskValues.map((riskValue) => (
+            <SelectItem key={riskValue} value={riskValue.toString()}>
+              ${riskValue}
+            </SelectItem>
+          ))
+        ) : (
+          <SelectItem value="default" disabled>No values configured</SelectItem>
+        )}
       </SelectContent>
     </Select>
   );

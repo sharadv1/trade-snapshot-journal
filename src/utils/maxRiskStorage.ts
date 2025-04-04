@@ -6,7 +6,10 @@ export function getMaxRiskValues(): number[] {
   try {
     const values = localStorage.getItem(MAX_RISK_STORAGE_KEY);
     if (values) {
-      return JSON.parse(values);
+      const parsed = JSON.parse(values);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(value => typeof value === 'number' && !isNaN(value));
+      }
     }
     // Initialize with default values
     saveMaxRiskValues(DEFAULT_MAX_RISK_VALUES);
@@ -19,7 +22,13 @@ export function getMaxRiskValues(): number[] {
 
 export function saveMaxRiskValues(values: number[]): void {
   try {
-    localStorage.setItem(MAX_RISK_STORAGE_KEY, JSON.stringify(values));
+    if (!Array.isArray(values)) {
+      throw new Error('Values must be an array');
+    }
+    
+    // Ensure we only save valid numbers
+    const validValues = values.filter(value => typeof value === 'number' && !isNaN(value));
+    localStorage.setItem(MAX_RISK_STORAGE_KEY, JSON.stringify(validValues));
   } catch (error) {
     console.error('Error saving max risk values to localStorage:', error);
   }
@@ -28,7 +37,10 @@ export function saveMaxRiskValues(values: number[]): void {
 export function getCurrentMaxRisk(): number | null {
   try {
     const value = localStorage.getItem('trading-journal-current-max-risk');
-    return value ? JSON.parse(value) : null;
+    if (!value) return null;
+    
+    const parsed = JSON.parse(value);
+    return typeof parsed === 'number' && !isNaN(parsed) ? parsed : null;
   } catch (error) {
     console.error('Error loading current max risk value from localStorage:', error);
     return null;
@@ -39,8 +51,10 @@ export function setCurrentMaxRisk(value: number | null): void {
   try {
     if (value === null) {
       localStorage.removeItem('trading-journal-current-max-risk');
-    } else {
+    } else if (typeof value === 'number' && !isNaN(value)) {
       localStorage.setItem('trading-journal-current-max-risk', JSON.stringify(value));
+    } else {
+      throw new Error('Invalid max risk value');
     }
   } catch (error) {
     console.error('Error saving current max risk value to localStorage:', error);

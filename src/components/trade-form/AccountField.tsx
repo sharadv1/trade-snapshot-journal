@@ -28,18 +28,21 @@ export function AccountField({ value, onChange }: AccountFieldProps) {
   const [accounts, setAccounts] = useState<string[]>([]);
   const [newAccount, setNewAccount] = useState('');
   const [isAdding, setIsAdding] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize accounts with an empty array and ensure it's loaded before rendering Command components
+  // Initialize accounts with an empty array to prevent undefined errors
   useEffect(() => {
     try {
       const loadedAccounts = getAccounts();
+      // Ensure accounts is always an array
       setAccounts(Array.isArray(loadedAccounts) ? loadedAccounts : []);
     } catch (error) {
       console.error('Error loading accounts:', error);
+      // Fall back to empty array if there's an error
       setAccounts([]);
     } finally {
-      setIsLoaded(true);
+      // Set loading to false when done, regardless of success or failure
+      setIsLoading(false);
     }
   }, []);
 
@@ -65,7 +68,7 @@ export function AccountField({ value, onChange }: AccountFieldProps) {
   };
 
   // Don't render command components until accounts are loaded
-  if (!isLoaded) {
+  if (isLoading) {
     return (
       <Button
         variant="outline"
@@ -89,81 +92,41 @@ export function AccountField({ value, onChange }: AccountFieldProps) {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
-        {isLoaded && accounts && (
-          <Command>
-            <CommandInput placeholder="Search account..." />
-            <CommandEmpty>
-              {isAdding ? (
-                <div className="flex items-center p-2">
-                  <Input
-                    value={newAccount}
-                    onChange={(e) => setNewAccount(e.target.value)}
-                    className="flex-1"
-                    placeholder="Account name"
-                    autoFocus
-                  />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={handleAddAccount}
-                    className="ml-2"
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost" 
-                    onClick={() => setIsAdding(false)}
-                    className="ml-1"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="py-2 px-1 text-center text-sm">
-                  <p>No accounts found</p>
-                  <Button 
-                    variant="ghost"
-                    className="mt-2 w-full" 
-                    onClick={() => setIsAdding(true)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Account
-                  </Button>
-                </div>
-              )}
-            </CommandEmpty>
-            <CommandGroup>
-              {accounts.map((account) => (
-                <CommandItem
-                  key={account}
-                  value={account}
-                  onSelect={() => {
-                    onChange(account);
-                    setOpen(false);
-                  }}
-                  className="group flex items-center justify-between"
+        <Command>
+          <CommandInput placeholder="Search account..." />
+          <CommandEmpty>
+            {isAdding ? (
+              <div className="flex items-center p-2">
+                <Input
+                  value={newAccount}
+                  onChange={(e) => setNewAccount(e.target.value)}
+                  className="flex-1"
+                  placeholder="Account name"
+                  autoFocus
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={handleAddAccount}
+                  className="ml-2"
                 >
-                  {account}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteAccount(account);
-                    }}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-            {!isAdding && accounts.length > 0 && (
-              <div className="p-1 border-t">
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost" 
+                  onClick={() => setIsAdding(false)}
+                  className="ml-1"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="py-2 px-1 text-center text-sm">
+                <p>No accounts found</p>
                 <Button 
                   variant="ghost"
-                  className="w-full" 
+                  className="mt-2 w-full" 
                   onClick={() => setIsAdding(true)}
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -171,8 +134,46 @@ export function AccountField({ value, onChange }: AccountFieldProps) {
                 </Button>
               </div>
             )}
-          </Command>
-        )}
+          </CommandEmpty>
+          <CommandGroup>
+            {accounts.map((account) => (
+              <CommandItem
+                key={account}
+                value={account}
+                onSelect={() => {
+                  onChange(account);
+                  setOpen(false);
+                }}
+                className="group flex items-center justify-between"
+              >
+                {account}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteAccount(account);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+          {!isAdding && accounts.length > 0 && (
+            <div className="p-1 border-t">
+              <Button 
+                variant="ghost"
+                className="w-full" 
+                onClick={() => setIsAdding(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Account
+              </Button>
+            </div>
+          )}
+        </Command>
       </PopoverContent>
     </Popover>
   );
