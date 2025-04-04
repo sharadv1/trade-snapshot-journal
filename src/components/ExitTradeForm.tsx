@@ -11,6 +11,7 @@ import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
 import { PartialExitsList } from './PartialExitsList';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getRemainingQuantity } from '@/utils/calculations/tradeStatus';
 
 interface ExitTradeFormProps {
   trade: Trade;
@@ -41,22 +42,31 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     setPartialFees,
     partialNotes,
     setPartialNotes,
-    remainingQuantity,
+    remainingQuantity: calculatedRemainingQuantity,
     handleFullExit,
     handlePartialExit,
     handleReopenTrade
   } = useExitTradeLogic(trade, onUpdate, onClose);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const actualRemainingQuantity = propRemainingQuantity !== undefined ? propRemainingQuantity : remainingQuantity;
+  
+  // Use the provided remainingQuantity if passed, otherwise use the calculated one
+  // Ensure it's never negative by using Math.max
+  const actualRemainingQuantity = Math.max(
+    propRemainingQuantity !== undefined ? propRemainingQuantity : calculatedRemainingQuantity,
+    0
+  );
+  
   const isClosed = trade.status === 'closed';
 
   useEffect(() => {
     console.log('ExitTradeForm mounted for trade:', trade.id, 'Status:', trade.status);
+    console.log('Remaining quantity:', actualRemainingQuantity);
+    
     return () => {
       console.log('ExitTradeForm unmounted for trade:', trade.id);
     };
-  }, [trade.id, trade.status]);
+  }, [trade.id, trade.status, actualRemainingQuantity]);
 
   const handleSubmitFullExit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +74,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     console.log('Submitting full exit form');
     try {
       await handleFullExit();
-      // Note: handleFullExit will call onClose when it completes successfully
     } finally {
       setIsSubmitting(false);
     }
@@ -85,7 +94,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     setIsSubmitting(true);
     try {
       await handleReopenTrade();
-      // Note: handleReopenTrade will call onClose when it completes successfully
     } finally {
       setIsSubmitting(false);
     }
@@ -170,7 +178,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
             <div className="px-6">
               <TabsList className="grid grid-cols-2 w-full">
                 <TabsTrigger value="full">Full Exit</TabsTrigger>
-                <TabsTrigger value="partial" disabled={actualRemainingQuantity === 0}>
+                <TabsTrigger value="partial" disabled={actualRemainingQuantity <= 0}>
                   Partial Exit
                 </TabsTrigger>
               </TabsList>
@@ -198,7 +206,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
                   <PartialExitForm 
                     trade={trade}
                     remainingQuantity={actualRemainingQuantity}
-                    partialQuantity={partialQuantity}
+                    partialQuantity={partialQuantity || 1} 
                     setPartialQuantity={setPartialQuantity}
                     partialExitPrice={partialExitPrice}
                     setPartialExitPrice={setPartialExitPrice}
@@ -221,7 +229,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
             <Button 
               type="submit"
               form={activeTab === 'full' ? 'full-exit-form' : 'partial-exit-form'}
-              disabled={isSubmitting}
+              disabled={isSubmitting || (activeTab === 'partial' && actualRemainingQuantity <= 0)}
             >
               {isSubmitting ? 'Processing...' : activeTab === 'full' ? 'Close Trade' : 'Record Partial Exit'}
             </Button>

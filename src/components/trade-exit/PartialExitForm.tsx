@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CircleDollarSign, SplitSquareVertical, Calendar } from 'lucide-react';
 import { Trade } from '@/types';
+import { useEffect } from 'react';
 
 interface PartialExitFormProps {
   trade: Trade;
@@ -16,8 +17,8 @@ interface PartialExitFormProps {
   setPartialExitDate: (date: string) => void;
   partialFees: number | undefined;
   setPartialFees: (fees: number | undefined) => void;
-  partialNotes: string;
-  setPartialNotes: (notes: string) => void;
+  partialNotes: string | undefined;
+  setPartialNotes: (notes: string | undefined) => void;
 }
 
 export function PartialExitForm({
@@ -34,11 +35,21 @@ export function PartialExitForm({
   partialNotes,
   setPartialNotes
 }: PartialExitFormProps) {
+  // Ensure partial quantity is never greater than remaining quantity
+  useEffect(() => {
+    if (partialQuantity > remainingQuantity) {
+      setPartialQuantity(remainingQuantity);
+    }
+  }, [remainingQuantity, partialQuantity, setPartialQuantity]);
+
+  // Ensure remaining quantity is never negative
+  const actualRemainingQuantity = Math.max(0, remainingQuantity);
+
   return (
     <div className="space-y-4">
       <div className="bg-muted/30 p-3 rounded-md mb-4">
         <p className="text-sm text-muted-foreground">
-          Remaining quantity: <span className="font-medium">{remainingQuantity}</span> of {trade.quantity}
+          Remaining quantity: <span className="font-medium">{actualRemainingQuantity}</span> of {trade.quantity}
         </p>
       </div>
       
@@ -51,10 +62,15 @@ export function PartialExitForm({
           id="partialQuantity" 
           type="number"
           min="1"
-          max={remainingQuantity}
+          max={actualRemainingQuantity}
           step="1"
           value={partialQuantity}
-          onChange={(e) => setPartialQuantity(parseInt(e.target.value))}
+          onChange={(e) => {
+            const value = parseInt(e.target.value);
+            if (!isNaN(value)) {
+              setPartialQuantity(Math.min(value, actualRemainingQuantity));
+            }
+          }}
           required
         />
       </div>
@@ -70,7 +86,10 @@ export function PartialExitForm({
           min="0"
           step="0.01"
           value={partialExitPrice || ''}
-          onChange={(e) => setPartialExitPrice(parseFloat(e.target.value))}
+          onChange={(e) => {
+            const value = parseFloat(e.target.value);
+            setPartialExitPrice(isNaN(value) ? undefined : value);
+          }}
           required
         />
       </div>
@@ -96,7 +115,10 @@ export function PartialExitForm({
           min="0"
           step="0.01"
           value={partialFees || ''}
-          onChange={(e) => setPartialFees(parseFloat(e.target.value))}
+          onChange={(e) => {
+            const value = parseFloat(e.target.value);
+            setPartialFees(isNaN(value) ? undefined : value);
+          }}
         />
       </div>
       
@@ -104,7 +126,7 @@ export function PartialExitForm({
         <Label htmlFor="partialNotes">Notes</Label>
         <Textarea 
           id="partialNotes"
-          value={partialNotes}
+          value={partialNotes || ''}
           onChange={(e) => setPartialNotes(e.target.value)}
           placeholder="Add any notes about this partial exit..."
           className="min-h-20"

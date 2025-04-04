@@ -31,6 +31,7 @@ export function getRemainingQuantity(trade: Trade): number {
     (total, exit) => total + exit.quantity, 0
   );
   
+  // Make sure we never return negative values
   return Math.max(0, trade.quantity - totalExitedQuantity);
 }
 
