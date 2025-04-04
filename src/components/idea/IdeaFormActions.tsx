@@ -1,37 +1,34 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { DialogFooter } from '@/components/ui/dialog';
 
 interface IdeaFormActionsProps {
   isReadOnly: boolean;
   hasInitialIdea: boolean;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
 export function IdeaFormActions({ 
   isReadOnly, 
   hasInitialIdea, 
-  onCancel 
+  onCancel,
+  isSubmitting = false
 }: IdeaFormActionsProps) {
-  if (isReadOnly) {
-    return (
-      <DialogFooter>
-        <Button variant="outline" type="button" onClick={onCancel}>
-          Close
-        </Button>
-      </DialogFooter>
-    );
-  }
-
   return (
-    <DialogFooter>
-      <Button variant="outline" type="button" onClick={onCancel}>
-        Cancel
+    <div className="flex justify-between">
+      <Button 
+        type="button"
+        variant="ghost" 
+        onClick={onCancel}
+      >
+        {isReadOnly ? "Close" : "Cancel"}
       </Button>
-      <Button type="submit">
-        {hasInitialIdea ? 'Update' : 'Add'} Idea
-      </Button>
-    </DialogFooter>
+      {!isReadOnly && (
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : hasInitialIdea ? "Update" : "Create"}
+        </Button>
+      )}
+    </div>
   );
 }

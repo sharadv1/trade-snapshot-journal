@@ -38,6 +38,7 @@ export function IdeaDialog({
   const {
     idea,
     images,
+    isSubmitting,
     handleChange,
     handleImageUpload,
     handleRemoveImage,
@@ -100,7 +101,8 @@ export function IdeaDialog({
           <IdeaFormActions 
             isReadOnly={isReadOnly} 
             hasInitialIdea={!!initialIdea} 
-            onCancel={() => handleOpenChange(false)} 
+            onCancel={() => handleOpenChange(false)}
+            isSubmitting={isSubmitting}
           />
         </form>
       </DialogContent>

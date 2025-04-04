@@ -24,6 +24,7 @@ export function useIdeaForm({
     images: []
   });
   const [images, setImages] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (initialIdea) {
@@ -45,6 +46,12 @@ export function useIdeaForm({
   };
 
   const handleImageUpload = (base64Image: string) => {
+    // Limit to 3 images maximum
+    if (images.length >= 3) {
+      toast.error("Maximum 3 images allowed");
+      return;
+    }
+    
     const newImages = [...images, base64Image];
     setImages(newImages);
     handleChange('images', newImages);
@@ -64,7 +71,13 @@ export function useIdeaForm({
       toast.error("Please fill in all required fields");
       return;
     }
-
+    
+    if (isSubmitting) {
+      return; // Prevent multiple submissions
+    }
+    
+    setIsSubmitting(true);
+    
     try {
       // Make sure direction is set before saving
       const ideaToSave = {
@@ -72,48 +85,61 @@ export function useIdeaForm({
         direction: idea.direction || 'long',
         images
       };
-
+      
+      let success = false;
+      
       if (initialIdea) {
         // Update existing idea
-        updateIdea({
+        success = updateIdea({
           ...initialIdea,
           ...ideaToSave,
         } as TradeIdea);
-        toast.success("Trade idea updated successfully");
+        
+        if (success) {
+          toast.success("Trade idea updated successfully");
+        }
       } else {
         // Add new idea
-        addIdea({
+        success = addIdea({
           ...ideaToSave,
           id: generateUUID(),
         } as TradeIdea);
-        toast.success("Trade idea added successfully");
+        
+        if (success) {
+          toast.success("Trade idea added successfully");
+        }
       }
-
-      // Reset form and close dialog
-      setIdea({
-        date: new Date().toISOString().slice(0, 16),
-        symbol: '',
-        description: '',
-        status: 'still valid',
-        direction: 'long',
-        images: []
-      });
-      setImages([]);
       
-      onOpenChange(false);
-      
-      if (onIdeaAdded) {
-        onIdeaAdded();
+      if (success) {
+        // Reset form and close dialog
+        setIdea({
+          date: new Date().toISOString().slice(0, 16),
+          symbol: '',
+          description: '',
+          status: 'still valid',
+          direction: 'long',
+          images: []
+        });
+        setImages([]);
+        
+        onOpenChange(false);
+        
+        if (onIdeaAdded) {
+          onIdeaAdded();
+        }
       }
     } catch (error) {
       console.error("Error saving trade idea:", error);
       toast.error("Failed to save trade idea");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return {
     idea,
     images,
+    isSubmitting,
     handleChange,
     handleImageUpload,
     handleRemoveImage,
