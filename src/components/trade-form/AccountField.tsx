@@ -29,8 +29,9 @@ export function AccountField({ value, onChange }: AccountFieldProps) {
   const [newAccount, setNewAccount] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
+  // Initialize accounts with an empty array to prevent undefined
   useEffect(() => {
-    const loadedAccounts = getAccounts();
+    const loadedAccounts = getAccounts() || [];
     setAccounts(loadedAccounts);
   }, []);
 
@@ -112,7 +113,7 @@ export function AccountField({ value, onChange }: AccountFieldProps) {
             )}
           </CommandEmpty>
           <CommandGroup>
-            {accounts.map((account) => (
+            {Array.isArray(accounts) && accounts.map((account) => (
               <CommandItem
                 key={account}
                 value={account}
@@ -137,7 +138,7 @@ export function AccountField({ value, onChange }: AccountFieldProps) {
               </CommandItem>
             ))}
           </CommandGroup>
-          {!isAdding && accounts.length > 0 && (
+          {!isAdding && Array.isArray(accounts) && accounts.length > 0 && (
             <div className="p-1 border-t">
               <Button 
                 variant="ghost"
