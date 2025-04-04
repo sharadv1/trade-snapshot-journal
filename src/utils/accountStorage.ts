@@ -7,12 +7,19 @@ const ACCOUNTS_STORAGE_KEY = 'trading-journal-accounts';
  */
 export function getAccounts(): string[] {
   try {
-    const accounts = localStorage.getItem(ACCOUNTS_STORAGE_KEY);
-    if (accounts) {
-      const parsedAccounts = JSON.parse(accounts);
-      return Array.isArray(parsedAccounts) ? parsedAccounts : [];
+    const accountsData = localStorage.getItem(ACCOUNTS_STORAGE_KEY);
+    if (!accountsData) {
+      return [];
     }
-    return [];
+    
+    const parsedData = JSON.parse(accountsData);
+    if (!Array.isArray(parsedData)) {
+      console.warn('Accounts data is not an array, resetting to empty array');
+      return [];
+    }
+    
+    // Make sure all items are strings
+    return parsedData.filter(item => typeof item === 'string');
   } catch (error) {
     console.error('Error loading accounts from localStorage:', error);
     return [];
@@ -25,7 +32,12 @@ export function getAccounts(): string[] {
  */
 export function saveAccounts(accounts: string[]): void {
   try {
-    localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
+    // Ensure we're only saving valid data
+    const validAccounts = Array.isArray(accounts) 
+      ? accounts.filter(acc => typeof acc === 'string')
+      : [];
+      
+    localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(validAccounts));
   } catch (error) {
     console.error('Error saving accounts to localStorage:', error);
   }
