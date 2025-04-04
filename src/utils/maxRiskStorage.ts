@@ -5,13 +5,23 @@ const DEFAULT_MAX_RISK_VALUES = [125, 250, 500, 1000];
 export function getMaxRiskValues(): number[] {
   try {
     const values = localStorage.getItem(MAX_RISK_STORAGE_KEY);
-    if (values) {
+    if (!values) {
+      // Initialize with default values if not found
+      saveMaxRiskValues(DEFAULT_MAX_RISK_VALUES);
+      return DEFAULT_MAX_RISK_VALUES;
+    }
+    
+    try {
       const parsed = JSON.parse(values);
       if (Array.isArray(parsed)) {
         return parsed.filter(value => typeof value === 'number' && !isNaN(value));
       }
+    } catch (parseError) {
+      console.error('Error parsing max risk values:', parseError);
     }
-    // Initialize with default values
+    
+    // If we get here, either the JSON was invalid or it wasn't an array
+    // Initialize with defaults
     saveMaxRiskValues(DEFAULT_MAX_RISK_VALUES);
     return DEFAULT_MAX_RISK_VALUES;
   } catch (error) {
@@ -39,8 +49,13 @@ export function getCurrentMaxRisk(): number | null {
     const value = localStorage.getItem('trading-journal-current-max-risk');
     if (!value) return null;
     
-    const parsed = JSON.parse(value);
-    return typeof parsed === 'number' && !isNaN(parsed) ? parsed : null;
+    try {
+      const parsed = JSON.parse(value);
+      return typeof parsed === 'number' && !isNaN(parsed) ? parsed : null;
+    } catch (parseError) {
+      console.error('Error parsing current max risk value:', parseError);
+      return null;
+    }
   } catch (error) {
     console.error('Error loading current max risk value from localStorage:', error);
     return null;

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Trade, FuturesContractDetails } from '@/types';
 import { Label } from '@/components/ui/label';
@@ -253,6 +254,17 @@ export function TradeDetailsForm({
         </div>
       )}
       
+      {/* Risk Management Info - Moved here from bottom */}
+      <div className="border rounded-md p-4 bg-muted/30">
+        <h3 className="text-sm font-medium mb-2 flex items-center">
+          <Target className="h-4 w-4 mr-2" />
+          Risk Management
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Setting a stop loss and take profit helps you maintain discipline and automatically calculates your risk-to-reward ratio.
+        </p>
+      </div>
+      
       {/* Quantity and Fees - Side by Side */}
       <div className="grid grid-cols-2 gap-4">
         {/* Quantity */}
@@ -370,16 +382,6 @@ export function TradeDetailsForm({
           value={trade.mistakes} 
           onChange={(mistakes) => handleChange('mistakes', mistakes)} 
         />
-      </div>
-      
-      <div className="border rounded-md p-4 bg-muted/30 mt-4">
-        <h3 className="text-sm font-medium mb-2 flex items-center">
-          <Target className="h-4 w-4 mr-2" />
-          Risk Management
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Setting a stop loss and take profit helps you maintain discipline and automatically calculates your risk-to-reward ratio.
-        </p>
       </div>
     </div>
   );

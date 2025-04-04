@@ -3,6 +3,8 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ImageUpload';
 import { toast } from '@/utils/toast';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface IdeaImagesFieldProps {
   images: string[];
@@ -84,10 +86,16 @@ export function IdeaImagesField({
         maxImages={3} // Limit to 3 images per idea
       />
       {images.length >= 2 && (
-        <p className="text-xs text-amber-500">
-          Adding multiple images may cause storage issues. Consider removing unnecessary images.
-        </p>
+        <Alert variant="warning" className="bg-amber-50">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-amber-800">
+            Adding multiple images may cause storage issues. Consider removing unnecessary images.
+          </AlertDescription>
+        </Alert>
       )}
+      <p className="text-xs text-muted-foreground mt-1">
+        Images are stored in the browser's local storage. For production use, we recommend configuring server storage.
+      </p>
     </div>
   );
 }
