@@ -12,7 +12,6 @@ import { TrendingDown, TrendingUp, Ratio, Target, AlertCircle } from 'lucide-rea
 import { useEffect, useState } from 'react';
 import { Strategy } from '@/types';
 import { getStrategies } from '@/utils/strategyStorage';
-import { AccountField } from './AccountField';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface TradeDetailsFormProps {
@@ -89,15 +88,6 @@ export function TradeDetailsForm({
 
   return (
     <div className="space-y-4">
-      {/* Account Selection - New */}
-      <div className="space-y-2">
-        <Label htmlFor="account">Account</Label>
-        <AccountField 
-          value={trade.account} 
-          onChange={(value) => handleChange('account', value)} 
-        />
-      </div>
-
       {/* Trade Type Selection */}
       <div className="space-y-2">
         <Label htmlFor="type">Trade Type</Label>

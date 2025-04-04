@@ -16,6 +16,16 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
     setContractDetails
   } = useTradeState(initialTrade, !!isEditing, ideaId);
   
+  // Set default account value
+  useEffect(() => {
+    if (!trade.account) {
+      setTrade(prevTrade => ({
+        ...prevTrade,
+        account: 'default'
+      }));
+    }
+  }, [trade.account, setTrade]);
+  
   // Tab state
   const [activeTab, setActiveTab] = useState<string>('details');
   
@@ -66,7 +76,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
           direction: idea.direction || 'long',
           notes: idea.description || '',
           ideaId: ideaId || '',
-          account: prevTrade.account || 'default' // Ensure account has a default value
+          account: 'default' // Always set default account for new trades from ideas
         }));
       }
     }
