@@ -15,7 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { getAllAccounts } from '@/utils/accountStorage';
+import { getAccounts } from '@/utils/accountStorage';
 
 interface AccountFieldProps {
   value?: string;
@@ -29,9 +29,14 @@ export function AccountField({ value, onChange }: AccountFieldProps) {
   useEffect(() => {
     // Load accounts safely
     try {
-      const loadedAccounts = getAllAccounts();
-      // Ensure accounts is always an array, even if getAllAccounts returns undefined or null
-      setAccounts(Array.isArray(loadedAccounts) ? loadedAccounts : []);
+      const loadedAccountNames = getAccounts();
+      // Convert string array to account objects with id and name
+      const accountObjects = loadedAccountNames.map(name => ({
+        id: name,
+        name: name
+      }));
+      // Ensure accounts is always an array, even if getAccounts returns undefined or null
+      setAccounts(Array.isArray(accountObjects) ? accountObjects : []);
     } catch (error) {
       console.error('Error loading accounts:', error);
       setAccounts([]);
