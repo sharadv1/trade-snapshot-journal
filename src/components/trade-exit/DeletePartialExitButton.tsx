@@ -91,8 +91,7 @@ export function DeletePartialExitButton({
       
       // Trigger a storage event to notify other components
       window.dispatchEvent(new StorageEvent('storage', {
-        key: 'trade-journal-trades',
-        newValue: JSON.stringify(localStorage.getItem('trade-journal-trades'))
+        key: 'trade-journal-trades'
       }));
       
       toast.success("Partial exit deleted successfully");

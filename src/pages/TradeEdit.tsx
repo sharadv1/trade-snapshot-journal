@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { TradeForm } from '@/components/TradeForm';
 import { ExitTradeForm } from '@/components/ExitTradeForm';
 import { Trade } from '@/types';
-import { getTradeById } from '@/utils/storage/tradeOperations';
+import { getTradeById } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,9 +61,9 @@ export default function TradeEdit() {
   };
 
   const handleCloseModal = () => {
-    // This function intentionally left empty as we don't need to navigate away
-    // When form closes on TradeEdit page
-    console.log('ExitTradeForm close callback called');
+    // Navigate back to the trade detail page after closing or completing operations
+    console.log('ExitTradeForm close callback called, navigating to trade detail');
+    navigate(`/trade/${id}`);
   };
   
   if (isLoading) {

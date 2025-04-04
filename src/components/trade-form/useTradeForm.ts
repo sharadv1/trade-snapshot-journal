@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Trade } from '@/types';
-import { getTradeIdea } from '@/utils/tradeOperations';
+import { getTradeIdea } from '@/utils/tradeStorage';
 import { getAllSymbols } from '@/utils/symbolStorage';
 import { useTradeSubmit } from './hooks/useTradeSubmit';
 import { useTradeImages } from './hooks/useTradeImages';

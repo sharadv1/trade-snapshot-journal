@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { Trade, PartialExit } from '@/types';
-import { updateTrade, getTradeById } from '@/utils/storage/tradeOperations';
+import { updateTrade, getTradeById } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
 import { dispatchStorageEvents } from '@/utils/storage/storageUtils';
 
@@ -71,9 +70,11 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         const finalExit: PartialExit = {
           id: Date.now().toString(),
           date: exitDate,
-          price: exitPrice,
+          exitDate: exitDate,
+          exitPrice: exitPrice,
           quantity: currentRemainingQuantity,
-          fees: fees || 0
+          fees: fees || 0,
+          price: exitPrice
         };
         
         const updatedPartialExits = [...latestTrade.partialExits, finalExit];
@@ -101,7 +102,9 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         const fullExit: PartialExit = {
           id: Date.now().toString(),
           date: exitDate,
+          exitDate: exitDate,
           price: exitPrice,
+          exitPrice: exitPrice,
           quantity: latestTrade.quantity,
           fees: fees || 0
         };
@@ -124,10 +127,13 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       toast.success("Trade closed successfully");
       
       // Trigger storage events to notify other components
-      dispatchStorageEvents();
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'trade-journal-trades'
+      }));
       
-      onUpdate();
-      onClose();
+      console.log("Calling onUpdate and onClose callbacks");
+      if (onUpdate) onUpdate();
+      if (onClose) onClose();
     } catch (error) {
       console.error("Error closing trade:", error);
       toast.error("Failed to close trade");

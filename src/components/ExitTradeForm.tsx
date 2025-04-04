@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     console.log('Submitting full exit form');
     try {
       await handleFullExit();
+      // Note: handleFullExit will call onClose when it completes successfully
     } finally {
       setIsSubmitting(false);
     }
@@ -83,9 +85,15 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     setIsSubmitting(true);
     try {
       await handleReopenTrade();
+      // Note: handleReopenTrade will call onClose when it completes successfully
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleManualClose = () => {
+    console.log('Manual close button clicked, calling onClose callback');
+    if (onClose) onClose();
   };
 
   return (
@@ -106,7 +114,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
               </div>
             )}
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} type="button">
+          <Button variant="ghost" size="icon" onClick={handleManualClose} type="button">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -207,7 +215,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
           </Tabs>
           
           <CardFooter className="flex justify-between space-x-2 pt-4 border-t">
-            <Button variant="outline" onClick={onClose} type="button">
+            <Button variant="outline" onClick={handleManualClose} type="button">
               Cancel
             </Button>
             <Button 

@@ -1,6 +1,5 @@
-
 import { Trade } from '@/types';
-import { addTrade, updateTrade } from '@/utils/storage/tradeOperations';
+import { addTrade, updateTrade } from '@/utils/tradeStorage';
 import { markIdeaAsTaken } from '@/utils/ideaStorage';
 import { toast } from '@/utils/toast';
 import { generateUUID } from '@/utils/generateUUID';
@@ -73,6 +72,12 @@ export function useTradeSubmit(
         
         console.log('Updating existing trade:', updatedTrade);
         updateTrade(updatedTrade);
+        
+        // Trigger storage events to update UI
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'trade-journal-trades'
+        }));
+        
         toast.success("Trade updated successfully");
         tradeId = updatedTrade.id;
       } else {
@@ -86,6 +91,12 @@ export function useTradeSubmit(
         
         console.log('Adding new trade:', newTrade);
         addTrade(newTrade);
+        
+        // Trigger storage events to update UI
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'trade-journal-trades'
+        }));
+        
         toast.success("Trade added successfully");
         tradeId = newId;
       }

@@ -11,3 +11,6 @@ export { addDummyTrades } from './storage/demoData';
 
 // Re-export storage core functions used by dataTransfer
 export { getTrades, saveTrades, getTradesSync } from './storage/storageCore';
+
+// Re-export these functions explicitly to avoid import issues
+export { getTradeById, updateTrade } from './tradeOperations';
