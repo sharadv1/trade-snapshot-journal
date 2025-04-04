@@ -4,9 +4,11 @@ import { getTrades, getTradesSync, saveTrades } from './storageOperations';
 import { calculateTradeMetrics } from '@/utils/calculations/metricsCalculator';
 import { markIdeaAsTaken } from '@/utils/ideaStorage';
 import { associateTradeWithReflections } from '@/utils/journalStorage';
+import { dispatchStorageEvents } from './storageUtils';
 
 // Add a new trade
 export const addTrade = async (trade: Trade): Promise<void> => {
+  console.log('storage/tradeOperations.addTrade called with trade:', trade.symbol);
   const trades = await getTrades();
   
   // If there's an ideaId, mark the idea as taken
@@ -18,14 +20,20 @@ export const addTrade = async (trade: Trade): Promise<void> => {
   trades.push(trade);
   await saveTrades(trades);
   
+  // Trigger storage events
+  dispatchStorageEvents();
+  
   // Associate trade with weekly and monthly reflections
   if (trade.status === 'closed' && trade.exitDate) {
     associateTradeWithReflections(trade.id, trade.exitDate);
   }
+  
+  console.log('Trade added successfully:', trade.id);
 };
 
 // Update an existing trade
 export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
+  console.log('storage/tradeOperations.updateTrade called with trade:', updatedTrade.id);
   const trades = await getTrades();
   const index = trades.findIndex(trade => trade.id === updatedTrade.id);
   
@@ -42,24 +50,44 @@ export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
     trades[index] = updatedTrade;
     await saveTrades(trades);
     
+    // Trigger storage events
+    dispatchStorageEvents();
+    
     // Associate trade with weekly and monthly reflections when it's closed
     if (isClosedNow && !wasClosedBefore && updatedTrade.exitDate) {
       associateTradeWithReflections(updatedTrade.id, updatedTrade.exitDate);
     }
+    
+    console.log('Trade updated successfully:', updatedTrade.id);
+  } else {
+    console.error('Trade not found for update:', updatedTrade.id);
   }
 };
 
 // Delete a trade
 export const deleteTrade = async (tradeId: string): Promise<void> => {
+  console.log('storage/tradeOperations.deleteTrade called with ID:', tradeId);
   const trades = await getTrades();
   const filteredTrades = trades.filter(trade => trade.id !== tradeId);
   await saveTrades(filteredTrades);
+  
+  // Trigger storage events
+  dispatchStorageEvents();
+  
+  console.log('Trade deleted successfully:', tradeId);
 };
 
 // Get a single trade by ID - non-Promise version to fix TS errors
 export const getTradeById = (tradeId: string): Trade | undefined => {
+  console.log('storage/tradeOperations.getTradeById called with ID:', tradeId);
   const trades = getTradesSync();
-  return trades.find(trade => trade.id === tradeId);
+  const trade = trades.find(trade => trade.id === tradeId);
+  
+  if (!trade) {
+    console.error('Trade not found with ID:', tradeId);
+  }
+  
+  return trade;
 };
 
 // Get trades with metrics calculated

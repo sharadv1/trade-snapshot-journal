@@ -1,5 +1,6 @@
+
 import { Trade } from '@/types';
-import { addTrade, updateTrade } from '@/utils/tradeStorage';
+import { addTrade, updateTrade } from '@/utils/storage/tradeOperations';
 import { markIdeaAsTaken } from '@/utils/ideaStorage';
 import { toast } from '@/utils/toast';
 import { generateUUID } from '@/utils/generateUUID';

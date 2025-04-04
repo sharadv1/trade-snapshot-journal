@@ -1,18 +1,15 @@
-
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trade } from '@/types';
-import { X, RefreshCcw } from 'lucide-react';
+import { X, RefreshCcw, CalendarClock } from 'lucide-react';
 import { FullExitForm } from './trade-exit/FullExitForm';
 import { PartialExitForm } from './trade-exit/PartialExitForm';
 import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
-import { VisuallyHidden } from '@/components/ui/visually-hidden';
-import { useEffect, useState } from 'react';
 import { PartialExitsList } from './PartialExitsList';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CalendarClock } from 'lucide-react';
 
 interface ExitTradeFormProps {
   trade: Trade;
