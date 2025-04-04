@@ -39,8 +39,8 @@ export function LessonCard({ lesson, onEdit, onUpdate }: LessonCardProps) {
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
-        <div className="grid md:grid-cols-2 gap-0">
-          <div className="p-6">
+        <div className="grid md:grid-cols-3 gap-0">
+          <div className="p-6 md:col-span-2">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-xl font-semibold">{lesson.title}</h3>
               <div className="flex gap-2">

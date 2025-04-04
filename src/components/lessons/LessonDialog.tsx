@@ -16,7 +16,8 @@ import { addLesson, updateLesson, getLessonTypes } from '@/utils/lessonStorage';
 import { toast } from '@/utils/toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Plus, ImagePlus } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
+import { MediaUpload } from '@/components/MediaUpload';
 
 interface LessonDialogProps {
   open: boolean;
@@ -31,9 +32,6 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
   const [media, setMedia] = useState<LessonMedia[]>([]);
   const [newType, setNewType] = useState('');
   const [typeSuggestions, setTypeSuggestions] = useState<string[]>([]);
-  const [mediaUrl, setMediaUrl] = useState('');
-  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
-  const [mediaCaption, setMediaCaption] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -56,9 +54,6 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
       // Get existing types for suggestions
       setTypeSuggestions(getLessonTypes());
       setNewType('');
-      setMediaUrl('');
-      setMediaType('image');
-      setMediaCaption('');
     }
   }, [open, lesson]);
 
@@ -73,28 +68,51 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
     setTypes(types.filter(type => type !== typeToRemove));
   };
 
-  const handleAddMedia = () => {
-    if (mediaUrl) {
-      if (media.length >= 2) {
-        toast.error('Maximum of 2 media items allowed');
-        return;
-      }
+  const handleMediaUpload = async (file: File) => {
+    if (media.length >= 2) {
+      toast.error('Maximum of 2 media items allowed');
+      return;
+    }
+
+    try {
+      // Convert file to data URL
+      const reader = new FileReader();
       
-      const newMedia: LessonMedia = {
-        id: crypto.randomUUID ? crypto.randomUUID() : generateUUID(),
-        type: mediaType,
-        url: mediaUrl,
-        caption: mediaCaption || undefined
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          const fileDataUrl = e.target.result.toString();
+          const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
+          
+          const newMedia: LessonMedia = {
+            id: crypto.randomUUID ? crypto.randomUUID() : generateUUID(),
+            type: mediaType,
+            url: fileDataUrl,
+            caption: ''
+          };
+          
+          setMedia([...media, newMedia]);
+        }
       };
       
-      setMedia([...media, newMedia]);
-      setMediaUrl('');
-      setMediaCaption('');
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading media:', error);
+      toast.error('Failed to upload media');
     }
   };
 
-  const handleRemoveMedia = (mediaId: string) => {
-    setMedia(media.filter(item => item.id !== mediaId));
+  const handleRemoveMedia = (index: number) => {
+    const newMedia = [...media];
+    newMedia.splice(index, 1);
+    setMedia(newMedia);
+  };
+
+  const handleUpdateCaption = (index: number, caption: string) => {
+    const newMedia = [...media];
+    if (newMedia[index]) {
+      newMedia[index] = { ...newMedia[index], caption };
+      setMedia(newMedia);
+    }
   };
 
   const handleSubmit = () => {
@@ -255,61 +273,23 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
               Media
             </Label>
             <div className="col-span-3 space-y-4">
-              <div className="grid grid-cols-[auto_1fr] gap-2">
-                <Select 
-                  value={mediaType} 
-                  onValueChange={(value) => setMediaType(value as 'image' | 'video')}
-                >
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="image">Image</SelectItem>
-                    <SelectItem value="video">Video</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  value={mediaUrl}
-                  onChange={(e) => setMediaUrl(e.target.value)}
-                  placeholder={mediaType === 'image' ? 'Image URL' : 'Video URL (YouTube, Vimeo, etc.)'}
-                />
-              </div>
-              
-              <Input
-                value={mediaCaption}
-                onChange={(e) => setMediaCaption(e.target.value)}
-                placeholder="Caption (optional)"
+              <MediaUpload 
+                media={media.map(item => ({ url: item.url, type: item.type }))}
+                onMediaUpload={handleMediaUpload}
+                onMediaRemove={handleRemoveMedia}
               />
-              
-              <Button 
-                type="button" 
-                onClick={handleAddMedia} 
-                variant="outline"
-                disabled={!mediaUrl}
-                className="w-full"
-              >
-                <ImagePlus className="h-4 w-4 mr-2" />
-                Add {mediaType === 'image' ? 'Image' : 'Video'} ({media.length}/2)
-              </Button>
               
               {media.length > 0 && (
                 <div className="space-y-2">
-                  {media.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className="flex items-center justify-between p-2 border rounded"
-                    >
-                      <div className="truncate">
-                        <span className="font-medium">{item.type}: </span>
-                        <span className="text-sm text-muted-foreground">{item.url}</span>
+                  {media.map((item, index) => (
+                    <div key={item.id} className="flex items-center gap-2 p-2 border rounded">
+                      <div className="flex-1">
+                        <Input
+                          value={item.caption || ''}
+                          onChange={(e) => handleUpdateCaption(index, e.target.value)}
+                          placeholder="Add a caption for this media"
+                        />
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleRemoveMedia(item.id)}
-                      >
-                        <X className="h-4 w-4 text-destructive" />
-                      </Button>
                     </div>
                   ))}
                 </div>
