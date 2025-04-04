@@ -35,8 +35,7 @@ export function AccountField({ value, onChange }: AccountFieldProps) {
         id: name,
         name: name
       }));
-      // Ensure accounts is always an array, even if getAccounts returns undefined or null
-      setAccounts(Array.isArray(accountObjects) ? accountObjects : []);
+      setAccounts(accountObjects);
     } catch (error) {
       console.error('Error loading accounts:', error);
       setAccounts([]);

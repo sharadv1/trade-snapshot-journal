@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Trade } from '@/types';
 import { getTradeIdea } from '@/utils/tradeOperations';
@@ -64,7 +65,8 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
           symbol: idea.symbol,
           direction: idea.direction || 'long',
           notes: idea.description || '',
-          ideaId: ideaId || ''
+          ideaId: ideaId || '',
+          account: prevTrade.account || 'default' // Ensure account has a default value
         }));
       }
     }
@@ -99,16 +101,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
   };
   
   const handleSubmit = (e: React.FormEvent, onSuccess?: (tradeId: string) => void) => {
-    const { handleSubmit } = useTradeSubmit(
-      trade,
-      images,
-      contractDetails,
-      isEditing,
-      initialTrade,
-      onSuccess
-    );
-    
-    return handleSubmit(e);
+    return submitHandler(e, onSuccess);
   };
   
   return {
