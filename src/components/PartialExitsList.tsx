@@ -7,7 +7,7 @@ import { DeletePartialExitButton } from './trade-exit/DeletePartialExitButton';
 import { useEffect, useState } from 'react';
 import { getTradeById } from '@/utils/tradeStorage';
 import { Badge } from '@/components/ui/badge';
-import { formatTradeDate, formatTradeDateWithTime } from '@/utils/calculations/tradeStatus';
+import { formatTradeDate, formatTradeDateWithTime, getRemainingQuantity } from '@/utils/calculations/tradeStatus';
 
 interface PartialExitsListProps {
   trade: Trade;
@@ -38,8 +38,19 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
       }
     };
     
+    // Listen for custom event too
+    const handleTradeUpdated = () => {
+      refreshTrade();
+      onUpdate();
+    };
+    
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    document.addEventListener('trade-updated', handleTradeUpdated);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      document.removeEventListener('trade-updated', handleTradeUpdated);
+    };
   }, [trade.id, onUpdate]);
 
   if (!currentTrade.partialExits || currentTrade.partialExits.length === 0) {
@@ -61,10 +72,10 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
   );
 
   // Calculate remaining quantity
-  const remainingQuantity = currentTrade.quantity - totalExitedQuantity;
+  const remainingQuantity = getRemainingQuantity(currentTrade);
 
-  // Determine if the trade is fully exited through partial exits
-  const isFullyExited = totalExitedQuantity >= currentTrade.quantity;
+  // Determine if the trade should be fully exited through partial exits
+  const isFullyExited = remainingQuantity <= 0;
 
   // Calculate max quantity for each exit (original quantity + current exit quantity)
   const getMaxQuantityForExit = (currentExit: PartialExit) => {
@@ -81,9 +92,15 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
     onUpdate();
   };
 
-  // Update the label to reflect the actual trade status, not just the partial exits
-  const statusLabel = currentTrade.status === 'closed' ? 'closed' : 'open';
-  const statusColor = currentTrade.status === 'closed' ? 'text-red-500' : 'text-green-500';
+  // Update status display to accurately reflect the trade state
+  let statusLabel = currentTrade.status === 'closed' ? 'closed' : 'open';
+  let statusColor = currentTrade.status === 'closed' ? 'text-red-500' : 'text-green-500';
+  
+  // If we're fully exited through partials but status doesn't reflect it, show a warning color
+  if (isFullyExited && currentTrade.status === 'open') {
+    statusColor = 'text-orange-500';
+    statusLabel = 'needs closure';
+  }
 
   return (
     <Card className="shadow-subtle border">

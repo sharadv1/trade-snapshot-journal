@@ -11,7 +11,7 @@ import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
 import { PartialExitsList } from './PartialExitsList';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { getRemainingQuantity } from '@/utils/calculations/tradeStatus';
+import { getRemainingQuantity, isTradeFullyExited } from '@/utils/calculations/tradeStatus';
 
 interface ExitTradeFormProps {
   trade: Trade;
@@ -57,16 +57,25 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     0
   );
   
+  const isTradeActuallyClosed = trade.status === 'closed' || actualRemainingQuantity <= 0;
   const isClosed = trade.status === 'closed';
+  const isFullyExited = isTradeFullyExited(trade);
 
   useEffect(() => {
     console.log('ExitTradeForm mounted for trade:', trade.id, 'Status:', trade.status);
     console.log('Remaining quantity:', actualRemainingQuantity);
+    console.log('Is fully exited:', isFullyExited);
+    
+    // If the trade is fully exited but still open, we should close it immediately
+    if (actualRemainingQuantity <= 0 && trade.status === 'open' && !isSubmitting) {
+      console.log('Trade is fully exited but still open, closing it automatically');
+      handleFullExit();
+    }
     
     return () => {
       console.log('ExitTradeForm unmounted for trade:', trade.id);
     };
-  }, [trade.id, trade.status, actualRemainingQuantity]);
+  }, [trade.id, trade.status, actualRemainingQuantity, isFullyExited, handleFullExit, isSubmitting]);
 
   // If remaining quantity is 0, force the 'full' tab
   useEffect(() => {
@@ -83,6 +92,10 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
       const success = await handleFullExit();
       if (success) {
         console.log("Full exit successful, modal should close");
+        // Ensure onClose is called after a successful full exit
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 300);
       }
     } finally {
       setIsSubmitting(false);
@@ -97,6 +110,14 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
       const success = await handlePartialExit();
       if (success) {
         console.log("Partial exit successful");
+        
+        // If this partial exit should fully close the trade, close the modal
+        if (actualRemainingQuantity - (partialQuantity || 0) <= 0) {
+          console.log("This partial exit will close the trade, closing modal");
+          setTimeout(() => {
+            if (onClose) onClose();
+          }, 300);
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -109,6 +130,9 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
       const success = await handleReopenTrade();
       if (success) {
         console.log("Reopen successful, modal should close");
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 300);
       }
     } finally {
       setIsSubmitting(false);
@@ -202,19 +226,28 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
             
             <CardContent className="pt-6">
               <TabsContent value="full" className="space-y-4 mt-0">
-                <form id="full-exit-form" onSubmit={handleSubmitFullExit}>
-                  <FullExitForm 
-                    trade={trade}
-                    exitPrice={exitPrice}
-                    setExitPrice={setExitPrice}
-                    exitDate={exitDate}
-                    setExitDate={setExitDate}
-                    fees={fees}
-                    setFees={setFees}
-                    notes={notes}
-                    setNotes={setNotes}
-                  />
-                </form>
+                {actualRemainingQuantity <= 0 ? (
+                  <Alert>
+                    <AlertDescription>
+                      This trade has been fully exited through partial exits. 
+                      Click "Close Trade" to finalize and close the trade.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <form id="full-exit-form" onSubmit={handleSubmitFullExit}>
+                    <FullExitForm 
+                      trade={trade}
+                      exitPrice={exitPrice}
+                      setExitPrice={setExitPrice}
+                      exitDate={exitDate}
+                      setExitDate={setExitDate}
+                      fees={fees}
+                      setFees={setFees}
+                      notes={notes || ''}
+                      setNotes={setNotes}
+                    />
+                  </form>
+                )}
               </TabsContent>
               
               <TabsContent value="partial" className="space-y-4 mt-0">
@@ -245,9 +278,11 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
             <Button 
               type="submit"
               form={activeTab === 'full' ? 'full-exit-form' : 'partial-exit-form'}
-              disabled={isSubmitting || (activeTab === 'partial' && actualRemainingQuantity <= 0)}
+              disabled={isSubmitting}
             >
-              {isSubmitting ? 'Processing...' : activeTab === 'full' ? 'Close Trade' : 'Record Partial Exit'}
+              {isSubmitting ? 'Processing...' : activeTab === 'full' 
+                ? (actualRemainingQuantity <= 0 ? 'Close Trade' : 'Close Trade') 
+                : 'Record Partial Exit'}
             </Button>
           </CardFooter>
         </>

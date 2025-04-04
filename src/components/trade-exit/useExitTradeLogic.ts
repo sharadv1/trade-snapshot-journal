@@ -40,7 +40,12 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
     if (quantity > 0) {
       setPartialQuantity(Math.min(1, quantity));
     }
-  }, [trade, activeTab]);
+
+    // Reset exit price if not set
+    if (exitPrice === undefined && trade.exitPrice) {
+      setExitPrice(trade.exitPrice);
+    }
+  }, [trade, activeTab, exitPrice]);
   
   const dispatchUpdateEvents = useCallback(() => {
     // Dispatch custom event to ensure UI updates
@@ -57,15 +62,6 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
   
   const handleFullExit = async () => {
     console.log('handleFullExit called with exitPrice:', exitPrice);
-    if (!exitPrice) {
-      toast.error("Please enter an exit price");
-      return;
-    }
-    
-    if (!exitDate) {
-      toast.error("Please enter an exit date");
-      return;
-    }
     
     try {
       // Get the latest version of the trade
@@ -73,27 +69,63 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       
       if (!latestTrade) {
         toast.error("Trade not found. It may have been deleted.");
-        return;
+        return false;
       }
       
       // Calculate remaining quantity based on partial exits
       const currentRemainingQuantity = getRemainingQuantity(latestTrade);
+      console.log('Current remaining quantity:', currentRemainingQuantity);
       
-      // If the trade is already fully exited, show an error
-      if (currentRemainingQuantity <= 0 && latestTrade.status !== 'closed') {
-        toast.error("No remaining quantity to exit");
-        return;
+      // For fully exited trades that are still open, just mark as closed
+      if (currentRemainingQuantity <= 0 && latestTrade.status === 'open') {
+        console.log('Trade fully exited via partials but still open, closing without additional exit');
+        
+        // Create weighted average exit price from all exits
+        const partialExits = latestTrade.partialExits || [];
+        const totalQuantity = partialExits.reduce((sum, exit) => sum + exit.quantity, 0);
+        const weightedExitPrice = partialExits.reduce(
+          (sum, exit) => sum + (exit.exitPrice * exit.quantity),
+          0
+        ) / totalQuantity;
+        
+        // Close the trade with existing partial exits
+        const updatedTrade: Trade = {
+          ...latestTrade,
+          status: 'closed',
+          exitPrice: weightedExitPrice,
+          exitDate: new Date().toISOString(),
+          fees: partialExits.reduce((sum, exit) => sum + (exit.fees || 0), 0)
+        };
+        
+        console.log('Closing fully exited trade:', updatedTrade);
+        await updateTrade(updatedTrade);
+        
+        toast.success("Trade closed successfully");
+        dispatchUpdateEvents();
+        
+        // Call onClose if provided (with a delay to ensure UI updates)
+        if (onClose) {
+          setTimeout(() => onClose(), 300);
+        }
+        
+        return true;
       }
       
-      // If there are partial exits and remaining quantity, create a final partial exit 
+      // For trades with remaining quantity that need a price
+      if (!exitPrice && currentRemainingQuantity > 0) {
+        toast.error("Please enter an exit price");
+        return false;
+      }
+      
+      // If the trade has partial exits and remaining quantity, create a final partial exit 
       // for the remaining quantity, then close the trade
       if (latestTrade.partialExits && latestTrade.partialExits.length > 0 && currentRemainingQuantity > 0) {
         const finalExit: PartialExit = {
           id: generateUUID(),
           date: exitDate,
           exitDate: exitDate,
-          exitPrice: exitPrice,
-          price: exitPrice,
+          exitPrice: exitPrice || 0,
+          price: exitPrice || 0,
           quantity: currentRemainingQuantity,
           fees: fees || 0,
           notes: notes
@@ -120,14 +152,14 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         
         console.log('Updating trade with full exit (remaining units):', updatedTrade);
         await updateTrade(updatedTrade);
-      } else {
+      } else if (currentRemainingQuantity > 0) {
         // Create a single exit record for the full quantity
         const fullExit: PartialExit = {
           id: generateUUID(),
           date: exitDate,
           exitDate: exitDate,
-          price: exitPrice,
-          exitPrice: exitPrice,
+          price: exitPrice || 0,
+          exitPrice: exitPrice || 0,
           quantity: latestTrade.quantity,
           fees: fees || 0,
           notes: notes
@@ -152,10 +184,10 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       
       dispatchUpdateEvents();
       
-      console.log("Calling onClose callback");
+      console.log("Calling onClose callback from handleFullExit");
       // Always call onClose after successful completion
       if (onClose) {
-        setTimeout(() => onClose(), 100); // Small delay to ensure state is updated
+        setTimeout(() => onClose(), 300);
       }
       
       return true;
@@ -264,7 +296,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       if (updatedRemainingQuantity <= 0) {
         if (onClose) {
           console.log("Trade fully exited via partials, calling onClose");
-          setTimeout(() => onClose(), 100);
+          setTimeout(() => onClose(), 300);
         }
       }
       
@@ -302,7 +334,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       
       // Always call onClose after successful completion
       if (onClose) {
-        setTimeout(() => onClose(), 100);
+        setTimeout(() => onClose(), 300);
       }
       
       return true;

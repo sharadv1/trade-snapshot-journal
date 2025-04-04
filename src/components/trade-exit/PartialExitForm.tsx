@@ -38,6 +38,13 @@ export function PartialExitForm({
   // Ensure remaining quantity is never negative
   const actualRemainingQuantity = Math.max(0, remainingQuantity);
   
+  // Initialize partial quantity when remaining quantity changes
+  useEffect(() => {
+    if (actualRemainingQuantity > 0 && (partialQuantity <= 0 || partialQuantity > actualRemainingQuantity)) {
+      setPartialQuantity(Math.min(1, actualRemainingQuantity));
+    }
+  }, [actualRemainingQuantity, partialQuantity, setPartialQuantity]);
+  
   // Ensure partial quantity is never greater than remaining quantity
   useEffect(() => {
     if (partialQuantity > actualRemainingQuantity) {
