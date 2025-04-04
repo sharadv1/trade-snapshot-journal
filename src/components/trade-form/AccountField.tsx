@@ -29,7 +29,7 @@ export function AccountField({ value, onChange }: AccountFieldProps) {
   useEffect(() => {
     // Load accounts safely
     try {
-      const loadedAccountNames = getAccounts();
+      const loadedAccountNames = getAccounts() || [];
       // Convert string array to account objects with id and name
       const accountObjects = loadedAccountNames.map(name => ({
         id: name,
@@ -43,7 +43,7 @@ export function AccountField({ value, onChange }: AccountFieldProps) {
   }, []);
 
   // If no accounts are available, provide a default one
-  const accountOptions = accounts.length > 0 
+  const accountOptions = accounts && accounts.length > 0 
     ? accounts 
     : [{ id: 'default', name: 'Default Account' }];
 

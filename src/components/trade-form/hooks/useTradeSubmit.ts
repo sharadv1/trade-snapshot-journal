@@ -27,7 +27,7 @@ export function useTradeSubmit(
       
       // Filter out any extremely large data URLs to prevent storage quota issues
       // But keep server media paths (they start with "/media/")
-      const filteredImages = images.filter(img => {
+      const filteredImages = images ? images.filter(img => {
         // Always keep server media paths
         if (img.startsWith('/media/')) {
           return true;
@@ -39,9 +39,9 @@ export function useTradeSubmit(
           return false;
         }
         return true;
-      });
+      }) : [];
       
-      if (filteredImages.length < images.length) {
+      if (filteredImages.length < (images?.length || 0)) {
         toast.warning("Some media files were too large and won't be saved to prevent storage issues");
       }
       
@@ -90,7 +90,7 @@ export function useTradeSubmit(
       }
       
       // Call onSuccess callback with trade ID if provided
-      if (onSuccess) {
+      if (onSuccess && typeof onSuccess === 'function') {
         onSuccess(tradeId);
       }
       
