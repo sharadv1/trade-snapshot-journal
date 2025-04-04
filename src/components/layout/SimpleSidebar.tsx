@@ -12,113 +12,90 @@ import {
   Settings, 
   Tags
 } from 'lucide-react';
-import { Sidebar, SidebarContent, SidebarMenu, SidebarMenuGroup, SidebarMenuItem, SidebarMenuItemButton, SidebarMenuItemIcon, SidebarMenuItemLabel } from '@/components/ui/sidebar';
+import { 
+  Sidebar, 
+  SidebarContent, 
+  SidebarMenu, 
+  SidebarGroup, 
+  SidebarMenuItem, 
+  SidebarMenuButton, 
+  SidebarMenuItemIcon, 
+  SidebarMenuItemLabel 
+} from '@/components/ui/sidebar';
 
 export function SimpleSidebar() {
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarMenu>
-          <SidebarMenuGroup>
+          <SidebarGroup>
             <SidebarMenuItem>
-              <SidebarMenuItemButton asChild>
+              <SidebarMenuButton asChild>
                 <NavLink to="/" className={({ isActive }) => isActive ? 'text-primary' : ''}>
-                  <SidebarMenuItemIcon>
-                    <LayoutDashboard className="h-5 w-5" />
-                  </SidebarMenuItemIcon>
-                  <SidebarMenuItemLabel>
-                    Dashboard
-                  </SidebarMenuItemLabel>
+                  <LayoutDashboard className="h-5 w-5" />
+                  <span>Dashboard</span>
                 </NavLink>
-              </SidebarMenuItemButton>
+              </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuItemButton asChild>
+              <SidebarMenuButton asChild>
                 <NavLink to="/analytics" className={({ isActive }) => isActive ? 'text-primary' : ''}>
-                  <SidebarMenuItemIcon>
-                    <BarChart4 className="h-5 w-5" />
-                  </SidebarMenuItemIcon>
-                  <SidebarMenuItemLabel>
-                    Analytics
-                  </SidebarMenuItemLabel>
+                  <BarChart4 className="h-5 w-5" />
+                  <span>Analytics</span>
                 </NavLink>
-              </SidebarMenuItemButton>
+              </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuItemButton asChild>
+              <SidebarMenuButton asChild>
                 <NavLink to="/journal" className={({ isActive }) => isActive ? 'text-primary' : ''}>
-                  <SidebarMenuItemIcon>
-                    <Calendar className="h-5 w-5" />
-                  </SidebarMenuItemIcon>
-                  <SidebarMenuItemLabel>
-                    Journal
-                  </SidebarMenuItemLabel>
+                  <Calendar className="h-5 w-5" />
+                  <span>Journal</span>
                 </NavLink>
-              </SidebarMenuItemButton>
+              </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuItemButton asChild>
+              <SidebarMenuButton asChild>
                 <NavLink to="/ideas" className={({ isActive }) => isActive ? 'text-primary' : ''}>
-                  <SidebarMenuItemIcon>
-                    <Lightbulb className="h-5 w-5" />
-                  </SidebarMenuItemIcon>
-                  <SidebarMenuItemLabel>
-                    Ideas
-                  </SidebarMenuItemLabel>
+                  <Lightbulb className="h-5 w-5" />
+                  <span>Ideas</span>
                 </NavLink>
-              </SidebarMenuItemButton>
+              </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuItemButton asChild>
+              <SidebarMenuButton asChild>
                 <NavLink to="/lessons" className={({ isActive }) => isActive ? 'text-primary' : ''}>
-                  <SidebarMenuItemIcon>
-                    <BookOpen className="h-5 w-5" />
-                  </SidebarMenuItemIcon>
-                  <SidebarMenuItemLabel>
-                    Lessons
-                  </SidebarMenuItemLabel>
+                  <BookOpen className="h-5 w-5" />
+                  <span>Lessons</span>
                 </NavLink>
-              </SidebarMenuItemButton>
+              </SidebarMenuButton>
             </SidebarMenuItem>
-          </SidebarMenuGroup>
-          <SidebarMenuGroup>
+          </SidebarGroup>
+          <SidebarGroup>
             <SidebarMenuItem>
-              <SidebarMenuItemButton asChild>
+              <SidebarMenuButton asChild>
                 <NavLink to="/strategies" className={({ isActive }) => isActive ? 'text-primary' : ''}>
-                  <SidebarMenuItemIcon>
-                    <LineChart className="h-5 w-5" />
-                  </SidebarMenuItemIcon>
-                  <SidebarMenuItemLabel>
-                    Strategies
-                  </SidebarMenuItemLabel>
+                  <LineChart className="h-5 w-5" />
+                  <span>Strategies</span>
                 </NavLink>
-              </SidebarMenuItemButton>
+              </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuItemButton asChild>
+              <SidebarMenuButton asChild>
                 <NavLink to="/symbols" className={({ isActive }) => isActive ? 'text-primary' : ''}>
-                  <SidebarMenuItemIcon>
-                    <Tags className="h-5 w-5" />
-                  </SidebarMenuItemIcon>
-                  <SidebarMenuItemLabel>
-                    Symbols
-                  </SidebarMenuItemLabel>
+                  <Tags className="h-5 w-5" />
+                  <span>Symbols</span>
                 </NavLink>
-              </SidebarMenuItemButton>
+              </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuItemButton asChild>
+              <SidebarMenuButton asChild>
                 <NavLink to="/configs" className={({ isActive }) => isActive ? 'text-primary' : ''}>
-                  <SidebarMenuItemIcon>
-                    <Settings className="h-5 w-5" />
-                  </SidebarMenuItemIcon>
-                  <SidebarMenuItemLabel>
-                    Settings
-                  </SidebarMenuItemLabel>
+                  <Settings className="h-5 w-5" />
+                  <span>Settings</span>
                 </NavLink>
-              </SidebarMenuItemButton>
+              </SidebarMenuButton>
             </SidebarMenuItem>
-          </SidebarMenuGroup>
+          </SidebarGroup>
         </SidebarMenu>
       </SidebarContent>
     </Sidebar>
