@@ -1,4 +1,3 @@
-
 import { ReactNode } from 'react';
 
 export const COMMON_FUTURES_CONTRACTS = [
@@ -310,4 +309,22 @@ export interface Symbol {
   sector?: string;
   industry?: string;
   contractDetails?: FuturesContractDetails;
+}
+
+// Lesson types
+export interface Lesson {
+  id: string;
+  title: string;
+  description: string;
+  types: string[];
+  media: LessonMedia[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LessonMedia {
+  id: string;
+  type: 'image' | 'video';
+  url: string;
+  caption?: string;
 }

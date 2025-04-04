@@ -57,8 +57,8 @@ export function DeletePartialExitButton({
       // After deletion, check if trade is still fully exited
       const stillFullyExited = isTradeFullyExited(updatedTrade);
       
-      if (stillFullyExited) {
-        // If still fully exited, update the exitDate to the latest partial exit
+      if (stillFullyExited && latestTrade.status === 'closed') {
+        // If still fully exited and the trade was closed, update the exitDate to the latest partial exit
         const sortedExits = [...updatedPartialExits].sort((a, b) => {
           const dateA = new Date(a.date || '').getTime() || 0;
           const dateB = new Date(b.date || '').getTime() || 0;
@@ -78,9 +78,9 @@ export function DeletePartialExitButton({
           
           updatedTrade.exitPrice = weightedSum / totalQuantity;
         }
-      } else {
-        // If no more partial exits or not fully exited, revert to open status
-        if (updatedPartialExits.length === 0 || !stillFullyExited) {
+      } else if (updatedPartialExits.length === 0 || !stillFullyExited) {
+        // If no more partial exits or not fully exited, revert to open status if the trade is currently closed
+        if (latestTrade.status === 'closed') {
           updatedTrade.status = 'open';
           updatedTrade.exitDate = undefined;
           updatedTrade.exitPrice = undefined;

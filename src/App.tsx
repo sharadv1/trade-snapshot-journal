@@ -16,6 +16,7 @@ import { JournalLayout } from '@/components/journal/JournalLayout';
 import { ReflectionsList } from '@/components/journal/ReflectionsList';
 import { MonthlyReflectionsList } from '@/components/journal/MonthlyReflectionsList';
 import Configs from '@/pages/Configs';
+import Lessons from '@/pages/Lessons';
 
 // Helper component to handle legacy route redirects
 const LegacyWeekRedirect = () => {
@@ -39,6 +40,7 @@ function App() {
           <Route path="/strategies" element={<StrategyManagement />} />
           <Route path="/symbols" element={<SymbolManagement />} />
           <Route path="/configs" element={<Configs />} />
+          <Route path="/lessons" element={<Lessons />} />
           
           {/* Journal routes with nested structure */}
           <Route path="/journal" element={<JournalLayout />}>

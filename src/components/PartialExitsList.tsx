@@ -81,6 +81,10 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
     onUpdate();
   };
 
+  // Update the label to reflect the actual trade status, not just the partial exits
+  const statusLabel = currentTrade.status === 'closed' ? 'closed' : 'open';
+  const statusColor = currentTrade.status === 'closed' ? 'text-red-500' : 'text-green-500';
+
   return (
     <Card className="shadow-subtle border">
       <CardHeader className="pb-2">
@@ -103,8 +107,8 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
             </div>
             <div className="flex justify-between text-sm mt-1">
               <span>Status:</span>
-              <span className={`font-medium ${isFullyExited || currentTrade.status === 'closed' ? 'text-red-500' : 'text-green-500'}`}>
-                {isFullyExited || currentTrade.status === 'closed' ? 'closed' : 'open'}
+              <span className={`font-medium ${statusColor}`}>
+                {statusLabel}
               </span>
             </div>
           </div>

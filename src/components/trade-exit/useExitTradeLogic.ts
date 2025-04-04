@@ -209,24 +209,14 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
         return;
       }
       
-      if (latestTrade.partialExits && latestTrade.partialExits.length > 0) {
-        const updatedTrade: Trade = {
-          ...latestTrade,
-          status: 'open',
-          exitDate: undefined,
-          exitPrice: undefined
-        };
-        updateTrade(updatedTrade);
-      } else {
-        const updatedTrade: Trade = {
-          ...latestTrade,
-          status: 'open',
-          exitDate: undefined,
-          exitPrice: undefined,
-          partialExits: []
-        };
-        updateTrade(updatedTrade);
-      }
+      const updatedTrade: Trade = {
+        ...latestTrade,
+        status: 'open',
+        exitDate: undefined,
+        exitPrice: undefined
+      };
+      
+      updateTrade(updatedTrade);
       
       toast.success("Trade reopened successfully");
       
