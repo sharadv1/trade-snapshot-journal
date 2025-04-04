@@ -72,7 +72,7 @@ export default function TradeEdit() {
   };
 
   const handleCloseModal = () => {
-    // Navigate back to the trade detail page after closing or completing operations
+    // This only navigates when explicitly closing the modal or completing the final exit
     console.log('ExitTradeForm close callback called, navigating to trade detail');
     navigate(`/trade/${id}`);
   };

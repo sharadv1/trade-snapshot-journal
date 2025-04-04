@@ -6,7 +6,7 @@ import { toast } from '@/utils/toast';
 import { generateUUID } from '@/utils/generateUUID';
 import { getRemainingQuantity } from '@/utils/calculations/tradeStatus';
 
-export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: () => void) {
+export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: () => void) {
   // State variables for full exit
   const [exitPrice, setExitPrice] = useState<number | undefined>(trade.exitPrice);
   const [exitDate, setExitDate] = useState<string>(trade.exitDate || new Date().toISOString().slice(0, 16));
@@ -184,9 +184,9 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       
       dispatchUpdateEvents();
       
-      console.log("Calling onClose callback from handleFullExit");
-      // Always call onClose after successful completion
+      // Only call onClose after successful completion if it's provided
       if (onClose) {
+        console.log("Calling onClose callback from handleFullExit");
         setTimeout(() => onClose(), 300);
       }
       
@@ -293,11 +293,9 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       setRemainingQuantity(updatedRemainingQuantity);
       
       // If the trade is now closed after this partial exit, close the modal
-      if (updatedRemainingQuantity <= 0) {
-        if (onClose) {
-          console.log("Trade fully exited via partials, calling onClose");
-          setTimeout(() => onClose(), 300);
-        }
+      if (updatedRemainingQuantity <= 0 && onClose) {
+        console.log("Trade fully exited via partials, calling onClose");
+        setTimeout(() => onClose(), 300);
       }
       
       return true;
@@ -332,10 +330,8 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose: (
       
       dispatchUpdateEvents();
       
-      // Always call onClose after successful completion
-      if (onClose) {
-        setTimeout(() => onClose(), 300);
-      }
+      // Do NOT call onClose after reopening - we want to stay on the same page
+      // to allow further edits without navigation
       
       return true;
     } catch (error) {

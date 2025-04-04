@@ -49,6 +49,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
   } = useExitTradeLogic(trade, onUpdate, onClose);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reopened, setReopened] = useState(false);
   
   // Use the provided remainingQuantity if passed, otherwise use the calculated one
   // Ensure it's never negative by using Math.max
@@ -72,10 +73,15 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
       handleFullExit();
     }
     
+    // Reset reopened state when trade changes
+    if (reopened && trade.status === 'closed') {
+      setReopened(false);
+    }
+    
     return () => {
       console.log('ExitTradeForm unmounted for trade:', trade.id);
     };
-  }, [trade.id, trade.status, actualRemainingQuantity, isFullyExited, handleFullExit, isSubmitting]);
+  }, [trade.id, trade.status, actualRemainingQuantity, isFullyExited, handleFullExit, isSubmitting, reopened]);
 
   // If remaining quantity is 0, force the 'full' tab
   useEffect(() => {
@@ -129,10 +135,11 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     try {
       const success = await handleReopenTrade();
       if (success) {
-        console.log("Reopen successful, modal should close");
-        setTimeout(() => {
-          if (onClose) onClose();
-        }, 300);
+        console.log("Trade reopened successfully, staying on page");
+        setReopened(true);
+        onUpdate(); // Refresh the trade data
+        
+        // We don't close the form after reopening - let user continue working
       }
     } finally {
       setIsSubmitting(false);
@@ -150,7 +157,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
         <div className="flex justify-between items-center">
           <div>
             <CardTitle className="text-xl">Exit Trade: {trade.symbol}</CardTitle>
-            {isClosed && (
+            {isClosed && !reopened && (
               <div className="mt-1 flex items-center">
                 <Badge variant="destructive" className="mr-2">Closed</Badge>
                 {trade.exitDate && (
@@ -161,6 +168,11 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
                 )}
               </div>
             )}
+            {reopened && (
+              <div className="mt-1">
+                <Badge variant="outline" className="bg-green-50">Reopened</Badge>
+              </div>
+            )}
           </div>
           <Button variant="ghost" size="icon" onClick={handleManualClose} type="button">
             <X className="h-4 w-4" />
@@ -168,7 +180,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
         </div>
       </CardHeader>
       
-      {isClosed ? (
+      {isClosed && !reopened ? (
         <CardContent className="space-y-4">
           <Alert>
             <AlertDescription>
@@ -288,7 +300,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
         </>
       )}
       
-      {!isClosed && trade.partialExits && trade.partialExits.length > 0 && (
+      {(!isClosed || reopened) && trade.partialExits && trade.partialExits.length > 0 && (
         <div className="px-6 pb-6">
           <PartialExitsList 
             trade={trade}

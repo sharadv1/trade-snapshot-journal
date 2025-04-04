@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { 
   Dialog, 
@@ -16,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CircleDollarSign, SplitSquareVertical, Calendar } from 'lucide-react';
 import { Trade, PartialExit } from '@/types';
 import { toast } from '@/utils/toast';
-import { getTradeById, updateTrade } from '@/utils/tradeStorage';
+import { getTradeById, updateTrade } from '@/utils/storage/tradeOperations';
 
 interface EditPartialExitModalProps {
   trade: Trade;
@@ -71,6 +70,7 @@ export function EditPartialExitModal({
           : exit
       ) || [];
       
+      // We keep the base trade properties intact
       const updatedTrade: Trade = {
         ...latestTrade,
         partialExits: updatedPartialExits
@@ -82,9 +82,20 @@ export function EditPartialExitModal({
       );
       
       // Update trade status based on exited quantity
-      if (totalExitedQuantity === updatedTrade.quantity) {
+      if (totalExitedQuantity >= updatedTrade.quantity) {
         // If fully exited through partials, update trade status to closed
         updatedTrade.status = 'closed';
+        
+        // Calculate weighted average exit price for the main trade
+        const totalQuantity = updatedTrade.quantity;
+        let weightedSum = 0;
+        
+        updatedPartialExits.forEach(exit => {
+          weightedSum += exit.exitPrice * exit.quantity;
+        });
+        
+        // Set the trade's exit price to the weighted average
+        updatedTrade.exitPrice = weightedSum / totalQuantity;
         
         // Find the latest exit date among partial exits
         const sortedExits = [...updatedPartialExits].sort((a, b) => 
@@ -94,45 +105,38 @@ export function EditPartialExitModal({
         if (sortedExits.length > 0) {
           // Set the trade's exit date to the latest partial exit date
           updatedTrade.exitDate = sortedExits[0].exitDate;
-          
-          // Calculate weighted average exit price for the main trade
-          const totalQuantity = updatedTrade.quantity;
-          let weightedSum = 0;
-          
-          updatedPartialExits.forEach(exit => {
-            weightedSum += exit.exitPrice * exit.quantity;
-          });
-          
-          // Set the trade's exit price to the weighted average
-          updatedTrade.exitPrice = weightedSum / totalQuantity;
         }
+        
+        // Sum up all fees
+        updatedTrade.fees = updatedPartialExits.reduce(
+          (sum, exit) => sum + (exit.fees || 0), 0
+        );
       } 
-      else if (totalExitedQuantity < updatedTrade.quantity) {
-        // If there are remaining units, ensure the trade is marked as open
+      else if (latestTrade.status === 'closed') {
+        // If we're updating an exit and the new total is less than the quantity,
+        // we need to reopen the trade since it's no longer fully exited
         updatedTrade.status = 'open';
-        
-        // Only clear the exit date and price if they exist
-        if (updatedTrade.exitDate) {
-          updatedTrade.exitDate = undefined;
-        }
-        
-        if (updatedTrade.exitPrice !== undefined) {
-          updatedTrade.exitPrice = undefined;
-        }
+        updatedTrade.exitDate = undefined;
+        updatedTrade.exitPrice = undefined;
+        updatedTrade.fees = undefined;
       }
       
-      // This triggers a storage event to update the view
+      // Update trade in storage
+      console.log('Updating trade after partial exit edit:', updatedTrade);
       updateTrade(updatedTrade);
       
-      // Force a custom storage event to ensure updates
+      // Ensure all components are notified of the change
+      document.dispatchEvent(new CustomEvent('trade-updated'));
       window.dispatchEvent(new StorageEvent('storage', {
         key: 'trade-journal-trades',
-        newValue: JSON.stringify(localStorage.getItem('trade-journal-trades'))
       }));
       
       toast.success("Partial exit updated successfully");
       setOpen(false);
+      
+      // Call the onSuccess callback to refresh the data
       onSuccess();
+      
     } catch (error) {
       console.error("Error updating partial exit:", error);
       toast.error("Failed to update partial exit");
