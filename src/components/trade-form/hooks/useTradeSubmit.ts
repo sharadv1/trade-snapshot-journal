@@ -9,10 +9,9 @@ export function useTradeSubmit(
   images: string[],
   contractDetails: Partial<any>,
   isEditing: boolean,
-  initialTrade?: Trade,
-  onSuccess?: (tradeId: string) => void
+  initialTrade?: Trade
 ) {
-  const handleSubmit = (e: React.FormEvent): boolean => {
+  const handleSubmit = (e: React.FormEvent, onSuccess?: (tradeId: string) => void): boolean => {
     e.preventDefault();
     console.log('Trade form submitted with data:', trade);
     

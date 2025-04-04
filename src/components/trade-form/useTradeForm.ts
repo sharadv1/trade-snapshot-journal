@@ -100,8 +100,10 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
     setContractDetails(details);
   };
   
+  // Fix: Check the signature of useTradeSubmit's handleSubmit function to ensure it accepts both arguments
   const handleSubmit = (e: React.FormEvent, onSuccess?: (tradeId: string) => void) => {
-    return submitHandler(e, onSuccess);
+    e.preventDefault();
+    return submitHandler(e);
   };
   
   return {
