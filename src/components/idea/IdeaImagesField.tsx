@@ -86,7 +86,7 @@ export function IdeaImagesField({
         maxImages={3} // Limit to 3 images per idea
       />
       {images.length >= 2 && (
-        <Alert variant="warning" className="bg-amber-50">
+        <Alert variant="destructive" className="bg-amber-50">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-amber-800">
             Adding multiple images may cause storage issues. Consider removing unnecessary images.
