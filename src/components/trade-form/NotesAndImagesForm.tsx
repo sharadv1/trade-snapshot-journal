@@ -21,10 +21,10 @@ export function NotesAndImagesForm({
   onImageUpload,
   onImageRemove
 }: NotesAndImagesFormProps) {
-  // Transform string URLs to MediaFile objects
+  // Transform string URLs to MediaFile objects with explicit type casting
   const mediaFiles = images.map(url => ({
     url,
-    type: url.includes('video') ? 'video' : 'image' // Simple heuristic to determine type
+    type: url.includes('video') ? 'video' : 'image' as 'video' | 'image' // Use type assertion
   }));
 
   return (
