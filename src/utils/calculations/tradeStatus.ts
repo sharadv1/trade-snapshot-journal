@@ -40,6 +40,7 @@ export function getRemainingQuantity(trade: Trade): number {
  * Check if a trade can be reopened
  */
 export function canReopenTrade(trade: Trade): boolean {
+  // Any closed trade can be reopened regardless of partial exits
   return trade.status === 'closed';
 }
 

@@ -316,11 +316,15 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
         return false;
       }
       
+      console.log('Reopening trade, current status:', latestTrade.status);
+      
+      // Reopen the trade by changing its status to 'open'
       const updatedTrade: Trade = {
         ...latestTrade,
         status: 'open',
         exitDate: undefined,
-        exitPrice: undefined
+        exitPrice: undefined,
+        fees: undefined
       };
       
       console.log('Reopening trade:', updatedTrade);
@@ -328,10 +332,11 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
       
       toast.success("Trade reopened successfully");
       
+      // Dispatch update events to refresh UI
       dispatchUpdateEvents();
       
-      // Do NOT call onClose after reopening - we want to stay on the same page
-      // to allow further edits without navigation
+      // Important: DO NOT call onClose after reopening
+      // We want to stay on this page to continue editing
       
       return true;
     } catch (error) {
