@@ -21,6 +21,12 @@ export function NotesAndImagesForm({
   onImageUpload,
   onImageRemove
 }: NotesAndImagesFormProps) {
+  // Transform string URLs to MediaFile objects
+  const mediaFiles = images.map(url => ({
+    url,
+    type: url.includes('video') ? 'video' : 'image' // Simple heuristic to determine type
+  }));
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -65,9 +71,10 @@ export function NotesAndImagesForm({
       <div className="space-y-2">
         <Label>Images</Label>
         <MediaUpload 
-          mediaFiles={images} 
-          onUpload={onImageUpload} 
-          onRemove={onImageRemove} 
+          media={mediaFiles}
+          onMediaUpload={(file) => onImageUpload(new DataTransfer().files)}
+          onMediaRemove={(index) => onImageRemove(images[index])}
+          disabled={false}
         />
       </div>
     </div>
