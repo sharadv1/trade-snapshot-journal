@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { Plus, ListChecks } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataExportImport } from '@/components/DataExportImport';
 import { ServerSyncConfig } from '@/components/ServerSyncConfig';
@@ -24,12 +24,6 @@ export function DashboardHeader({ onImportComplete }: DashboardHeaderProps) {
       <div className="flex flex-wrap gap-2">
         <ServerSyncConfig />
         <DataExportImport onImportComplete={onImportComplete} />
-        <Button variant="outline" asChild>
-          <Link to="/strategies">
-            <ListChecks className="mr-1 h-4 w-4" />
-            Strategies
-          </Link>
-        </Button>
         <Button asChild>
           <Link to="/trade/new">
             <Plus className="mr-1 h-4 w-4" />
