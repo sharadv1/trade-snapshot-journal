@@ -5,7 +5,7 @@ import { formatCurrency } from '@/utils/tradeCalculations';
 import { EditPartialExitModal } from './trade-exit/EditPartialExitModal';
 import { DeletePartialExitButton } from './trade-exit/DeletePartialExitButton';
 import { useEffect, useState } from 'react';
-import { getTradeById } from '@/utils/tradeStorage';
+import { getTradeById } from '@/utils/storage/tradeOperations';
 import { Badge } from '@/components/ui/badge';
 import { formatTradeDate, formatTradeDateWithTime, getRemainingQuantity } from '@/utils/calculations/tradeStatus';
 
@@ -60,8 +60,8 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
   // Sort partial exits by date (newest first)
   const sortedExits = [...currentTrade.partialExits].sort((a, b) => {
     // Handle potential invalid dates
-    const dateA = new Date(a.date || '').getTime() || 0;
-    const dateB = new Date(b.date || '').getTime() || 0;
+    const dateA = new Date(a.exitDate || a.date || '').getTime() || 0;
+    const dateB = new Date(b.exitDate || b.date || '').getTime() || 0;
     return dateB - dateA;
   });
 
@@ -105,7 +105,7 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
   return (
     <Card className="shadow-subtle border">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Partial Exits</CardTitle>
+        <CardTitle className="text-base">Exit History</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -136,10 +136,10 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-sm font-medium">
-                      {exit.quantity} units @ {formatCurrency(exit.price)}
+                      {exit.quantity} units @ {formatCurrency(exit.exitPrice || exit.price)}
                     </span>
                     <div className="text-sm text-muted-foreground">
-                      {formatTradeDateWithTime(exit.date)}
+                      {formatTradeDateWithTime(exit.exitDate || exit.date)}
                     </div>
                     
                     {exit.notes && (

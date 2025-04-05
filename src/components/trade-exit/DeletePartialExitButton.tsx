@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { 
   AlertDialog,
@@ -15,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import { Trade } from '@/types';
 import { toast } from '@/utils/toast';
-import { getTradeById, updateTrade } from '@/utils/tradeStorage';
+import { getTradeById, updateTrade } from '@/utils/storage/tradeOperations';
 import { isTradeFullyExited } from '@/utils/calculations/tradeStatus';
 
 interface DeletePartialExitButtonProps {
@@ -49,47 +48,64 @@ export function DeletePartialExitButton({
         exit => exit.id !== exitId
       ) || [];
       
+      // Create a copy of the trade with the updated partial exits
       const updatedTrade: Trade = {
         ...latestTrade,
         partialExits: updatedPartialExits
       };
       
-      // After deletion, check if trade is still fully exited
-      const stillFullyExited = isTradeFullyExited(updatedTrade);
+      // Calculate total exited quantity with the updated partial exits
+      const totalExitedQuantity = updatedPartialExits.reduce(
+        (total, exit) => total + exit.quantity, 0
+      );
       
-      if (stillFullyExited && latestTrade.status === 'closed') {
-        // If still fully exited and the trade was closed, update the exitDate to the latest partial exit
-        const sortedExits = [...updatedPartialExits].sort((a, b) => {
-          const dateA = new Date(a.date || '').getTime() || 0;
-          const dateB = new Date(b.date || '').getTime() || 0;
-          return dateB - dateA;
+      // Update trade status based on exited quantity
+      if (totalExitedQuantity >= updatedTrade.quantity) {
+        // If still fully exited after deletion, keep the trade closed
+        updatedTrade.status = 'closed';
+        
+        // Recalculate the weighted average exit price
+        const totalQuantity = updatedTrade.quantity;
+        let weightedSum = 0;
+        
+        updatedPartialExits.forEach(exit => {
+          weightedSum += exit.exitPrice * exit.quantity;
         });
         
-        if (sortedExits.length > 0) {
-          updatedTrade.exitDate = sortedExits[0].date;
-          
-          // Recalculate weighted average exit price
-          const totalQuantity = updatedTrade.quantity;
-          let weightedSum = 0;
-          
-          updatedPartialExits.forEach(exit => {
-            weightedSum += exit.price * exit.quantity;
-          });
-          
+        // Set the trade's exit price to the weighted average
+        if (totalQuantity > 0) {
           updatedTrade.exitPrice = weightedSum / totalQuantity;
         }
-      } else if (updatedPartialExits.length === 0 || !stillFullyExited) {
-        // If no more partial exits or not fully exited, revert to open status if the trade is currently closed
-        if (latestTrade.status === 'closed') {
-          updatedTrade.status = 'open';
-          updatedTrade.exitDate = undefined;
-          updatedTrade.exitPrice = undefined;
+        
+        // Find the latest exit date among partial exits
+        const sortedExits = [...updatedPartialExits].sort((a, b) => 
+          new Date(b.exitDate).getTime() - new Date(a.exitDate).getTime()
+        );
+        
+        if (sortedExits.length > 0) {
+          // Set the trade's exit date to the latest partial exit date
+          updatedTrade.exitDate = sortedExits[0].exitDate;
         }
+        
+        // Recalculate total fees
+        updatedTrade.fees = updatedPartialExits.reduce(
+          (sum, exit) => sum + (exit.fees || 0), 0
+        );
+      } 
+      else if (latestTrade.status === 'closed') {
+        // If not fully exited after deletion but was closed before, reopen the trade
+        updatedTrade.status = 'open';
+        updatedTrade.exitDate = undefined;
+        updatedTrade.exitPrice = undefined;
+        updatedTrade.fees = undefined;
       }
       
+      // Update trade in storage
+      console.log('Updating trade after partial exit deletion:', updatedTrade);
       await updateTrade(updatedTrade);
       
-      // Trigger a storage event to notify other components
+      // Ensure all components are notified of the change
+      document.dispatchEvent(new CustomEvent('trade-updated'));
       window.dispatchEvent(new StorageEvent('storage', {
         key: 'trade-journal-trades'
       }));
@@ -117,6 +133,11 @@ export function DeletePartialExitButton({
           <AlertDialogTitle>Delete Partial Exit</AlertDialogTitle>
           <AlertDialogDescription>
             Are you sure you want to delete this partial exit? This action cannot be undone.
+            {trade.status === 'closed' && (
+              <span className="block mt-2 font-medium">
+                Note: If this deletion causes the trade to no longer be fully exited, it will be reopened.
+              </span>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

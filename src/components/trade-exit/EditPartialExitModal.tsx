@@ -64,7 +64,9 @@ export function EditPartialExitModal({
               ...exit,
               quantity,
               exitPrice,
+              price: exitPrice, // Update both for compatibility
               exitDate,
+              date: exitDate, // Update both for compatibility
               fees,
               notes
             } 
@@ -199,7 +201,7 @@ export function EditPartialExitModal({
             <Input 
               id="editExitDate" 
               type="datetime-local"
-              value={exitDate}
+              value={exitDate && exitDate.length >= 16 ? exitDate.slice(0, 16) : new Date().toISOString().slice(0, 16)}
               onChange={(e) => setExitDate(e.target.value)}
             />
           </div>
@@ -212,7 +214,7 @@ export function EditPartialExitModal({
               min="0"
               step="0.01"
               value={fees || ''}
-              onChange={(e) => setFees(parseFloat(e.target.value))}
+              onChange={(e) => setFees(e.target.value ? parseFloat(e.target.value) : undefined)}
             />
           </div>
           

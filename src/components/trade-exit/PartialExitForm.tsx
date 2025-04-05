@@ -2,9 +2,8 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CircleDollarSign, SplitSquareVertical, Calendar } from 'lucide-react';
 import { Trade } from '@/types';
-import { useEffect } from 'react';
+import { CircleDollarSign, SplitSquareVertical, Calendar, DollarSign } from 'lucide-react';
 
 interface PartialExitFormProps {
   trade: Trade;
@@ -12,13 +11,14 @@ interface PartialExitFormProps {
   partialQuantity: number;
   setPartialQuantity: (quantity: number) => void;
   partialExitPrice: number | undefined;
-  setPartialExitPrice: (price: number | undefined) => void;
+  setPartialExitPrice: (price: number) => void;
   partialExitDate: string;
   setPartialExitDate: (date: string) => void;
   partialFees: number | undefined;
   setPartialFees: (fees: number | undefined) => void;
   partialNotes: string | undefined;
   setPartialNotes: (notes: string | undefined) => void;
+  isClosedTradeConversion?: boolean;
 }
 
 export function PartialExitForm({
@@ -33,122 +33,86 @@ export function PartialExitForm({
   partialFees,
   setPartialFees,
   partialNotes,
-  setPartialNotes
+  setPartialNotes,
+  isClosedTradeConversion = false,
 }: PartialExitFormProps) {
-  // Ensure remaining quantity is never negative
-  const actualRemainingQuantity = Math.max(0, remainingQuantity);
-  
-  // Initialize partial quantity when remaining quantity changes
-  useEffect(() => {
-    if (actualRemainingQuantity > 0 && (partialQuantity <= 0 || partialQuantity > actualRemainingQuantity)) {
-      setPartialQuantity(Math.min(1, actualRemainingQuantity));
-    }
-  }, [actualRemainingQuantity, partialQuantity, setPartialQuantity]);
-  
-  // Ensure partial quantity is never greater than remaining quantity
-  useEffect(() => {
-    if (partialQuantity > actualRemainingQuantity) {
-      setPartialQuantity(actualRemainingQuantity);
-    }
-  }, [actualRemainingQuantity, partialQuantity, setPartialQuantity]);
-
-  // If there's no remaining quantity, disable the form
-  if (actualRemainingQuantity <= 0) {
-    return (
-      <div className="space-y-4">
-        <div className="bg-destructive/15 p-3 rounded-md mb-4">
-          <p className="text-sm text-muted-foreground">
-            There is no remaining quantity to exit.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      <div className="bg-muted/30 p-3 rounded-md mb-4">
-        <p className="text-sm text-muted-foreground">
-          Remaining quantity: <span className="font-medium">{actualRemainingQuantity}</span> of {trade.quantity}
-        </p>
-      </div>
-      
       <div className="space-y-2">
         <Label htmlFor="partialQuantity" className="flex items-center gap-1">
           <SplitSquareVertical className="h-4 w-4" />
-          Quantity to Exit <span className="text-destructive">*</span>
+          Quantity <span className="text-destructive">*</span>
         </Label>
-        <Input 
-          id="partialQuantity" 
+        <Input
+          id="partialQuantity"
           type="number"
           min="1"
-          max={actualRemainingQuantity}
+          max={remainingQuantity}
           step="1"
           value={partialQuantity}
-          onChange={(e) => {
-            const value = parseInt(e.target.value);
-            if (!isNaN(value)) {
-              setPartialQuantity(Math.min(Math.max(1, value), actualRemainingQuantity));
-            }
-          }}
+          onChange={(e) => setPartialQuantity(Number(e.target.value))}
           required
+          disabled={isClosedTradeConversion} // Disable if this is a closed trade conversion
         />
+        {isClosedTradeConversion && (
+          <p className="text-xs text-muted-foreground">
+            Full quantity used for closed trade
+          </p>
+        )}
       </div>
-      
+
       <div className="space-y-2">
         <Label htmlFor="partialExitPrice" className="flex items-center gap-1">
           <CircleDollarSign className="h-4 w-4" />
           Exit Price <span className="text-destructive">*</span>
         </Label>
-        <Input 
-          id="partialExitPrice" 
+        <Input
+          id="partialExitPrice"
           type="number"
           min="0"
           step="0.01"
           value={partialExitPrice || ''}
-          onChange={(e) => {
-            const value = parseFloat(e.target.value);
-            setPartialExitPrice(isNaN(value) ? undefined : value);
-          }}
+          onChange={(e) => setPartialExitPrice(Number(e.target.value))}
           required
         />
       </div>
-      
+
       <div className="space-y-2">
         <Label htmlFor="partialExitDate" className="flex items-center gap-1">
           <Calendar className="h-4 w-4" />
-          Exit Date & Time
+          Exit Date & Time <span className="text-destructive">*</span>
         </Label>
-        <Input 
-          id="partialExitDate" 
+        <Input
+          id="partialExitDate"
           type="datetime-local"
-          value={partialExitDate}
+          value={partialExitDate.slice(0, 16)}
           onChange={(e) => setPartialExitDate(e.target.value)}
+          required
         />
       </div>
-      
+
       <div className="space-y-2">
-        <Label htmlFor="partialFees">Fees & Commissions</Label>
-        <Input 
-          id="partialFees" 
+        <Label htmlFor="partialFees" className="flex items-center gap-1">
+          <DollarSign className="h-4 w-4" />
+          Fees & Commissions
+        </Label>
+        <Input
+          id="partialFees"
           type="number"
           min="0"
           step="0.01"
           value={partialFees || ''}
-          onChange={(e) => {
-            const value = parseFloat(e.target.value);
-            setPartialFees(isNaN(value) ? undefined : value);
-          }}
+          onChange={(e) => setPartialFees(e.target.value ? Number(e.target.value) : undefined)}
         />
       </div>
-      
+
       <div className="space-y-2">
         <Label htmlFor="partialNotes">Notes</Label>
-        <Textarea 
+        <Textarea
           id="partialNotes"
           value={partialNotes || ''}
           onChange={(e) => setPartialNotes(e.target.value)}
-          placeholder="Add any notes about this partial exit..."
+          placeholder="Add any notes about this exit..."
           className="min-h-20"
         />
       </div>

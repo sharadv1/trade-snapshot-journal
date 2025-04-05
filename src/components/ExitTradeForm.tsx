@@ -79,6 +79,14 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     onClose();
   };
 
+  // Create initial partial exit if there's a closed trade with no partials
+  useEffect(() => {
+    if (isClosed && (!trade.partialExits || trade.partialExits.length === 0) && trade.exitPrice) {
+      console.log('Closed trade with no partials detected - should be converted to use partials');
+      // Don't actually create the partial here - we'll just show editing UI
+    }
+  }, [isClosed, trade]);
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -103,74 +111,70 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
         </div>
       </CardHeader>
       
-      {isClosed ? (
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">Exit Summary</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>Exit Price:</div>
-              <div className="font-medium text-right">${trade.exitPrice?.toFixed(2) || 'N/A'}</div>
-              
-              <div>Exit Date:</div>
-              <div className="font-medium text-right">
-                {trade.exitDate ? new Date(trade.exitDate).toLocaleDateString() : 'N/A'}
-              </div>
-              
-              {trade.fees !== undefined && (
-                <div className="contents">
-                  <div>Fees:</div>
-                  <div className="font-medium text-right">${trade.fees.toFixed(2)}</div>
-                </div>
-              )}
-            </div>
-          </div>
-          
+      <CardContent className="space-y-4">
+        {/* Show partial exits list if they exist */}
+        {trade.partialExits && trade.partialExits.length > 0 && (
           <PartialExitsList 
             trade={trade}
             onUpdate={onUpdate}
             allowEditing={true}
           />
-        </CardContent>
-      ) : (
-        <div>
-          <CardContent className="space-y-4">
-            {actualRemainingQuantity <= 0 ? (
-              <div className="text-sm text-muted-foreground py-2">
-                This trade has been fully exited. No more exits can be recorded.
-              </div>
-            ) : (
-              <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
-                <PartialExitForm 
-                  trade={trade}
-                  remainingQuantity={actualRemainingQuantity}
-                  partialQuantity={partialQuantity || 1} 
-                  setPartialQuantity={setPartialQuantity}
-                  partialExitPrice={partialExitPrice}
-                  setPartialExitPrice={setPartialExitPrice}
-                  partialExitDate={partialExitDate}
-                  setPartialExitDate={setPartialExitDate}
-                  partialFees={partialFees}
-                  setPartialFees={setPartialFees}
-                  partialNotes={partialNotes}
-                  setPartialNotes={setPartialNotes}
-                />
-              </form>
-            )}
+        )}
+        
+        {/* For closed trades with no partials, create a special case to convert them */}
+        {isClosed && (!trade.partialExits || trade.partialExits.length === 0) && trade.exitPrice && (
+          <div className="space-y-2 bg-muted/30 p-3 rounded-md">
+            <p className="text-sm">This trade was closed directly without partial exits. You can edit its exit details:</p>
             
-            {trade.partialExits && trade.partialExits.length > 0 && (
-              <PartialExitsList 
+            <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
+              <PartialExitForm 
                 trade={trade}
-                onUpdate={onUpdate}
-                allowEditing={true}
+                remainingQuantity={trade.quantity}
+                partialQuantity={trade.quantity} 
+                setPartialQuantity={setPartialQuantity}
+                partialExitPrice={trade.exitPrice}
+                setPartialExitPrice={setPartialExitPrice}
+                partialExitDate={trade.exitDate || new Date().toISOString()}
+                setPartialExitDate={setPartialExitDate}
+                partialFees={trade.fees}
+                setPartialFees={setPartialFees}
+                partialNotes={trade.notes}
+                setPartialNotes={setPartialNotes}
+                isClosedTradeConversion={true}
               />
-            )}
-          </CardContent>
-          
-          {actualRemainingQuantity > 0 && (
-            <CardFooter className="flex justify-between space-x-2 pt-4 border-t">
-              <Button variant="outline" onClick={handleManualClose} type="button">
-                Cancel
-              </Button>
+              
+              <div className="flex justify-end mt-4">
+                <Button 
+                  type="submit"
+                  form="partial-exit-form"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Processing...' : 'Convert to Partial Exit'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+        
+        {/* For non-fully exited trades, show the partial exit form */}
+        {!isClosed && actualRemainingQuantity > 0 && (
+          <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
+            <PartialExitForm 
+              trade={trade}
+              remainingQuantity={actualRemainingQuantity}
+              partialQuantity={partialQuantity || 1} 
+              setPartialQuantity={setPartialQuantity}
+              partialExitPrice={partialExitPrice}
+              setPartialExitPrice={setPartialExitPrice}
+              partialExitDate={partialExitDate}
+              setPartialExitDate={setPartialExitDate}
+              partialFees={partialFees}
+              setPartialFees={setPartialFees}
+              partialNotes={partialNotes}
+              setPartialNotes={setPartialNotes}
+            />
+            
+            <div className="flex justify-end mt-4">
               <Button 
                 type="submit"
                 form="partial-exit-form"
@@ -178,10 +182,19 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
               >
                 {isSubmitting ? 'Processing...' : 'Record Exit'}
               </Button>
-            </CardFooter>
-          )}
-        </div>
-      )}
+            </div>
+          </form>
+        )}
+        
+        {/* For fully exited trades through partials, just show message */}
+        {(actualRemainingQuantity <= 0 || isFullyExited) && !isClosed && (
+          <div className="text-sm text-muted-foreground py-2">
+            This trade has been fully exited through partial exits. Update the status to closed.
+          </div>
+        )}
+      </CardContent>
+      
+      {/* No more footer with full exit option */}
     </Card>
   );
 }
