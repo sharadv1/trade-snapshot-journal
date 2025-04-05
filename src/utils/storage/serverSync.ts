@@ -110,6 +110,7 @@ export const syncAllData = async (): Promise<boolean> => {
     const { syncIdeasWithServer } = await import('@/utils/ideaStorage');
     const { syncStrategiesWithServer } = await import('@/utils/strategyStorage');
     const { syncSymbolsWithServer } = await import('@/utils/symbolStorage');
+    const { syncLessonsWithServer } = await import('@/utils/lessonStorage');
 
     try {
       // Sync trades
@@ -120,6 +121,8 @@ export const syncAllData = async (): Promise<boolean> => {
       await syncStrategiesWithServer();
       // Sync symbols
       await syncSymbolsWithServer();
+      // Sync lessons
+      await syncLessonsWithServer();
       
       // Dispatch a storage event to notify other components
       window.dispatchEvent(new Event('storage'));

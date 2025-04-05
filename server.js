@@ -29,6 +29,7 @@ const TRADES_FILE = path.join(DATA_DIR, "trades.json");
 const IDEAS_FILE = path.join(DATA_DIR, "ideas.json");
 const STRATEGIES_FILE = path.join(DATA_DIR, "strategies.json");
 const SYMBOLS_FILE = path.join(DATA_DIR, "symbols.json");
+const LESSONS_FILE = path.join(DATA_DIR, "lessons.json");
 const MEDIA_DIR = path.join(DATA_DIR, "media"); // Directory for storing media files
 
 // Ensure data directory exists
@@ -63,6 +64,11 @@ if (!fs.existsSync(STRATEGIES_FILE)) {
 if (!fs.existsSync(SYMBOLS_FILE)) {
     fs.writeFileSync(SYMBOLS_FILE, JSON.stringify([]));
     console.log(`Initialized empty symbols file: ${SYMBOLS_FILE}`);
+}
+
+if (!fs.existsSync(LESSONS_FILE)) {
+    fs.writeFileSync(LESSONS_FILE, JSON.stringify([]));
+    console.log(`Initialized empty lessons file: ${LESSONS_FILE}`);
 }
 
 // Configure media storage
@@ -181,6 +187,27 @@ app.put("/api/symbols", (req, res) => {
     } catch (error) {
         console.error("Error writing symbols:", error);
         res.status(500).json({ error: "Failed to save symbols data" });
+    }
+});
+
+// API Routes for lessons
+app.get("/api/lessons", (req, res) => {
+    try {
+        const lessonsData = fs.readFileSync(LESSONS_FILE, "utf8");
+        res.json(JSON.parse(lessonsData));
+    } catch (error) {
+        console.error("Error reading lessons:", error);
+        res.status(500).json({ error: "Failed to read lessons data" });
+    }
+});
+
+app.put("/api/lessons", (req, res) => {
+    try {
+        fs.writeFileSync(LESSONS_FILE, JSON.stringify(req.body));
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error writing lessons:", error);
+        res.status(500).json({ error: "Failed to save lessons data" });
     }
 });
 

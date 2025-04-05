@@ -18,6 +18,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/utils/toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { isUsingServerSync } from '@/utils/storage/serverSync';
 
 export default function Lessons() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -30,19 +31,34 @@ export default function Lessons() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [exportData, setExportData] = useState('');
   const [importData, setImportData] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadLessons();
     checkStorageUsage();
   }, []);
 
-  const loadLessons = () => {
-    const loadedLessons = getLessons();
-    setLessons(loadedLessons);
+  const loadLessons = async () => {
+    setIsLoading(true);
+    try {
+      const loadedLessons = await getLessons();
+      setLessons(loadedLessons);
+    } catch (error) {
+      console.error('Error loading lessons:', error);
+      toast.error('Failed to load lessons');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const checkStorageUsage = () => {
     try {
+      // Only check local storage usage if not using server sync
+      if (isUsingServerSync()) {
+        setIsStorageNearLimit(false);
+        return;
+      }
+      
       // Check localStorage usage as percentage
       let total = 0;
       for (let i = 0; i < localStorage.length; i++) {
@@ -87,10 +103,15 @@ export default function Lessons() {
     setShowFilters(!showFilters);
   };
 
-  const handleExport = () => {
-    const data = exportLessons();
-    setExportData(data);
-    setIsExportDialogOpen(true);
+  const handleExport = async () => {
+    try {
+      const data = await exportLessons();
+      setExportData(data);
+      setIsExportDialogOpen(true);
+    } catch (error) {
+      console.error('Error exporting lessons:', error);
+      toast.error('Failed to export lessons');
+    }
   };
 
   const handleCopyExport = () => {
@@ -116,14 +137,14 @@ export default function Lessons() {
     toast.success('Lessons downloaded successfully');
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     try {
       if (!importData.trim()) {
         toast.error('Please enter valid JSON data');
         return;
       }
       
-      const success = importLessons(importData);
+      const success = await importLessons(importData);
       if (success) {
         toast.success('Lessons imported successfully');
         setIsImportDialogOpen(false);
@@ -167,11 +188,11 @@ export default function Lessons() {
 
       {isStorageNearLimit && (
         <div className="max-w-6xl mx-auto mb-4">
-          <Alert variant="warning">
+          <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Storage Warning</AlertTitle>
             <AlertDescription>
-              You're approaching storage limits. Consider exporting your data as backup.
+              You're approaching storage limits. Consider enabling server sync or exporting your data.
               <div className="mt-2 flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleExport}>
                   <Download className="h-4 w-4 mr-2" />
@@ -213,11 +234,17 @@ export default function Lessons() {
       )}
 
       <div className="space-y-6">
-        <LessonList 
-          lessons={filteredLessons} 
-          onEdit={handleEditLesson} 
-          onUpdate={loadLessons} 
-        />
+        {isLoading ? (
+          <div className="text-center py-10">
+            <p className="text-muted-foreground">Loading lessons...</p>
+          </div>
+        ) : (
+          <LessonList 
+            lessons={filteredLessons} 
+            onEdit={handleEditLesson} 
+            onUpdate={loadLessons} 
+          />
+        )}
       </div>
 
       <LessonDialog 

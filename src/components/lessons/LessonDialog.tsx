@@ -14,7 +14,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Lesson, LessonMedia } from '@/types';
 import { addLesson, updateLesson, getLessonTypes } from '@/utils/lessonStorage';
 import { toast } from '@/utils/toast';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { X, Plus } from 'lucide-react';
 import { MediaUpload } from '@/components/MediaUpload';
@@ -76,7 +75,48 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
     }
 
     try {
-      // Convert file to data URL
+      // Try server upload first if available
+      const { isUsingServerSync, getServerUrl } = await import('@/utils/storage/serverSync');
+      
+      if (isUsingServerSync() && getServerUrl()) {
+        const baseUrl = getServerUrl().replace(/\/trades$/, '');
+        const uploadUrl = `${baseUrl}/api/upload`;
+        
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          const response = await fetch(uploadUrl, {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            
+            if (result.success) {
+              const serverUrl = new URL(baseUrl).origin + result.filePath;
+              
+              const newMedia: LessonMedia = {
+                id: generateUUID(),
+                type: result.isVideo ? 'video' : 'image',
+                url: serverUrl,
+                caption: ''
+              };
+              
+              setMedia([...media, newMedia]);
+              return;
+            }
+          }
+          
+          throw new Error('Server upload failed');
+        } catch (serverError) {
+          console.error('Server upload failed, falling back to data URL:', serverError);
+          // Fall back to data URL approach
+        }
+      }
+      
+      // Fallback to data URL if server upload fails or isn't available
       const reader = new FileReader();
       
       reader.onload = (e) => {
@@ -116,7 +156,7 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!title) {
       toast.error('Title is required');
       return;
@@ -138,7 +178,7 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
           updatedAt: now
         };
         
-        const success = updateLesson(updatedLesson);
+        const success = await updateLesson(updatedLesson);
         if (success) {
           toast.success('Lesson updated successfully');
           onClose();
@@ -157,7 +197,7 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
           updatedAt: now
         };
         
-        const success = addLesson(newLesson);
+        const success = await addLesson(newLesson);
         if (success) {
           toast.success('Lesson created successfully');
           onClose();
