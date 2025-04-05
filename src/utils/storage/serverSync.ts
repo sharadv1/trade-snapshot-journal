@@ -23,7 +23,7 @@ export const initializeServerSync = (url: string): Promise<boolean> => {
   
   // Extract base URL for the ping endpoint (removing /trades if present)
   const baseUrl = url.replace(/\/trades$/, '');
-  const pingUrl = `${baseUrl}/api/ping`;
+  const pingUrl = `${baseUrl}/ping`; // Ensure we're not duplicating "api"
   
   console.log('Pinging server at:', pingUrl);
   

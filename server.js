@@ -106,6 +106,9 @@ app.use(express.static("dist")); // Serve static files
 // Serve media files
 app.use('/media', express.static(MEDIA_DIR));
 
+// API Routes
+// IMPORTANT: All API routes are now under /api without any duplication
+
 // API Routes for trades
 app.get("/api/trades", (req, res) => {
     try {
@@ -232,7 +235,11 @@ app.post("/api/upload", upload.single('file'), (req, res) => {
     }
 });
 
-// Health check endpoint
+// Health check endpoint - now both nested under /api and at the root
+app.get("/ping", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 app.get("/api/ping", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
@@ -255,7 +262,8 @@ app.get("*", (req, res) => {
 // Start the server
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
-    console.log(`Health check available at http://localhost:${PORT}/api/ping`);
+    console.log(`Health check available at http://localhost:${PORT}/ping`);
+    console.log(`API health check available at http://localhost:${PORT}/api/ping`);
     console.log(`Media files available at http://localhost:${PORT}/media/`);
 });
 

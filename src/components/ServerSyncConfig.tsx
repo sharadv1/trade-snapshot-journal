@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,6 +67,7 @@ export function ServerSyncConfig() {
       
       // If not connected but we're likely running in Docker, auto-set URL
       if (!isUsingServerSync() && isLikelyDockerEnvironment()) {
+        // Make sure we don't duplicate the api prefix
         const apiUrl = `${window.location.origin}/api/trades`;
         setServerUrl(apiUrl);
       }
@@ -86,7 +86,13 @@ export function ServerSyncConfig() {
   const handleSaveConfig = async () => {
     setIsSyncing(true);
     try {
-      const success = await configureServerConnection(serverUrl);
+      // Normalize server URL to ensure no duplicate /api/ paths
+      let normalizedUrl = serverUrl;
+      
+      // If user manually entered a URL with duplicate /api/api/, fix it
+      normalizedUrl = normalizedUrl.replace(/\/api\/api\//g, '/api/');
+      
+      const success = await configureServerConnection(normalizedUrl);
       setIsConnected(success);
       
       if (success) {
@@ -106,8 +112,10 @@ export function ServerSyncConfig() {
       const result = await syncAllData();
       if (result) {
         console.log('Sync completed successfully');
+        toast.success('Data synced with server');
       } else {
         console.warn('Sync completed with some issues');
+        toast.warning('Sync completed with some issues');
       }
       window.dispatchEvent(new Event('storage'));
     } finally {
@@ -116,7 +124,7 @@ export function ServerSyncConfig() {
   };
 
   const handleUseDocker = () => {
-    // Use the Docker API endpoint URL
+    // Use the Docker API endpoint URL - ensure no duplicate /api/ paths
     const apiUrl = window.location.origin + '/api/trades';
     setServerUrl(apiUrl);
     toast.info('Docker API URL configured. Click "Save & Connect" to connect.');

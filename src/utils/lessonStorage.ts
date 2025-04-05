@@ -2,9 +2,13 @@
 import { Lesson } from '@/types';
 import { toast } from '@/utils/toast';
 import { isUsingServerSync, getServerUrl } from './storage/serverConnection';
+import { safeGetItem, safeSetItem } from './storage/storageUtils';
 
 const STORAGE_KEY = 'trade-journal-lessons';
-const SERVER_ENDPOINT = '/api/lessons';
+const SERVER_ENDPOINT = '/lessons'; // Removed duplicate "api" prefix
+
+// Memory fallback for when localStorage is full
+let memoryLessons: Lesson[] = [];
 
 // Get all lessons
 export const getLessons = async (): Promise<Lesson[]> => {
@@ -22,9 +26,12 @@ export const getLessons = async (): Promise<Lesson[]> => {
           const serverLessons = await response.json();
           console.log(`Loaded ${serverLessons.length} lessons from server`);
           
+          // Update memory fallback
+          memoryLessons = serverLessons;
+          
           // Update localStorage with server data as a cache
           try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(serverLessons));
+            safeSetItem(STORAGE_KEY, JSON.stringify(serverLessons));
           } catch (e) {
             console.warn('Could not cache lessons in localStorage:', e);
           }
@@ -39,31 +46,39 @@ export const getLessons = async (): Promise<Lesson[]> => {
       }
     }
     
-    // Fallback to localStorage
-    return getLessonsFromLocalStorage();
+    // Fallback to localStorage or memory
+    return getLessonsFromStorage();
   } catch (error) {
     console.error('Error getting lessons:', error);
     toast.error('Failed to load lessons');
-    return [];
+    return memoryLessons.length > 0 ? memoryLessons : [];
   }
 };
 
-// Synchronous fallback for localStorage
-const getLessonsFromLocalStorage = (): Lesson[] => {
+// Synchronous fallback for localStorage or memory
+const getLessonsFromStorage = (): Lesson[] => {
   try {
-    const lessonsJson = localStorage.getItem(STORAGE_KEY);
+    const lessonsJson = safeGetItem(STORAGE_KEY);
+    if (!lessonsJson && memoryLessons.length > 0) {
+      // Return from memory if available
+      console.log('Using memory fallback for lessons');
+      return memoryLessons;
+    }
+    
     if (!lessonsJson) return [];
     
     const parsed = JSON.parse(lessonsJson);
     if (!Array.isArray(parsed)) {
       console.error('Invalid lessons data format in localStorage');
-      return [];
+      return memoryLessons.length > 0 ? memoryLessons : [];
     }
     
+    // Update memory cache
+    memoryLessons = parsed;
     return parsed;
   } catch (error) {
     console.error('Error loading lessons from localStorage:', error);
-    return [];
+    return memoryLessons.length > 0 ? memoryLessons : [];
   }
 };
 
@@ -74,6 +89,9 @@ export const saveLessons = async (lessons: Lesson[]): Promise<boolean> => {
       console.error('Invalid lessons data:', lessons);
       return false;
     }
+    
+    // Always update memory cache
+    memoryLessons = lessons;
     
     // Try to save to server first if server sync is enabled
     if (isUsingServerSync() && getServerUrl()) {
@@ -97,7 +115,7 @@ export const saveLessons = async (lessons: Lesson[]): Promise<boolean> => {
           
           // Try to update localStorage as cache, but don't fail if it doesn't work
           try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(lessons));
+            safeSetItem(STORAGE_KEY, JSON.stringify(lessons));
           } catch (e) {
             console.warn('Could not cache lessons in localStorage:', e);
           }
@@ -114,7 +132,13 @@ export const saveLessons = async (lessons: Lesson[]): Promise<boolean> => {
     
     // Try localStorage as fallback or primary if no server
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(lessons));
+      const result = safeSetItem(STORAGE_KEY, JSON.stringify(lessons));
+      if (!result) {
+        console.warn('Could not save lessons to localStorage, using memory fallback');
+        // We've already cached in memory at the beginning of the function
+        toast.warning('Storage is full. Using memory fallback, but data may be lost if you close the browser.');
+        return true; // Return true since we have memory fallback
+      }
       return true;
     } catch (e) {
       console.error('Error saving to localStorage:', e);
@@ -126,7 +150,9 @@ export const saveLessons = async (lessons: Lesson[]): Promise<boolean> => {
         const sizeInKB = JSON.stringify(lessons).length / 1024;
         console.error('Storage error: Tried to save', sizeInKB.toFixed(2), 'KB but hit limit');
         
-        toast.error('Storage limit reached. Please enable server sync or export your data.');
+        toast.warning('Storage limit reached. Using memory fallback, but data may be lost if you close the browser.');
+        // We're still returning true since we've saved to memory
+        return true;
       }
       
       return false;
@@ -198,7 +224,8 @@ export const getLessonById = async (lessonId: string): Promise<Lesson | undefine
 // Get all unique lesson types
 export const getLessonTypes = (): string[] => {
   try {
-    const lessons = getLessonsFromLocalStorage();
+    // Use memory cache if available
+    const lessons = memoryLessons.length > 0 ? memoryLessons : getLessonsFromStorage();
     const typesSet = new Set<string>();
     
     lessons.forEach((lesson) => {
@@ -257,7 +284,7 @@ export const syncLessonsWithServer = async (): Promise<boolean> => {
     console.log('Syncing lessons with server at:', lessonUrl);
     
     // Get current lessons from both sources
-    const localLessons = getLessonsFromLocalStorage();
+    const localLessons = getLessonsFromStorage();
     
     const response = await fetch(lessonUrl);
     if (!response.ok) {
@@ -271,7 +298,8 @@ export const syncLessonsWithServer = async (): Promise<boolean> => {
     if (serverLessons.length >= localLessons.length) {
       // Server has same or more lessons, use server data
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(serverLessons));
+        memoryLessons = serverLessons;
+        safeSetItem(STORAGE_KEY, JSON.stringify(serverLessons));
       } catch (e) {
         console.warn('Could not update localStorage with server lessons:', e);
       }
