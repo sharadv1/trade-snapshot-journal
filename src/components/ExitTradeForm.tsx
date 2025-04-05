@@ -2,10 +2,8 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trade } from '@/types';
 import { X, RefreshCcw, CalendarClock } from 'lucide-react';
-import { FullExitForm } from './trade-exit/FullExitForm';
 import { PartialExitForm } from './trade-exit/PartialExitForm';
 import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
 import { PartialExitsList } from './PartialExitsList';
@@ -22,16 +20,6 @@ interface ExitTradeFormProps {
 
 export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: propRemainingQuantity }: ExitTradeFormProps) {
   const {
-    activeTab,
-    setActiveTab,
-    exitPrice,
-    setExitPrice,
-    exitDate,
-    setExitDate,
-    fees,
-    setFees,
-    notes,
-    setNotes,
     partialQuantity,
     setPartialQuantity,
     partialExitPrice,
@@ -43,7 +31,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     partialNotes,
     setPartialNotes,
     remainingQuantity: calculatedRemainingQuantity,
-    handleFullExit,
     handlePartialExit,
     handleReopenTrade
   } = useExitTradeLogic(trade, onUpdate, onClose);
@@ -56,7 +43,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     0
   );
   
-  const isTradeActuallyClosed = trade.status === 'closed' || actualRemainingQuantity <= 0;
   const isClosed = trade.status === 'closed';
   const isFullyExited = isTradeFullyExited(trade);
 
@@ -65,11 +51,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     console.log('Remaining quantity:', actualRemainingQuantity);
     console.log('Is fully exited:', isFullyExited);
     
-    if (actualRemainingQuantity <= 0 && trade.status === 'open' && !isSubmitting) {
-      console.log('Trade is fully exited but still open, closing it automatically');
-      handleFullExit();
-    }
-    
     if (reopened && trade.status === 'closed') {
       setReopened(false);
     }
@@ -77,35 +58,12 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     return () => {
       console.log('ExitTradeForm unmounted for trade:', trade.id);
     };
-  }, [trade.id, trade.status, actualRemainingQuantity, isFullyExited, handleFullExit, isSubmitting, reopened]);
-
-  useEffect(() => {
-    if (actualRemainingQuantity <= 0 && activeTab === 'partial') {
-      setActiveTab('full');
-    }
-  }, [actualRemainingQuantity, activeTab, setActiveTab]);
-
-  const handleSubmitFullExit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    console.log('Submitting full exit form');
-    try {
-      const success = await handleFullExit();
-      if (success) {
-        console.log("Full exit successful, modal should close");
-        setTimeout(() => {
-          if (onClose) onClose();
-        }, 300);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  }, [trade.id, trade.status, actualRemainingQuantity, isFullyExited, isSubmitting, reopened]);
 
   const handleSubmitPartialExit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    console.log('Submitting partial exit form');
+    console.log('Recording partial exit');
     try {
       const success = await handlePartialExit();
       if (success) {
@@ -176,12 +134,12 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
         <CardContent className="space-y-4">
           <Alert>
             <AlertDescription>
-              This trade is already closed. You can view details in the partial exits tab or reopen the trade.
+              This trade is already closed. You can view details in the partial exits or reopen the trade.
             </AlertDescription>
           </Alert>
           
           <div className="space-y-2">
-            <h3 className="text-sm font-medium">Exit Details</h3>
+            <h3 className="text-sm font-medium">Exit Summary</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>Exit Price:</div>
               <div className="font-medium text-right">${trade.exitPrice?.toFixed(2) || 'N/A'}</div>
@@ -217,88 +175,56 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
           />
         </CardContent>
       ) : (
-        <>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="px-6">
-              <TabsList className="grid grid-cols-2 w-full">
-                <TabsTrigger value="full">Full Exit</TabsTrigger>
-                <TabsTrigger value="partial" disabled={actualRemainingQuantity <= 0}>
-                  Partial Exit
-                </TabsTrigger>
-              </TabsList>
-            </div>
+        <div>
+          <CardContent className="space-y-4">
+            {actualRemainingQuantity <= 0 ? (
+              <Alert>
+                <AlertDescription>
+                  This trade has been fully exited. No more exits can be recorded.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
+                <PartialExitForm 
+                  trade={trade}
+                  remainingQuantity={actualRemainingQuantity}
+                  partialQuantity={partialQuantity || 1} 
+                  setPartialQuantity={setPartialQuantity}
+                  partialExitPrice={partialExitPrice}
+                  setPartialExitPrice={setPartialExitPrice}
+                  partialExitDate={partialExitDate}
+                  setPartialExitDate={setPartialExitDate}
+                  partialFees={partialFees}
+                  setPartialFees={setPartialFees}
+                  partialNotes={partialNotes}
+                  setPartialNotes={setPartialNotes}
+                />
+              </form>
+            )}
             
-            <CardContent className="pt-6">
-              <TabsContent value="full" className="space-y-4 mt-0">
-                {actualRemainingQuantity <= 0 ? (
-                  <Alert>
-                    <AlertDescription>
-                      This trade has been fully exited through partial exits. 
-                      Click "Close Trade" to finalize and close the trade.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <form id="full-exit-form" onSubmit={handleSubmitFullExit}>
-                    <FullExitForm 
-                      trade={trade}
-                      exitPrice={exitPrice}
-                      setExitPrice={setExitPrice}
-                      exitDate={exitDate}
-                      setExitDate={setExitDate}
-                      fees={fees}
-                      setFees={setFees}
-                      notes={notes || ''}
-                      setNotes={setNotes}
-                    />
-                  </form>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="partial" className="space-y-4 mt-0">
-                <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
-                  <PartialExitForm 
-                    trade={trade}
-                    remainingQuantity={actualRemainingQuantity}
-                    partialQuantity={partialQuantity || 1} 
-                    setPartialQuantity={setPartialQuantity}
-                    partialExitPrice={partialExitPrice}
-                    setPartialExitPrice={setPartialExitPrice}
-                    partialExitDate={partialExitDate}
-                    setPartialExitDate={setPartialExitDate}
-                    partialFees={partialFees}
-                    setPartialFees={setPartialFees}
-                    partialNotes={partialNotes}
-                    setPartialNotes={setPartialNotes}
-                  />
-                </form>
-              </TabsContent>
-            </CardContent>
-          </Tabs>
+            {trade.partialExits && trade.partialExits.length > 0 && (
+              <PartialExitsList 
+                trade={trade}
+                onUpdate={onUpdate}
+                allowEditing={true}
+              />
+            )}
+          </CardContent>
           
-          <CardFooter className="flex justify-between space-x-2 pt-4 border-t">
-            <Button variant="outline" onClick={handleManualClose} type="button">
-              Cancel
-            </Button>
-            <Button 
-              type="submit"
-              form={activeTab === 'full' ? 'full-exit-form' : 'partial-exit-form'}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Processing...' : activeTab === 'full' 
-                ? (actualRemainingQuantity <= 0 ? 'Close Trade' : 'Close Trade') 
-                : 'Record Partial Exit'}
-            </Button>
-          </CardFooter>
-        </>
-      )}
-      
-      {(!isClosed || reopened) && trade.partialExits && trade.partialExits.length > 0 && (
-        <div className="px-6 pb-6">
-          <PartialExitsList 
-            trade={trade}
-            onUpdate={onUpdate}
-            allowEditing={true}
-          />
+          {actualRemainingQuantity > 0 && (
+            <CardFooter className="flex justify-between space-x-2 pt-4 border-t">
+              <Button variant="outline" onClick={handleManualClose} type="button">
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                form="partial-exit-form"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Processing...' : 'Record Exit'}
+              </Button>
+            </CardFooter>
+          )}
         </div>
       )}
     </Card>
