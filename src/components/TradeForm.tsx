@@ -86,11 +86,16 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   };
 
   const handleFormSuccess = (tradeId: string) => {
-    if (onSuccess) {
-      onSuccess(tradeId);
-    } else {
-      navigate(`/trade/${tradeId}`);
-    }
+    toast.success(isEditing ? "Trade updated successfully!" : "Trade created successfully!");
+    
+    // Add a small delay before navigation to ensure the toast is visible
+    setTimeout(() => {
+      if (onSuccess) {
+        onSuccess(tradeId);
+      } else {
+        navigate(`/trade/${tradeId}`);
+      }
+    }, 500);
   };
 
   const validateForm = (): boolean => {

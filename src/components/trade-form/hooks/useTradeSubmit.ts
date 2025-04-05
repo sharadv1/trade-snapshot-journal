@@ -78,7 +78,9 @@ export function useTradeSubmit(
           key: 'trade-journal-trades'
         }));
         
-        toast.success("Trade updated successfully");
+        // Explicitly dispatch the custom event for trade updates
+        document.dispatchEvent(new CustomEvent('trade-updated'));
+        
         tradeId = updatedTrade.id;
       } else {
         const newId = generateUUID();
@@ -97,7 +99,9 @@ export function useTradeSubmit(
           key: 'trade-journal-trades'
         }));
         
-        toast.success("Trade added successfully");
+        // Explicitly dispatch the custom event for trade updates
+        document.dispatchEvent(new CustomEvent('trade-updated'));
+        
         tradeId = newId;
       }
       

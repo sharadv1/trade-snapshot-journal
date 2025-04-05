@@ -20,6 +20,7 @@ export default function TradeEdit() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('edit');
   const [isResetting, setIsResetting] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
   
   const loadTradeData = () => {
     if (!id) {
@@ -67,10 +68,15 @@ export default function TradeEdit() {
     };
   }, [id]);
   
-  const handleTradeUpdate = () => {
-    console.log('handleTradeUpdate called, refreshing trade data');
+  const handleTradeUpdate = (tradeId: string) => {
+    console.log('handleTradeUpdate called, refreshing trade data for ID:', tradeId);
     loadTradeData();
-    toast.success("Trade data refreshed");
+    setUpdateSuccess(true);
+    
+    // Reset the update success flag after a brief delay
+    setTimeout(() => {
+      setUpdateSuccess(false);
+    }, 3000);
   };
 
   // Modified to not navigate automatically when exiting/reopening
@@ -143,6 +149,12 @@ export default function TradeEdit() {
           </Button>
         </div>
       </div>
+      
+      {updateSuccess && (
+        <div className="mb-4 p-3 rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+          Trade details have been successfully updated!
+        </div>
+      )}
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
