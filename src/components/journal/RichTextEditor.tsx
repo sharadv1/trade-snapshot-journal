@@ -12,7 +12,6 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   readonly?: boolean;
-  maxLength?: number; // Add optional maxLength prop
 }
 
 export function RichTextEditor({ 
@@ -21,8 +20,7 @@ export function RichTextEditor({
   onChange, 
   placeholder, 
   className,
-  readonly = false,
-  maxLength // No default value, so no limit by default
+  readonly = false
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -83,23 +81,6 @@ export function RichTextEditor({
       // Ensure we're not saving empty content as "<p></p>"
       const cleanContent = newContent === '<p></p>' ? '' : newContent;
       
-      // Only limit content if maxLength is specified
-      if (maxLength && editor.getText().length > maxLength) {
-        // Get current cursor position before reverting changes
-        const position = editor.state.selection.$head.pos;
-        
-        // Revert to previous state to enforce limit
-        editor.commands.setContent(content);
-        
-        // Try to restore cursor position if possible
-        if (position <= content.length) {
-          editor.commands.setTextSelection(Math.min(position, content.length));
-        }
-        
-        // Don't update content if over the limit
-        return;
-      }
-      
       console.log('RichTextEditor content updated:', cleanContent.substring(0, 50) + (cleanContent.length > 50 ? '...' : ''));
       onChange(cleanContent);
     },
@@ -131,6 +112,8 @@ export function RichTextEditor({
         .ProseMirror {
           min-height: 150px;
           outline: none;
+          max-height: none;
+          overflow-y: visible;
         }
         .ProseMirror ul, .ProseMirror ol {
           padding-left: 1.5rem;

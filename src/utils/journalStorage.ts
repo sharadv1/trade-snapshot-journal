@@ -1,29 +1,54 @@
 
 import { WeeklyReflection, MonthlyReflection } from '@/types';
+import { toast } from '@/utils/toast';
 
 const WEEKLY_REFLECTIONS_KEY = 'trade-journal-weekly-reflections';
 const MONTHLY_REFLECTIONS_KEY = 'trade-journal-monthly-reflections';
 
-// Helper function to safely parse JSON from localStorage
-const safeParse = <T>(value: string | null): T | {} => {
+// Improved helper function to safely parse JSON from localStorage
+const safeParse = <T>(value: string | null, defaultValue: T): T => {
+  if (!value) return defaultValue;
+  
   try {
-    return value ? JSON.parse(value) : {};
+    const parsed = JSON.parse(value);
+    // Validate it's the right type - for reflections, should be an object
+    if (typeof parsed !== 'object' || parsed === null) {
+      console.error('Invalid data format in localStorage, expected object but got:', typeof parsed);
+      return defaultValue;
+    }
+    return parsed as T;
   } catch (error) {
     console.error('Error parsing JSON:', error);
-    return {};
+    return defaultValue;
   }
 };
 
+// Debug function to help with troubleshooting
+const debugStorage = (action: string, key: string, data?: any) => {
+  console.log(`[JOURNAL STORAGE] ${action} for key "${key}"`);
+  if (data) {
+    console.log('Data:', typeof data === 'string' ? data.substring(0, 100) + '...' : data);
+  }
+  
+  // Log all storage keys to help with debugging
+  const allKeys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k) allKeys.push(k);
+  }
+  console.log('All localStorage keys:', allKeys);
+};
+
 export const getWeeklyReflections = (): { [weekId: string]: WeeklyReflection } => {
+  debugStorage('Retrieving weekly reflections', WEEKLY_REFLECTIONS_KEY);
   const storedReflections = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
-  console.log('Retrieved weekly reflections from storage:', storedReflections);
-  return safeParse(storedReflections) as { [weekId: string]: WeeklyReflection };
+  return safeParse(storedReflections, {});
 };
 
 export const getMonthlyReflections = (): { [monthId: string]: MonthlyReflection } => {
+  debugStorage('Retrieving monthly reflections', MONTHLY_REFLECTIONS_KEY);
   const storedReflections = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
-  console.log('Retrieved monthly reflections from storage:', storedReflections);
-  return safeParse(storedReflections) as { [monthId: string]: MonthlyReflection };
+  return safeParse(storedReflections, {});
 };
 
 export const getWeeklyReflection = (weekId: string): WeeklyReflection | undefined => {
@@ -31,8 +56,9 @@ export const getWeeklyReflection = (weekId: string): WeeklyReflection | undefine
     console.error('Cannot get weekly reflection: weekId is empty');
     return undefined;
   }
+  
+  debugStorage('Getting weekly reflection', weekId);
   const reflections = getWeeklyReflections();
-  console.log(`Getting weekly reflection for ${weekId}`, reflections[weekId]);
   return reflections[weekId];
 };
 
@@ -41,8 +67,9 @@ export const getMonthlyReflection = (monthId: string): MonthlyReflection | undef
     console.error('Cannot get monthly reflection: monthId is empty');
     return undefined;
   }
+  
+  debugStorage('Getting monthly reflection', monthId);
   const reflections = getMonthlyReflections();
-  console.log(`Getting monthly reflection for ${monthId}`, reflections[monthId]);
   return reflections[monthId];
 };
 
@@ -75,21 +102,23 @@ const dispatchStorageEvent = (key: string) => {
   
   lastEventDispatchTime[key] = now;
   
-  // First try using the Storage event constructor if supported
+  // Directly dispatch a customEvent which is more reliable than storage event
+  const customEvent = new CustomEvent('journalUpdated', { detail: { key } });
+  window.dispatchEvent(customEvent);
+  
+  // Also dispatch a custom event with slightly different name for broader compatibility
+  const anotherCustomEvent = new CustomEvent('journal-updated', { detail: { key } });
+  window.dispatchEvent(anotherCustomEvent);
+  
+  // Try the storage event as well
   try {
     const storageEvent = new StorageEvent('storage', { key });
     window.dispatchEvent(storageEvent);
   } catch (e) {
-    // Fallback to a custom event
-    const event = new Event('storage');
-    window.dispatchEvent(event);
+    console.error('Error dispatching storage event:', e);
   }
   
-  // Also dispatch a custom event as another fallback
-  const customEvent = new CustomEvent('journalUpdated', { detail: { key } });
-  window.dispatchEvent(customEvent);
-  
-  console.log(`Storage event dispatched for key: ${key}`);
+  console.log(`Storage events dispatched for key: ${key}`);
 };
 
 // New function to associate trades with reflections
@@ -152,7 +181,8 @@ export const saveWeeklyReflection = (weekId: string, reflection: string, grade?:
     return;
   }
   
-  console.log(`Saving weekly reflection for ${weekId}:`, reflection, grade, weeklyPlan);
+  debugStorage('Saving weekly reflection', weekId, {reflection: reflection.substring(0, 50) + '...', grade, weeklyPlan: weeklyPlan?.substring(0, 50) + '...'});
+  
   try {
     const reflections = getWeeklyReflections();
     
@@ -177,13 +207,44 @@ export const saveWeeklyReflection = (weekId: string, reflection: string, grade?:
       tradeIds: reflections[weekId]?.tradeIds || []
     };
     
-    localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    const reflectionsJson = JSON.stringify(reflections);
+    
+    // Enhanced error handling for storage limits
+    try {
+      localStorage.setItem(WEEKLY_REFLECTIONS_KEY, reflectionsJson);
+      
+      // Verify data was saved correctly
+      const savedData = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
+      if (!savedData) {
+        throw new Error('Failed to retrieve data after saving');
+      }
+      
+      // Quick sanity check that our weekId exists in the data
+      if (!savedData.includes(weekId)) {
+        throw new Error(`Saved data doesn't contain the weekId: ${weekId}`);
+      }
+      
+      debugStorage('Weekly reflection saved successfully', weekId);
+    } catch (error) {
+      console.error('Error saving weekly reflection:', error);
+      
+      if (error instanceof DOMException && 
+          (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+        // Storage limit reached
+        const dataSize = reflectionsJson.length / 1024;
+        console.error(`Storage limit reached! Attempted to save ${dataSize.toFixed(2)}KB`);
+        toast.error('Storage limit reached. Try removing some old entries or images.');
+      } else {
+        toast.error('Failed to save reflection. Please try again or check console for errors.');
+      }
+      return;
+    }
     
     // Dispatch a storage event to notify other components
     dispatchStorageEvent(WEEKLY_REFLECTIONS_KEY);
-    console.log('Weekly reflection saved successfully');
   } catch (error) {
-    console.error('Error saving weekly reflection:', error);
+    console.error('Error in saveWeeklyReflection:', error);
+    toast.error('Failed to save weekly reflection');
   }
 };
 
@@ -193,7 +254,8 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
     return;
   }
   
-  console.log(`Saving monthly reflection for ${monthId}:`, reflection, grade);
+  debugStorage('Saving monthly reflection', monthId, {reflection: reflection.substring(0, 50) + '...', grade});
+  
   try {
     const reflections = getMonthlyReflections();
     
@@ -236,14 +298,46 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
       tradeIds: reflections[exactMonthId]?.tradeIds || []
     };
     
-    console.log("Saving monthly reflection object:", reflections[exactMonthId]);
-    localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    debugStorage("Saving monthly reflection object", exactMonthId, reflections[exactMonthId]);
+    
+    const reflectionsJson = JSON.stringify(reflections);
+    
+    // Enhanced error handling for storage limits
+    try {
+      localStorage.setItem(MONTHLY_REFLECTIONS_KEY, reflectionsJson);
+      
+      // Verify data was saved
+      const savedData = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
+      if (!savedData) {
+        throw new Error('Failed to retrieve data after saving');
+      }
+      
+      // Quick sanity check
+      if (!savedData.includes(exactMonthId)) {
+        throw new Error(`Saved data doesn't contain the monthId: ${exactMonthId}`);
+      }
+      
+      debugStorage('Monthly reflection saved successfully', exactMonthId);
+    } catch (error) {
+      console.error('Error saving monthly reflection:', error);
+      
+      if (error instanceof DOMException && 
+          (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+        // Storage limit reached
+        const dataSize = reflectionsJson.length / 1024;
+        console.error(`Storage limit reached! Attempted to save ${dataSize.toFixed(2)}KB`);
+        toast.error('Storage limit reached. Try removing some old entries or images.');
+      } else {
+        toast.error('Failed to save reflection. Please try again or check console for errors.');
+      }
+      return;
+    }
     
     // Dispatch a storage event to notify other components
     dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
-    console.log('Monthly reflection saved successfully');
   } catch (error) {
-    console.error('Error saving monthly reflection:', error);
+    console.error('Error in saveMonthlyReflection:', error);
+    toast.error('Failed to save monthly reflection');
   }
 };
 
@@ -352,7 +446,9 @@ export const deleteMonthlyReflection = (monthId: string): void => {
 
 // Add this function to expose all weekly reflections
 export const getAllWeeklyReflections = () => {
-  const reflectionsString = localStorage.getItem('trade-journal-weekly-reflections');
+  const reflectionsString = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
+  debugStorage('Getting ALL weekly reflections', WEEKLY_REFLECTIONS_KEY, reflectionsString?.substring(0, 100) + '...');
+  
   if (!reflectionsString) return {};
   
   try {
@@ -365,7 +461,9 @@ export const getAllWeeklyReflections = () => {
 
 // Add this function to expose all monthly reflections
 export const getAllMonthlyReflections = () => {
-  const reflectionsString = localStorage.getItem('trade-journal-monthly-reflections');
+  const reflectionsString = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
+  debugStorage('Getting ALL monthly reflections', MONTHLY_REFLECTIONS_KEY, reflectionsString?.substring(0, 100) + '...');
+  
   if (!reflectionsString) return {};
   
   try {

@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Card, 
@@ -9,7 +8,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { 
   Table, 
   TableBody, 
@@ -18,11 +17,12 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Pencil, Calendar } from 'lucide-react';
-import { getWeeklyReflections } from '@/utils/journalStorage';
+import { Pencil, Calendar, RefreshCcw } from 'lucide-react';
+import { getWeeklyReflections, getAllWeeklyReflections } from '@/utils/journalStorage';
 import { WeeklyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { formatCurrency } from '@/utils/calculations/formatters';
+import { toast } from '@/utils/toast';
 
 export function ReflectionsList() {
   const navigate = useNavigate();
@@ -34,120 +34,164 @@ export function ReflectionsList() {
     totalR: number,
     tradeCount: number
   }>>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const loadReflections = useCallback(() => {
+    console.log("Loading weekly reflections...");
+    setIsRefreshing(true);
+    
+    try {
+      // Get directly from localStorage for more consistent results
+      const reflectionsMap = getAllWeeklyReflections();
+      console.log("Weekly reflections map:", reflectionsMap);
+      
+      // Convert to array and sort by date
+      let reflectionsArray = Object.entries(reflectionsMap).map(([weekId, reflection]) => ({
+        ...reflection,
+        id: reflection.id || weekId,
+        weekId: weekId
+      })) as WeeklyReflection[];
+      
+      console.log(`Found ${reflectionsArray.length} weekly reflections before deduplication`);
+      
+      // Deduplicate reflections by weekStart - only keep the latest entry for each week
+      const weekMap = new Map<string, WeeklyReflection>();
+      reflectionsArray.forEach(reflection => {
+        // Validate the reflection has the required data
+        if (!reflection || !reflection.weekId) {
+          console.warn('Found invalid reflection entry:', reflection);
+          return;
+        }
+        
+        if (reflection.weekStart) {
+          // Make sure weekStart is a valid date
+          if (!isValid(new Date(reflection.weekStart))) {
+            console.warn(`Invalid weekStart date in reflection: ${reflection.weekId}`, reflection.weekStart);
+            return;
+          }
+          
+          const weekKey = new Date(reflection.weekStart).toISOString().slice(0, 10); // YYYY-MM-DD
+          const existing = weekMap.get(weekKey);
+          
+          // Only replace if this is a newer entry or if no entry exists
+          if (!existing || (reflection.lastUpdated && existing.lastUpdated && 
+              new Date(reflection.lastUpdated) > new Date(existing.lastUpdated))) {
+            weekMap.set(weekKey, reflection);
+          }
+        } else {
+          // For entries without weekStart, use the weekId as the key
+          weekMap.set(reflection.weekId, reflection);
+        }
+      });
+      
+      // Convert back to array
+      reflectionsArray = Array.from(weekMap.values());
+      
+      console.log(`Found ${reflectionsArray.length} weekly reflections after deduplication`);
+      
+      // Sort by date (newest first)
+      reflectionsArray.sort((a, b) => {
+        // Handle cases where weekStart might be missing
+        if (!a.weekStart) return 1;
+        if (!b.weekStart) return -1;
+        
+        return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
+      });
+      
+      setReflections(reflectionsArray);
+      
+      // Calculate stats for each reflection
+      const allTrades = getTradesWithMetrics();
+      const stats: Record<string, { totalPnL: number, totalR: number, tradeCount: number }> = {};
+      
+      reflectionsArray.forEach(reflection => {
+        // Initialize week trades array
+        let weekTrades = [];
+        
+        try {
+          // First check by date range
+          if (reflection.weekStart && reflection.weekEnd) {
+            const weekStart = new Date(reflection.weekStart);
+            const weekEnd = new Date(reflection.weekEnd);
+            
+            if (isValid(weekStart) && isValid(weekEnd)) {
+              weekTrades = allTrades.filter(trade => {
+                if (trade.exitDate) {
+                  const exitDate = new Date(trade.exitDate);
+                  return exitDate >= weekStart && exitDate <= weekEnd;
+                }
+                return false;
+              });
+            }
+          }
+          
+          // If we have explicit tradeIds, use those too
+          if (reflection.tradeIds && reflection.tradeIds.length > 0) {
+            const tradeIdsSet = new Set(reflection.tradeIds);
+            const tradesByIds = allTrades.filter(trade => tradeIdsSet.has(trade.id));
+            
+            // Merge trades from date range and explicit IDs, avoiding duplicates
+            const allWeekTradesMap = new Map();
+            
+            [...weekTrades, ...tradesByIds].forEach(trade => {
+              allWeekTradesMap.set(trade.id, trade);
+            });
+            
+            weekTrades = Array.from(allWeekTradesMap.values());
+          }
+          
+          const totalPnL = weekTrades.reduce((sum, trade) => 
+            sum + (trade.metrics.profitLoss || 0), 0);
+          
+          const totalR = weekTrades.reduce((sum, trade) => 
+            sum + (trade.metrics.riskRewardRatio || 0), 0);
+          
+          stats[reflection.id] = { 
+            totalPnL, 
+            totalR, 
+            tradeCount: weekTrades.length 
+          };
+        } catch (error) {
+          console.error(`Error processing trades for reflection ${reflection.id}:`, error);
+          stats[reflection.id] = { totalPnL: 0, totalR: 0, tradeCount: 0 };
+        }
+      });
+      
+      setReflectionStats(stats);
+    } catch (error) {
+      console.error("Error loading reflections:", error);
+      toast.error("Failed to load reflections. Check console for details.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
   
   useEffect(() => {
     loadReflections();
     
     // Listen for storage changes
     const handleStorageChange = () => {
+      console.log("Storage event detected - reloading reflections");
       loadReflections();
     };
     
+    // Listen to both specific and general events for better reliability
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('journalUpdated', handleStorageChange);
+    window.addEventListener('journal-updated', handleStorageChange);
+    
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('journalUpdated', handleStorageChange);
+      window.removeEventListener('journal-updated', handleStorageChange);
     };
-  }, []);
-  
-  const loadReflections = () => {
-    console.log("Loading weekly reflections...");
-    const reflectionsMap = getWeeklyReflections();
-    console.log("Weekly reflections map:", reflectionsMap);
-    
-    // Convert to array and sort by date
-    let reflectionsArray = Object.entries(reflectionsMap).map(([weekId, reflection]) => ({
-      ...reflection,
-      id: reflection.id || weekId,
-      weekId: weekId
-    })) as WeeklyReflection[];
-    
-    // Deduplicate reflections by weekStart - only keep the latest entry for each week
-    const weekMap = new Map<string, WeeklyReflection>();
-    reflectionsArray.forEach(reflection => {
-      if (reflection.weekStart) {
-        const weekKey = new Date(reflection.weekStart).toISOString().slice(0, 10); // YYYY-MM-DD
-        const existing = weekMap.get(weekKey);
-        
-        // Only replace if this is a newer entry or if no entry exists
-        if (!existing || (reflection.lastUpdated && existing.lastUpdated && 
-            new Date(reflection.lastUpdated) > new Date(existing.lastUpdated))) {
-          weekMap.set(weekKey, reflection);
-        }
-      } else {
-        // For entries without weekStart, use the weekId as the key
-        weekMap.set(reflection.weekId, reflection);
-      }
-    });
-    
-    // Convert back to array
-    reflectionsArray = Array.from(weekMap.values());
-    
-    console.log("Weekly reflections array after deduplication:", reflectionsArray);
-    
-    // Sort by date (newest first)
-    reflectionsArray.sort((a, b) => 
-      new Date(b.weekStart || '').getTime() - new Date(a.weekStart || '').getTime()
-    );
-    
-    setReflections(reflectionsArray);
-    
-    // Calculate stats for each reflection
-    const allTrades = getTradesWithMetrics();
-    const stats: Record<string, { totalPnL: number, totalR: number, tradeCount: number }> = {};
-    
-    reflectionsArray.forEach(reflection => {
-      // Initialize week trades array
-      let weekTrades = [];
-      
-      // First check by date range
-      if (reflection.weekStart && reflection.weekEnd) {
-        const weekStart = new Date(reflection.weekStart);
-        const weekEnd = new Date(reflection.weekEnd);
-        
-        weekTrades = allTrades.filter(trade => {
-          if (trade.exitDate) {
-            const exitDate = new Date(trade.exitDate);
-            return exitDate >= weekStart && exitDate <= weekEnd;
-          }
-          return false;
-        });
-      }
-      
-      // If we have explicit tradeIds, use those too
-      if (reflection.tradeIds && reflection.tradeIds.length > 0) {
-        const tradeIdsSet = new Set(reflection.tradeIds);
-        const tradesByIds = allTrades.filter(trade => tradeIdsSet.has(trade.id));
-        
-        // Merge trades from date range and explicit IDs, avoiding duplicates
-        const allWeekTradesMap = new Map();
-        
-        [...weekTrades, ...tradesByIds].forEach(trade => {
-          allWeekTradesMap.set(trade.id, trade);
-        });
-        
-        weekTrades = Array.from(allWeekTradesMap.values());
-      }
-      
-      const totalPnL = weekTrades.reduce((sum, trade) => 
-        sum + (trade.metrics.profitLoss || 0), 0);
-      
-      const totalR = weekTrades.reduce((sum, trade) => 
-        sum + (trade.metrics.riskRewardRatio || 0), 0);
-      
-      stats[reflection.id] = { 
-        totalPnL, 
-        totalR, 
-        tradeCount: weekTrades.length 
-      };
-    });
-    
-    setReflectionStats(stats);
-  };
+  }, [loadReflections]);
   
   const handleEditReflection = (weekId: string) => {
-    if (!weekId) return;
+    if (!weekId) {
+      console.error("Cannot edit reflection: weekId is missing");
+      return;
+    }
     navigate(`/journal/weekly/${weekId}`);
   };
   
@@ -157,6 +201,11 @@ export function ReflectionsList() {
     const formattedDate = format(today, 'yyyy-MM-dd');
     
     navigate(`/journal/weekly/${formattedDate}`);
+  };
+  
+  const handleRefresh = () => {
+    loadReflections();
+    toast.success("Refreshed reflections list");
   };
   
   const getGradeColor = (grade: string = '') => {
@@ -170,11 +219,33 @@ export function ReflectionsList() {
     }
   };
   
+  const formatWeekDates = (startDate?: string, endDate?: string) => {
+    if (!startDate || !endDate) return 'Unknown week';
+    
+    try {
+      const start = parseISO(startDate);
+      const end = parseISO(endDate);
+      
+      if (!isValid(start) || !isValid(end)) {
+        return 'Invalid dates';
+      }
+      
+      return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+    } catch (error) {
+      console.error("Error formatting week dates:", error, { startDate, endDate });
+      return 'Date error';
+    }
+  };
+  
   return (
     <Card className="mt-0">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Weekly Trading Journal Reflections</CardTitle>
         <div className="flex items-center space-x-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
           <Button onClick={handleCreateNew}>
             <Calendar className="mr-2 h-4 w-4" />
             New Reflection
@@ -215,9 +286,7 @@ export function ReflectionsList() {
                 return (
                   <TableRow key={reflectionId || Math.random().toString()}>
                     <TableCell>
-                      {reflection.weekStart && reflection.weekEnd ? 
-                        `${format(parseISO(reflection.weekStart), 'MMM d')} - ${format(parseISO(reflection.weekEnd), 'MMM d, yyyy')}` :
-                        'Unknown week'}
+                      {formatWeekDates(reflection.weekStart, reflection.weekEnd)}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={getGradeColor(reflection.grade)}>
