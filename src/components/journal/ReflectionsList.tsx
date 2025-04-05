@@ -17,7 +17,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Pencil, Calendar, RefreshCcw } from 'lucide-react';
+import { Pencil, Calendar } from 'lucide-react';
 import { getWeeklyReflections, getAllWeeklyReflections } from '@/utils/journalStorage';
 import { WeeklyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
@@ -34,11 +34,9 @@ export function ReflectionsList() {
     totalR: number,
     tradeCount: number
   }>>({});
-  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const loadReflections = useCallback(() => {
     console.log("Loading weekly reflections...");
-    setIsRefreshing(true);
     
     try {
       // Get directly from localStorage for more consistent results
@@ -169,8 +167,6 @@ export function ReflectionsList() {
     } catch (error) {
       console.error("Error loading reflections:", error);
       toast.error("Failed to load reflections. Check console for details.");
-    } finally {
-      setIsRefreshing(false);
     }
   }, []);
   
@@ -211,11 +207,6 @@ export function ReflectionsList() {
     navigate(`/journal/weekly/${formattedDate}`);
   };
   
-  const handleRefresh = () => {
-    loadReflections();
-    toast.success("Refreshed reflections list");
-  };
-  
   const getGradeColor = (grade: string = '') => {
     switch(grade) {
       case 'A': return 'bg-green-100 text-green-800';
@@ -250,10 +241,6 @@ export function ReflectionsList() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Weekly Trading Journal Reflections</CardTitle>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCcw className="mr-2 h-4 w-4" />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
-          </Button>
           <Button onClick={handleCreateNew}>
             <Calendar className="mr-2 h-4 w-4" />
             New Reflection

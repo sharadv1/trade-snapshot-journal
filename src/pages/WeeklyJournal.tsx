@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -391,8 +392,8 @@ export default function WeeklyJournal() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="mb-4 flex justify-between items-center">
-        <div>
+      <div className="mb-4 grid grid-cols-3 items-center">
+        <div className="col-span-1">
           <Button 
             variant="outline" 
             size="sm" 
@@ -411,7 +412,7 @@ export default function WeeklyJournal() {
               : "Reflect on your trading week."}
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="col-span-1 flex justify-center items-center space-x-2">
           <Button
             variant="outline"
             size="icon"
@@ -420,7 +421,7 @@ export default function WeeklyJournal() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <span className="font-medium">
+          <span className="font-medium whitespace-nowrap w-56 text-center">
             {isMonthView ? formattedMonth : formattedWeekRange}
           </span>
           <Button
@@ -432,6 +433,7 @@ export default function WeeklyJournal() {
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
+        <div className="col-span-1"></div>
       </div>
 
       <div className="mb-8">
