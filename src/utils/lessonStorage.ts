@@ -32,8 +32,27 @@ export const saveLessons = (lessons: Lesson[]): boolean => {
       return false;
     }
     
+    // Check storage size before saving to prevent limits issues
     const lessonsJson = JSON.stringify(lessons);
-    localStorage.setItem(STORAGE_KEY, lessonsJson);
+    try {
+      localStorage.setItem(STORAGE_KEY, lessonsJson);
+    } catch (e) {
+      // If we hit a storage limit, show a detailed error and provide debugging info
+      console.error('Error during localStorage setItem:', e);
+      
+      if (e instanceof DOMException && (
+          e.name === 'QuotaExceededError' || 
+          e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+        
+        // Get storage usage data for debugging
+        const storageUsed = lessonsJson.length / 1024; // KB
+        console.error(`Storage error: Tried to save ${storageUsed.toFixed(2)}KB but hit limit`);
+        
+        toast.error('Storage limit reached. Try removing some old entries or images.');
+        return false;
+      }
+      throw e; // Re-throw if it's a different error
+    }
     
     // Verify data was saved correctly
     const savedData = localStorage.getItem(STORAGE_KEY);
