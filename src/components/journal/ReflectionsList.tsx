@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -102,7 +103,8 @@ export function ReflectionsList() {
         return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
       });
       
-      setReflections(reflectionsArray);
+      // Explicitly cast the array to WeeklyReflection[] to satisfy TypeScript
+      setReflections(reflectionsArray as WeeklyReflection[]);
       
       // Calculate stats for each reflection
       const allTrades = getTradesWithMetrics();
