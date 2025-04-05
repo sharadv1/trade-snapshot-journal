@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -191,10 +192,10 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
               </div>
               
               {trade.fees !== undefined && (
-                <>
+                <div className="contents">
                   <div>Fees:</div>
                   <div className="font-medium text-right">${trade.fees.toFixed(2)}</div>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -216,77 +217,79 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
           />
         </CardContent>
       ) : (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="px-6">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="full">Full Exit</TabsTrigger>
-              <TabsTrigger value="partial" disabled={actualRemainingQuantity <= 0}>
-                Partial Exit
-              </TabsTrigger>
-            </TabsList>
-          </div>
-          
-          <CardContent className="pt-6">
-            <TabsContent value="full" className="space-y-4 mt-0">
-              {actualRemainingQuantity <= 0 ? (
-                <Alert>
-                  <AlertDescription>
-                    This trade has been fully exited through partial exits. 
-                    Click "Close Trade" to finalize and close the trade.
-                  </AlertDescription>
-                </Alert>
-              ) : (
-                <form id="full-exit-form" onSubmit={handleSubmitFullExit}>
-                  <FullExitForm 
+        <>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <div className="px-6">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="full">Full Exit</TabsTrigger>
+                <TabsTrigger value="partial" disabled={actualRemainingQuantity <= 0}>
+                  Partial Exit
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <CardContent className="pt-6">
+              <TabsContent value="full" className="space-y-4 mt-0">
+                {actualRemainingQuantity <= 0 ? (
+                  <Alert>
+                    <AlertDescription>
+                      This trade has been fully exited through partial exits. 
+                      Click "Close Trade" to finalize and close the trade.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <form id="full-exit-form" onSubmit={handleSubmitFullExit}>
+                    <FullExitForm 
+                      trade={trade}
+                      exitPrice={exitPrice}
+                      setExitPrice={setExitPrice}
+                      exitDate={exitDate}
+                      setExitDate={setExitDate}
+                      fees={fees}
+                      setFees={setFees}
+                      notes={notes || ''}
+                      setNotes={setNotes}
+                    />
+                  </form>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="partial" className="space-y-4 mt-0">
+                <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
+                  <PartialExitForm 
                     trade={trade}
-                    exitPrice={exitPrice}
-                    setExitPrice={setExitPrice}
-                    exitDate={exitDate}
-                    setExitDate={setExitDate}
-                    fees={fees}
-                    setFees={setFees}
-                    notes={notes || ''}
-                    setNotes={setNotes}
+                    remainingQuantity={actualRemainingQuantity}
+                    partialQuantity={partialQuantity || 1} 
+                    setPartialQuantity={setPartialQuantity}
+                    partialExitPrice={partialExitPrice}
+                    setPartialExitPrice={setPartialExitPrice}
+                    partialExitDate={partialExitDate}
+                    setPartialExitDate={setPartialExitDate}
+                    partialFees={partialFees}
+                    setPartialFees={setPartialFees}
+                    partialNotes={partialNotes}
+                    setPartialNotes={setPartialNotes}
                   />
                 </form>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="partial" className="space-y-4 mt-0">
-              <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
-                <PartialExitForm 
-                  trade={trade}
-                  remainingQuantity={actualRemainingQuantity}
-                  partialQuantity={partialQuantity || 1} 
-                  setPartialQuantity={setPartialQuantity}
-                  partialExitPrice={partialExitPrice}
-                  setPartialExitPrice={setPartialExitPrice}
-                  partialExitDate={partialExitDate}
-                  setPartialExitDate={setPartialExitDate}
-                  partialFees={partialFees}
-                  setPartialFees={setPartialFees}
-                  partialNotes={partialNotes}
-                  setPartialNotes={setPartialNotes}
-                />
-              </form>
-            </TabsContent>
-          </CardContent>
-        </Tabs>
-        
-        <CardFooter className="flex justify-between space-x-2 pt-4 border-t">
-          <Button variant="outline" onClick={handleManualClose} type="button">
-            Cancel
-          </Button>
-          <Button 
-            type="submit"
-            form={activeTab === 'full' ? 'full-exit-form' : 'partial-exit-form'}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Processing...' : activeTab === 'full' 
-              ? (actualRemainingQuantity <= 0 ? 'Close Trade' : 'Close Trade') 
-              : 'Record Partial Exit'}
-          </Button>
-        </CardFooter>
+              </TabsContent>
+            </CardContent>
+          </Tabs>
+          
+          <CardFooter className="flex justify-between space-x-2 pt-4 border-t">
+            <Button variant="outline" onClick={handleManualClose} type="button">
+              Cancel
+            </Button>
+            <Button 
+              type="submit"
+              form={activeTab === 'full' ? 'full-exit-form' : 'partial-exit-form'}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Processing...' : activeTab === 'full' 
+                ? (actualRemainingQuantity <= 0 ? 'Close Trade' : 'Close Trade') 
+                : 'Record Partial Exit'}
+            </Button>
+          </CardFooter>
+        </>
       )}
       
       {(!isClosed || reopened) && trade.partialExits && trade.partialExits.length > 0 && (
