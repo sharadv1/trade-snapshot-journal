@@ -70,17 +70,27 @@ export default function TradeEdit() {
     loadTradeData();
     setUpdateSuccess(true);
     
-    // Navigate back to the trade detail view after a short delay
-    setTimeout(() => {
-      if (id) {
-        navigate(`/trade/${id}`);
-      }
-    }, 500);
+    // Only navigate if we're in the edit tab, not the exit tab
+    if (activeTab === 'edit') {
+      // Navigate back to the trade detail view after a short delay
+      setTimeout(() => {
+        if (id) {
+          navigate(`/trade/${id}`);
+        }
+      }, 500);
+    }
   };
 
   const handleCloseModal = () => {
     console.log('ExitTradeForm close callback called, refreshing trade data');
     loadTradeData();
+    
+    // When a trade is fully exited and closed, navigate to detail view
+    if (trade && trade.status === 'closed') {
+      setTimeout(() => {
+        navigate(`/trade/${id}`);
+      }, 500);
+    }
   };
   
   if (isLoading) {

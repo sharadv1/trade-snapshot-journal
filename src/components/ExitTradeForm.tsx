@@ -69,12 +69,8 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
           setUpdateSuccess(false);
         }, 3000);
         
-        if (actualRemainingQuantity - (partialQuantity || 0) <= 0) {
-          console.log("This partial exit will close the trade, closing modal");
-          setTimeout(() => {
-            if (onClose) onClose();
-          }, 300);
-        }
+        // Don't automatically navigate away - only close if fully exited
+        // Let the useExitTradeLogic hook handle this based on the trade status
       }
     } finally {
       setIsSubmitting(false);

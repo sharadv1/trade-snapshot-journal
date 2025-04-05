@@ -19,16 +19,16 @@ interface DashboardMetricsProps {
 export function DashboardMetrics({ trades }: DashboardMetricsProps) {
   // Calculate key metrics for the dashboard
   const keyMetrics = {
-    winRate: calculateWinRate(trades),
+    winRate: calculateWinRate(trades) || 0,
     totalTrades: trades.filter(trade => trade.status === 'closed').length,
-    totalWins: trades.filter(trade => trade.status === 'closed' && trade.metrics.profitLoss > 0).length,
-    totalLosses: trades.filter(trade => trade.status === 'closed' && trade.metrics.profitLoss <= 0).length,
-    netPnL: calculateTotalPnL(trades),
-    expectancy: calculateExpectancy(trades),
-    sortinoRatio: calculateSortinoRatio(trades),
-    avgWin: calculateAverageWin(trades),
-    avgLoss: calculateAverageLoss(trades),
-    totalR: calculateTotalR(trades)
+    totalWins: trades.filter(trade => trade.status === 'closed' && (trade.metrics.profitLoss || 0) > 0).length,
+    totalLosses: trades.filter(trade => trade.status === 'closed' && (trade.metrics.profitLoss || 0) <= 0).length,
+    netPnL: calculateTotalPnL(trades) || 0,
+    expectancy: calculateExpectancy(trades) || 0,
+    sortinoRatio: calculateSortinoRatio(trades) || 0,
+    avgWin: calculateAverageWin(trades) || 0,
+    avgLoss: calculateAverageLoss(trades) || 0,
+    totalR: calculateTotalR(trades) || 0
   };
 
   return (
