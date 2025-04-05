@@ -24,22 +24,22 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
   const isProfitable = dayData && dayData.pnl > 0;
   
   const handleClick = () => {
-    if (hasTrades) {
-      console.log("DayCell clicked with date:", day);
-      onDayClick(day);
-    }
+    console.log("DayCell clicked with date:", day);
+    // Always call onDayClick even if there are no trades,
+    // this allows us to record navigation for state persistence
+    onDayClick(day);
   };
 
   return (
     <div
       className={cn(
         "border rounded-md p-2 h-24 flex flex-col",
-        !hasTrades && "bg-background",
+        !hasTrades && "bg-background cursor-pointer hover:bg-muted/10 transition-colors",
         hasTrades && isProfitable && "bg-profit/20 cursor-pointer hover:shadow-md transition-shadow",
         hasTrades && !isProfitable && "bg-loss/20 cursor-pointer hover:shadow-md transition-shadow",
         isToday && "ring-2 ring-primary font-bold bg-background shadow-md"
       )}
-      onClick={hasTrades ? handleClick : undefined}
+      onClick={handleClick}
     >
       {/* Date number at top right */}
       <div className={cn(
@@ -56,7 +56,7 @@ export function DayCell({ day, dayData, onDayClick }: DayCellProps) {
             "text-lg font-bold",
             isProfitable ? "text-profit" : "text-loss"
           )}>
-            {isProfitable ? formatCurrency(dayData.pnl) : formatCurrency(dayData.pnl)}
+            {formatCurrency(dayData.pnl)}
           </div>
           
           <div className="text-xs text-muted-foreground">

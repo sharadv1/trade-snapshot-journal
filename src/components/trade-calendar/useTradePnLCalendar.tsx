@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { TradeWithMetrics } from '@/types';
@@ -10,6 +11,7 @@ export function useTradePnLCalendar() {
   const [strategyFilter, setStrategyFilter] = useState<string>('all');
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [lastNavigatedDate, setLastNavigatedDate] = useState<string | null>(null);
 
   const loadTrades = () => {
     console.log('Loading trades in TradePnLCalendar');
@@ -17,6 +19,7 @@ export function useTradePnLCalendar() {
     setTrades(allTrades.filter(trade => trade.status === 'closed'));
   };
 
+  // Load trades when component mounts or when refreshKey changes
   useEffect(() => {
     loadTrades();
     
@@ -34,7 +37,7 @@ export function useTradePnLCalendar() {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('trades-updated', handleStorageChange);
     };
-  }, []);
+  }, [refreshKey]);
 
   const filteredTrades = useMemo(() => {
     let result = [...trades];
@@ -96,10 +99,25 @@ export function useTradePnLCalendar() {
     });
     return Array.from(strategies).sort();
   }, [trades]);
+  
+  // Function to handle calendar navigation with persistance
+  const handleMonthChange = (newMonth: Date) => {
+    setCurrentMonth(newMonth);
+    // Force a refresh when month changes to ensure data is up-to-date
+    setRefreshKey(prev => prev + 1);
+  };
+  
+  // Record last navigated date for state persistence
+  const recordNavigatedDate = (date: Date) => {
+    const dateKey = format(date, 'yyyy-MM-dd');
+    setLastNavigatedDate(dateKey);
+    // Force refresh to ensure journal entries reload when navigating between dates
+    setRefreshKey(prev => prev + 1);
+  };
 
   return {
     currentMonth,
-    setCurrentMonth,
+    setCurrentMonth: handleMonthChange,
     strategyFilter,
     setStrategyFilter,
     resultFilter,
@@ -107,6 +125,8 @@ export function useTradePnLCalendar() {
     dailyPnL,
     availableStrategies,
     refreshKey,
-    loadTrades
+    loadTrades,
+    lastNavigatedDate,
+    recordNavigatedDate
   };
 }

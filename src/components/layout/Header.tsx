@@ -21,7 +21,7 @@ import {
 // MAJOR: Breaking changes
 // MINOR: New features, no breaking changes
 // PATCH: Bug fixes and minor updates
-export const APP_VERSION = "1.1.4";
+export const APP_VERSION = "1.1.5";
 
 export function Header() {
   const isMobile = useIsMobile();

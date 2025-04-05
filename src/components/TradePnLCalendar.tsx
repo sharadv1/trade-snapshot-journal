@@ -17,15 +17,16 @@ export function TradePnLCalendar() {
     setResultFilter,
     dailyPnL,
     availableStrategies,
-    loadTrades
+    loadTrades,
+    recordNavigatedDate
   } = useTradePnLCalendar();
 
   const nextMonth = () => {
-    setCurrentMonth(prev => addMonths(prev, 1));
+    setCurrentMonth(addMonths(currentMonth, 1));
   };
 
   const prevMonth = () => {
-    setCurrentMonth(prev => subMonths(prev, 1));
+    setCurrentMonth(subMonths(currentMonth, 1));
   };
 
   const goToToday = () => {
@@ -36,12 +37,14 @@ export function TradePnLCalendar() {
     const dateKey = format(day, 'yyyy-MM-dd');
     const dayData = dailyPnL[dateKey];
     
+    // Record the navigation for state persistence
+    recordNavigatedDate(day);
+    
     if (dayData && dayData.tradeIds.length > 0) {
       if (dayData.tradeIds.length === 1) {
         navigate(`/trade/${dayData.tradeIds[0]}`);
       } else {
-        const date = format(day, 'yyyy-MM-dd');
-        navigate(`/?date=${date}`);
+        navigate(`/?date=${dateKey}`);
       }
     }
   };
