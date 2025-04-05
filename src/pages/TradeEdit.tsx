@@ -9,8 +9,9 @@ import { toast } from '@/utils/toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { isTradeFullyExited, getRemainingQuantity } from '@/utils/calculations/tradeStatus';
+import { resetDemoData } from '@/utils/storage/demoData';
 
 export default function TradeEdit() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ export default function TradeEdit() {
   const [trade, setTrade] = useState<Trade | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('edit');
+  const [isResetting, setIsResetting] = useState(false);
   
   const loadTradeData = () => {
     if (!id) {
@@ -78,6 +80,24 @@ export default function TradeEdit() {
     loadTradeData();
   };
   
+  const handleResetData = () => {
+    setIsResetting(true);
+    try {
+      resetDemoData();
+      toast.success("Demo data has been reset");
+      
+      // Navigate back to home page after resetting
+      setTimeout(() => {
+        navigate('/');
+      }, 1000);
+    } catch (error) {
+      console.error("Error resetting demo data:", error);
+      toast.error("Failed to reset demo data");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="py-8 text-center">
@@ -106,10 +126,22 @@ export default function TradeEdit() {
         <h1 className="text-3xl font-bold tracking-tight">
           Manage Trade: {trade.symbol}
         </h1>
-        <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleResetData}
+            disabled={isResetting}
+            className="flex items-center"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            {isResetting ? 'Resetting...' : 'Reset Demo Data'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+        </div>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>

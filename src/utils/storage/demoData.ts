@@ -1,3 +1,4 @@
+
 import { Trade } from '@/types';
 import { saveTrades } from './storageCore';
 
@@ -8,7 +9,7 @@ export const addDummyTrades = (): void => {
     {
       id: "demo-1",
       symbol: "AAPL",
-      type: "stock", // Changed from 'equity' to 'stock'
+      type: "stock",
       direction: "long",
       quantity: 100,
       entryDate: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString(),
@@ -24,11 +25,29 @@ export const addDummyTrades = (): void => {
       grade: "A",
       images: [],
       tags: ["tech", "long-term"],
+      partialExits: [
+        {
+          id: "pe-demo-1-1",
+          quantity: 50,
+          price: 190.25,
+          date: new Date(today.getTime() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+          fees: 1.50,
+          notes: "Partial profit taking at first target"
+        },
+        {
+          id: "pe-demo-1-2",
+          quantity: 50,
+          price: 192.53,
+          date: new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+          fees: 1.45,
+          notes: "Final exit at second target"
+        }
+      ]
     },
     {
       id: "demo-2",
       symbol: "MSFT",
-      type: "stock", // Changed from 'equity' to 'stock'
+      type: "stock",
       direction: "long",
       quantity: 50,
       entryDate: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(),
@@ -42,11 +61,12 @@ export const addDummyTrades = (): void => {
       grade: "B",
       images: [],
       tags: ["tech", "cloud"],
+      partialExits: []
     },
     {
       id: "demo-3",
       symbol: "TSLA",
-      type: "stock", // Changed from 'equity' to 'stock'
+      type: "stock",
       direction: "short",
       quantity: 25,
       entryDate: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -62,6 +82,16 @@ export const addDummyTrades = (): void => {
       grade: "C",
       images: [],
       tags: ["auto", "overvalued"],
+      partialExits: [
+        {
+          id: "pe-demo-3-1",
+          quantity: 25,
+          price: 760.00,
+          date: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          fees: 0.99,
+          notes: "Full exit on target"
+        }
+      ]
     },
     {
       id: "demo-4",
@@ -87,7 +117,25 @@ export const addDummyTrades = (): void => {
         tickSize: 0.25,
         contractSize: 50,
         tickValue: 12.50
-      }
+      },
+      partialExits: [
+        {
+          id: "pe-demo-4-1",
+          quantity: 1,
+          price: 4530.25,
+          date: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          fees: 1.25,
+          notes: "First contract out at initial target"
+        },
+        {
+          id: "pe-demo-4-2",
+          quantity: 1,
+          price: 4535.50,
+          date: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          fees: 1.25,
+          notes: "Second contract at final target"
+        }
+      ]
     },
     {
       id: "demo-5",
@@ -111,7 +159,8 @@ export const addDummyTrades = (): void => {
         tickSize: 0.1,
         contractSize: 100,
         tickValue: 10
-      }
+      },
+      partialExits: []
     },
     {
       id: "demo-6",
@@ -132,6 +181,16 @@ export const addDummyTrades = (): void => {
       grade: "B",
       images: [],
       tags: ["currency", "ECB"],
+      partialExits: [
+        {
+          id: "pe-demo-6-1",
+          quantity: 10000,
+          price: 1.1025,
+          date: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          fees: 0.00,
+          notes: "Full position exit on target"
+        }
+      ]
     },
     {
       id: "demo-7",
@@ -150,6 +209,7 @@ export const addDummyTrades = (): void => {
       grade: "B",
       images: [],
       tags: ["crypto", "long-term"],
+      partialExits: []
     },
     {
       id: "demo-8",
@@ -170,8 +230,56 @@ export const addDummyTrades = (): void => {
       grade: "C",
       images: [],
       tags: ["options", "income"],
+      partialExits: [
+        {
+          id: "pe-demo-8-1",
+          quantity: 3,
+          price: 453.50,
+          date: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          fees: 0.90,
+          notes: "Partial exit as option approached expiration"
+        },
+        {
+          id: "pe-demo-8-2",
+          quantity: 2,
+          price: 455.00,
+          date: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          fees: 0.60,
+          notes: "Final exit at expiration"
+        }
+      ]
     }
   ];
 
   saveTrades(demoTrades as Trade[]);
+};
+
+// Function to initialize sample data in localStorage if needed
+export const initializeDemoDataIfNeeded = (): void => {
+  try {
+    const storedTrades = localStorage.getItem('trade-journal-trades');
+    if (!storedTrades || JSON.parse(storedTrades).length === 0) {
+      addDummyTrades();
+      console.log('Demo data initialized successfully');
+    }
+  } catch (error) {
+    console.error('Error initializing demo data:', error);
+    // Force adding demo data even if there was an error
+    addDummyTrades();
+  }
+};
+
+// Function to force reset all demo data
+export const resetDemoData = (): void => {
+  try {
+    addDummyTrades();
+    console.log('Demo data reset successfully');
+    // Dispatch event to notify components that data has changed
+    document.dispatchEvent(new CustomEvent('trade-updated'));
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'trade-journal-trades'
+    }));
+  } catch (error) {
+    console.error('Error resetting demo data:', error);
+  }
 };
