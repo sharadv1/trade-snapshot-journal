@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,7 +8,7 @@ import { useTradeForm } from './trade-form/useTradeForm';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { toast } from '@/utils/toast';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Check } from 'lucide-react';
 import { MaxRiskField } from './trade-form/MaxRiskField';
 import { Label } from '@/components/ui/label';
 import { getCurrentMaxRisk } from '@/utils/maxRiskStorage';
@@ -29,6 +28,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [maxRisk, setMaxRisk] = useState<number | undefined>(undefined);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
   
   useEffect(() => {
     const storedMaxRisk = getCurrentMaxRisk();
@@ -86,7 +86,13 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   };
 
   const handleFormSuccess = (tradeId: string) => {
+    setUpdateSuccess(true);
     toast.success(isEditing ? "Trade updated successfully!" : "Trade created successfully!");
+    
+    // Reset success state after a delay
+    setTimeout(() => {
+      setUpdateSuccess(false);
+    }, 3000);
     
     // Add a small delay before navigation to ensure the toast is visible
     setTimeout(() => {
@@ -134,6 +140,12 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
       
       if (success) {
         window.dispatchEvent(new Event('storage'));
+        setUpdateSuccess(true);
+        
+        // Reset success state after a delay
+        setTimeout(() => {
+          setUpdateSuccess(false);
+        }, 3000);
       }
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -228,14 +240,22 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting 
-              ? 'Saving...' 
-              : isEditing 
-                ? "Update Trade" 
-                : "Save Trade"
-            }
-          </Button>
+          <div className="flex items-center gap-3">
+            {updateSuccess && (
+              <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-medium">
+                <Check className="h-4 w-4" />
+                <span>Updated successfully!</span>
+              </div>
+            )}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting 
+                ? 'Saving...' 
+                : isEditing 
+                  ? "Update Trade" 
+                  : "Save Trade"
+              }
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </form>

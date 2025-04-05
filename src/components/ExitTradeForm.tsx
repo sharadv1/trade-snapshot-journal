@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trade } from '@/types';
-import { X, CalendarClock } from 'lucide-react';
+import { X, CalendarClock, Check } from 'lucide-react';
 import { PartialExitForm } from './trade-exit/PartialExitForm';
 import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
 import { PartialExitsList } from './PartialExitsList';
@@ -34,6 +34,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
   } = useExitTradeLogic(trade, onUpdate, onClose);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
   
   const actualRemainingQuantity = Math.max(
     propRemainingQuantity !== undefined ? propRemainingQuantity : calculatedRemainingQuantity,
@@ -61,6 +62,12 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
       const success = await handlePartialExit();
       if (success) {
         console.log("Partial exit successful");
+        setUpdateSuccess(true);
+        
+        // Reset success state after a delay
+        setTimeout(() => {
+          setUpdateSuccess(false);
+        }, 3000);
         
         if (actualRemainingQuantity - (partialQuantity || 0) <= 0) {
           console.log("This partial exit will close the trade, closing modal");
@@ -143,7 +150,13 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
                 isClosedTradeConversion={true}
               />
               
-              <div className="flex justify-end mt-4">
+              <div className="flex justify-end mt-4 items-center gap-3">
+                {updateSuccess && (
+                  <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-medium">
+                    <Check className="h-4 w-4" />
+                    <span>Updated successfully!</span>
+                  </div>
+                )}
                 <Button 
                   type="submit"
                   form="partial-exit-form"
@@ -174,7 +187,13 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
               setPartialNotes={setPartialNotes}
             />
             
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-end mt-4 items-center gap-3">
+              {updateSuccess && (
+                <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-medium">
+                  <Check className="h-4 w-4" />
+                  <span>Updated successfully!</span>
+                </div>
+              )}
               <Button 
                 type="submit"
                 form="partial-exit-form"
@@ -193,8 +212,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
           </div>
         )}
       </CardContent>
-      
-      {/* No more footer with full exit option */}
     </Card>
   );
 }
