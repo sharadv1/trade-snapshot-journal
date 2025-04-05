@@ -1,7 +1,7 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { exportTradesToFile, importTradesFromFile } from '@/utils/dataTransfer';
+import { exportTradesToFile, importTradesFromFile, getLastImportSummary } from '@/utils/dataTransfer';
 import { FileDown, FileUp, FileBox } from 'lucide-react';
 import {
   Dialog,
@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from '@/utils/toast';
+import { DataImportSummary } from './DataImportSummary';
 
 interface DataExportImportProps {
   onImportComplete?: () => void;
@@ -25,7 +26,24 @@ interface DataExportImportProps {
 export const DataExportImport = ({ onImportComplete }: DataExportImportProps) => {
   const [isImporting, setIsImporting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryData, setSummaryData] = useState(getLastImportSummary());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  useEffect(() => {
+    const handleImportComplete = (event: CustomEvent) => {
+      if (event.detail?.summaryData) {
+        setSummaryData(event.detail.summaryData);
+        setShowSummary(true);
+      }
+    };
+    
+    document.addEventListener('import-complete', handleImportComplete as EventListener);
+    
+    return () => {
+      document.removeEventListener('import-complete', handleImportComplete as EventListener);
+    };
+  }, []);
   
   const handleExport = () => {
     exportTradesToFile();
@@ -52,7 +70,6 @@ export const DataExportImport = ({ onImportComplete }: DataExportImportProps) =>
       
       // Force refresh UI components
       window.dispatchEvent(new Event('storage'));
-      toast.success('Import completed successfully');
     } catch (error) {
       console.error('Error during import:', error);
       toast.error('Import failed. Please check the file format.');
@@ -138,6 +155,12 @@ export const DataExportImport = ({ onImportComplete }: DataExportImportProps) =>
           </div>
         </DialogContent>
       </Dialog>
+      
+      <DataImportSummary 
+        isOpen={showSummary} 
+        onClose={() => setShowSummary(false)} 
+        summaryData={summaryData}
+      />
     </>
   );
 };

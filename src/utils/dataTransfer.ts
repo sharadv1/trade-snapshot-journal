@@ -181,6 +181,21 @@ const parseCsvFile = async (file: File): Promise<string> => {
   }
 };
 
+// Create a new variable to store the latest import summary
+let lastImportSummary = {
+  trades: [],
+  ideas: [],
+  strategies: [],
+  symbols: [],
+  weeklyReflections: [],
+  monthlyReflections: []
+};
+
+// Function to get the last import summary
+export const getLastImportSummary = () => {
+  return lastImportSummary;
+};
+
 // Function to import data from a JSON string
 const importData = (jsonData: string): boolean => {
   try {
@@ -190,6 +205,16 @@ const importData = (jsonData: string): boolean => {
       console.error('Invalid data format - parsed to null/undefined');
       return false;
     }
+    
+    // Reset the summary data
+    lastImportSummary = {
+      trades: [],
+      ideas: [],
+      strategies: [],
+      symbols: [],
+      weeklyReflections: [],
+      monthlyReflections: []
+    };
     
     // Structured export with all data types
     if (data.trades && data.version) {
@@ -203,6 +228,7 @@ const importData = (jsonData: string): boolean => {
         }));
         saveTrades(validatedTrades);
         console.log(`Imported ${validatedTrades.length} trades`);
+        lastImportSummary.trades = validatedTrades;
       } else {
         console.warn('Invalid trades data format in import');
       }
@@ -215,6 +241,7 @@ const importData = (jsonData: string): boolean => {
         }));
         saveIdeas(validatedIdeas);
         console.log(`Imported ${validatedIdeas.length} ideas`);
+        lastImportSummary.ideas = validatedIdeas;
       } else {
         console.warn('Invalid ideas data format in import');
       }
@@ -223,6 +250,7 @@ const importData = (jsonData: string): boolean => {
       if (Array.isArray(data.strategies)) {
         saveStrategies(data.strategies);
         console.log(`Imported ${data.strategies.length} strategies`);
+        lastImportSummary.strategies = data.strategies;
       } else {
         console.warn('Invalid strategies data format in import');
       }
@@ -231,24 +259,29 @@ const importData = (jsonData: string): boolean => {
       if (Array.isArray(data.symbols)) {
         saveCustomSymbols(data.symbols);
         console.log(`Imported ${data.symbols.length} symbols`);
+        lastImportSummary.symbols = data.symbols;
       } else {
         console.warn('Invalid symbols data format in import');
       }
       
       // Import weekly journal reflections (new in v1.1)
       if (data.weeklyReflections) {
-        Object.values(data.weeklyReflections).forEach((reflection: any) => {
+        const weeklyReflectionsArray = Object.values(data.weeklyReflections);
+        weeklyReflectionsArray.forEach((reflection: any) => {
           saveWeeklyReflectionObject(reflection as WeeklyReflection);
         });
-        console.log(`Imported ${Object.keys(data.weeklyReflections).length} weekly reflections`);
+        console.log(`Imported ${weeklyReflectionsArray.length} weekly reflections`);
+        lastImportSummary.weeklyReflections = weeklyReflectionsArray;
       }
       
       // Import monthly journal reflections (new in v1.1)
       if (data.monthlyReflections) {
-        Object.values(data.monthlyReflections).forEach((reflection: any) => {
+        const monthlyReflectionsArray = Object.values(data.monthlyReflections);
+        monthlyReflectionsArray.forEach((reflection: any) => {
           saveMonthlyReflectionObject(reflection as MonthlyReflection);
         });
-        console.log(`Imported ${Object.keys(data.monthlyReflections).length} monthly reflections`);
+        console.log(`Imported ${monthlyReflectionsArray.length} monthly reflections`);
+        lastImportSummary.monthlyReflections = monthlyReflectionsArray;
       }
       
       return true;
@@ -264,6 +297,7 @@ const importData = (jsonData: string): boolean => {
         status: trade.status || 'closed'
       }));
       saveTrades(validatedTrades);
+      lastImportSummary.trades = validatedTrades;
       return true;
     }
     
@@ -278,6 +312,16 @@ const importData = (jsonData: string): boolean => {
 // Function to import trades from a file
 export const importTradesFromFile = async (file: File): Promise<void> => {
   console.log('Importing file:', file.name);
+  
+  // Reset the summary data before each import
+  lastImportSummary = {
+    trades: [],
+    ideas: [],
+    strategies: [],
+    symbols: [],
+    weeklyReflections: [],
+    monthlyReflections: []
+  };
   
   try {
     // Parse the file content based on the file type
@@ -300,6 +344,7 @@ export const importTradesFromFile = async (file: File): Promise<void> => {
         
         await saveTrades(validatedTrades);
         console.log(`Imported ${validatedTrades.length} trades from CSV`);
+        lastImportSummary.trades = validatedTrades;
         
         // Force refresh UI components
         window.dispatchEvent(new Event('storage'));
@@ -332,6 +377,7 @@ export const importTradesFromFile = async (file: File): Promise<void> => {
           }));
           
           await saveTrades(validatedTrades);
+          lastImportSummary.trades = validatedTrades;
           toast.success(`Imported ${validatedTrades.length} trades successfully`);
           // Force refresh UI components
           window.dispatchEvent(new Event('storage'));
@@ -362,4 +408,10 @@ export const importTradesFromFile = async (file: File): Promise<void> => {
     console.error('Error importing file:', error);
     toast.error('Import failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
+  
+  // Fire a custom event to notify that import is complete with summary data
+  const importCompleteEvent = new CustomEvent('import-complete', { 
+    detail: { summaryData: lastImportSummary } 
+  });
+  document.dispatchEvent(importCompleteEvent);
 };

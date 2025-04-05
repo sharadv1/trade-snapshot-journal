@@ -1,22 +1,17 @@
 
-import { useState } from 'react';
 import { Trade } from '@/types';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { MediaUpload } from '@/components/MediaUpload';
-import { toast } from '@/utils/toast';
-
-interface MediaFile {
-  url: string;
-  type: 'image' | 'video';
-}
+import { MistakesField } from './MistakesField';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface NotesAndImagesFormProps {
-  trade: Partial<Trade>;
+  trade: Trade;
   handleChange: (field: keyof Trade, value: any) => void;
   images: string[];
-  onImageUpload: (file: File) => void;
-  onImageRemove: (index: number) => void;
+  onImageUpload: (files: FileList) => void;
+  onImageRemove: (url: string) => void;
 }
 
 export function NotesAndImagesForm({
@@ -26,69 +21,54 @@ export function NotesAndImagesForm({
   onImageUpload,
   onImageRemove
 }: NotesAndImagesFormProps) {
-  const [notes, setNotes] = useState(trade.notes || '');
-  const [isUploading, setIsUploading] = useState(false);
-
-  // Convert legacy images array to media format, and properly detect video types
-  const media: MediaFile[] = images.map(url => ({
-    url,
-    type: isVideoUrl(url) ? 'video' : 'image'
-  }));
-  
-  function isVideoUrl(url: string): boolean {
-    // Check if it's a server path or data URL
-    return url.endsWith('.mp4') || 
-           url.endsWith('.webm') || 
-           url.endsWith('.mov') ||
-           url.includes('/media/') && (
-             url.includes('.mp4') || 
-             url.includes('.webm') || 
-             url.includes('.mov')
-           ) ||
-           url.includes('/video/') ||
-           url.startsWith('data:video/');
-  }
-  
-  const handleMediaUpload = async (file: File) => {
-    setIsUploading(true);
-    try {
-      await onImageUpload(file);
-    } catch (error) {
-      console.error('Error uploading media:', error);
-      toast.error('Failed to upload media');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleNotesChange = (value: string) => {
-    setNotes(value);
-    handleChange('notes', value);
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes</Label>
-        <div className="min-h-[200px]">
-          <RichTextEditor
-            content={notes}
-            onChange={handleNotesChange}
-            placeholder="Add your trade notes here..."
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="notes">Trade Notes</Label>
+          <Textarea
+            id="notes"
+            value={trade.notes || ''}
+            onChange={(e) => handleChange('notes', e.target.value)}
+            placeholder="Enter your notes about this trade"
+            className="min-h-[150px]"
+          />
+        </div>
+        
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="grade">Trade Grade</Label>
+            <Select
+              value={trade.grade || ''}
+              onValueChange={(value) => handleChange('grade', value)}
+            >
+              <SelectTrigger id="grade">
+                <SelectValue placeholder="Select a grade for this trade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A">A - Excellent</SelectItem>
+                <SelectItem value="B">B - Good</SelectItem>
+                <SelectItem value="C">C - Average</SelectItem>
+                <SelectItem value="D">D - Poor</SelectItem>
+                <SelectItem value="F">F - Failed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <MistakesField 
+            selectedMistakes={trade.mistakes || []} 
+            onChange={(mistakes) => handleChange('mistakes', mistakes)}
           />
         </div>
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="media">Images & Videos</Label>
-        <MediaUpload
-          media={media}
-          onMediaUpload={handleMediaUpload}
-          onMediaRemove={onImageRemove}
+        <Label>Images</Label>
+        <MediaUpload 
+          images={images} 
+          onImageUpload={onImageUpload} 
+          onImageRemove={onImageRemove} 
         />
-        {isUploading && (
-          <div className="text-sm text-muted-foreground">Uploading media...</div>
-        )}
       </div>
     </div>
   );
