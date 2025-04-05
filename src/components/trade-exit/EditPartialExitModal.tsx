@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { 
   Dialog, 
@@ -57,14 +56,17 @@ export function EditPartialExitModal({
         return;
       }
       
+      // Round the exit price to 2 decimal places
+      const roundedExitPrice = Number(exitPrice.toFixed(2));
+      
       // Find and update the partial exit
       const updatedPartialExits = latestTrade.partialExits?.map(exit => 
         exit.id === partialExit.id 
           ? {
               ...exit,
               quantity,
-              exitPrice,
-              price: exitPrice, // Update both for compatibility
+              exitPrice: roundedExitPrice,
+              price: roundedExitPrice, // Update both for compatibility
               exitDate,
               date: exitDate, // Update both for compatibility
               fees,
@@ -89,7 +91,7 @@ export function EditPartialExitModal({
         // If fully exited through partials, update trade status to closed
         updatedTrade.status = 'closed';
         
-        // Calculate weighted average exit price for the main trade
+        // Calculate weighted average exit price for the main trade and round to 2 decimal places
         const totalQuantity = updatedTrade.quantity;
         let weightedSum = 0;
         
@@ -97,8 +99,8 @@ export function EditPartialExitModal({
           weightedSum += exit.exitPrice * exit.quantity;
         });
         
-        // Set the trade's exit price to the weighted average
-        updatedTrade.exitPrice = weightedSum / totalQuantity;
+        // Set the trade's exit price to the weighted average, rounded to 2 decimal places
+        updatedTrade.exitPrice = Number((weightedSum / totalQuantity).toFixed(2));
         
         // Find the latest exit date among partial exits
         const sortedExits = [...updatedPartialExits].sort((a, b) => 

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Trade, PartialExit } from '@/types';
 import { updateTrade, getTradeById } from '@/utils/storage/tradeOperations';
@@ -83,6 +84,9 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
         return false;
       }
       
+      // Round the exit price to 2 decimal places
+      const roundedExitPrice = Number(partialExitPrice.toFixed(2));
+      
       // Special case: converting a closed trade without partials to use the partial exit system
       if (isClosedWithoutPartials && latestTrade.exitPrice) {
         // Create a new partial exit record for the full quantity
@@ -90,8 +94,8 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
           id: generateUUID(),
           date: partialExitDate,
           exitDate: partialExitDate,
-          price: partialExitPrice,
-          exitPrice: partialExitPrice,
+          price: roundedExitPrice,
+          exitPrice: roundedExitPrice,
           quantity: latestTrade.quantity,
           fees: partialFees || 0,
           notes: partialNotes
@@ -103,7 +107,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
           partialExits: [conversionExit],
           // Keep the trade closed
           status: 'closed',
-          exitPrice: partialExitPrice,
+          exitPrice: roundedExitPrice,
           exitDate: partialExitDate,
           fees: partialFees,
           notes: partialNotes
@@ -131,8 +135,8 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
         id: generateUUID(),
         date: partialExitDate,
         exitDate: partialExitDate,
-        price: partialExitPrice,
-        exitPrice: partialExitPrice,
+        price: roundedExitPrice,
+        exitPrice: roundedExitPrice,
         quantity: partialQuantity,
         fees: partialFees || 0,
         notes: partialNotes
@@ -156,11 +160,14 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
       
       // If closing the trade, calculate the weighted average exit price
       if (shouldClose) {
+        // Calculate weighted average exit price and round to 2 decimal places
         const totalQuantity = updatedPartialExits.reduce((sum, exit) => sum + exit.quantity, 0);
-        updatedTrade.exitPrice = updatedPartialExits.reduce(
+        const weightedAvgPrice = updatedPartialExits.reduce(
           (sum, exit) => sum + (exit.exitPrice * exit.quantity),
           0
         ) / totalQuantity;
+        
+        updatedTrade.exitPrice = Number(weightedAvgPrice.toFixed(2));
         
         // Use the latest exit date as the trade exit date
         const sortedExits = [...updatedPartialExits].sort((a, b) => 

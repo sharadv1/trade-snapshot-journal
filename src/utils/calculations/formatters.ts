@@ -1,4 +1,5 @@
 
+
 /**
  * Utility functions for formatting values
  */
@@ -34,3 +35,4 @@ export function formatDecimal(value: number | undefined): string {
   if (value === undefined || value === null) return '';
   return Number(value).toFixed(2);
 }
+
