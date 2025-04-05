@@ -39,40 +39,9 @@ export function LessonCard({ lesson, onEdit, onUpdate }: LessonCardProps) {
   return (
     <Card className="overflow-hidden w-full">
       <CardContent className="p-0">
-        <div className="grid md:grid-cols-2 gap-0">
+        <div className="grid grid-cols-1 gap-0">
           <div className="p-6">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-semibold">{lesson.title}</h3>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={onEdit}>
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Lesson</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete this lesson? This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={handleDelete}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
+            <h3 className="text-xl font-semibold mb-4">{lesson.title}</h3>
             
             <div className="mb-4">
               <p className="text-gray-700 whitespace-pre-line">{lesson.description}</p>
@@ -86,15 +55,47 @@ export function LessonCard({ lesson, onEdit, onUpdate }: LessonCardProps) {
               </div>
             )}
             
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 mb-4">
               {formatDate(lesson.createdAt)}
               {lesson.updatedAt !== lesson.createdAt && 
                 ` (Updated: ${formatDate(lesson.updatedAt)})`}
             </div>
-          </div>
-          
-          <div className="bg-gray-50 flex items-center justify-center p-6">
-            <LessonMedia media={lesson.media || []} />
+
+            {lesson.media && lesson.media.length > 0 && (
+              <div className="bg-gray-50 p-4 rounded-md mb-4">
+                <LessonMedia media={lesson.media || []} />
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="ghost" size="sm" onClick={onEdit}>
+                <Edit className="h-4 w-4" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Lesson</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this lesson? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </div>
       </CardContent>

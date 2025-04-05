@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TradeForm } from '@/components/TradeForm';
@@ -8,9 +9,8 @@ import { toast } from '@/utils/toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { isTradeFullyExited, getRemainingQuantity } from '@/utils/calculations/tradeStatus';
-import { resetDemoData } from '@/utils/storage/demoData';
 
 export default function TradeEdit() {
   const { id } = useParams<{ id: string }>();
@@ -18,7 +18,6 @@ export default function TradeEdit() {
   const [trade, setTrade] = useState<Trade | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('edit');
-  const [isResetting, setIsResetting] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   
   const loadTradeData = () => {
@@ -71,31 +70,17 @@ export default function TradeEdit() {
     loadTradeData();
     setUpdateSuccess(true);
     
+    // Navigate back to the trade detail view after a short delay
     setTimeout(() => {
-      setUpdateSuccess(false);
-    }, 3000);
+      if (id) {
+        navigate(`/trade/${id}`);
+      }
+    }, 500);
   };
 
   const handleCloseModal = () => {
     console.log('ExitTradeForm close callback called, refreshing trade data');
     loadTradeData();
-  };
-  
-  const handleResetData = () => {
-    setIsResetting(true);
-    try {
-      resetDemoData();
-      toast.success("Demo data has been reset");
-      
-      setTimeout(() => {
-        navigate('/');
-      }, 1000);
-    } catch (error) {
-      console.error("Error resetting demo data:", error);
-      toast.error("Failed to reset demo data");
-    } finally {
-      setIsResetting(false);
-    }
   };
   
   if (isLoading) {
@@ -127,16 +112,6 @@ export default function TradeEdit() {
           Manage Trade: {trade.symbol}
         </h1>
         <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleResetData}
-            disabled={isResetting}
-            className="flex items-center"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            {isResetting ? 'Resetting...' : 'Reset Demo Data'}
-          </Button>
           <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back

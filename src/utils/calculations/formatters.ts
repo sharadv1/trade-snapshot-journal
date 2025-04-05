@@ -25,3 +25,11 @@ export function formatPercentage(value: number): string {
     maximumFractionDigits: 2
   }).format(value) + '%';
 }
+
+/**
+ * Format a decimal number to at most 2 decimal places
+ */
+export function formatDecimal(value: number | undefined): string {
+  if (value === undefined) return '';
+  return value.toFixed(2);
+}

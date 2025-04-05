@@ -81,11 +81,13 @@ export default function Lessons() {
         />
       )}
 
-      <LessonList 
-        lessons={filteredLessons} 
-        onEdit={handleEditLesson} 
-        onUpdate={loadLessons} 
-      />
+      <div className="space-y-6">
+        <LessonList 
+          lessons={filteredLessons} 
+          onEdit={handleEditLesson} 
+          onUpdate={loadLessons} 
+        />
+      </div>
 
       <LessonDialog 
         open={isDialogOpen} 

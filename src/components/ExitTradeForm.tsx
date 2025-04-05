@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trade } from '@/types';
-import { X, CalendarClock, Check } from 'lucide-react';
+import { CalendarClock, Check } from 'lucide-react';
 import { PartialExitForm } from './trade-exit/PartialExitForm';
 import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
 import { PartialExitsList } from './PartialExitsList';
@@ -81,19 +81,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     }
   };
 
-  const handleManualClose = () => {
-    console.log('Manual close button clicked, calling onClose callback');
-    onClose();
-  };
-
-  // Create initial partial exit if there's a closed trade with no partials
-  useEffect(() => {
-    if (isClosed && (!trade.partialExits || trade.partialExits.length === 0) && trade.exitPrice) {
-      console.log('Closed trade with no partials detected - should be converted to use partials');
-      // Don't actually create the partial here - we'll just show editing UI
-    }
-  }, [isClosed, trade]);
-
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -112,9 +99,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
               </div>
             )}
           </div>
-          <Button variant="ghost" size="icon" onClick={handleManualClose} type="button">
-            <X className="h-4 w-4" />
-          </Button>
         </div>
       </CardHeader>
       
