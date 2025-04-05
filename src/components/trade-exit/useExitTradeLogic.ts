@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Trade, PartialExit } from '@/types';
 import { updateTrade, getTradeById } from '@/utils/storage/tradeOperations';
@@ -190,13 +189,9 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
       // Update the remaining quantity state
       setRemainingQuantity(updatedRemainingQuantity);
       
-      // IMPORTANT: Only call onClose if explicitly requested by the user or if the trade is now closed
-      // This prevents automatic navigation away from the page
-      if (shouldClose && onClose) {
-        console.log("Trade fully exited via partials, calling onClose");
-        // Use a timeout to ensure the UI is updated before navigating
-        setTimeout(() => onClose(), 500);
-      }
+      // IMPORTANT: Changed the behavior to never call onClose automatically
+      // This ensures the user stays on the exit page after recording an exit
+      // Only call onClose if the user explicitly requests it
       
       return true;
     } catch (error) {

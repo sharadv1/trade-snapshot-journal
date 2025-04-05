@@ -85,12 +85,9 @@ export default function TradeEdit() {
     console.log('ExitTradeForm close callback called, refreshing trade data');
     loadTradeData();
     
-    // When a trade is fully exited and closed, navigate to detail view
-    if (trade && trade.status === 'closed') {
-      setTimeout(() => {
-        navigate(`/trade/${id}`);
-      }, 500);
-    }
+    // No automatic navigation - we'll stay on the current page
+    // This ensures users stay on the exit page after recording an exit
+    // If the user wants to navigate away, they'll use the Back button
   };
   
   if (isLoading) {
