@@ -10,6 +10,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { toast } from '@/utils/toast';
 import { AlertCircle, Check } from 'lucide-react';
+import { MaxRiskField } from './trade-form/MaxRiskField';
+import { Label } from '@/components/ui/label';
 import { getCurrentMaxRisk } from '@/utils/maxRiskStorage';
 
 interface TradeFormProps {
@@ -186,6 +188,15 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
                 : "Enter the details of your new trade"
             }
           </CardDescription>
+          
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="maxRisk">Max Risk Per Trade</Label>
+            <MaxRiskField
+              value={maxRisk}
+              onChange={setMaxRisk}
+              isReadOnly={true}
+            />
+          </div>
         </CardHeader>
         
         {validationErrors.length > 0 && (

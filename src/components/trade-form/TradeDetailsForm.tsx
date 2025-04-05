@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Trade, FuturesContractDetails } from '@/types';
 import { Label } from '@/components/ui/label';
@@ -155,6 +154,26 @@ export function TradeDetailsForm({
           value={pointValue}
         />
       )}
+
+      {/* Add the Grade field near the top of the form */}
+      <div className="space-y-2">
+        <Label htmlFor="grade">Trade Grade</Label>
+        <Select
+          value={trade.grade || ''}
+          onValueChange={(value) => handleChange('grade', value)}
+        >
+          <SelectTrigger id="grade">
+            <SelectValue placeholder="Select a grade for this trade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="A">A - Excellent</SelectItem>
+            <SelectItem value="B">B - Good</SelectItem>
+            <SelectItem value="C">C - Average</SelectItem>
+            <SelectItem value="D">D - Poor</SelectItem>
+            <SelectItem value="F">F - Failed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Entry Date/Time */}
       <div className="space-y-2">
