@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Trade, FuturesContractDetails } from '@/types';
 import { Label } from '@/components/ui/label';
@@ -154,26 +155,6 @@ export function TradeDetailsForm({
           value={pointValue}
         />
       )}
-
-      {/* Add the Grade field near the top of the form */}
-      <div className="space-y-2">
-        <Label htmlFor="grade">Trade Grade</Label>
-        <Select
-          value={trade.grade || ''}
-          onValueChange={(value) => handleChange('grade', value)}
-        >
-          <SelectTrigger id="grade">
-            <SelectValue placeholder="Select a grade for this trade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="A">A - Excellent</SelectItem>
-            <SelectItem value="B">B - Good</SelectItem>
-            <SelectItem value="C">C - Average</SelectItem>
-            <SelectItem value="D">D - Poor</SelectItem>
-            <SelectItem value="F">F - Failed</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       {/* Entry Date/Time */}
       <div className="space-y-2">
@@ -384,13 +365,36 @@ export function TradeDetailsForm({
         </Select>
       </div>
       
-      {/* Mistakes Field */}
-      <div className="space-y-2">
-        <Label htmlFor="mistakes">Mistakes Made</Label>
-        <MistakesField 
-          value={trade.mistakes} 
-          onChange={(mistakes) => handleChange('mistakes', mistakes)} 
-        />
+      {/* Grade and Mistakes Fields - Side by Side */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Grade Field */}
+        <div className="space-y-2">
+          <Label htmlFor="grade">Trade Grade</Label>
+          <Select
+            value={trade.grade || ''}
+            onValueChange={(value) => handleChange('grade', value)}
+          >
+            <SelectTrigger id="grade">
+              <SelectValue placeholder="Select a grade for this trade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="A">A - Excellent</SelectItem>
+              <SelectItem value="B">B - Good</SelectItem>
+              <SelectItem value="C">C - Average</SelectItem>
+              <SelectItem value="D">D - Poor</SelectItem>
+              <SelectItem value="F">F - Failed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* Mistakes Field */}
+        <div className="space-y-2">
+          <Label htmlFor="mistakes">Mistakes Made</Label>
+          <MistakesField 
+            value={trade.mistakes} 
+            onChange={(mistakes) => handleChange('mistakes', mistakes)} 
+          />
+        </div>
       </div>
     </div>
   );
