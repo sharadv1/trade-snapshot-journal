@@ -3,12 +3,11 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trade } from '@/types';
-import { X, RefreshCcw, CalendarClock } from 'lucide-react';
+import { X, CalendarClock } from 'lucide-react';
 import { PartialExitForm } from './trade-exit/PartialExitForm';
 import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
 import { PartialExitsList } from './PartialExitsList';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getRemainingQuantity, isTradeFullyExited } from '@/utils/calculations/tradeStatus';
 
 interface ExitTradeFormProps {
@@ -31,12 +30,10 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     partialNotes,
     setPartialNotes,
     remainingQuantity: calculatedRemainingQuantity,
-    handlePartialExit,
-    handleReopenTrade
+    handlePartialExit
   } = useExitTradeLogic(trade, onUpdate, onClose);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [reopened, setReopened] = useState(false);
   
   const actualRemainingQuantity = Math.max(
     propRemainingQuantity !== undefined ? propRemainingQuantity : calculatedRemainingQuantity,
@@ -51,14 +48,10 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     console.log('Remaining quantity:', actualRemainingQuantity);
     console.log('Is fully exited:', isFullyExited);
     
-    if (reopened && trade.status === 'closed') {
-      setReopened(false);
-    }
-    
     return () => {
       console.log('ExitTradeForm unmounted for trade:', trade.id);
     };
-  }, [trade.id, trade.status, actualRemainingQuantity, isFullyExited, isSubmitting, reopened]);
+  }, [trade.id, trade.status, actualRemainingQuantity, isFullyExited]);
 
   const handleSubmitPartialExit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,21 +74,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     }
   };
 
-  const handleTradeReopen = async () => {
-    setIsSubmitting(true);
-    try {
-      console.log('Attempting to reopen trade...');
-      const success = await handleReopenTrade();
-      if (success) {
-        console.log("Trade reopened successfully, staying on page");
-        setReopened(true);
-        onUpdate();
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleManualClose = () => {
     console.log('Manual close button clicked, calling onClose callback');
     onClose();
@@ -107,7 +85,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
         <div className="flex justify-between items-center">
           <div>
             <CardTitle className="text-xl">Exit Trade: {trade.symbol}</CardTitle>
-            {isClosed && !reopened && (
+            {isClosed && (
               <div className="mt-1 flex items-center">
                 <Badge variant="destructive" className="mr-2">Closed</Badge>
                 {trade.exitDate && (
@@ -118,11 +96,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
                 )}
               </div>
             )}
-            {reopened && (
-              <div className="mt-1">
-                <Badge variant="outline" className="bg-green-50">Reopened</Badge>
-              </div>
-            )}
           </div>
           <Button variant="ghost" size="icon" onClick={handleManualClose} type="button">
             <X className="h-4 w-4" />
@@ -130,14 +103,8 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
         </div>
       </CardHeader>
       
-      {isClosed && !reopened ? (
+      {isClosed ? (
         <CardContent className="space-y-4">
-          <Alert>
-            <AlertDescription>
-              This trade is already closed. You can view details in the partial exits or reopen the trade.
-            </AlertDescription>
-          </Alert>
-          
           <div className="space-y-2">
             <h3 className="text-sm font-medium">Exit Summary</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
@@ -158,16 +125,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
             </div>
           </div>
           
-          <Button 
-            variant="outline" 
-            className="w-full flex items-center justify-center"
-            onClick={handleTradeReopen}
-            disabled={isSubmitting}
-          >
-            <RefreshCcw className="h-4 w-4 mr-2" />
-            Reopen Trade
-          </Button>
-          
           <PartialExitsList 
             trade={trade}
             onUpdate={onUpdate}
@@ -178,11 +135,9 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
         <div>
           <CardContent className="space-y-4">
             {actualRemainingQuantity <= 0 ? (
-              <Alert>
-                <AlertDescription>
-                  This trade has been fully exited. No more exits can be recorded.
-                </AlertDescription>
-              </Alert>
+              <div className="text-sm text-muted-foreground py-2">
+                This trade has been fully exited. No more exits can be recorded.
+              </div>
             ) : (
               <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
                 <PartialExitForm 
