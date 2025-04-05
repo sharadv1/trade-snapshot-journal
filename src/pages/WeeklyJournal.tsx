@@ -575,9 +575,9 @@ export default function WeeklyJournal() {
                     <TableCell className={trade.metrics.profitLoss >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
                       {formatCurrency(trade.metrics.profitLoss || 0)}
                     </TableCell>
-                    <TableCell className={trade.metrics.riskRewardRatio >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                      {trade.metrics.riskRewardRatio > 0 ? '+' : ''}
-                      {trade.metrics.riskRewardRatio.toFixed(2)}R
+                    <TableCell className={(trade.metrics.riskRewardRatio || 0) >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                      {(trade.metrics.riskRewardRatio || 0) > 0 ? '+' : ''}
+                      {(trade.metrics.riskRewardRatio || 0).toFixed(2)}R
                     </TableCell>
                   </TableRow>
                 ))}

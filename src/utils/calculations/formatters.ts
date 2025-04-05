@@ -1,5 +1,4 @@
 
-
 /**
  * Utility functions for formatting values
  */
@@ -7,8 +6,8 @@
 /**
  * Format a number as currency
  */
-export function formatCurrency(value: number | undefined): string {
-  if (value === undefined || value === null) return '';
+export function formatCurrency(value: number | undefined | null): string {
+  if (value === undefined || value === null) return '$0.00';
   return new Intl.NumberFormat('en-US', { 
     style: 'currency', 
     currency: 'USD',
@@ -20,8 +19,8 @@ export function formatCurrency(value: number | undefined): string {
 /**
  * Format a number as a percentage
  */
-export function formatPercentage(value: number | undefined): string {
-  if (value === undefined || value === null) return '';
+export function formatPercentage(value: number | undefined | null): string {
+  if (value === undefined || value === null) return '0.00%';
   return new Intl.NumberFormat('en-US', { 
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -31,8 +30,7 @@ export function formatPercentage(value: number | undefined): string {
 /**
  * Format a decimal number to at most 2 decimal places
  */
-export function formatDecimal(value: number | undefined): string {
-  if (value === undefined || value === null) return '';
+export function formatDecimal(value: number | undefined | null): string {
+  if (value === undefined || value === null) return '0.00';
   return Number(value).toFixed(2);
 }
-

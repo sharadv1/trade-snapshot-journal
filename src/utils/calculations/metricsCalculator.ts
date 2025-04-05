@@ -1,4 +1,3 @@
-
 /**
  * Core function for calculating trade metrics
  */
@@ -141,7 +140,7 @@ export function calculateTradeMetrics(trade: Trade): TradeWithMetrics['metrics']
       calculationExplanation += `Risk-reward ratio: ${riskRewardRatio.toFixed(2)}:1`;
     } 
     // For closed trades, calculate actual R:R based on exit price
-    else if ((trade.status === 'closed' || totalExitedQuantity > 0) && weightedExitPrice) {
+    else if ((trade.status === 'closed' || totalExitedQuantity > 0) && weightedExitPrice !== undefined) {
       const actualRewardPerUnit = Math.abs(weightedExitPrice - trade.entryPrice);
       
       if (trade.type === 'futures') {
@@ -168,11 +167,11 @@ export function calculateTradeMetrics(trade: Trade): TradeWithMetrics['metrics']
   }
   
   return {
-    profitLoss: totalPL,
-    profitLossPercentage: profitLossPercentage,
-    riskedAmount,
-    maxPotentialGain,
-    riskRewardRatio,
+    profitLoss: totalPL || 0,
+    profitLossPercentage: profitLossPercentage || 0,
+    riskedAmount: riskedAmount || 0,
+    maxPotentialGain: maxPotentialGain || 0,
+    riskRewardRatio: riskRewardRatio || 0,
     calculationExplanation,
     weightedExitPrice,
     latestExitDate

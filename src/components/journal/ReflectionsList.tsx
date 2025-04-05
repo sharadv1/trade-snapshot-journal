@@ -301,11 +301,11 @@ export function ReflectionsList() {
                         {reflection.grade || '-'}
                       </Badge>
                     </TableCell>
-                    <TableCell className={stats.totalPnL >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                      {formatCurrency(stats.totalPnL)}
+                    <TableCell className={(stats.totalPnL || 0) >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                      {formatCurrency(stats.totalPnL || 0)}
                     </TableCell>
-                    <TableCell className={stats.totalR >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                      {stats.totalR > 0 ? '+' : ''}{(stats.totalR || 0).toFixed(1)}R
+                    <TableCell className={(stats.totalR || 0) >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                      {(stats.totalR || 0) > 0 ? '+' : ''}{((stats.totalR || 0)).toFixed(1)}R
                     </TableCell>
                     <TableCell>{stats.tradeCount} trades</TableCell>
                     <TableCell className="text-right">
