@@ -36,10 +36,14 @@ export function LessonCard({ lesson, onEdit, onUpdate }: LessonCardProps) {
     });
   };
 
+  // Determine if we have media to display
+  const hasMedia = lesson.media && lesson.media.length > 0;
+
   return (
     <Card className="overflow-hidden w-full">
       <CardContent className="p-0">
-        <div className="grid grid-cols-1 gap-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+          {/* Left side: Title and text */}
           <div className="p-6">
             <h3 className="text-xl font-semibold mb-4">{lesson.title}</h3>
             
@@ -60,43 +64,45 @@ export function LessonCard({ lesson, onEdit, onUpdate }: LessonCardProps) {
               {lesson.updatedAt !== lesson.createdAt && 
                 ` (Updated: ${formatDate(lesson.updatedAt)})`}
             </div>
-
-            {lesson.media && lesson.media.length > 0 && (
-              <div className="bg-gray-50 p-4 rounded-md mb-4">
-                <LessonMedia media={lesson.media || []} />
-              </div>
-            )}
-            
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="ghost" size="sm" onClick={onEdit}>
-                <Edit className="h-4 w-4" />
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Lesson</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete this lesson? This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={handleDelete}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
           </div>
+
+          {/* Right side: Media */}
+          <div className={`${hasMedia ? 'bg-gray-50' : ''} p-4 flex items-center justify-center`}>
+            {hasMedia && (
+              <LessonMedia media={lesson.media} />
+            )}
+          </div>
+        </div>
+
+        {/* Actions at the bottom */}
+        <div className="flex justify-end gap-2 p-4 border-t">
+          <Button variant="ghost" size="sm" onClick={onEdit}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Lesson</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this lesson? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </CardContent>
     </Card>
