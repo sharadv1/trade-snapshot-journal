@@ -50,8 +50,9 @@ export function ServerSyncConfig() {
   // Load saved server URL on component mount and check connection status
   useEffect(() => {
     const refreshConnectionStatus = () => {
-      const savedUrl = localStorage.getItem('trade-journal-server-url') || '';
-      setServerUrl(savedUrl);
+      // Get server URL from our utility which checks both localStorage and memory fallback
+      const savedUrl = getServerUrl();
+      setServerUrl(savedUrl || '');
       
       // Check connection status
       setIsConnected(isUsingServerSync());
@@ -102,7 +103,12 @@ export function ServerSyncConfig() {
   const handleSyncClick = async () => {
     setIsSyncing(true);
     try {
-      await syncAllData();
+      const result = await syncAllData();
+      if (result) {
+        console.log('Sync completed successfully');
+      } else {
+        console.warn('Sync completed with some issues');
+      }
       window.dispatchEvent(new Event('storage'));
     } finally {
       setIsSyncing(false);

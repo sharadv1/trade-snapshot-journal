@@ -1,4 +1,3 @@
-
 import { safeGetItem, safeSetItem } from './storageUtils';
 
 // Server URL storage key
@@ -17,17 +16,18 @@ export const isUsingServerSync = (): boolean => {
 };
 
 export const getServerUrl = (): string => {
-  return serverUrl;
+  return serverUrl || memoryServerUrl;
 };
 
 export const setServerSync = (enabled: boolean, url: string = ''): void => {
   useServerSync = enabled;
-  serverUrl = url;
   
-  // Keep in memory regardless of localStorage success
   if (enabled) {
+    serverUrl = url;
+    // Keep in memory regardless of localStorage success
     memoryServerUrl = url;
   } else {
+    serverUrl = '';
     memoryServerUrl = '';
   }
   

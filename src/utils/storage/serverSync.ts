@@ -1,3 +1,4 @@
+
 import { toast } from '@/utils/toast';
 import { 
   setServerSync, 
@@ -6,7 +7,7 @@ import {
   getServerUrl 
 } from './serverConnection';
 import { getTrades, saveTrades } from './storageOperations';
-import { checkStorageQuota } from './storageUtils';
+import { checkStorageQuota, safeGetItem } from './storageUtils';
 
 // Re-export the isUsingServerSync function
 export { isUsingServerSync, getServerUrl };
@@ -72,11 +73,10 @@ export const configureServerConnection = async (url: string): Promise<boolean> =
     
     // Try to save the URL in localStorage
     try {
-      localStorage.setItem(SERVER_URL_KEY, url);
+      setServerSync(true, url); // Set this BEFORE trying localStorage to ensure memory fallback works
     } catch (storageError) {
-      console.error('Failed to save server URL to localStorage:', storageError);
-      toast.warning('Could not save server settings to browser storage, but proceeding with connection');
-      // We'll continue anyway since setServerSync has a memory fallback
+      console.error('Failed to save server URL:', storageError);
+      toast.warning('Could not save server settings, but proceeding with connection');
     }
     
     const success = await initializeServerSync(url);
@@ -96,7 +96,7 @@ export const configureServerConnection = async (url: string): Promise<boolean> =
 
 // On app initialization, try to restore server connection
 export const restoreServerConnection = async (): Promise<void> => {
-  const savedServerUrl = localStorage.getItem(SERVER_URL_KEY);
+  const savedServerUrl = safeGetItem(SERVER_URL_KEY);
   
   // If no saved URL but running in Docker container, try to auto-configure
   if (!savedServerUrl) {
@@ -129,6 +129,12 @@ export const restoreServerConnection = async (): Promise<void> => {
 
 // Sync all data types with the server
 export const syncAllData = async (): Promise<boolean> => {
+  // First check if server sync is actually enabled
+  if (!isUsingServerSync()) {
+    console.log('Server sync is not enabled, cannot sync data');
+    return false;
+  }
+
   let success = true;
   
   try {
@@ -169,9 +175,10 @@ export const syncAllData = async (): Promise<boolean> => {
 
 // Force sync with server (pull server data)
 export const syncWithServer = async (forceRefresh: boolean = false): Promise<boolean> => {
-  const serverUrl = localStorage.getItem(SERVER_URL_KEY);
-  if (!serverUrl) {
-    console.log('Server sync is not enabled');
+  const serverUrl = getServerUrl(); // Use the getServerUrl function which checks both regular and memory storage
+  
+  if (!serverUrl || !isUsingServerSync()) {
+    console.log('Server sync is not enabled or no server URL available');
     return false;
   }
   
