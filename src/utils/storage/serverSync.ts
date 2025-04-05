@@ -1,4 +1,3 @@
-
 import { toast } from '@/utils/toast';
 import { 
   setServerSync, 
@@ -7,6 +6,7 @@ import {
   getServerUrl 
 } from './serverConnection';
 import { getTrades, saveTrades } from './storageOperations';
+import { checkStorageQuota } from './storageUtils';
 
 // Re-export the isUsingServerSync function
 export { isUsingServerSync, getServerUrl };
@@ -52,20 +52,46 @@ export const initializeServerSync = (url: string): Promise<boolean> => {
 export const configureServerConnection = async (url: string): Promise<boolean> => {
   if (!url) {
     setServerSync(false, '');
-    localStorage.removeItem(SERVER_URL_KEY);
+    try {
+      localStorage.removeItem(SERVER_URL_KEY);
+    } catch (error) {
+      console.error('Error removing server URL from localStorage:', error);
+    }
     toast.info('Server sync disabled');
     return false;
   }
   
-  localStorage.setItem(SERVER_URL_KEY, url);
-  const success = await initializeServerSync(url);
-  
-  // If connection is successful, immediately sync with server to get latest data
-  if (success) {
-    await syncWithServer(true); // Force refresh from server
+  try {
+    // Check if localStorage is nearly full
+    const { isNearLimit } = checkStorageQuota();
+    
+    if (isNearLimit) {
+      console.warn('Storage is nearly full, server sync is recommended');
+      toast.warning('Storage space is low, server sync is recommended');
+    }
+    
+    // Try to save the URL in localStorage
+    try {
+      localStorage.setItem(SERVER_URL_KEY, url);
+    } catch (storageError) {
+      console.error('Failed to save server URL to localStorage:', storageError);
+      toast.warning('Could not save server settings to browser storage, but proceeding with connection');
+      // We'll continue anyway since setServerSync has a memory fallback
+    }
+    
+    const success = await initializeServerSync(url);
+    
+    // If connection is successful, immediately sync with server to get latest data
+    if (success) {
+      await syncWithServer(true); // Force refresh from server
+    }
+    
+    return success;
+  } catch (error) {
+    console.error('Error configuring server connection:', error);
+    toast.error('Failed to configure server connection');
+    return false;
   }
-  
-  return success;
 };
 
 // On app initialization, try to restore server connection
