@@ -1,3 +1,4 @@
+
 import { safeGetItem, safeSetItem } from './storageUtils';
 
 // Server URL storage key
@@ -41,6 +42,14 @@ export const setServerSync = (enabled: boolean, url: string = ''): void => {
         try {
           // Remove any temporary data that might be taking up space
           localStorage.removeItem('trade-journal-temp-data');
+          
+          // Try to remove draft or temporary items
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.includes('draft-') || key.includes('temp-'))) {
+              localStorage.removeItem(key);
+            }
+          }
         } catch (e) {
           console.warn('Could not clean up localStorage:', e);
         }
@@ -48,16 +57,19 @@ export const setServerSync = (enabled: boolean, url: string = ''): void => {
       
       const result = safeSetItem(SERVER_URL_KEY, url);
       if (!result) {
-        console.warn('Could not save server URL to localStorage, using memory fallback');
+        console.log('Server URL saved to memory fallback. Normal operation will continue.');
       }
     } catch (error) {
       console.error('Error saving server URL to localStorage:', error);
+      console.log('Using memory fallback for server URL - connection is still active');
     }
   } else if (!enabled) {
     // If disabling, remove from localStorage
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.removeItem(SERVER_URL_KEY);
+        // Also clear memory storage
+        memoryServerUrl = '';
       } catch (e) {
         console.warn('Error removing server URL from localStorage:', e);
       }
@@ -85,4 +97,15 @@ export const initServerConnectionFromStorage = (): void => {
       setServerSync(false, '');
     }
   }
+};
+
+// Helper to check if we're likely running in a Docker environment
+export const isLikelyDockerEnvironment = (): boolean => {
+  const origin = window.location.origin;
+  // If not a localhost dev server, it's likely a Docker deployment
+  return (
+    origin !== 'http://localhost:3000' && 
+    origin !== 'http://localhost:5173' && 
+    origin !== 'http://127.0.0.1:5173'
+  );
 };

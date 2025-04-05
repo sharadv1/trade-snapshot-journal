@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,13 @@ import {
   DialogFooter,
   DialogTrigger
 } from '@/components/ui/dialog';
-import { Cloud, CloudOff, RefreshCw, InfoIcon } from 'lucide-react';
+import { 
+  Cloud, 
+  CloudOff, 
+  RefreshCw, 
+  InfoIcon,
+  AlertTriangle 
+} from 'lucide-react';
 import { 
   configureServerConnection, 
   isUsingServerSync,
@@ -19,9 +26,6 @@ import {
   syncWithServer,
   syncAllData
 } from '@/utils/storage/serverSync';
-import { syncIdeasWithServer } from '@/utils/ideaStorage';
-import { syncStrategiesWithServer } from '@/utils/strategyStorage';
-import { syncSymbolsWithServer } from '@/utils/symbolStorage';
 import { toast } from '@/utils/toast';
 import {
   Tooltip,
@@ -29,12 +33,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { checkStorageQuota, getStorageSize } from '@/utils/storage/storageUtils';
+import { isLikelyDockerEnvironment } from '@/utils/storage/serverConnection';
 
 export function ServerSyncConfig() {
   const [isOpen, setIsOpen] = useState(false);
   const [serverUrl, setServerUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [storageStatus, setStorageStatus] = useState({
+    percentUsed: 0,
+    isNearLimit: false,
+    size: 0
+  });
   
   // Load saved server URL on component mount and check connection status
   useEffect(() => {
@@ -45,17 +56,19 @@ export function ServerSyncConfig() {
       // Check connection status
       setIsConnected(isUsingServerSync());
       
+      // Check storage status
+      const quota = checkStorageQuota();
+      const size = getStorageSize();
+      setStorageStatus({
+        percentUsed: quota.percentUsed,
+        isNearLimit: quota.isNearLimit,
+        size
+      });
+      
       // If not connected but we're likely running in Docker, auto-set URL
-      if (!isUsingServerSync()) {
-        const origin = window.location.origin;
-        // If not a localhost dev server, try to auto-configure
-        if (origin !== 'http://localhost:3000' && 
-            origin !== 'http://localhost:5173' && 
-            origin !== 'http://127.0.0.1:5173') {
-          const apiUrl = `${origin}/api/trades`;
-          setServerUrl(apiUrl);
-          console.log('Auto-configured Docker server URL:', apiUrl);
-        }
+      if (!isUsingServerSync() && isLikelyDockerEnvironment()) {
+        const apiUrl = `${window.location.origin}/api/trades`;
+        setServerUrl(apiUrl);
       }
     };
     
@@ -118,6 +131,9 @@ export function ServerSyncConfig() {
               <CloudOff className="h-4 w-4 mr-2" />
             )}
             {isConnected ? "Server Connected" : "Configure Server"}
+            {storageStatus.isNearLimit && !isConnected && (
+              <AlertTriangle className="h-4 w-4 ml-2 text-amber-500" />
+            )}
           </Button>
         </DialogTrigger>
         
@@ -166,6 +182,17 @@ export function ServerSyncConfig() {
               <p className="text-xs text-muted-foreground">
                 For Docker deployment, use: {window.location.origin}/api/trades
               </p>
+              
+              {storageStatus.isNearLimit && (
+                <div className="flex items-center mt-2 text-amber-500 text-xs gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span>
+                    Local storage is {Math.round(storageStatus.percentUsed)}% full 
+                    ({(storageStatus.size / (1024 * 1024)).toFixed(2)} MB used). 
+                    Server sync recommended.
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           
