@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, BarChart } from "lucide-react";
@@ -22,7 +21,7 @@ import {
 // MAJOR: Breaking changes
 // MINOR: New features, no breaking changes
 // PATCH: Bug fixes and minor updates
-export const APP_VERSION = "1.1.2";
+export const APP_VERSION = "1.1.3";
 
 export function Header() {
   const isMobile = useIsMobile();
