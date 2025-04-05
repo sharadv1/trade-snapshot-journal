@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { X, Plus } from 'lucide-react';
 import { MediaUpload } from '@/components/MediaUpload';
+import { generateUUID } from '@/utils/generateUUID';
 
 interface LessonDialogProps {
   open: boolean;
@@ -84,7 +85,7 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
           const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
           
           const newMedia: LessonMedia = {
-            id: crypto.randomUUID ? crypto.randomUUID() : generateUUID(),
+            id: generateUUID(),
             type: mediaType,
             url: fileDataUrl,
             caption: ''
@@ -137,12 +138,17 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
           updatedAt: now
         };
         
-        updateLesson(updatedLesson);
-        toast.success('Lesson updated successfully');
+        const success = updateLesson(updatedLesson);
+        if (success) {
+          toast.success('Lesson updated successfully');
+          onClose();
+        } else {
+          toast.error('Failed to update lesson due to storage issues');
+        }
       } else {
         // Create new lesson
         const newLesson: Lesson = {
-          id: crypto.randomUUID ? crypto.randomUUID() : generateUUID(),
+          id: generateUUID(),
           title,
           description,
           types,
@@ -151,11 +157,14 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
           updatedAt: now
         };
         
-        addLesson(newLesson);
-        toast.success('Lesson created successfully');
+        const success = addLesson(newLesson);
+        if (success) {
+          toast.success('Lesson created successfully');
+          onClose();
+        } else {
+          toast.error('Failed to create lesson due to storage issues');
+        }
       }
-      
-      onClose();
     } catch (error) {
       console.error('Error saving lesson:', error);
       toast.error('Failed to save lesson');
@@ -163,14 +172,6 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
       setIsSubmitting(false);
     }
   };
-
-  function generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0, 
-            v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  }
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>

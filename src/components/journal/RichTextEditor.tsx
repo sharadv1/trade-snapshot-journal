@@ -78,7 +78,10 @@ export function RichTextEditor({
     },
     onUpdate: ({ editor }) => {
       const newContent = editor.getHTML();
-      onChange(newContent);
+      // Ensure we're not saving empty content as "<p></p>"
+      const cleanContent = newContent === '<p></p>' ? '' : newContent;
+      console.log('RichTextEditor content updated:', cleanContent.substring(0, 50) + (cleanContent.length > 50 ? '...' : ''));
+      onChange(cleanContent);
     },
     // Enable Markdown input processing
     enableInputRules: true,
@@ -89,7 +92,8 @@ export function RichTextEditor({
   // Update editor content when content prop changes from outside
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
+      console.log('Updating editor content from prop:', content?.substring(0, 50) + (content?.length > 50 ? '...' : ''));
+      editor.commands.setContent(content || '');
     }
   }, [content, editor]);
 
@@ -104,6 +108,10 @@ export function RichTextEditor({
       const style = document.createElement('style');
       style.className = 'tiptap-custom-styles';
       style.textContent = `
+        .ProseMirror {
+          min-height: 150px;
+          outline: none;
+        }
         .ProseMirror ul, .ProseMirror ol {
           padding-left: 1.5rem;
         }
