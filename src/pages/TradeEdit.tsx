@@ -68,8 +68,9 @@ export default function TradeEdit() {
     };
   }, [id]);
   
-  const handleTradeUpdate = (tradeId: string) => {
-    console.log('handleTradeUpdate called, refreshing trade data for ID:', tradeId);
+  // Modified to accept a tradeId parameter but make it optional
+  const handleTradeUpdate = (tradeId?: string) => {
+    console.log('handleTradeUpdate called, refreshing trade data for ID:', tradeId || id);
     loadTradeData();
     setUpdateSuccess(true);
     
