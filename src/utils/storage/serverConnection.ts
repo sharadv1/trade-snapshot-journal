@@ -16,7 +16,24 @@ export const isUsingServerSync = (): boolean => {
 };
 
 export const getServerUrl = (): string => {
-  return serverUrl || memoryServerUrl;
+  // If we have a URL in memory, use that first (most up-to-date)
+  if (serverUrl) {
+    return serverUrl;
+  }
+  // Otherwise try to get from localStorage
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const storedUrl = localStorage.getItem(SERVER_URL_KEY);
+      if (storedUrl) {
+        serverUrl = storedUrl; // Update memory
+        return storedUrl;
+      }
+    } catch (e) {
+      console.warn('Error getting server URL from localStorage:', e);
+    }
+  }
+  // Last resort: use memory fallback
+  return memoryServerUrl;
 };
 
 export const setServerSync = (enabled: boolean, url: string = ''): void => {
@@ -55,7 +72,20 @@ export const setServerSync = (enabled: boolean, url: string = ''): void => {
         }
       }
       
+      // Persist the URL to localStorage
+      console.log('Saving server URL to localStorage:', url);
       const result = safeSetItem(SERVER_URL_KEY, url);
+      
+      // Try with a direct localStorage call as a last resort
+      if (!result && typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem(SERVER_URL_KEY, url);
+          console.log('Saved server URL using direct localStorage call');
+        } catch (e) {
+          console.warn('Direct localStorage save failed:', e);
+        }
+      }
+      
       if (!result) {
         console.log('Server URL saved to memory fallback. Normal operation will continue.');
       }
@@ -80,10 +110,31 @@ export const setServerSync = (enabled: boolean, url: string = ''): void => {
 // Initialize server connection from localStorage (called on app start)
 export const initServerConnectionFromStorage = (): void => {
   try {
-    const savedUrl = safeGetItem(SERVER_URL_KEY) || memoryServerUrl;
+    // First try localStorage
+    let savedUrl = null;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        savedUrl = localStorage.getItem(SERVER_URL_KEY);
+      } catch (e) {
+        console.warn('Error accessing localStorage for server URL:', e);
+      }
+    }
+    
+    // Then try safeGetItem (uses memory fallback)
+    if (!savedUrl) {
+      savedUrl = safeGetItem(SERVER_URL_KEY);
+    }
+    
+    // Finally use memory fallback
+    if (!savedUrl) {
+      savedUrl = memoryServerUrl;
+    }
+    
     if (savedUrl) {
+      console.log('Found saved server URL:', savedUrl);
       setServerSync(true, savedUrl);
     } else {
+      console.log('No server URL found, using local storage only');
       setServerSync(false, '');
     }
   } catch (error) {

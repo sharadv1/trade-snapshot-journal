@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +24,8 @@ import {
   isUsingServerSync,
   getServerUrl,
   syncWithServer,
-  syncAllData
+  syncAllData,
+  restoreServerConnection
 } from '@/utils/storage/serverSync';
 import { toast } from '@/utils/toast';
 import {
@@ -45,6 +47,21 @@ export function ServerSyncConfig() {
     isNearLimit: false,
     size: 0
   });
+  
+  // Force connection restoration when component mounts
+  useEffect(() => {
+    const initConnection = async () => {
+      try {
+        console.log('Initializing server connection on component mount');
+        await restoreServerConnection();
+        refreshConnectionStatus();
+      } catch (error) {
+        console.error('Error initializing connection:', error);
+      }
+    };
+    
+    initConnection();
+  }, []);
   
   // Load saved server URL on component mount and check connection status
   useEffect(() => {

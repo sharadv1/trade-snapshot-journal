@@ -1,4 +1,3 @@
-
 import { toast } from '@/utils/toast';
 import { 
   setServerSync, 
@@ -71,7 +70,7 @@ export const configureServerConnection = async (url: string): Promise<boolean> =
       toast.warning('Storage space is low, server sync is recommended');
     }
     
-    // Try to save the URL in localStorage
+    // Try to save the URL in localStorage BEFORE trying to connect to server
     try {
       setServerSync(true, url); // Set this BEFORE trying localStorage to ensure memory fallback works
     } catch (storageError) {
@@ -96,34 +95,40 @@ export const configureServerConnection = async (url: string): Promise<boolean> =
 
 // On app initialization, try to restore server connection
 export const restoreServerConnection = async (): Promise<void> => {
-  const savedServerUrl = safeGetItem(SERVER_URL_KEY);
-  
-  // If no saved URL but running in Docker container, try to auto-configure
-  if (!savedServerUrl) {
-    const origin = window.location.origin;
-    // If not a localhost dev server, try to auto-connect
-    if (origin !== 'http://localhost:3000' && 
-        origin !== 'http://localhost:5173' && 
-        origin !== 'http://127.0.0.1:5173') {
-      const apiUrl = `${origin}/api/trades`;
-      console.log('Auto-configuring Docker server URL:', apiUrl);
-      const success = await configureServerConnection(apiUrl);
-      if (success) {
-        console.log('Auto-connected to server');
-        // Already synced in configureServerConnection
+  try {
+    const savedServerUrl = safeGetItem(SERVER_URL_KEY);
+    
+    // If no saved URL but running in Docker container, try to auto-configure
+    if (!savedServerUrl) {
+      const origin = window.location.origin;
+      // If not a localhost dev server, try to auto-connect
+      if (origin !== 'http://localhost:3000' && 
+          origin !== 'http://localhost:5173' && 
+          origin !== 'http://127.0.0.1:5173') {
+        const apiUrl = `${origin}/api/trades`;
+        console.log('Auto-configuring Docker server URL:', apiUrl);
+        const success = await configureServerConnection(apiUrl);
+        if (success) {
+          console.log('Auto-connected to server');
+          // Already synced in configureServerConnection
+        }
       }
+      return;
     }
-    return;
-  }
-  
-  // Otherwise use the saved server URL
-  const success = await initializeServerSync(savedServerUrl);
-  if (success) {
-    console.log('Restored server connection to:', savedServerUrl);
-    // Force a sync to get latest data
-    await syncWithServer(true);
-    // Also sync all other data types
-    await syncAllData();
+    
+    // Otherwise use the saved server URL
+    console.log('Restoring server connection with URL:', savedServerUrl);
+    const success = await initializeServerSync(savedServerUrl);
+    if (success) {
+      console.log('Restored server connection to:', savedServerUrl);
+      // Force a sync to get latest data
+      await syncWithServer(true);
+      // Also sync all other data types
+      await syncAllData();
+    }
+  } catch (error) {
+    console.error('Error in restoreServerConnection:', error);
+    toast.error('Failed to restore server connection');
   }
 };
 
