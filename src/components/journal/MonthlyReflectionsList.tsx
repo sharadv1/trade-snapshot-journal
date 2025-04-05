@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -98,8 +97,8 @@ export function MonthlyReflectionsList() {
     const weeklyReflectionsByMonth: Record<string, WeeklyReflection[]> = {};
     
     // Group weekly reflections by month
-    Object.values(allWeeklyReflections).forEach(weeklyReflection => {
-      if (weeklyReflection.weekStart) {
+    Object.values(allWeeklyReflections).forEach((weeklyReflection: any) => {
+      if (weeklyReflection && weeklyReflection.weekStart) {
         try {
           const startDate = new Date(weeklyReflection.weekStart);
           const monthKey = format(startDate, 'yyyy-MM');
