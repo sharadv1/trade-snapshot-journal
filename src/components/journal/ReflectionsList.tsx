@@ -46,11 +46,15 @@ export function ReflectionsList() {
       console.log("Weekly reflections map:", reflectionsMap);
       
       // Convert to array and sort by date
-      let reflectionsArray = Object.entries(reflectionsMap).map(([weekId, reflection]) => ({
-        ...reflection,
-        id: reflection.id || weekId,
-        weekId: weekId
-      })) as WeeklyReflection[];
+      let reflectionsArray = Object.entries(reflectionsMap).map(([weekId, reflection]) => {
+        // Ensure reflection is treated as an object with required properties
+        const typedReflection = reflection as WeeklyReflection;
+        return {
+          ...typedReflection,
+          id: typedReflection.id || weekId,
+          weekId: weekId
+        };
+      });
       
       console.log(`Found ${reflectionsArray.length} weekly reflections before deduplication`);
       
