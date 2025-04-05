@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -159,6 +160,21 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     }
   };
 
+  // Adapter functions to match the expected prop types for NotesAndImagesForm
+  const handleImageUploadAdapter = (files: FileList) => {
+    if (files.length > 0) {
+      return handleImageUpload(files[0]);
+    }
+  };
+
+  const handleRemoveImageAdapter = (url: string) => {
+    // Find the index of the image URL in the images array
+    const index = images.findIndex(img => img === url);
+    if (index !== -1) {
+      handleRemoveImage(index);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="w-full" id="trade-form" name="trade-form">
       <Card className="border">
@@ -222,11 +238,11 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
             
             <TabsContent value="notes" className="space-y-4 mt-0">
               <NotesAndImagesForm 
-                trade={trade}
+                trade={trade as Trade}  
                 handleChange={handleChange}
                 images={images}
-                onImageUpload={handleImageUpload}
-                onImageRemove={handleRemoveImage}
+                onImageUpload={handleImageUploadAdapter}
+                onImageRemove={handleRemoveImageAdapter}
               />
             </TabsContent>
           </CardContent>

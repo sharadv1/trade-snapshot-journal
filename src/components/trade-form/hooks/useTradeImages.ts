@@ -7,8 +7,16 @@ export function useTradeImages(initialImages: string[] = []) {
   const [images, setImages] = useState<string[]>(initialImages);
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleImageUpload = async (file: File) => {
-    if (!file) return images;
+  const handleImageUpload = async (fileOrFiles: File | FileList): Promise<string[]> => {
+    // Handle both single file and FileList
+    let file: File;
+    
+    if (fileOrFiles instanceof FileList) {
+      if (fileOrFiles.length === 0) return images;
+      file = fileOrFiles[0]; // Use the first file from FileList
+    } else {
+      file = fileOrFiles;
+    }
     
     // Check file size - warn if it's large but still try to process it
     if (file.size > 10 * 1024 * 1024) { // 10MB
@@ -102,7 +110,17 @@ export function useTradeImages(initialImages: string[] = []) {
     }
   };
 
-  const handleRemoveImage = (index: number) => {
+  const handleRemoveImage = (indexOrUrl: number | string): string[] => {
+    let index: number;
+    
+    // If a string URL is provided, find its index
+    if (typeof indexOrUrl === 'string') {
+      index = images.findIndex(img => img === indexOrUrl);
+      if (index === -1) return images; // URL not found
+    } else {
+      index = indexOrUrl;
+    }
+    
     const newImages = [...images];
     newImages.splice(index, 1);
     setImages(newImages);

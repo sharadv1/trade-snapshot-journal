@@ -56,7 +56,7 @@ export function NotesAndImagesForm({
           </div>
           
           <MistakesField 
-            selectedMistakes={trade.mistakes || []} 
+            value={trade.mistakes || []} 
             onChange={(mistakes) => handleChange('mistakes', mistakes)}
           />
         </div>
@@ -65,9 +65,9 @@ export function NotesAndImagesForm({
       <div className="space-y-2">
         <Label>Images</Label>
         <MediaUpload 
-          images={images} 
-          onImageUpload={onImageUpload} 
-          onImageRemove={onImageRemove} 
+          mediaFiles={images} 
+          onUpload={onImageUpload} 
+          onRemove={onImageRemove} 
         />
       </div>
     </div>
