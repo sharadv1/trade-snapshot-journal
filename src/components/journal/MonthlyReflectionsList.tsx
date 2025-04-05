@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Card, 
   CardContent, 
@@ -19,14 +19,22 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Pencil, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
-import { getMonthlyReflections, getAllWeeklyReflections } from '@/utils/journalStorage';
+import { getMonthlyReflections, getAllWeeklyReflections, getWeeklyReflectionById } from '@/utils/journalStorage';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
 
 export function MonthlyReflectionsList() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [reflections, setReflections] = useState<MonthlyReflection[]>([]);
   const [weeklyReflections, setWeeklyReflections] = useState<Record<string, WeeklyReflection[]>>({});
   const [reflectionStats, setReflectionStats] = useState<Record<string, {
@@ -35,6 +43,8 @@ export function MonthlyReflectionsList() {
     tradeCount: number
   }>>({});
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+  const [selectedWeeklyReflection, setSelectedWeeklyReflection] = useState<WeeklyReflection | null>(null);
+  const [isWeeklyDialogOpen, setIsWeeklyDialogOpen] = useState(false);
   
   useEffect(() => {
     loadReflections();
@@ -185,8 +195,18 @@ export function MonthlyReflectionsList() {
   };
   
   const handleEditWeeklyReflection = (weekId: string) => {
-    if (!weekId) return;
-    navigate(`/journal/weekly/${weekId}`);
+    // If we're on the monthly edit page, show the weekly reflection in a dialog
+    if (location.pathname.includes('/journal/monthly/')) {
+      const weeklyReflection = getWeeklyReflectionById(weekId);
+      if (weeklyReflection) {
+        setSelectedWeeklyReflection(weeklyReflection);
+        setIsWeeklyDialogOpen(true);
+      }
+    } else {
+      // Otherwise navigate to the weekly journal page
+      if (!weekId) return;
+      navigate(`/journal/weekly/${weekId}`);
+    }
   };
   
   const handleCreateNew = () => {
@@ -228,138 +248,198 @@ export function MonthlyReflectionsList() {
   };
   
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Monthly Trading Journal Reflections</CardTitle>
-          <CardDescription>View your monthly reflections and related weekly entries</CardDescription>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button onClick={handleCreateNew}>
-            <Calendar className="mr-2 h-4 w-4" />
-            New Reflection
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {reflections.length === 0 ? (
-          <div className="text-center py-8" key="empty-state">
-            <p className="text-muted-foreground mb-4">
-              You haven't created any monthly reflections yet.
-            </p>
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Monthly Trading Journal Reflections</CardTitle>
+            <CardDescription>View your monthly reflections and related weekly entries</CardDescription>
+          </div>
+          <div className="flex items-center space-x-2">
             <Button onClick={handleCreateNew}>
-              Create Your First Monthly Reflection
+              <Calendar className="mr-2 h-4 w-4" />
+              New Reflection
             </Button>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {reflections.map((reflection) => {
-              const reflectionId = reflection.id;
-              const monthId = reflection.monthId;
-              const monthKey = reflection.monthStart ? format(new Date(reflection.monthStart), 'yyyy-MM') : monthId.split('/')[0];
-              const stats = reflectionStats[reflectionId] || { 
-                totalPnL: 0, 
-                totalR: 0, 
-                tradeCount: 0 
-              };
-              
-              const relevantWeeklyReflections = weeklyReflections[monthKey] || [];
-              const isExpanded = expandedMonth === monthId;
-              
-              return (
-                <Collapsible key={reflectionId} open={isExpanded} onOpenChange={() => toggleMonthExpansion(monthId)}>
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-muted/30">
-                      <Table>
-                        <TableBody>
-                          <TableRow className="hover:bg-muted/40 cursor-pointer" onClick={() => toggleMonthExpansion(monthId)}>
-                            <TableCell className="font-medium">
-                              <div className="flex items-center">
-                                <CollapsibleTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="p-0 mr-2">
-                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                  </Button>
-                                </CollapsibleTrigger>
-                                {reflection.monthStart ? 
-                                  format(parseISO(reflection.monthStart), 'MMMM yyyy') :
-                                  'Unknown month'}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={getGradeColor(reflection.grade)}>
-                                {reflection.grade || '-'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className={stats.totalPnL >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                              {formatCurrency(stats.totalPnL)}
-                            </TableCell>
-                            <TableCell className={stats.totalR >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                              {stats.totalR > 0 ? '+' : ''}{(stats.totalR || 0).toFixed(1)}R
-                            </TableCell>
-                            <TableCell>{stats.tradeCount} trades</TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="sm" onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditReflection(reflection.monthId);
-                              }}>
-                                <Pencil className="h-4 w-4 mr-1" />
-                                Edit
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </div>
-                    
-                    <CollapsibleContent>
-                      <div className="p-4 bg-background border-t">
-                        <h4 className="text-sm font-medium mb-2">Weekly Reflections for This Month</h4>
-                        {relevantWeeklyReflections.length > 0 ? (
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Week</TableHead>
-                                <TableHead>Grade</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {relevantWeeklyReflections.map(weeklyReflection => (
-                                <TableRow key={weeklyReflection.id}>
-                                  <TableCell>
-                                    {formatWeekDates(weeklyReflection.weekStart, weeklyReflection.weekEnd)}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge variant="outline" className={getGradeColor(weeklyReflection.grade)}>
-                                      {weeklyReflection.grade || '-'}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => handleEditWeeklyReflection(weeklyReflection.weekId)}
-                                    >
-                                      <Pencil className="h-4 w-4 mr-1" />
-                                      View
+        </CardHeader>
+        <CardContent>
+          {reflections.length === 0 ? (
+            <div className="text-center py-8" key="empty-state">
+              <p className="text-muted-foreground mb-4">
+                You haven't created any monthly reflections yet.
+              </p>
+              <Button onClick={handleCreateNew}>
+                Create Your First Monthly Reflection
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {reflections.map((reflection) => {
+                const reflectionId = reflection.id;
+                const monthId = reflection.monthId;
+                const monthKey = reflection.monthStart ? format(new Date(reflection.monthStart), 'yyyy-MM') : monthId.split('/')[0];
+                const stats = reflectionStats[reflectionId] || { 
+                  totalPnL: 0, 
+                  totalR: 0, 
+                  tradeCount: 0 
+                };
+                
+                const relevantWeeklyReflections = weeklyReflections[monthKey] || [];
+                const isExpanded = expandedMonth === monthId;
+                
+                return (
+                  <Collapsible key={reflectionId} open={isExpanded} onOpenChange={() => toggleMonthExpansion(monthId)}>
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="bg-muted/30">
+                        <Table>
+                          <TableBody>
+                            <TableRow className="hover:bg-muted/40 cursor-pointer" onClick={() => toggleMonthExpansion(monthId)}>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center">
+                                  <CollapsibleTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="p-0 mr-2">
+                                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                     </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        ) : (
-                          <p className="text-muted-foreground text-sm">No weekly reflections found for this month.</p>
-                        )}
+                                  </CollapsibleTrigger>
+                                  {reflection.monthStart ? 
+                                    format(parseISO(reflection.monthStart), 'MMMM yyyy') :
+                                    'Unknown month'}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={getGradeColor(reflection.grade)}>
+                                  {reflection.grade || '-'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className={stats.totalPnL >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                                {formatCurrency(stats.totalPnL)}
+                              </TableCell>
+                              <TableCell className={stats.totalR >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                                {stats.totalR > 0 ? '+' : ''}{(stats.totalR || 0).toFixed(1)}R
+                              </TableCell>
+                              <TableCell>{stats.tradeCount} trades</TableCell>
+                              <TableCell className="text-right">
+                                <Button variant="ghost" size="sm" onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditReflection(reflection.monthId);
+                                }}>
+                                  <Pencil className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
                       </div>
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
-              );
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                      
+                      <CollapsibleContent>
+                        <div className="p-4 bg-background border-t">
+                          <h4 className="text-sm font-medium mb-2">Weekly Reflections for This Month</h4>
+                          {relevantWeeklyReflections.length > 0 ? (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Week</TableHead>
+                                  <TableHead>Grade</TableHead>
+                                  <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {relevantWeeklyReflections.map(weeklyReflection => (
+                                  <TableRow key={weeklyReflection.id}>
+                                    <TableCell>
+                                      {formatWeekDates(weeklyReflection.weekStart, weeklyReflection.weekEnd)}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant="outline" className={getGradeColor(weeklyReflection.grade)}>
+                                        {weeklyReflection.grade || '-'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditWeeklyReflection(weeklyReflection.weekId);
+                                        }}
+                                      >
+                                        <Pencil className="h-4 w-4 mr-1" />
+                                        View
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          ) : (
+                            <p className="text-muted-foreground text-sm">No weekly reflections found for this month.</p>
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Weekly Reflection Dialog */}
+      <Dialog open={isWeeklyDialogOpen} onOpenChange={setIsWeeklyDialogOpen}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedWeeklyReflection && selectedWeeklyReflection.weekStart ? 
+                `Weekly Reflection: ${formatWeekDates(selectedWeeklyReflection.weekStart, selectedWeeklyReflection.weekEnd)}` :
+                'Weekly Reflection'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedWeeklyReflection && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Badge variant="outline" className={getGradeColor(selectedWeeklyReflection.grade)}>
+                  Grade: {selectedWeeklyReflection.grade || 'Not graded'}
+                </Badge>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setIsWeeklyDialogOpen(false);
+                    navigate(`/journal/weekly/${selectedWeeklyReflection.weekId}`);
+                  }}
+                >
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium mb-1">What Went Well</h3>
+                <div className="text-sm border rounded-md p-3 bg-muted/20">
+                  {selectedWeeklyReflection.whatWentWell || 'No reflection recorded'}
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium mb-1">What Needs Improvement</h3>
+                <div className="text-sm border rounded-md p-3 bg-muted/20">
+                  {selectedWeeklyReflection.whatNeedsImprovement || 'No reflection recorded'}
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium mb-1">Next Week's Focus</h3>
+                <div className="text-sm border rounded-md p-3 bg-muted/20">
+                  {selectedWeeklyReflection.nextWeekFocus || 'No focus set for next week'}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
