@@ -40,7 +40,7 @@ export function LessonCard({ lesson, onEdit, onUpdate }: LessonCardProps) {
   const hasMedia = lesson.media && lesson.media.length > 0;
 
   return (
-    <Card className="overflow-hidden w-full">
+    <Card className="overflow-hidden w-full max-w-6xl mx-auto">
       <CardContent className="p-0">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
           {/* Left side: Title and text */}

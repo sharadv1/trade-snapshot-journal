@@ -54,8 +54,8 @@ export default function Lessons() {
   const allTypes = [...new Set(lessons.flatMap(lesson => lesson.types || []))];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="flex justify-between items-center mb-6 max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold tracking-tight">Lessons</h1>
         <div className="flex gap-2">
           <Button 
@@ -74,11 +74,13 @@ export default function Lessons() {
       </div>
 
       {showFilters && (
-        <LessonFilters 
-          allTypes={allTypes}
-          selectedTypes={selectedTypes}
-          setSelectedTypes={setSelectedTypes}
-        />
+        <div className="max-w-6xl mx-auto">
+          <LessonFilters 
+            allTypes={allTypes}
+            selectedTypes={selectedTypes}
+            setSelectedTypes={setSelectedTypes}
+          />
+        </div>
       )}
 
       <div className="space-y-6">
