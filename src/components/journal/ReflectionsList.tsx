@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -227,7 +228,7 @@ export function ReflectionsList() {
                       {formatCurrency(stats.totalPnL)}
                     </TableCell>
                     <TableCell className={stats.totalR >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                      {stats.totalR > 0 ? '+' : ''}{stats.totalR.toFixed(1)}R
+                      {stats.totalR > 0 ? '+' : ''}{(stats.totalR || 0).toFixed(1)}R
                     </TableCell>
                     <TableCell>{stats.tradeCount} trades</TableCell>
                     <TableCell className="text-right">

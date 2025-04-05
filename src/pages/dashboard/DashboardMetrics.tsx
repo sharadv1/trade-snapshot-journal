@@ -35,11 +35,11 @@ export function DashboardMetrics({ trades }: DashboardMetricsProps) {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <MetricCard 
         title="Expectancy" 
-        value={keyMetrics.expectancy > 0 ? `${keyMetrics.expectancy.toFixed(2)}R` : keyMetrics.expectancy.toFixed(2)}
+        value={keyMetrics.expectancy > 0 ? `${(keyMetrics.expectancy || 0).toFixed(2)}R` : (keyMetrics.expectancy || 0).toFixed(2)}
         subStats={[
           {
             label: "Win Rate",
-            value: `${keyMetrics.winRate.toFixed(1)}%`
+            value: `${(keyMetrics.winRate || 0).toFixed(1)}%`
           },
           {
             label: "Total Trades",
@@ -64,12 +64,12 @@ export function DashboardMetrics({ trades }: DashboardMetricsProps) {
       <MetricCard 
         title="Net Profit/Loss" 
         value={formatCurrency(keyMetrics.netPnL)} 
-        subValue={`${keyMetrics.totalR > 0 ? '+' : ''}${keyMetrics.totalR.toFixed(2)}R`}
+        subValue={`${keyMetrics.totalR > 0 ? '+' : ''}${(keyMetrics.totalR || 0).toFixed(2)}R`}
         className={keyMetrics.netPnL >= 0 ? "text-profit" : "text-loss"}
       />
       <MetricCard 
         title="Sortino Ratio" 
-        value={keyMetrics.sortinoRatio.toFixed(2)} 
+        value={(keyMetrics.sortinoRatio || 0).toFixed(2)} 
       />
     </div>
   );

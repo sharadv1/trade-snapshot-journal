@@ -19,11 +19,12 @@ export function formatCurrency(value: number | undefined): string {
 /**
  * Format a number as a percentage
  */
-export function formatPercentage(value: number): string {
+export function formatPercentage(value: number | undefined): string {
+  if (value === undefined) return '';
   return new Intl.NumberFormat('en-US', { 
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  }).format(value) + '%';
+  }).format(value || 0) + '%';
 }
 
 /**
@@ -31,5 +32,5 @@ export function formatPercentage(value: number): string {
  */
 export function formatDecimal(value: number | undefined): string {
   if (value === undefined) return '';
-  return value.toFixed(2);
+  return Number(value).toFixed(2);
 }
