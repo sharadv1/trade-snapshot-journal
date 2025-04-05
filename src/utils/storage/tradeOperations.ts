@@ -75,6 +75,13 @@ export const deleteTrade = async (tradeId: string): Promise<void> => {
   console.log('storage/tradeOperations.deleteTrade called with ID:', tradeId);
   const trades = await getTrades();
   const filteredTrades = trades.filter(trade => trade.id !== tradeId);
+  
+  // If lengths are the same, no trade was found/deleted
+  if (filteredTrades.length === trades.length) {
+    console.error('Trade not found for deletion:', tradeId);
+    return;
+  }
+  
   await saveTrades(filteredTrades);
   
   // Trigger storage events

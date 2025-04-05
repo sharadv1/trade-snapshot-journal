@@ -68,9 +68,6 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
         setTimeout(() => {
           setUpdateSuccess(false);
         }, 3000);
-        
-        // Don't automatically navigate away - only close if fully exited
-        // Let the useExitTradeLogic hook handle this based on the trade status
       }
     } finally {
       setIsSubmitting(false);
@@ -99,7 +96,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Show partial exits list if they exist */}
+        {/* Show existing partial exits if they exist */}
         {trade.partialExits && trade.partialExits.length > 0 && (
           <PartialExitsList 
             trade={trade}
@@ -108,44 +105,90 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
           />
         )}
         
-        {/* For closed trades with no partials, create a special case to convert them */}
+        {/* For closed trades without partials, create a virtual partial exit for display */}
         {isClosed && (!trade.partialExits || trade.partialExits.length === 0) && trade.exitPrice && (
-          <div className="space-y-2 bg-muted/30 p-3 rounded-md">
-            <p className="text-sm">This trade was closed directly without partial exits. You can edit its exit details:</p>
-            
-            <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
-              <PartialExitForm 
-                trade={trade}
-                remainingQuantity={trade.quantity}
-                partialQuantity={trade.quantity} 
-                setPartialQuantity={setPartialQuantity}
-                partialExitPrice={trade.exitPrice}
-                setPartialExitPrice={setPartialExitPrice}
-                partialExitDate={trade.exitDate || new Date().toISOString()}
-                setPartialExitDate={setPartialExitDate}
-                partialFees={trade.fees}
-                setPartialFees={setPartialFees}
-                partialNotes={trade.notes}
-                setPartialNotes={setPartialNotes}
-                isClosedTradeConversion={true}
-              />
-              
-              <div className="flex justify-end mt-4 items-center gap-3">
-                {updateSuccess && (
-                  <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-medium">
-                    <Check className="h-4 w-4" />
-                    <span>Updated successfully!</span>
+          <div>
+            <Card className="shadow-subtle border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Exit Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="bg-muted/30 p-3 rounded-md">
+                    <div className="flex justify-between text-sm">
+                      <span>Total Position:</span>
+                      <span className="font-medium">{trade.quantity} units</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Status:</span>
+                      <span className="font-medium text-red-500">closed</span>
+                    </div>
                   </div>
-                )}
-                <Button 
-                  type="submit"
-                  form="partial-exit-form"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Processing...' : 'Convert to Partial Exit'}
-                </Button>
-              </div>
-            </form>
+                  
+                  <div className="py-3 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-sm font-medium">
+                          {trade.quantity} units @ {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(trade.exitPrice)}
+                        </span>
+                        <div className="text-sm text-muted-foreground">
+                          {trade.exitDate ? new Date(trade.exitDate).toLocaleString() : 'No exit date recorded'}
+                        </div>
+                        
+                        {trade.notes && (
+                          <p className="text-sm text-muted-foreground mt-1">{trade.notes}</p>
+                        )}
+                        
+                        {trade.fees !== undefined && trade.fees > 0 && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Fees: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(trade.fees)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Add a form to edit the exit details if needed */}
+            <div className="mt-4 space-y-2 bg-muted/30 p-3 rounded-md">
+              <p className="text-sm">You can edit the exit details if needed:</p>
+              
+              <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
+                <PartialExitForm 
+                  trade={trade}
+                  remainingQuantity={trade.quantity}
+                  partialQuantity={trade.quantity} 
+                  setPartialQuantity={setPartialQuantity}
+                  partialExitPrice={trade.exitPrice}
+                  setPartialExitPrice={setPartialExitPrice}
+                  partialExitDate={trade.exitDate || new Date().toISOString()}
+                  setPartialExitDate={setPartialExitDate}
+                  partialFees={trade.fees}
+                  setPartialFees={setPartialFees}
+                  partialNotes={trade.notes}
+                  setPartialNotes={setPartialNotes}
+                  isClosedTradeConversion={true}
+                />
+                
+                <div className="flex justify-end mt-4 items-center gap-3">
+                  {updateSuccess && (
+                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-medium">
+                      <Check className="h-4 w-4" />
+                      <span>Updated successfully!</span>
+                    </div>
+                  )}
+                  <Button 
+                    type="submit"
+                    form="partial-exit-form"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Processing...' : 'Update Exit Details'}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
         

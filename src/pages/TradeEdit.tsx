@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TradeForm } from '@/components/TradeForm';
@@ -11,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { isTradeFullyExited, getRemainingQuantity } from '@/utils/calculations/tradeStatus';
+import { DeleteTradeButton } from '@/components/trade-exit/DeleteTradeButton';
 
 export default function TradeEdit() {
   const { id } = useParams<{ id: string }>();
@@ -118,11 +118,12 @@ export default function TradeEdit() {
         <h1 className="text-3xl font-bold tracking-tight">
           Manage Trade: {trade.symbol}
         </h1>
-        <div className="flex space-x-2">
+        <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
+          <DeleteTradeButton trade={trade} size="sm" />
         </div>
       </div>
       
