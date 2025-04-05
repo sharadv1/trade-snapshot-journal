@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -48,13 +47,15 @@ export function ReflectionsList() {
       
       // Convert to array and sort by date
       let reflectionsArray = Object.entries(reflectionsMap).map(([weekId, reflection]) => {
-        // Ensure reflection is treated as an object with required properties
+        // Type assertion to ensure reflection is treated as WeeklyReflection
         const typedReflection = reflection as WeeklyReflection;
+        
+        // Make sure weekId is included
         return {
           ...typedReflection,
           id: typedReflection.id || weekId,
-          weekId: weekId
-        };
+          weekId: weekId  // Explicitly set weekId to ensure it's not optional
+        } as WeeklyReflection; // Type assertion here
       });
       
       console.log(`Found ${reflectionsArray.length} weekly reflections before deduplication`);
@@ -104,7 +105,8 @@ export function ReflectionsList() {
       });
       
       // Explicitly cast the array to WeeklyReflection[] to satisfy TypeScript
-      setReflections(reflectionsArray as WeeklyReflection[]);
+      // Each item in the array now has a non-optional weekId property
+      setReflections(reflectionsArray);
       
       // Calculate stats for each reflection
       const allTrades = getTradesWithMetrics();

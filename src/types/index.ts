@@ -258,7 +258,7 @@ export interface ReflectionEntry {
   type: 'weekly' | 'monthly';
   tags?: string[];
   // Added fields for weekly reflections
-  weekId?: string;
+  weekId?: string; // this can be optional in base type
   weekStart?: string;
   weekEnd?: string;
   reflection?: string;
@@ -273,8 +273,14 @@ export interface ReflectionEntry {
   tradeIds?: string[];
 }
 
-export type WeeklyReflection = ReflectionEntry;
-export type MonthlyReflection = ReflectionEntry;
+// Create specific types with non-optional required fields
+export interface WeeklyReflection extends ReflectionEntry {
+  weekId: string; // Make this required in WeeklyReflection
+}
+
+export interface MonthlyReflection extends ReflectionEntry {
+  monthId: string; // Make this required in MonthlyReflection
+}
 
 export interface TradeComment {
   id: string;
