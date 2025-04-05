@@ -48,6 +48,32 @@ export function ServerSyncConfig() {
     size: 0
   });
   
+  // Define the refreshConnectionStatus function
+  const refreshConnectionStatus = () => {
+    // Get server URL from our utility which checks both localStorage and memory fallback
+    const savedUrl = getServerUrl();
+    setServerUrl(savedUrl || '');
+    
+    // Check connection status
+    setIsConnected(isUsingServerSync());
+    
+    // Check storage status
+    const quota = checkStorageQuota();
+    const size = getStorageSize();
+    setStorageStatus({
+      percentUsed: quota.percentUsed,
+      isNearLimit: quota.isNearLimit,
+      size
+    });
+    
+    // If not connected but we're likely running in Docker, auto-set URL
+    if (!isUsingServerSync() && isLikelyDockerEnvironment()) {
+      // Make sure we don't duplicate the api prefix
+      const apiUrl = `${window.location.origin}/api/trades`;
+      setServerUrl(apiUrl);
+    }
+  };
+  
   // Force connection restoration when component mounts
   useEffect(() => {
     const initConnection = async () => {
@@ -65,31 +91,6 @@ export function ServerSyncConfig() {
   
   // Load saved server URL on component mount and check connection status
   useEffect(() => {
-    const refreshConnectionStatus = () => {
-      // Get server URL from our utility which checks both localStorage and memory fallback
-      const savedUrl = getServerUrl();
-      setServerUrl(savedUrl || '');
-      
-      // Check connection status
-      setIsConnected(isUsingServerSync());
-      
-      // Check storage status
-      const quota = checkStorageQuota();
-      const size = getStorageSize();
-      setStorageStatus({
-        percentUsed: quota.percentUsed,
-        isNearLimit: quota.isNearLimit,
-        size
-      });
-      
-      // If not connected but we're likely running in Docker, auto-set URL
-      if (!isUsingServerSync() && isLikelyDockerEnvironment()) {
-        // Make sure we don't duplicate the api prefix
-        const apiUrl = `${window.location.origin}/api/trades`;
-        setServerUrl(apiUrl);
-      }
-    };
-    
     refreshConnectionStatus();
     
     // Also listen for storage events to update connection status
