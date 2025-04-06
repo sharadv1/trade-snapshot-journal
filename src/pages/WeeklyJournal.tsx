@@ -30,7 +30,7 @@ import {
   subMonths,
   parseISO
 } from 'date-fns';
-import { ArrowLeft, ArrowRight, Save, Calendar, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Calendar, Pencil, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { TradeWithMetrics, WeeklyReflection } from '@/types';
@@ -51,7 +51,8 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -110,6 +111,11 @@ export default function WeeklyJournal() {
   const [monthlyWeeklyReflections, setMonthlyWeeklyReflections] = useState<WeeklyReflection[]>([]);
   const [selectedWeeklyReflection, setSelectedWeeklyReflection] = useState<WeeklyReflection | null>(null);
   const [isWeeklyDialogOpen, setIsWeeklyDialogOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editReflection, setEditReflection] = useState('');
+  const [editWeeklyPlan, setEditWeeklyPlan] = useState('');
+  const [editGrade, setEditGrade] = useState('');
+  const [editWeekId, setEditWeekId] = useState('');
   const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
 
   const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -437,26 +443,52 @@ export default function WeeklyJournal() {
   };
 
   const handleViewWeeklyReflection = (weekId: string) => {
-    if (!weekId) return;
-    
     const weeklyReflection = getWeeklyReflection(weekId);
     if (weeklyReflection) {
       setSelectedWeeklyReflection(weeklyReflection);
       setIsWeeklyDialogOpen(true);
+      setIsEditMode(false);
     }
   };
 
-  const handleEditWeeklyReflection = (weekId: string) => {
-    if (!weekId) return;
-    navigate(`/journal/weekly/${weekId}`);
+  const handleEditInModal = () => {
+    if (selectedWeeklyReflection) {
+      setEditReflection(selectedWeeklyReflection.reflection || '');
+      setEditWeeklyPlan(selectedWeeklyReflection.weeklyPlan || '');
+      setEditGrade(selectedWeeklyReflection.grade || '');
+      setEditWeekId(selectedWeeklyReflection.weekId);
+      setIsEditMode(true);
+    }
   };
 
-  const toggleWeekExpansion = (weekId: string) => {
-    if (expandedWeek === weekId) {
-      setExpandedWeek(null);
-    } else {
-      setExpandedWeek(weekId);
+  const handleSaveEdits = () => {
+    if (editWeekId) {
+      saveWeeklyReflection(editWeekId, editReflection, editGrade, editWeeklyPlan);
+      toast.success("Weekly reflection updated");
+      
+      const updatedReflection = getWeeklyReflection(editWeekId);
+      setSelectedWeeklyReflection(updatedReflection || null);
+      
+      setIsEditMode(false);
+      
+      if (isMonthView && monthId) {
+        const reflections = getWeeklyReflectionsForMonth(monthId);
+        setMonthlyWeeklyReflections(reflections);
+      }
     }
+  };
+
+  const handleCancelEdits = () => {
+    setIsEditMode(false);
+  };
+
+  const getReflectionSummary = (content: string, maxLength: number = 150) => {
+    if (!content) return 'No reflection content';
+    
+    const textOnly = content.replace(/<[^>]*>/g, '');
+    
+    if (textOnly.length <= maxLength) return textOnly;
+    return textOnly.substring(0, maxLength) + '...';
   };
 
   return (
@@ -623,6 +655,7 @@ export default function WeeklyJournal() {
                 <div className="space-y-4">
                   {monthlyWeeklyReflections.map(weeklyReflection => {
                     const isExpanded = expandedWeek === weeklyReflection.weekId;
+                    const summary = getReflectionSummary(weeklyReflection.reflection);
                     
                     return (
                       <Collapsible key={weeklyReflection.weekId} open={isExpanded} onOpenChange={() => toggleWeekExpansion(weeklyReflection.weekId)}>
@@ -640,6 +673,9 @@ export default function WeeklyJournal() {
                                       </CollapsibleTrigger>
                                       {formatWeekDates(weeklyReflection.weekStart, weeklyReflection.weekEnd)}
                                     </div>
+                                  </TableCell>
+                                  <TableCell className="max-w-[400px] truncate text-muted-foreground text-sm">
+                                    {summary}
                                   </TableCell>
                                   <TableCell>
                                     <Badge variant="outline" className={getGradeColor(weeklyReflection.grade)}>
@@ -681,10 +717,10 @@ export default function WeeklyJournal() {
                                   <Button 
                                     variant="outline" 
                                     size="sm"
-                                    onClick={() => handleEditWeeklyReflection(weeklyReflection.weekId)}
+                                    onClick={() => handleViewWeeklyReflection(weeklyReflection.weekId)}
                                   >
                                     <Pencil className="h-4 w-4 mr-1" />
-                                    Edit in Weekly View
+                                    Edit
                                   </Button>
                                 </div>
                               </div>
@@ -772,23 +808,33 @@ export default function WeeklyJournal() {
             </DialogTitle>
           </DialogHeader>
           
-          {selectedWeeklyReflection && (
+          {selectedWeeklyReflection && !isEditMode && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <Badge variant="outline" className={getGradeColor(selectedWeeklyReflection.grade)}>
                   Grade: {selectedWeeklyReflection.grade || 'Not graded'}
                 </Badge>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setIsWeeklyDialogOpen(false);
-                    navigate(`/journal/weekly/${selectedWeeklyReflection.weekId}`);
-                  }}
-                >
-                  <Pencil className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
+                <div className="space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleEditInModal}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Edit in Modal
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setIsWeeklyDialogOpen(false);
+                      navigate(`/journal/weekly/${selectedWeeklyReflection.weekId}`);
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Edit in Full View
+                  </Button>
+                </div>
               </div>
               
               <div>
@@ -802,6 +848,54 @@ export default function WeeklyJournal() {
                 <div className="text-sm border rounded-md p-3 bg-muted/20" 
                   dangerouslySetInnerHTML={{ __html: selectedWeeklyReflection.weeklyPlan || 'No plan recorded' }} />
               </div>
+            </div>
+          )}
+          
+          {isEditMode && (
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="modal-weekly-grade">Week Grade</Label>
+                <Select
+                  value={editGrade}
+                  onValueChange={setEditGrade}
+                >
+                  <SelectTrigger id="modal-weekly-grade" className="w-[100px]">
+                    <SelectValue placeholder="Grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {gradeOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="modal-weekly-plan">Weekly Plan</Label>
+                <RichTextEditor 
+                  id="modal-weekly-plan"
+                  content={editWeeklyPlan}
+                  onChange={setEditWeeklyPlan}
+                  placeholder="Write your plan for the week. Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="modal-reflection">Reflection</Label>
+                <RichTextEditor
+                  id="modal-reflection"
+                  content={editReflection}
+                  onChange={setEditReflection}
+                  placeholder="Write your weekly reflection here. Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
+                />
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={handleCancelEdits}>Cancel</Button>
+                <Button onClick={handleSaveEdits}>Save Changes</Button>
+              </DialogFooter>
             </div>
           )}
         </DialogContent>

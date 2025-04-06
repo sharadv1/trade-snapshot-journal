@@ -35,7 +35,7 @@ export function DashboardMetrics({ trades }: DashboardMetricsProps) {
     avgWin: calculateAverageWin(trades) || 0,
     avgLoss: calculateAverageLoss(trades) || 0,
     totalR: calculateTotalR(trades) || 0,
-    // Add new metrics
+    // Advanced metrics
     profitFactor: calculateProfitFactor(trades) || 0,
     calmarRatio: calculateCalmarRatio(trades) || 0,
     paretoIndex: calculateParetoIndex(trades) || 0,

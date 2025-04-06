@@ -18,8 +18,13 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Pencil, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
-import { getMonthlyReflections, getAllWeeklyReflections, getWeeklyReflectionById } from '@/utils/journalStorage';
+import { Pencil, Calendar, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { 
+  getMonthlyReflections, 
+  getAllWeeklyReflections, 
+  getWeeklyReflection,
+  getWeeklyReflectionsForMonth
+} from '@/utils/journalStorage';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { formatCurrency } from '@/utils/calculations/formatters';
@@ -29,8 +34,20 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription
+  DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { RichTextEditor } from '@/components/journal/RichTextEditor';
+import { toast } from '@/utils/toast';
+import { saveWeeklyReflection } from '@/utils/journalStorage';
 
 export function MonthlyReflectionsList() {
   const navigate = useNavigate();
@@ -45,6 +62,11 @@ export function MonthlyReflectionsList() {
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [selectedWeeklyReflection, setSelectedWeeklyReflection] = useState<WeeklyReflection | null>(null);
   const [isWeeklyDialogOpen, setIsWeeklyDialogOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editReflection, setEditReflection] = useState('');
+  const [editWeeklyPlan, setEditWeeklyPlan] = useState('');
+  const [editGrade, setEditGrade] = useState('');
+  const [editWeekId, setEditWeekId] = useState('');
   
   useEffect(() => {
     loadReflections();
@@ -247,6 +269,47 @@ export function MonthlyReflectionsList() {
     }
   };
   
+  const getReflectionSummary = (content: string, maxLength: number = 150) => {
+    if (!content) return 'No reflection content';
+    
+    // Remove HTML tags if present
+    const textOnly = content.replace(/<[^>]*>/g, '');
+    
+    if (textOnly.length <= maxLength) return textOnly;
+    return textOnly.substring(0, maxLength) + '...';
+  };
+  
+  const handleEditInModal = () => {
+    if (selectedWeeklyReflection) {
+      setEditReflection(selectedWeeklyReflection.reflection || '');
+      setEditWeeklyPlan(selectedWeeklyReflection.weeklyPlan || '');
+      setEditGrade(selectedWeeklyReflection.grade || '');
+      setEditWeekId(selectedWeeklyReflection.weekId);
+      setIsEditMode(true);
+    }
+  };
+  
+  const handleSaveEdits = () => {
+    if (editWeekId) {
+      saveWeeklyReflection(editWeekId, editReflection, editGrade, editWeeklyPlan);
+      toast.success("Weekly reflection updated");
+      
+      // Update the selected reflection to show the changes
+      const updatedReflection = getWeeklyReflection(editWeekId);
+      setSelectedWeeklyReflection(updatedReflection || null);
+      
+      // Exit edit mode
+      setIsEditMode(false);
+      
+      // Reload reflections to update the list
+      loadReflections();
+    }
+  };
+  
+  const handleCancelEdits = () => {
+    setIsEditMode(false);
+  };
+  
   return (
     <>
       <Card>
@@ -340,36 +403,46 @@ export function MonthlyReflectionsList() {
                               <TableHeader>
                                 <TableRow>
                                   <TableHead>Week</TableHead>
+                                  <TableHead className="w-[300px]">Summary</TableHead>
                                   <TableHead>Grade</TableHead>
                                   <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {relevantWeeklyReflections.map(weeklyReflection => (
-                                  <TableRow key={weeklyReflection.id}>
-                                    <TableCell>
-                                      {formatWeekDates(weeklyReflection.weekStart, weeklyReflection.weekEnd)}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Badge variant="outline" className={getGradeColor(weeklyReflection.grade)}>
-                                        {weeklyReflection.grade || '-'}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditWeeklyReflection(weeklyReflection.weekId);
-                                        }}
-                                      >
-                                        <Pencil className="h-4 w-4 mr-1" />
-                                        View
-                                      </Button>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
+                                {relevantWeeklyReflections.map(weeklyReflection => {
+                                  const summary = getReflectionSummary(weeklyReflection.reflection);
+                                  
+                                  return (
+                                    <TableRow key={weeklyReflection.id} className="cursor-pointer hover:bg-muted/40" 
+                                      onClick={() => handleEditWeeklyReflection(weeklyReflection.weekId)}
+                                    >
+                                      <TableCell>
+                                        {formatWeekDates(weeklyReflection.weekStart, weeklyReflection.weekEnd)}
+                                      </TableCell>
+                                      <TableCell className="max-w-[300px] truncate text-muted-foreground text-sm">
+                                        {summary}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge variant="outline" className={getGradeColor(weeklyReflection.grade)}>
+                                          {weeklyReflection.grade || '-'}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditWeeklyReflection(weeklyReflection.weekId);
+                                          }}
+                                        >
+                                          <Pencil className="h-4 w-4 mr-1" />
+                                          View
+                                        </Button>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
                               </TableBody>
                             </Table>
                           ) : (
@@ -386,7 +459,7 @@ export function MonthlyReflectionsList() {
         </CardContent>
       </Card>
 
-      {/* Weekly Reflection Dialog */}
+      {/* Weekly Reflection Dialog - Updated to support both view and edit modes */}
       <Dialog open={isWeeklyDialogOpen} onOpenChange={setIsWeeklyDialogOpen}>
         <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -397,38 +470,94 @@ export function MonthlyReflectionsList() {
             </DialogTitle>
           </DialogHeader>
           
-          {selectedWeeklyReflection && (
+          {selectedWeeklyReflection && !isEditMode && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <Badge variant="outline" className={getGradeColor(selectedWeeklyReflection.grade)}>
                   Grade: {selectedWeeklyReflection.grade || 'Not graded'}
                 </Badge>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setIsWeeklyDialogOpen(false);
-                    navigate(`/journal/weekly/${selectedWeeklyReflection.weekId}`);
-                  }}
-                >
-                  <Pencil className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
+                <div className="space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleEditInModal}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Edit in Modal
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setIsWeeklyDialogOpen(false);
+                      navigate(`/journal/weekly/${selectedWeeklyReflection.weekId}`);
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Edit in Full View
+                  </Button>
+                </div>
               </div>
               
               <div>
                 <h3 className="text-sm font-medium mb-1">Reflection</h3>
-                <div className="text-sm border rounded-md p-3 bg-muted/20">
-                  {selectedWeeklyReflection.reflection || 'No reflection recorded'}
-                </div>
+                <div className="text-sm border rounded-md p-3 bg-muted/20" 
+                  dangerouslySetInnerHTML={{ __html: selectedWeeklyReflection.reflection || 'No reflection recorded' }} />
               </div>
               
               <div>
                 <h3 className="text-sm font-medium mb-1">Weekly Plan</h3>
-                <div className="text-sm border rounded-md p-3 bg-muted/20">
-                  {selectedWeeklyReflection.weeklyPlan || 'No plan recorded'}
-                </div>
+                <div className="text-sm border rounded-md p-3 bg-muted/20" 
+                  dangerouslySetInnerHTML={{ __html: selectedWeeklyReflection.weeklyPlan || 'No plan recorded' }} />
               </div>
+            </div>
+          )}
+          
+          {isEditMode && (
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="modal-weekly-grade">Week Grade</Label>
+                <Select
+                  value={editGrade}
+                  onValueChange={setEditGrade}
+                >
+                  <SelectTrigger id="modal-weekly-grade" className="w-[100px]">
+                    <SelectValue placeholder="Grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['A', 'B', 'C', 'D', 'F'].map(grade => (
+                      <SelectItem key={grade} value={grade}>
+                        {grade}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="modal-weekly-plan">Weekly Plan</Label>
+                <RichTextEditor 
+                  id="modal-weekly-plan"
+                  content={editWeeklyPlan}
+                  onChange={setEditWeeklyPlan}
+                  placeholder="Write your plan for the week. Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="modal-reflection">Reflection</Label>
+                <RichTextEditor
+                  id="modal-reflection"
+                  content={editReflection}
+                  onChange={setEditReflection}
+                  placeholder="Write your weekly reflection here. Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
+                />
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={handleCancelEdits}>Cancel</Button>
+                <Button onClick={handleSaveEdits}>Save Changes</Button>
+              </DialogFooter>
             </div>
           )}
         </DialogContent>
