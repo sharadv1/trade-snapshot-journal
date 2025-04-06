@@ -254,6 +254,14 @@ export default function WeeklyJournal() {
     }
   };
 
+  const toggleWeekExpansion = (weekId: string) => {
+    if (expandedWeek === weekId) {
+      setExpandedWeek(null);
+    } else {
+      setExpandedWeek(weekId);
+    }
+  };
+
   useEffect(() => {
     setIsLoading(true);
     if (!isMonthView && weekId) {

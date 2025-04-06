@@ -68,6 +68,11 @@ export function MonthlyReflectionsList() {
   const [editGrade, setEditGrade] = useState('');
   const [editWeekId, setEditWeekId] = useState('');
   
+  const getWeeklyReflectionById = (weekId: string) => {
+    if (!weekId) return undefined;
+    return getWeeklyReflection(weekId);
+  };
+  
   useEffect(() => {
     loadReflections();
     
