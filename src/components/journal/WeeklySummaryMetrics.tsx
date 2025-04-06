@@ -33,7 +33,7 @@ export function WeeklySummaryMetrics({ trades = [] }: WeeklySummaryMetricsProps)
   };
 
   return (
-    <Card className={`${getBgColor()} border-0 shadow-sm`}>
+    <Card className={`${getBgColor()} border-0 shadow-sm w-full`}>
       <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4">
         <div className="text-center p-3">
           <p className="text-sm text-muted-foreground">Total Trades</p>

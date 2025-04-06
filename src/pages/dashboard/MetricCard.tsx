@@ -11,7 +11,7 @@ interface Stat {
 
 export interface MetricCardProps {
   title: string;
-  value: string;
+  value?: string;
   subValue?: string;
   subStats?: Stat[];
   className?: string;
@@ -27,8 +27,8 @@ export function MetricCard({
   tooltip
 }: MetricCardProps) {
   return (
-    <Card className="shadow-sm">
-      <CardContent className="p-6">
+    <Card className="shadow-sm h-full">
+      <CardContent className="p-4">
         <div className="flex justify-between items-center">
           <div className="text-sm font-medium text-muted-foreground flex items-center">
             {title}
@@ -46,9 +46,13 @@ export function MetricCard({
             )}
           </div>
         </div>
-        <div className={`mt-2 text-2xl font-bold ${className}`}>
-          {value}
-        </div>
+        
+        {value && (
+          <div className={`mt-2 text-2xl font-bold ${className}`}>
+            {value}
+          </div>
+        )}
+        
         {subValue && (
           <div className={`text-sm ${className}`}>
             {subValue}
@@ -56,9 +60,9 @@ export function MetricCard({
         )}
         
         {subStats && subStats.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2">
+          <div className={`${value ? 'mt-4' : 'mt-2'} space-y-1.5`}>
             {subStats.map((stat, index) => (
-              <div key={index} className="flex flex-col">
+              <div key={index} className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">{stat.label}</span>
                 <span className={`text-sm font-medium ${stat.className || ''}`}>{stat.value}</span>
               </div>

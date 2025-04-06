@@ -55,7 +55,7 @@ export function TradeCommentsList({
   
   if (trades.length === 0) {
     return (
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>{listTitle}</CardTitle>
         </CardHeader>
@@ -69,12 +69,12 @@ export function TradeCommentsList({
   }
   
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>{listTitle}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[500px] pr-4">
+        <ScrollArea className="h-[600px] pr-4">
           <div className="space-y-6">
             {Object.entries(groupedTrades).map(([strategy, strategyTrades]) => (
               <div key={strategy} className="space-y-4">
@@ -97,11 +97,11 @@ export function TradeCommentsList({
                     
                   // Format risk-reward metrics
                   const riskReward = trade.metrics.riskRewardRatio !== undefined 
-                    ? trade.metrics.riskRewardRatio.toFixed(1) 
+                    ? trade.metrics.riskRewardRatio.toFixed(2) 
                     : "N/A";
                     
                   const expectedR = trade.stopLoss && trade.takeProfit 
-                    ? Math.abs((trade.takeProfit - trade.entryPrice) / (trade.entryPrice - trade.stopLoss)).toFixed(1)
+                    ? Math.abs((trade.takeProfit - trade.entryPrice) / (trade.entryPrice - trade.stopLoss)).toFixed(2)
                     : "N/A";
                     
                   return (

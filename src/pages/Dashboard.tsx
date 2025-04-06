@@ -133,15 +133,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Recent Trades</h2>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleRefresh}
-                  disabled={isSyncing}
-                >
-                  {isSyncing ? 'Syncing...' : 'Refresh'}
-                </Button>
+              <div>
                 <Link 
                   to="/trade/new" 
                   className="text-sm text-primary hover:underline"
