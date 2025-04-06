@@ -6,6 +6,7 @@ import { toast } from '@/utils/toast';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
+import { isVideo } from '@/utils/storage/imageOperations';
 
 interface IdeaImagesFieldProps {
   images: string[];
@@ -22,11 +23,6 @@ export function IdeaImagesField({
 }: IdeaImagesFieldProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
-  // Function to determine if a file is a video
-  const isVideo = (url: string) => {
-    return url.includes('video') || url.startsWith('data:video') || url.endsWith('.mp4') || url.endsWith('.webm');
-  };
   
   // This function acts as a bridge between File input and base64 output
   const handleFileUpload = (file: File) => {
@@ -163,7 +159,6 @@ export function IdeaImagesField({
       </p>
       
       <ImageViewerDialog 
-        image=""
         images={images}
         currentIndex={currentImageIndex}
         isOpen={viewerOpen}

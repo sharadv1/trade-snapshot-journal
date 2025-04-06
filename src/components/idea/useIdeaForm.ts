@@ -5,6 +5,7 @@ import { toast } from '@/utils/toast';
 import { addIdea, updateIdea } from '@/utils/ideaStorage';
 import { generateUUID } from '@/utils/generateUUID';
 import { IdeaFormData } from './types';
+import { isVideo } from '@/utils/storage/imageOperations';
 
 export function useIdeaForm({
   initialIdea,
@@ -46,10 +47,15 @@ export function useIdeaForm({
   };
 
   const handleImageUpload = (base64Image: string) => {
-    // Limit to 3 images maximum
+    // Limit to 3 media files maximum
     if (images.length >= 3) {
-      toast.error("Maximum 3 images allowed");
+      toast.error("Maximum 3 media files allowed");
       return;
+    }
+    
+    // Check size for videos to avoid storage issues
+    if (isVideo(base64Image) && base64Image.length > 5 * 1024 * 1024) {
+      toast.warning("Video is very large and may cause storage issues");
     }
     
     const newImages = [...images, base64Image];

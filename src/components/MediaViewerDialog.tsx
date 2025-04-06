@@ -4,22 +4,27 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, ZoomIn, ZoomOut, Maximize, ExternalLink, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
+import { isVideo } from '@/utils/storage/imageOperations';
+
+interface MediaViewerDialogProps {
+  media?: MediaFile[];
+  images?: string[];
+  currentIndex: number;
+  isOpen: boolean;
+  onClose: () => void;
+  onIndexChange: (index: number) => void;
+  image?: string;
+}
 
 interface MediaFile {
   url: string;
   type: 'image' | 'video';
 }
 
-interface MediaViewerDialogProps {
-  media: MediaFile[];
-  currentIndex: number;
-  isOpen: boolean;
-  onClose: () => void;
-  onIndexChange: (index: number) => void;
-}
-
 export function MediaViewerDialog({ 
   media, 
+  images,
+  image,
   currentIndex,
   isOpen, 
   onClose, 
@@ -30,7 +35,17 @@ export function MediaViewerDialog({
   const [isMuted, setIsMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   
-  const currentMedia = media[currentIndex] || { url: '', type: 'image' };
+  // Handle both media array and images array (string[]) for backward compatibility
+  const mediaItems: MediaFile[] = media || 
+    (images ? 
+      images.map(url => ({
+        url,
+        type: isVideo(url) ? 'video' : 'image'
+      })) : 
+      (image ? [{url: image, type: isVideo(image) ? 'video' : 'image'}] : [])
+    );
+  
+  const currentMedia = mediaItems[currentIndex] || { url: '', type: 'image' };
   
   // Manage video playback state
   useEffect(() => {
@@ -71,14 +86,14 @@ export function MediaViewerDialog({
   };
   
   const handlePrevious = () => {
-    if (media.length <= 1) return;
-    const newIndex = (currentIndex - 1 + media.length) % media.length;
+    if (mediaItems.length <= 1) return;
+    const newIndex = (currentIndex - 1 + mediaItems.length) % mediaItems.length;
     onIndexChange(newIndex);
   };
   
   const handleNext = () => {
-    if (media.length <= 1) return;
-    const newIndex = (currentIndex + 1) % media.length;
+    if (mediaItems.length <= 1) return;
+    const newIndex = (currentIndex + 1) % mediaItems.length;
     onIndexChange(newIndex);
   };
 
@@ -164,7 +179,7 @@ export function MediaViewerDialog({
             </Button>
           </div>
           
-          {media.length > 1 && (
+          {mediaItems.length > 1 && (
             <>
               <Button
                 variant="ghost"
@@ -211,11 +226,11 @@ export function MediaViewerDialog({
             </div>
           </div>
           
-          {media.length > 1 && (
+          {mediaItems.length > 1 && (
             <div className="absolute bottom-4 left-0 right-0 flex justify-center">
               <div className="bg-background/80 px-3 py-1 rounded-full">
                 <span className="text-sm font-medium">
-                  {currentIndex + 1} / {media.length}
+                  {currentIndex + 1} / {mediaItems.length}
                 </span>
               </div>
             </div>
