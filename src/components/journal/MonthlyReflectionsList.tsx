@@ -417,23 +417,16 @@ export function MonthlyReflectionsList() {
               </div>
               
               <div>
-                <h3 className="text-sm font-medium mb-1">What Went Well</h3>
+                <h3 className="text-sm font-medium mb-1">Reflection</h3>
                 <div className="text-sm border rounded-md p-3 bg-muted/20">
-                  {selectedWeeklyReflection.whatWentWell || 'No reflection recorded'}
+                  {selectedWeeklyReflection.reflection || 'No reflection recorded'}
                 </div>
               </div>
               
               <div>
-                <h3 className="text-sm font-medium mb-1">What Needs Improvement</h3>
+                <h3 className="text-sm font-medium mb-1">Weekly Plan</h3>
                 <div className="text-sm border rounded-md p-3 bg-muted/20">
-                  {selectedWeeklyReflection.whatNeedsImprovement || 'No reflection recorded'}
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium mb-1">Next Week's Focus</h3>
-                <div className="text-sm border rounded-md p-3 bg-muted/20">
-                  {selectedWeeklyReflection.nextWeekFocus || 'No focus set for next week'}
+                  {selectedWeeklyReflection.weeklyPlan || 'No plan recorded'}
                 </div>
               </div>
             </div>
