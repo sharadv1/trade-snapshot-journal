@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { InfoCircle } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Stat {
@@ -36,7 +36,7 @@ export function MetricCard({
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <InfoCircle className="h-4 w-4 ml-1 cursor-help text-muted-foreground/70" />
+                    <Info className="h-4 w-4 ml-1 cursor-help text-muted-foreground/70" />
                   </TooltipTrigger>
                   <TooltipContent side="top">
                     <p className="max-w-xs text-xs">{tooltip}</p>
