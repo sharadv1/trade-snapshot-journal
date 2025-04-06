@@ -10,11 +10,13 @@ import { DashboardHeader } from './dashboard/DashboardHeader';
 import { DashboardMetrics } from './dashboard/DashboardMetrics';
 import { WeeklyPnLSummary } from '@/components/WeeklyPnLSummary';
 import { isUsingServerSync, syncWithServer, restoreServerConnection } from '@/utils/storage/serverSync';
+import { toast } from '@/utils/toast';
 
 export default function Dashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [trades, setTrades] = useState<TradeWithMetrics[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   
   // Initialize server connection on first load
   useEffect(() => {
@@ -77,14 +79,27 @@ export default function Dashboard() {
   
   const loadTrades = async () => {
     console.log('Dashboard: Loading trades');
+    setIsSyncing(true);
+    
     // Try to refresh from server first if connected
     if (isUsingServerSync()) {
       try {
         console.log('Dashboard: Syncing with server before loading trades');
-        await syncWithServer(true);
+        const syncSuccess = await syncWithServer(true);
+        if (!syncSuccess) {
+          // If server sync failed but we're still in "server mode", show a more detailed error
+          toast.error('Could not sync with server. Using local data only.', {
+            description: 'Check server configuration in settings.'
+          });
+        }
       } catch (error) {
         console.error('Error syncing with server:', error);
+        toast.error('Failed to sync with server. Using local data.');
+      } finally {
+        setIsSyncing(false);
       }
+    } else {
+      setIsSyncing(false);
     }
     
     const fetchedTrades = getTradesWithMetrics();
@@ -129,8 +144,9 @@ export default function Dashboard() {
                   variant="outline" 
                   size="sm" 
                   onClick={handleRefresh}
+                  disabled={isSyncing}
                 >
-                  Refresh
+                  {isSyncing ? 'Syncing...' : 'Refresh'}
                 </Button>
                 <Link 
                   to="/trade/new" 

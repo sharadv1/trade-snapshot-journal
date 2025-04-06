@@ -1,3 +1,4 @@
+
 import { toast } from '@/utils/toast';
 import { 
   setServerSync, 
@@ -29,10 +30,26 @@ export const initializeServerSync = (url: string): Promise<boolean> => {
   return fetch(pingUrl)
     .then(response => {
       if (response.ok) {
-        console.log('Successfully connected to trade server');
-        setServerSync(true, url);
-        toast.success('Connected to trade server successfully');
-        return true;
+        // Check if response is actually JSON
+        return response.text().then(text => {
+          try {
+            // Try to parse as JSON to make sure it's not HTML
+            const pingData = JSON.parse(text);
+            if (pingData && pingData.status === 'ok') {
+              console.log('Successfully connected to trade server');
+              setServerSync(true, url);
+              toast.success('Connected to trade server successfully');
+              return true;
+            } else {
+              throw new Error('Invalid ping response format');
+            }
+          } catch (e) {
+            console.error('Server returned HTML instead of JSON:', text.substring(0, 100));
+            setServerSync(false, '');
+            toast.error('Server returned HTML instead of JSON. Check server URL configuration.');
+            return false;
+          }
+        });
       } else {
         console.error('Server returned an error status', response.status);
         setServerSync(false, '');
@@ -180,7 +197,7 @@ export const syncAllData = async (): Promise<boolean> => {
 
 // Force sync with server (pull server data)
 export const syncWithServer = async (forceRefresh: boolean = false): Promise<boolean> => {
-  const serverUrl = getServerUrl(); // Use the getServerUrl function which checks both regular and memory storage
+  const serverUrl = getServerUrl();
   
   if (!serverUrl || !isUsingServerSync()) {
     console.log('Server sync is not enabled or no server URL available');
@@ -194,11 +211,25 @@ export const syncWithServer = async (forceRefresh: boolean = false): Promise<boo
     if (forceRefresh) {
       const response = await fetch(serverUrl);
       if (response.ok) {
-        const serverTrades = await response.json();
-        localStorage.setItem('trade-journal-trades', JSON.stringify(serverTrades));
-        window.dispatchEvent(new Event('storage'));
-        console.log('Successfully pulled trades from server');
-        return true;
+        // Check if response is actually JSON
+        const text = await response.text();
+        try {
+          // Try to parse as JSON to make sure it's not HTML
+          const serverTrades = JSON.parse(text);
+          
+          if (Array.isArray(serverTrades)) {
+            localStorage.setItem('trade-journal-trades', JSON.stringify(serverTrades));
+            window.dispatchEvent(new Event('storage'));
+            console.log('Successfully pulled trades from server');
+            return true;
+          } else {
+            throw new Error('Server returned invalid data format (not an array)');
+          }
+        } catch (e) {
+          console.error('Server returned HTML instead of JSON:', text.substring(0, 100));
+          toast.error('Server returned HTML instead of JSON. Check server URL configuration.');
+          return false;
+        }
       } else {
         console.error('Server returned an error status', response.status);
         toast.error('Failed to sync trades with server');
@@ -212,27 +243,40 @@ export const syncWithServer = async (forceRefresh: boolean = false): Promise<boo
       // Try to get server trades
       const response = await fetch(serverUrl);
       if (response.ok) {
-        const serverTrades = await response.json();
-        
-        // Check which is newer (more trades usually means newer)
-        // This is a simple heuristic that could be improved
-        if (serverTrades.length >= localTrades.length) {
-          // Server has same or more trades, use server data
-          localStorage.setItem('trade-journal-trades', JSON.stringify(serverTrades));
-          window.dispatchEvent(new Event('storage'));
-          console.log('Using server trades (same or more trades)');
-        } else {
-          // Local has more trades, push to server
-          await fetch(serverUrl, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(localTrades),
-          });
-          console.log('Pushed local trades to server (more local trades)');
+        // Check if response is actually JSON
+        const text = await response.text();
+        try {
+          // Try to parse as JSON to make sure it's not HTML
+          const serverTrades = JSON.parse(text);
+          
+          if (!Array.isArray(serverTrades)) {
+            throw new Error('Server returned invalid data format (not an array)');
+          }
+
+          // Check which is newer (more trades usually means newer)
+          // This is a simple heuristic that could be improved
+          if (serverTrades.length >= localTrades.length) {
+            // Server has same or more trades, use server data
+            localStorage.setItem('trade-journal-trades', JSON.stringify(serverTrades));
+            window.dispatchEvent(new Event('storage'));
+            console.log('Using server trades (same or more trades)');
+          } else {
+            // Local has more trades, push to server
+            await fetch(serverUrl, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(localTrades),
+            });
+            console.log('Pushed local trades to server (more local trades)');
+          }
+          return true;
+        } catch (e) {
+          console.error('Server returned HTML instead of JSON:', text.substring(0, 100));
+          toast.error('Server returned HTML instead of JSON. Check server URL configuration.');
+          return false;
         }
-        return true;
       } else {
         console.error('Server returned an error status', response.status);
         toast.error('Failed to sync trades with server');
@@ -251,3 +295,4 @@ export const handleDialogDisplayProblem = (): void => {
   // This is just a marker function for the TradeDetail.tsx issue
   console.log('Dialog display issue handler registered');
 };
+

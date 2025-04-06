@@ -17,7 +17,8 @@ import {
   CloudOff, 
   RefreshCw, 
   InfoIcon,
-  AlertTriangle 
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 import { 
   configureServerConnection, 
@@ -42,6 +43,7 @@ export function ServerSyncConfig() {
   const [serverUrl, setServerUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
   const [storageStatus, setStorageStatus] = useState({
     percentUsed: 0,
     isNearLimit: false,
@@ -56,6 +58,9 @@ export function ServerSyncConfig() {
     
     // Check connection status
     setIsConnected(isUsingServerSync());
+    
+    // Clear any previous errors when checking status
+    setLastError(null);
     
     // Check storage status
     const quota = checkStorageQuota();
@@ -103,12 +108,21 @@ export function ServerSyncConfig() {
   
   const handleSaveConfig = async () => {
     setIsSyncing(true);
+    setLastError(null);
+    
     try {
       // Normalize server URL to ensure no duplicate /api/ paths
       let normalizedUrl = serverUrl;
       
       // If user manually entered a URL with duplicate /api/api/, fix it
       normalizedUrl = normalizedUrl.replace(/\/api\/api\//g, '/api/');
+      
+      // Ensure the URL ends with /trades if it's pointing to an API endpoint
+      if (normalizedUrl.includes('/api') && !normalizedUrl.endsWith('/trades')) {
+        normalizedUrl = normalizedUrl.endsWith('/') 
+          ? `${normalizedUrl}trades` 
+          : `${normalizedUrl}/trades`;
+      }
       
       const success = await configureServerConnection(normalizedUrl);
       setIsConnected(success);
@@ -118,7 +132,12 @@ export function ServerSyncConfig() {
         // Force a refresh from the server - this is handled in configureServerConnection now
         toast.success('Successfully connected to server and synced data');
         window.dispatchEvent(new Event('storage'));
+      } else {
+        setLastError("Could not connect to server. Please check the URL and ensure the server is running.");
       }
+    } catch (error) {
+      console.error('Error saving server config:', error);
+      setLastError(`Connection error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSyncing(false);
     }
@@ -136,6 +155,9 @@ export function ServerSyncConfig() {
         toast.warning('Sync completed with some issues');
       }
       window.dispatchEvent(new Event('storage'));
+    } catch (error) {
+      console.error('Error during sync:', error);
+      toast.error('Failed to sync with server');
     } finally {
       setIsSyncing(false);
     }
@@ -146,6 +168,14 @@ export function ServerSyncConfig() {
     const apiUrl = window.location.origin + '/api/trades';
     setServerUrl(apiUrl);
     toast.info('Docker API URL configured. Click "Save & Connect" to connect.');
+  };
+  
+  const handleDisableSync = async () => {
+    setServerUrl('');
+    await configureServerConnection('');
+    setIsConnected(false);
+    setIsOpen(false);
+    toast.info('Server sync disabled, using local storage only');
   };
   
   return (
@@ -215,6 +245,13 @@ export function ServerSyncConfig() {
                 For Docker deployment, use: {window.location.origin}/api/trades
               </p>
               
+              {lastError && (
+                <div className="flex items-center mt-2 text-red-500 text-xs gap-1 border border-red-200 bg-red-50 p-2 rounded">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span>{lastError}</span>
+                </div>
+              )}
+              
               {storageStatus.isNearLimit && (
                 <div className="flex items-center mt-2 text-amber-500 text-xs gap-1">
                   <AlertTriangle className="h-3 w-3" />
@@ -231,18 +268,20 @@ export function ServerSyncConfig() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={async () => {
-                setServerUrl('');
-                await configureServerConnection('');
-                setIsConnected(false);
-                setIsOpen(false);
-                toast.info('Server sync disabled, using local storage only');
-              }}
+              onClick={handleDisableSync}
+              disabled={isSyncing}
             >
               Disable Sync
             </Button>
             <Button onClick={handleSaveConfig} disabled={isSyncing}>
-              {isSyncing ? "Connecting..." : "Save & Connect"}
+              {isSyncing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                "Save & Connect"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -256,10 +295,12 @@ export function ServerSyncConfig() {
           disabled={isSyncing}
           className="ml-2"
         >
-          <RefreshCw 
-            className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} 
-          />
-          Sync Now
+          {isSyncing ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
+          {isSyncing ? 'Syncing...' : 'Sync Now'}
         </Button>
       )}
     </div>
