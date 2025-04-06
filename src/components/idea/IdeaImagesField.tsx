@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ImageUpload';
@@ -24,19 +23,15 @@ export function IdeaImagesField({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  // This function acts as a bridge between File input and base64 output
   const handleFileUpload = (file: File) => {
     const isVideoFile = file.type.startsWith('video/');
     
-    // Handle videos differently
     if (isVideoFile) {
-      // Check video size - strict limit for ideas
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit for idea videos
+      if (file.size > 10 * 1024 * 1024) {
         toast.error("Videos for trade ideas must be under 10MB");
         return;
       }
       
-      // Convert video to data URL
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
@@ -47,22 +42,18 @@ export function IdeaImagesField({
       return;
     }
     
-    // For images, continue with the existing logic
-    if (file.size > 1024 * 1024) { // 1MB limit for ideas
+    if (file.size > 1024 * 1024) {
       toast.warning("Image is larger than 1MB. Compressing...");
     }
     
-    // Convert File to base64 string with compression
     const reader = new FileReader();
     reader.onloadend = () => {
       const img = new Image();
       img.onload = () => {
-        // Create canvas for resizing/compressing
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
         
-        // Calculate new dimensions (max 800px width/height)
         const MAX_SIZE = 800;
         if (width > height) {
           if (width > MAX_SIZE) {
@@ -76,17 +67,14 @@ export function IdeaImagesField({
           }
         }
         
-        // Set canvas dimensions and draw resized image
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
           
-          // Convert to compressed base64 (0.7 quality JPEG)
           const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
           
-          // Check final size
           const approximateSize = Math.round((compressedBase64.length * 0.75) / 1024);
           if (approximateSize > 500) {
             toast.warning(`Image is still large (${approximateSize}KB). This might cause storage issues.`);
@@ -141,7 +129,7 @@ export function IdeaImagesField({
         onImageUpload={handleFileUpload}
         onImageRemove={onImageRemove}
         disabled={isReadOnly}
-        maxImages={3} // Limit to 3 media files per idea
+        maxImages={3}
         acceptVideos={true}
       />
       
@@ -158,7 +146,6 @@ export function IdeaImagesField({
         Media files are stored in the browser's local storage. For production use, we recommend configuring server storage.
       </p>
       
-      {/* Fix: Provide the required 'image' prop, using the current image from the images array */}
       <ImageViewerDialog 
         images={images}
         image={images[currentImageIndex] || ''}

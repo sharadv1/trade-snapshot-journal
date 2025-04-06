@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from 'react';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, ZoomIn, ZoomOut, Maximize, ExternalLink, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
@@ -106,10 +106,15 @@ export function ImageViewerDialog({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 overflow-hidden" onPointerDownOutside={onClose}>
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 overflow-hidden" onPointerDownOutside={onClose} aria-describedby="media-viewer-description">
         <DialogTitle>
           <VisuallyHidden>Media Viewer</VisuallyHidden>
         </DialogTitle>
+        <DialogDescription id="media-viewer-description">
+          <VisuallyHidden>
+            View and interact with uploaded images and videos
+          </VisuallyHidden>
+        </DialogDescription>
         <div className="relative h-full">
           <div className="absolute top-4 right-4 flex space-x-2 z-10">
             {!currentIsVideo && (
