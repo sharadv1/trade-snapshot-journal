@@ -8,7 +8,7 @@ interface NotesAndImagesFormProps {
   trade: Trade;
   handleChange: (field: keyof Trade, value: any) => void;
   images: string[];
-  onImageUpload: (files: FileList) => void;
+  onImageUpload: (files: FileList | File) => void;
   onImageRemove: (url: string) => void;
 }
 
@@ -19,10 +19,19 @@ export function NotesAndImagesForm({
   onImageUpload,
   onImageRemove
 }: NotesAndImagesFormProps) {
-  // Transform string URLs to MediaFile objects with explicit type casting
+  // Detect if an item is a video (basic check, could be enhanced)
+  const isVideo = (url: string) => {
+    return url.includes('video') || 
+           url.startsWith('data:video') || 
+           url.endsWith('.mp4') || 
+           url.endsWith('.webm') || 
+           url.endsWith('.mov');
+  };
+  
+  // Transform string URLs to MediaFile objects
   const mediaFiles = images.map(url => ({
     url,
-    type: url.includes('video') ? 'video' : 'image' as 'video' | 'image' // Use type assertion
+    type: isVideo(url) ? 'video' : 'image' as 'video' | 'image'
   }));
 
   return (
@@ -39,13 +48,17 @@ export function NotesAndImagesForm({
       </div>
       
       <div className="space-y-2">
-        <Label>Images</Label>
+        <Label>Media Files</Label>
         <MediaUpload 
           media={mediaFiles}
-          onMediaUpload={(file) => onImageUpload(new DataTransfer().files)}
+          onMediaUpload={(file) => onImageUpload(file)}
           onMediaRemove={(index) => onImageRemove(images[index])}
           disabled={false}
+          maxFiles={5}
         />
+        <p className="text-xs text-muted-foreground">
+          Upload images or videos to document your trade setup, execution, and results.
+        </p>
       </div>
     </div>
   );

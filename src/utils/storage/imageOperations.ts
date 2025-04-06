@@ -1,26 +1,26 @@
 
 import { getTradeById, updateTrade } from './tradeOperations';
 
-// Save image to a trade
-export const saveImageToTrade = async (tradeId: string, imageBase64: string): Promise<void> => {
+// Save media to a trade
+export const saveMediaToTrade = async (tradeId: string, mediaUrl: string): Promise<void> => {
   const trade = getTradeById(tradeId);
   
   if (trade) {
     const updatedTrade = {
       ...trade,
-      images: [...trade.images, imageBase64]
+      images: [...trade.images, mediaUrl]
     };
     await updateTrade(updatedTrade);
   }
 };
 
-// Delete image from a trade
-export const deleteImageFromTrade = async (tradeId: string, imageIndex: number): Promise<void> => {
+// Delete media from a trade
+export const deleteMediaFromTrade = async (tradeId: string, mediaIndex: number): Promise<void> => {
   const trade = getTradeById(tradeId);
   
   if (trade) {
     const updatedImages = [...trade.images];
-    updatedImages.splice(imageIndex, 1);
+    updatedImages.splice(mediaIndex, 1);
     
     const updatedTrade = {
       ...trade,
@@ -29,3 +29,16 @@ export const deleteImageFromTrade = async (tradeId: string, imageIndex: number):
     await updateTrade(updatedTrade);
   }
 };
+
+// Check if a media URL is a video
+export const isVideo = (url: string): boolean => {
+  return url.includes('video') || 
+         url.startsWith('data:video') || 
+         url.endsWith('.mp4') || 
+         url.endsWith('.webm') || 
+         url.endsWith('.mov');
+};
+
+// Functions for legacy compatibility
+export const saveImageToTrade = saveMediaToTrade;
+export const deleteImageFromTrade = deleteMediaFromTrade;

@@ -45,14 +45,8 @@ export default function Dashboard() {
   
   // Load trades when component mounts or refreshKey changes
   useEffect(() => {
-    const loadTrades = () => {
-      console.log('Dashboard: Loading trades');
-      const fetchedTrades = getTradesWithMetrics();
-      console.log(`Dashboard: Loaded ${fetchedTrades.length} trades`);
-      setTrades(fetchedTrades);
-    };
-    
     if (isInitialized) {
+      console.log('Dashboard: Loading trades');
       loadTrades();
     }
     

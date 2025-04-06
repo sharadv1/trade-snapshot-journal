@@ -87,7 +87,7 @@ const storage = multer.diskStorage({
 // File upload middleware
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
+    limits: { fileSize: 200 * 1024 * 1024 }, // Increased to 200MB limit
     fileFilter: (req, file, cb) => {
         // Accept images and videos
         if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
@@ -100,7 +100,7 @@ const upload = multer({
 
 // Middlewares
 app.use(cors());
-app.use(express.json({ limit: "50mb" })); // For handling large requests with images
+app.use(express.json({ limit: "200mb" })); // Increased JSON limit for large data
 app.use(express.static("dist")); // Serve static files
 
 // Serve media files

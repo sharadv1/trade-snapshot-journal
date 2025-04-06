@@ -18,9 +18,14 @@ export function useTradeImages(initialImages: string[] = []) {
       file = fileOrFiles;
     }
     
+    // Check if it's a video file
+    const isVideo = file.type.startsWith('video/');
+    
     // Check file size - warn if it's large but still try to process it
-    if (file.size > 10 * 1024 * 1024) { // 10MB
-      toast.warning('File is very large and might cause storage issues');
+    if (isVideo && file.size > 50 * 1024 * 1024) {
+      toast.warning('Video is larger than 50MB and might cause performance issues');
+    } else if (!isVideo && file.size > 10 * 1024 * 1024) {
+      toast.warning('File is larger than 10MB and might cause storage issues');
     }
     
     setIsUploading(true);
@@ -59,7 +64,7 @@ export function useTradeImages(initialImages: string[] = []) {
         // Add the file path to images array
         const newImages = [...images, serverFilePath];
         setImages(newImages);
-        toast.success('File uploaded successfully');
+        toast.success(`${isVideo ? 'Video' : 'Image'} uploaded successfully`);
         return newImages;
       } else {
         // For local storage, use data URL approach (same as before)
@@ -82,7 +87,7 @@ export function useTradeImages(initialImages: string[] = []) {
               // Add the file path to images array
               const newImages = [...images, dataUrl];
               setImages(newImages);
-              toast.success('File uploaded successfully');
+              toast.success(`${isVideo ? 'Video' : 'Image'} uploaded successfully`);
               resolve(newImages);
             } catch (error) {
               reject(error);

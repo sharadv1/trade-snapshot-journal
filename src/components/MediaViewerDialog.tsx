@@ -1,8 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, ZoomIn, ZoomOut, Maximize, ExternalLink, ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, Maximize, ExternalLink, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 
 interface MediaFile {
@@ -27,8 +27,28 @@ export function MediaViewerDialog({
 }: MediaViewerDialogProps) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   
   const currentMedia = media[currentIndex] || { url: '', type: 'image' };
+  
+  // Manage video playback state
+  useEffect(() => {
+    if (isOpen && currentMedia.type === 'video' && videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.play().catch(err => console.error('Failed to play video:', err));
+      } else {
+        videoRef.current.pause();
+      }
+      
+      videoRef.current.muted = isMuted;
+    }
+  }, [isPlaying, isMuted, isOpen, currentMedia.type]);
+  
+  // Reset video state when changing media
+  useEffect(() => {
+    setIsPlaying(false);
+  }, [currentIndex]);
   
   const handleZoomIn = () => {
     if (currentMedia.type === 'image') {
@@ -54,26 +74,20 @@ export function MediaViewerDialog({
     if (media.length <= 1) return;
     const newIndex = (currentIndex - 1 + media.length) % media.length;
     onIndexChange(newIndex);
-    setIsPlaying(false);
   };
   
   const handleNext = () => {
     if (media.length <= 1) return;
     const newIndex = (currentIndex + 1) % media.length;
     onIndexChange(newIndex);
-    setIsPlaying(false);
   };
 
-  const handleVideoPlayToggle = () => {
-    setIsPlaying(!isPlaying);
-    const videoElement = document.querySelector('.media-viewer-video') as HTMLVideoElement;
-    if (videoElement) {
-      if (isPlaying) {
-        videoElement.pause();
-      } else {
-        videoElement.play();
-      }
-    }
+  const togglePlayPause = () => {
+    setIsPlaying(prev => !prev);
+  };
+  
+  const toggleMute = () => {
+    setIsMuted(prev => !prev);
   };
   
   return (
@@ -113,14 +127,24 @@ export function MediaViewerDialog({
               </>
             )}
             {currentMedia.type === 'video' && (
-              <Button 
-                variant="secondary" 
-                size="icon" 
-                className="h-8 w-8 rounded-full opacity-90 hover:opacity-100"
-                onClick={handleVideoPlayToggle}
-              >
-                <Play size={16} />
-              </Button>
+              <>
+                <Button 
+                  variant="secondary" 
+                  size="icon" 
+                  className="h-8 w-8 rounded-full opacity-90 hover:opacity-100"
+                  onClick={togglePlayPause}
+                >
+                  {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  size="icon" 
+                  className="h-8 w-8 rounded-full opacity-90 hover:opacity-100"
+                  onClick={toggleMute}
+                >
+                  {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                </Button>
+              </>
             )}
             <Button 
               variant="secondary" 
@@ -175,11 +199,13 @@ export function MediaViewerDialog({
                 />
               ) : (
                 <video 
+                  ref={videoRef}
                   src={currentMedia.url}
                   className="max-h-[calc(90vh-32px)] max-w-full media-viewer-video"
-                  controls
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
+                  controls={false}
+                  loop
+                  playsInline
+                  onClick={togglePlayPause}
                 />
               )}
             </div>
@@ -191,6 +217,29 @@ export function MediaViewerDialog({
                 <span className="text-sm font-medium">
                   {currentIndex + 1} / {media.length}
                 </span>
+              </div>
+            </div>
+          )}
+          
+          {currentMedia.type === 'video' && (
+            <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+              <div className="bg-background/80 px-5 py-2 rounded-full flex items-center gap-4">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9 rounded-full opacity-90 hover:opacity-100"
+                  onClick={togglePlayPause}
+                >
+                  {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9 rounded-full opacity-90 hover:opacity-100"
+                  onClick={toggleMute}
+                >
+                  {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                </Button>
               </div>
             </div>
           )}

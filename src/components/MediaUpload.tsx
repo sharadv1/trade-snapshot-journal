@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, X, Play } from 'lucide-react';
+import { Upload, X, Play, Video } from 'lucide-react';
 import { toast } from '@/utils/toast';
 
 interface MediaFile {
@@ -14,13 +14,15 @@ interface MediaUploadProps {
   onMediaUpload: (file: File) => void;
   onMediaRemove: (index: number) => void;
   disabled?: boolean;
+  maxFiles?: number;
 }
 
 export function MediaUpload({ 
   media, 
   onMediaUpload, 
   onMediaRemove,
-  disabled = false 
+  disabled = false,
+  maxFiles = 5
 }: MediaUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -30,14 +32,20 @@ export function MediaUpload({
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 100 * 1024 * 1024) { // 100MB limit
-        toast.error('File size should be less than 100MB');
+      if (media.length >= maxFiles) {
+        toast.error(`Maximum ${maxFiles} files allowed`);
         return;
+      }
+      
+      // Check if file is video and warn about size
+      if (file.type.startsWith('video/') && file.size > 50 * 1024 * 1024) {
+        toast.warning('Video is larger than 50MB. This may cause performance issues.');
       }
       
       setUploading(true);
       try {
         await onMediaUpload(file);
+        toast.success(`${file.type.startsWith('video/') ? 'Video' : 'Image'} uploaded successfully`);
       } catch (error) {
         console.error('Error uploading:', error);
         toast.error('Failed to upload file');
@@ -80,19 +88,25 @@ export function MediaUpload({
     
     if (disabled) return;
     
+    if (media.length >= maxFiles) {
+      toast.error(`Maximum ${maxFiles} files allowed`);
+      return;
+    }
+    
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const files = Array.from(e.dataTransfer.files);
       const mediaFile = files[0];
       
       if (mediaFile && (mediaFile.type.startsWith('image/') || mediaFile.type.startsWith('video/'))) {
-        if (mediaFile.size > 100 * 1024 * 1024) { // 100MB limit
-          toast.error('File size should be less than 100MB');
-          return;
+        // Check if file is video and warn about size
+        if (mediaFile.type.startsWith('video/') && mediaFile.size > 50 * 1024 * 1024) {
+          toast.warning('Video is larger than 50MB. This may cause performance issues.');
         }
         
         setUploading(true);
         try {
           await onMediaUpload(mediaFile);
+          toast.success(`${mediaFile.type.startsWith('video/') ? 'Video' : 'Image'} uploaded successfully`);
         } catch (error) {
           console.error('Error uploading:', error);
           toast.error('Failed to upload file');
@@ -103,7 +117,7 @@ export function MediaUpload({
         toast.error('Unsupported file type. Please upload an image or video.');
       }
     }
-  }, [disabled, onMediaUpload]);
+  }, [disabled, media.length, maxFiles, onMediaUpload]);
 
   const handleUploadBtnClick = () => {
     fileInputRef.current?.click();
@@ -122,16 +136,21 @@ export function MediaUpload({
               />
             ) : (
               <div className="relative w-full h-full bg-black/5 flex items-center justify-center">
-                <video 
-                  className="max-h-full max-w-full" 
-                  controls={false}
-                  muted
-                  loop
-                  preload="metadata"
-                >
-                  <source src={item.url} />
-                  Your browser does not support the video tag.
-                </video>
+                {item.url.startsWith('data:') ? (
+                  <video 
+                    className="max-h-full max-w-full" 
+                    muted
+                    loop
+                    preload="metadata"
+                  >
+                    <source src={item.url} />
+                    Your browser does not support the video tag.
+                  </video>
+                ) : (
+                  <div className="flex items-center justify-center h-full w-full">
+                    <Video className="h-8 w-8 text-primary/60" />
+                  </div>
+                )}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="w-8 h-8 bg-black/40 rounded-full flex items-center justify-center">
                     <Play className="h-4 w-4 text-white" />
@@ -173,7 +192,7 @@ export function MediaUpload({
             {uploading ? 'Uploading...' : 'Drop image or video here or click to upload'}
           </span>
           <span className="text-xs text-muted-foreground mt-1">
-            Supported: JPEG, PNG, GIF, MP4, WebM (max 100MB)
+            Supported: JPEG, PNG, GIF, MP4, WebM (max 200MB)
           </span>
         </div>
       )}
@@ -184,6 +203,7 @@ export function MediaUpload({
         onChange={handleFileChange}
         ref={fileInputRef}
         className="hidden"
+        disabled={disabled || media.length >= maxFiles}
       />
     </div>
   );

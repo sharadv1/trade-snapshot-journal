@@ -1,3 +1,4 @@
+
 import { Trade } from '@/types';
 import { addTrade, updateTrade } from '@/utils/tradeStorage';
 import { markIdeaAsTaken } from '@/utils/ideaStorage';
@@ -33,10 +34,15 @@ export function useTradeSubmit(
           return true;
         }
         
-        // Check if image is a data URL and if it's too large (>2MB)
-        if (img.startsWith('data:') && img.length > 2 * 1024 * 1024) {
-          console.warn('Skipping large data URL to prevent storage quota issues');
-          return false;
+        // Check if media is a data URL and if it's too large
+        if (img.startsWith('data:')) {
+          const isVideo = img.startsWith('data:video/');
+          const sizeLimit = isVideo ? 20 * 1024 * 1024 : 2 * 1024 * 1024; // 20MB for videos, 2MB for images
+          
+          if (img.length > sizeLimit) {
+            console.warn(`Skipping large ${isVideo ? 'video' : 'image'} data URL to prevent storage quota issues`);
+            return false;
+          }
         }
         return true;
       }) : [];
@@ -80,6 +86,7 @@ export function useTradeSubmit(
         
         // Explicitly dispatch the custom event for trade updates
         document.dispatchEvent(new CustomEvent('trade-updated'));
+        window.dispatchEvent(new Event('trades-updated'));
         
         tradeId = updatedTrade.id;
       } else {
@@ -101,6 +108,7 @@ export function useTradeSubmit(
         
         // Explicitly dispatch the custom event for trade updates
         document.dispatchEvent(new CustomEvent('trade-updated'));
+        window.dispatchEvent(new Event('trades-updated'));
         
         tradeId = newId;
       }
@@ -114,7 +122,7 @@ export function useTradeSubmit(
     } catch (error) {
       console.error("Error saving trade:", error);
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        toast.error("Storage limit exceeded. Try removing some images or videos before saving.");
+        toast.error("Storage limit exceeded. Try removing some media files or videos before saving.");
       } else {
         toast.error("Failed to save trade: " + (error instanceof Error ? error.message : "Unknown error"));
       }
