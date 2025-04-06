@@ -2,11 +2,12 @@
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
 import { TradeWithMetrics } from '@/types';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { getCurrentMaxLoss } from '@/utils/maxLossStorage';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface WeeklyPnLSummaryProps {
   trades: TradeWithMetrics[];
@@ -46,7 +47,19 @@ export function WeeklyPnLSummary({ trades }: WeeklyPnLSummaryProps) {
       <CardContent className="p-4 md:p-6">
         <div className="flex justify-between items-center">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">This Week's P&L</p>
+            <div className="flex items-center">
+              <p className="text-sm font-medium text-muted-foreground">This Week's P&L</p>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 ml-1 cursor-help text-muted-foreground/70" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="max-w-xs text-xs">Total profit or loss for trades closed this week.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <p className={`text-2xl font-bold ${weeklyPnL >= 0 ? 'text-profit' : 'text-loss'}`}>
               {formatCurrency(weeklyPnL)}
             </p>

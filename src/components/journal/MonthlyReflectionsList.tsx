@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -267,7 +268,7 @@ export function MonthlyReflectionsList() {
       const start = parseISO(startDate);
       const end = parseISO(endDate);
       
-      return `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`;
+      return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
     } catch (error) {
       console.error("Error formatting week dates:", error);
       return 'Invalid dates';
@@ -313,6 +314,34 @@ export function MonthlyReflectionsList() {
   
   const handleCancelEdits = () => {
     setIsEditMode(false);
+  };
+  
+  // Calculate stats for a weekly reflection
+  const getWeeklyStats = (weeklyReflection: WeeklyReflection) => {
+    if (!weeklyReflection.weekStart || !weeklyReflection.weekEnd) {
+      return { pnl: 0, rValue: 0, tradeCount: 0 };
+    }
+
+    const allTrades = getTradesWithMetrics();
+    const weekStart = new Date(weeklyReflection.weekStart);
+    const weekEnd = new Date(weeklyReflection.weekEnd);
+    
+    const weekTrades = allTrades.filter(trade => {
+      if (trade.exitDate) {
+        const exitDate = new Date(trade.exitDate);
+        return exitDate >= weekStart && exitDate <= weekEnd;
+      }
+      return false;
+    });
+    
+    const pnl = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
+    const rValue = weekTrades.reduce((sum, trade) => sum + (trade.metrics.riskRewardRatio || 0), 0);
+    
+    return {
+      pnl,
+      rValue,
+      tradeCount: weekTrades.length
+    };
   };
   
   return (
@@ -408,29 +437,39 @@ export function MonthlyReflectionsList() {
                               <TableHeader>
                                 <TableRow>
                                   <TableHead>Week</TableHead>
-                                  <TableHead className="w-[300px]">Summary</TableHead>
                                   <TableHead>Grade</TableHead>
+                                  <TableHead>P&L</TableHead>
+                                  <TableHead>R Value</TableHead>
+                                  <TableHead>Trades</TableHead>
                                   <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
                                 {relevantWeeklyReflections.map(weeklyReflection => {
-                                  const summary = getReflectionSummary(weeklyReflection.reflection);
+                                  const weekStats = getWeeklyStats(weeklyReflection);
                                   
                                   return (
-                                    <TableRow key={weeklyReflection.id} className="cursor-pointer hover:bg-muted/40" 
+                                    <TableRow 
+                                      key={weeklyReflection.id} 
+                                      className="cursor-pointer hover:bg-muted/40" 
                                       onClick={() => handleEditWeeklyReflection(weeklyReflection.weekId)}
                                     >
                                       <TableCell>
                                         {formatWeekDates(weeklyReflection.weekStart, weeklyReflection.weekEnd)}
                                       </TableCell>
-                                      <TableCell className="max-w-[300px] truncate text-muted-foreground text-sm">
-                                        {summary}
-                                      </TableCell>
                                       <TableCell>
                                         <Badge variant="outline" className={getGradeColor(weeklyReflection.grade)}>
                                           {weeklyReflection.grade || '-'}
                                         </Badge>
+                                      </TableCell>
+                                      <TableCell className={weekStats.pnl >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                                        {formatCurrency(weekStats.pnl)}
+                                      </TableCell>
+                                      <TableCell className={weekStats.rValue >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                                        {weekStats.rValue > 0 ? '+' : ''}{(weekStats.rValue || 0).toFixed(1)}R
+                                      </TableCell>
+                                      <TableCell>
+                                        {weekStats.tradeCount} trades
                                       </TableCell>
                                       <TableCell className="text-right">
                                         <Button 
@@ -442,7 +481,7 @@ export function MonthlyReflectionsList() {
                                           }}
                                         >
                                           <Pencil className="h-4 w-4 mr-1" />
-                                          View
+                                          Edit
                                         </Button>
                                       </TableCell>
                                     </TableRow>

@@ -499,6 +499,33 @@ export default function WeeklyJournal() {
     return textOnly.substring(0, maxLength) + '...';
   };
 
+  const getWeeklyStats = (weeklyReflection: WeeklyReflection) => {
+    if (!weeklyReflection.weekStart || !weeklyReflection.weekEnd) {
+      return { pnl: 0, rValue: 0, tradeCount: 0 };
+    }
+
+    const allTrades = getTradesWithMetrics();
+    const weekStart = new Date(weeklyReflection.weekStart);
+    const weekEnd = new Date(weeklyReflection.weekEnd);
+    
+    const weekTrades = allTrades.filter(trade => {
+      if (trade.exitDate) {
+        const exitDate = new Date(trade.exitDate);
+        return exitDate >= weekStart && exitDate <= weekEnd;
+      }
+      return false;
+    });
+    
+    const pnl = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
+    const rValue = weekTrades.reduce((sum, trade) => sum + (trade.metrics.riskRewardRatio || 0), 0);
+    
+    return {
+      pnl,
+      rValue,
+      tradeCount: weekTrades.length
+    };
+  };
+
   return (
     <div className="container mx-auto py-8">
       <div className="mb-4 grid grid-cols-3 items-center">
@@ -660,85 +687,62 @@ export default function WeeklyJournal() {
             </CardHeader>
             <CardContent>
               {monthlyWeeklyReflections.length > 0 ? (
-                <div className="space-y-4">
-                  {monthlyWeeklyReflections.map(weeklyReflection => {
-                    const isExpanded = expandedWeek === weeklyReflection.weekId;
-                    const summary = getReflectionSummary(weeklyReflection.reflection);
-                    
-                    return (
-                      <Collapsible key={weeklyReflection.weekId} open={isExpanded} onOpenChange={() => toggleWeekExpansion(weeklyReflection.weekId)}>
-                        <div className="border rounded-lg overflow-hidden">
-                          <div className="bg-muted/30">
-                            <Table>
-                              <TableBody>
-                                <TableRow className="hover:bg-muted/40 cursor-pointer" onClick={() => toggleWeekExpansion(weeklyReflection.weekId)}>
-                                  <TableCell className="font-medium">
-                                    <div className="flex items-center">
-                                      <CollapsibleTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="p-0 mr-2">
-                                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                        </Button>
-                                      </CollapsibleTrigger>
-                                      {formatWeekDates(weeklyReflection.weekStart, weeklyReflection.weekEnd)}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="max-w-[400px] truncate text-muted-foreground text-sm">
-                                    {summary}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge variant="outline" className={getGradeColor(weeklyReflection.grade)}>
-                                      {weeklyReflection.grade || '-'}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleViewWeeklyReflection(weeklyReflection.weekId);
-                                      }}
-                                    >
-                                      <Pencil className="h-4 w-4 mr-1" />
-                                      View
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              </TableBody>
-                            </Table>
-                          </div>
-                          
-                          <CollapsibleContent>
-                            <div className="p-4 bg-background border-t">
-                              <div className="space-y-4">
-                                <div>
-                                  <h3 className="text-sm font-medium mb-1">Reflection</h3>
-                                  <div className="text-sm border rounded-md p-3 bg-muted/20" dangerouslySetInnerHTML={{ __html: weeklyReflection.reflection || 'No reflection recorded' }} />
-                                </div>
-                                
-                                <div>
-                                  <h3 className="text-sm font-medium mb-1">Weekly Plan</h3>
-                                  <div className="text-sm border rounded-md p-3 bg-muted/20" dangerouslySetInnerHTML={{ __html: weeklyReflection.weeklyPlan || 'No plan recorded' }} />
-                                </div>
-                                
-                                <div className="flex justify-end">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => handleViewWeeklyReflection(weeklyReflection.weekId)}
-                                  >
-                                    <Pencil className="h-4 w-4 mr-1" />
-                                    Edit
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </CollapsibleContent>
-                        </div>
-                      </Collapsible>
-                    );
-                  })}
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Week</TableHead>
+                      <TableHead>Grade</TableHead>
+                      <TableHead>P&L</TableHead>
+                      <TableHead>R Value</TableHead>
+                      <TableHead>Trades</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {monthlyWeeklyReflections.map(weeklyReflection => {
+                      const weekStats = getWeeklyStats(weeklyReflection);
+                      
+                      return (
+                        <TableRow 
+                          key={weeklyReflection.id} 
+                          className="cursor-pointer hover:bg-muted/40" 
+                          onClick={() => handleViewWeeklyReflection(weeklyReflection.weekId)}
+                        >
+                          <TableCell>
+                            {formatWeekDates(weeklyReflection.weekStart, weeklyReflection.weekEnd)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getGradeColor(weeklyReflection.grade)}>
+                              {weeklyReflection.grade || '-'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className={weekStats.pnl >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                            {formatCurrency(weekStats.pnl)}
+                          </TableCell>
+                          <TableCell className={weekStats.rValue >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                            {weekStats.rValue > 0 ? '+' : ''}{(weekStats.rValue || 0).toFixed(1)}R
+                          </TableCell>
+                          <TableCell>
+                            {weekStats.tradeCount} trades
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewWeeklyReflection(weeklyReflection.weekId);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               ) : (
                 <div className="text-center py-6">
                   <p className="text-muted-foreground">No weekly reflections found for this month.</p>
