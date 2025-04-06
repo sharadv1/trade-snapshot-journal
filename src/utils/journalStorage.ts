@@ -441,3 +441,48 @@ export const getAllMonthlyReflections = () => {
     return {};
   }
 };
+
+export const getWeeklyReflectionsForMonth = (monthId: string): WeeklyReflection[] => {
+  if (!monthId) {
+    console.error('Cannot get weekly reflections: monthId is empty');
+    return [];
+  }
+
+  try {
+    let formattedMonthId = monthId;
+    if (!monthId.match(/^\d{4}-\d{2}$/)) {
+      const date = new Date(monthId);
+      if (!isNaN(date.getTime())) {
+        formattedMonthId = date.toISOString().slice(0, 7);
+      }
+    }
+
+    const allWeeklyReflections = getAllWeeklyReflections();
+    const monthlyReflections: WeeklyReflection[] = [];
+
+    Object.values(allWeeklyReflections).forEach((reflection: WeeklyReflection) => {
+      if (reflection && reflection.weekStart) {
+        try {
+          const weekStart = new Date(reflection.weekStart);
+          const weekMonth = weekStart.toISOString().slice(0, 7);
+          
+          if (weekMonth === formattedMonthId) {
+            monthlyReflections.push(reflection);
+          }
+        } catch (e) {
+          console.error('Error parsing date in getWeeklyReflectionsForMonth:', e);
+        }
+      }
+    });
+
+    monthlyReflections.sort((a, b) => {
+      if (!a.weekStart || !b.weekStart) return 0;
+      return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
+    });
+
+    return monthlyReflections;
+  } catch (e) {
+    console.error('Error in getWeeklyReflectionsForMonth:', e);
+    return [];
+  }
+};

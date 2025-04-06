@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Select,
@@ -16,7 +15,8 @@ import {
   saveMonthlyReflection, 
   getMonthlyReflection,
   getAllWeeklyReflections,
-  getAllMonthlyReflections
+  getAllMonthlyReflections,
+  getWeeklyReflectionsForMonth
 } from '@/utils/journalStorage';
 import { 
   format, 
@@ -27,12 +27,13 @@ import {
   addWeeks,
   subWeeks,
   addMonths,
-  subMonths
+  subMonths,
+  parseISO
 } from 'date-fns';
-import { ArrowLeft, ArrowRight, Save, Calendar } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Calendar, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
-import { TradeWithMetrics } from '@/types';
+import { TradeWithMetrics, WeeklyReflection } from '@/types';
 import { 
   Table, 
   TableBody, 
@@ -45,6 +46,14 @@ import { formatCurrency } from '@/utils/calculations/formatters';
 import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
@@ -98,6 +107,10 @@ export default function WeeklyJournal() {
   const [periodTrades, setPeriodTrades] = useState<TradeWithMetrics[]>([]);
   const [allWeeklyReflections, setAllWeeklyReflections] = useState<Record<string, any>>({});
   const [allMonthlyReflections, setAllMonthlyReflections] = useState<Record<string, any>>({});
+  const [monthlyWeeklyReflections, setMonthlyWeeklyReflections] = useState<WeeklyReflection[]>([]);
+  const [selectedWeeklyReflection, setSelectedWeeklyReflection] = useState<WeeklyReflection | null>(null);
+  const [isWeeklyDialogOpen, setIsWeeklyDialogOpen] = useState(false);
+  const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
 
   const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const currentWeekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -174,6 +187,18 @@ export default function WeeklyJournal() {
       window.removeEventListener('trades-updated', handleTradeUpdated);
     };
   }, [isMonthView, currentWeekStart, currentWeekEnd, currentMonthStart, currentMonthEnd]);
+  
+  useEffect(() => {
+    const loadMonthlyWeeklyReflections = () => {
+      if (isMonthView && monthId) {
+        const reflections = getWeeklyReflectionsForMonth(monthId);
+        console.log(`Loaded ${reflections.length} weekly reflections for month ${monthId}`);
+        setMonthlyWeeklyReflections(reflections);
+      }
+    };
+    
+    loadMonthlyWeeklyReflections();
+  }, [isMonthView, monthId]);
   
   const currentEntryExists = isMonthView 
     ? !!allMonthlyReflections[monthId]
@@ -390,6 +415,50 @@ export default function WeeklyJournal() {
     setHasChanged(true);
   };
 
+  const formatWeekDates = (startDate?: string, endDate?: string) => {
+    if (!startDate || !endDate) return 'Unknown week';
+    
+    try {
+      const start = parseISO(startDate);
+      const end = parseISO(endDate);
+      
+      return `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`;
+    } catch (error) {
+      console.error("Error formatting week dates:", error);
+      return 'Invalid dates';
+    }
+  };
+
+  const getGradeColor = (grade: string = '') => {
+    if (grade.startsWith('A')) return 'bg-green-100 text-green-800';
+    if (grade.startsWith('B')) return 'bg-blue-100 text-blue-800';
+    if (grade.startsWith('C')) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
+
+  const handleViewWeeklyReflection = (weekId: string) => {
+    if (!weekId) return;
+    
+    const weeklyReflection = getWeeklyReflection(weekId);
+    if (weeklyReflection) {
+      setSelectedWeeklyReflection(weeklyReflection);
+      setIsWeeklyDialogOpen(true);
+    }
+  };
+
+  const handleEditWeeklyReflection = (weekId: string) => {
+    if (!weekId) return;
+    navigate(`/journal/weekly/${weekId}`);
+  };
+
+  const toggleWeekExpansion = (weekId: string) => {
+    if (expandedWeek === weekId) {
+      setExpandedWeek(null);
+    } else {
+      setExpandedWeek(weekId);
+    }
+  };
+
   return (
     <div className="container mx-auto py-8">
       <div className="mb-4 grid grid-cols-3 items-center">
@@ -499,49 +568,149 @@ export default function WeeklyJournal() {
       )}
 
       {isMonthView && (
-        <Card className="mb-8">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Monthly Reflection - {formattedMonth}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="monthly-reflection">Reflection</Label>
-              <RichTextEditor
-                id="monthly-reflection"
-                content={monthlyReflection}
-                onChange={handleRichMonthlyReflectionChange}
-                placeholder="Write your monthly reflection here. Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="month-grade">Month Grade</Label>
-              <Select
-                value={monthGrade}
-                onValueChange={handleMonthGradeChange}
-              >
-                <SelectTrigger id="month-grade" className="w-[100px]">
-                  <SelectValue placeholder="Grade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {gradeOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-center mt-4">
-              <Button 
-                onClick={handleSaveMonthly} 
-                className="w-full max-w-[200px]"
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Save & Return to List
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-8">
+          <Card className="mb-8">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Monthly Reflection - {formattedMonth}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="monthly-reflection">Reflection</Label>
+                <RichTextEditor
+                  id="monthly-reflection"
+                  content={monthlyReflection}
+                  onChange={handleRichMonthlyReflectionChange}
+                  placeholder="Write your monthly reflection here. Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="month-grade">Month Grade</Label>
+                <Select
+                  value={monthGrade}
+                  onValueChange={handleMonthGradeChange}
+                >
+                  <SelectTrigger id="month-grade" className="w-[100px]">
+                    <SelectValue placeholder="Grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {gradeOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-center mt-4">
+                <Button 
+                  onClick={handleSaveMonthly} 
+                  className="w-full max-w-[200px]"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save & Return to List
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Weekly Reflections for {formattedMonth}</CardTitle>
+              <CardDescription>View and manage your weekly reflections for this month</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {monthlyWeeklyReflections.length > 0 ? (
+                <div className="space-y-4">
+                  {monthlyWeeklyReflections.map(weeklyReflection => {
+                    const isExpanded = expandedWeek === weeklyReflection.weekId;
+                    
+                    return (
+                      <Collapsible key={weeklyReflection.weekId} open={isExpanded} onOpenChange={() => toggleWeekExpansion(weeklyReflection.weekId)}>
+                        <div className="border rounded-lg overflow-hidden">
+                          <div className="bg-muted/30">
+                            <Table>
+                              <TableBody>
+                                <TableRow className="hover:bg-muted/40 cursor-pointer" onClick={() => toggleWeekExpansion(weeklyReflection.weekId)}>
+                                  <TableCell className="font-medium">
+                                    <div className="flex items-center">
+                                      <CollapsibleTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="p-0 mr-2">
+                                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                        </Button>
+                                      </CollapsibleTrigger>
+                                      {formatWeekDates(weeklyReflection.weekStart, weeklyReflection.weekEnd)}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className={getGradeColor(weeklyReflection.grade)}>
+                                      {weeklyReflection.grade || '-'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewWeeklyReflection(weeklyReflection.weekId);
+                                      }}
+                                    >
+                                      <Pencil className="h-4 w-4 mr-1" />
+                                      View
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </div>
+                          
+                          <CollapsibleContent>
+                            <div className="p-4 bg-background border-t">
+                              <div className="space-y-4">
+                                <div>
+                                  <h3 className="text-sm font-medium mb-1">Reflection</h3>
+                                  <div className="text-sm border rounded-md p-3 bg-muted/20" dangerouslySetInnerHTML={{ __html: weeklyReflection.reflection || 'No reflection recorded' }} />
+                                </div>
+                                
+                                <div>
+                                  <h3 className="text-sm font-medium mb-1">Weekly Plan</h3>
+                                  <div className="text-sm border rounded-md p-3 bg-muted/20" dangerouslySetInnerHTML={{ __html: weeklyReflection.weeklyPlan || 'No plan recorded' }} />
+                                </div>
+                                
+                                <div className="flex justify-end">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleEditWeeklyReflection(weeklyReflection.weekId)}
+                                  >
+                                    <Pencil className="h-4 w-4 mr-1" />
+                                    Edit in Weekly View
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </CollapsibleContent>
+                        </div>
+                      </Collapsible>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground">No weekly reflections found for this month.</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => navigate('/journal/weekly')}
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Go to Weekly Journal
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       <Card>
@@ -592,6 +761,51 @@ export default function WeeklyJournal() {
           )}
         </CardContent>
       </Card>
+      
+      <Dialog open={isWeeklyDialogOpen} onOpenChange={setIsWeeklyDialogOpen}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedWeeklyReflection && selectedWeeklyReflection.weekStart ? 
+                `Weekly Reflection: ${formatWeekDates(selectedWeeklyReflection.weekStart, selectedWeeklyReflection.weekEnd)}` :
+                'Weekly Reflection'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedWeeklyReflection && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Badge variant="outline" className={getGradeColor(selectedWeeklyReflection.grade)}>
+                  Grade: {selectedWeeklyReflection.grade || 'Not graded'}
+                </Badge>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setIsWeeklyDialogOpen(false);
+                    navigate(`/journal/weekly/${selectedWeeklyReflection.weekId}`);
+                  }}
+                >
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium mb-1">Reflection</h3>
+                <div className="text-sm border rounded-md p-3 bg-muted/20" 
+                  dangerouslySetInnerHTML={{ __html: selectedWeeklyReflection.reflection || 'No reflection recorded' }} />
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium mb-1">Weekly Plan</h3>
+                <div className="text-sm border rounded-md p-3 bg-muted/20" 
+                  dangerouslySetInnerHTML={{ __html: selectedWeeklyReflection.weeklyPlan || 'No plan recorded' }} />
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
