@@ -158,8 +158,10 @@ export function IdeaImagesField({
         Media files are stored in the browser's local storage. For production use, we recommend configuring server storage.
       </p>
       
+      {/* Fix: Provide the required 'image' prop, using the current image from the images array */}
       <ImageViewerDialog 
         images={images}
+        image={images[currentImageIndex] || ''}
         currentIndex={currentImageIndex}
         isOpen={viewerOpen}
         onClose={() => setViewerOpen(false)}
