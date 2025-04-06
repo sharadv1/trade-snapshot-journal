@@ -87,7 +87,9 @@ export function calculateTradeMetrics(trade: Trade): TradeWithMetrics['metrics']
     : 0;
   
   // Calculate risk/reward metrics if stop loss and/or take profit are defined
-  let riskedAmount, maxPotentialGain, riskRewardRatio;
+  let riskedAmount = 0;
+  let maxPotentialGain = 0;
+  let riskRewardRatio = 0;
   let calculationExplanation = '';
   
   if (trade.stopLoss) {
@@ -150,32 +152,41 @@ export function calculateTradeMetrics(trade: Trade): TradeWithMetrics['metrics']
         calculationExplanation += `Risk-reward ratio: ${riskRewardRatio.toFixed(2)}:1`;
       } else {
         // For losers, if we hit stop or exited with a loss
-        const actualRewardPerUnit = Math.abs(finalWeightedExitPrice - trade.entryPrice);
-        
-        if (trade.type === 'futures') {
-          maxPotentialGain = actualRewardPerUnit * pointValue * trade.quantity;
+        // FIX: Handle NaN by ensuring we have valid exit price
+        if (!isNaN(finalWeightedExitPrice)) {
+          const actualRewardPerUnit = Math.abs(finalWeightedExitPrice - trade.entryPrice);
+          
+          if (trade.type === 'futures') {
+            maxPotentialGain = actualRewardPerUnit * pointValue * trade.quantity;
+          } else {
+            maxPotentialGain = actualRewardPerUnit * trade.quantity;
+          }
+          
+          riskRewardRatio = riskedAmount > 0 ? maxPotentialGain / riskedAmount : 0;
+          // For losses, R is negative
+          if (totalPL < 0) {
+            riskRewardRatio = -riskRewardRatio;
+          }
+          
+          calculationExplanation += `Actual Reward calculation:\n`;
+          calculationExplanation += `Exit price (weighted avg): ${finalWeightedExitPrice.toFixed(2)}\n`;
+          calculationExplanation += `Reward per unit: ${actualRewardPerUnit.toFixed(2)}\n`;
+          
+          if (trade.type === 'futures') {
+            calculationExplanation += `Point value: ${pointValue}\n`;
+            calculationExplanation += `Actual gain: ${actualRewardPerUnit} × ${pointValue} × ${trade.quantity} = $${maxPotentialGain.toFixed(2)}\n\n`;
+          } else {
+            calculationExplanation += `Actual gain: ${actualRewardPerUnit} × ${trade.quantity} = $${maxPotentialGain.toFixed(2)}\n\n`;
+          }
+          
+          calculationExplanation += `Risk-reward ratio: ${riskRewardRatio.toFixed(2)}:1`;
         } else {
-          maxPotentialGain = actualRewardPerUnit * trade.quantity;
+          // FIX: Handle the case where weightedExitPrice is NaN
+          calculationExplanation += `Actual Reward calculation:\n`;
+          calculationExplanation += `Error: Could not calculate weighted exit price\n`;
+          calculationExplanation += `Risk-reward ratio: 0:1`;
+          riskRewardRatio = 0;
         }
-        
-        riskRewardRatio = riskedAmount > 0 ? maxPotentialGain / riskedAmount : 0;
-        // For losses, R is negative
-        if (totalPL < 0) {
-          riskRewardRatio = -riskRewardRatio;
-        }
-        
-        calculationExplanation += `Actual Reward calculation:\n`;
-        calculationExplanation += `Exit price (weighted avg): ${finalWeightedExitPrice.toFixed(2)}\n`;
-        calculationExplanation += `Reward per unit: ${actualRewardPerUnit.toFixed(2)}\n`;
-        
-        if (trade.type === 'futures') {
-          calculationExplanation += `Point value: ${pointValue}\n`;
-          calculationExplanation += `Actual gain: ${actualRewardPerUnit} × ${pointValue} × ${trade.quantity} = $${maxPotentialGain.toFixed(2)}\n\n`;
-        } else {
-          calculationExplanation += `Actual gain: ${actualRewardPerUnit} × ${trade.quantity} = $${maxPotentialGain.toFixed(2)}\n\n`;
-        }
-        
-        calculationExplanation += `Risk-reward ratio: ${riskRewardRatio.toFixed(2)}:1`;
       }
     }
   }
@@ -187,7 +198,7 @@ export function calculateTradeMetrics(trade: Trade): TradeWithMetrics['metrics']
     maxPotentialGain: maxPotentialGain || 0,
     riskRewardRatio: riskRewardRatio || 0,
     calculationExplanation,
-    weightedExitPrice: finalWeightedExitPrice,
+    weightedExitPrice: finalWeightedExitPrice || 0, // FIX: Provide a default value when undefined
     latestExitDate
   };
 }

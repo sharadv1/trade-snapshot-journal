@@ -12,6 +12,12 @@ import {
   YAxis
 } from 'recharts';
 import { TradePnLCalendar } from './TradePnLCalendar';
+import { 
+  calculateProfitFactor, 
+  calculateCalmarRatio, 
+  calculateParetoIndex, 
+  calculateExpectedValue 
+} from '@/utils/calculations/advancedMetrics';
 
 interface TradeMetricsProps {
   trades: TradeWithMetrics[];
@@ -30,8 +36,10 @@ const calculatePerformanceMetrics = (trades: TradeWithMetrics[]) => {
   const totalProfit = winningTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
   const totalLoss = Math.abs(losingTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0));
   
-  const profitFactor = totalLoss > 0 ? totalProfit / totalLoss : totalProfit > 0 ? Infinity : 0;
-  const netProfit = totalProfit - totalLoss;
+  const profitFactor = calculateProfitFactor(trades);
+  const calmarRatio = calculateCalmarRatio(trades);
+  const paretoIndex = calculateParetoIndex(trades);
+  const expectedValue = calculateExpectedValue(trades);
   
   const averageWin = winningTrades.length > 0 
     ? totalProfit / winningTrades.length 
@@ -73,11 +81,14 @@ const calculatePerformanceMetrics = (trades: TradeWithMetrics[]) => {
     totalTrades,
     winRate,
     profitFactor,
-    netProfit,
+    netProfit: totalProfit - totalLoss,
     averageWin,
     averageLoss,
     expectancy,
-    sortinoRatio
+    sortinoRatio,
+    calmarRatio,
+    paretoIndex,
+    expectedValue
   };
 };
 
@@ -144,7 +155,7 @@ export function TradeMetrics({ trades, showOnlyKeyMetrics = false }: TradeMetric
 
   return (
     <div className="space-y-6">
-      {/* Key Metrics Cards */}
+      {/* Key Metrics Cards - First Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <MetricCard title="Win Rate" value={`${metrics.winRate.toFixed(1)}%`} />
         <MetricCard 
@@ -157,6 +168,28 @@ export function TradeMetrics({ trades, showOnlyKeyMetrics = false }: TradeMetric
           value={metrics.expectancy > 0 ? `${metrics.expectancy.toFixed(2)}R` : metrics.expectancy.toFixed(2)} 
         />
         <MetricCard title="Sortino Ratio" value={metrics.sortinoRatio.toFixed(2)} />
+      </div>
+      
+      {/* Advanced Metrics Cards - New Row */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <MetricCard 
+          title="Profit Factor" 
+          value={isFinite(metrics.profitFactor) ? metrics.profitFactor.toFixed(2) : "∞"} 
+        />
+        <MetricCard 
+          title="Calmar Ratio" 
+          value={metrics.calmarRatio.toFixed(2)}
+        />
+        <MetricCard 
+          title="Pareto Index" 
+          value={`${metrics.paretoIndex.toFixed(1)}%`}
+          tooltip="% of profits from top 20% of trades"
+        />
+        <MetricCard 
+          title="Expected Value" 
+          value={formatCurrency(metrics.expectedValue)}
+          className={metrics.expectedValue >= 0 ? "text-profit" : "text-loss"}
+        />
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -240,7 +273,7 @@ export function TradeMetrics({ trades, showOnlyKeyMetrics = false }: TradeMetric
         <MetricCard title="Total Trades" value={metrics.totalTrades.toString()} />
         <MetricCard title="Average Win" value={formatCurrency(metrics.averageWin)} />
         <MetricCard title="Average Loss" value={formatCurrency(Math.abs(metrics.averageLoss))} />
-        <MetricCard title="Profit Factor" value={metrics.profitFactor.toFixed(2)} />
+        <MetricCard title="Profit Factor" value={isFinite(metrics.profitFactor) ? metrics.profitFactor.toFixed(2) : "∞"} />
       </div>
     </div>
   );
@@ -250,13 +283,20 @@ interface MetricCardProps {
   title: string;
   value: string;
   className?: string;
+  tooltip?: string;
 }
 
-function MetricCard({ title, value, className }: MetricCardProps) {
+function MetricCard({ title, value, className, tooltip }: MetricCardProps) {
   return (
     <Card className="shadow-subtle border">
       <CardContent className="p-6">
-        <div className="text-sm font-medium text-muted-foreground">{title}</div>
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium text-muted-foreground">{title}</div>
+          {tooltip && (
+            <div className="text-xs text-muted-foreground hover:text-foreground cursor-help"
+                 title={tooltip}>ⓘ</div>
+          )}
+        </div>
         <div className={`text-2xl font-bold mt-1 ${className}`}>{value}</div>
       </CardContent>
     </Card>
