@@ -680,7 +680,7 @@ export default function WeeklyJournal() {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="mb-10">
             <CardHeader>
               <CardTitle>Weekly Reflections for {formattedMonth}</CardTitle>
               <CardDescription>View and manage your weekly reflections for this month</CardDescription>

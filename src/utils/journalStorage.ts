@@ -458,7 +458,8 @@ export const getWeeklyReflectionsForMonth = (monthId: string): WeeklyReflection[
     }
 
     const allWeeklyReflections = getAllWeeklyReflections();
-    const monthlyReflections: WeeklyReflection[] = [];
+    
+    const weeklyReflectionMap = new Map<string, WeeklyReflection>();
 
     Object.values(allWeeklyReflections).forEach((reflection: WeeklyReflection) => {
       if (reflection && reflection.weekStart) {
@@ -467,13 +468,21 @@ export const getWeeklyReflectionsForMonth = (monthId: string): WeeklyReflection[
           const weekMonth = weekStart.toISOString().slice(0, 7);
           
           if (weekMonth === formattedMonthId) {
-            monthlyReflections.push(reflection);
+            const existingReflection = weeklyReflectionMap.get(reflection.weekId);
+            
+            if (!existingReflection || 
+                (reflection.lastUpdated && existingReflection.lastUpdated && 
+                 new Date(reflection.lastUpdated) > new Date(existingReflection.lastUpdated))) {
+              weeklyReflectionMap.set(reflection.weekId, reflection);
+            }
           }
         } catch (e) {
           console.error('Error parsing date in getWeeklyReflectionsForMonth:', e);
         }
       }
     });
+
+    const monthlyReflections = Array.from(weeklyReflectionMap.values());
 
     monthlyReflections.sort((a, b) => {
       if (!a.weekStart || !b.weekStart) return 0;

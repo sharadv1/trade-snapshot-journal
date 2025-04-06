@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -77,7 +76,6 @@ export function MonthlyReflectionsList() {
   useEffect(() => {
     loadReflections();
     
-    // Listen for storage changes to reload reflections
     const handleStorageChange = () => {
       loadReflections();
     };
@@ -95,32 +93,27 @@ export function MonthlyReflectionsList() {
     const reflectionsMap = getMonthlyReflections();
     console.log("Monthly reflections map:", reflectionsMap);
     
-    // Convert to array and sort by date, newest first
     let reflectionsArray = Object.entries(reflectionsMap).map(([monthId, reflection]) => ({
       ...reflection,
-      id: reflection.id || monthId, // Ensure id is always set
-      monthId: monthId // Ensure monthId is always set
+      id: reflection.id || monthId,
+      monthId: monthId
     })) as MonthlyReflection[];
     
-    // Deduplicate reflections by monthStart - only keep the latest entry for each month
     const monthMap = new Map<string, MonthlyReflection>();
     reflectionsArray.forEach(reflection => {
       if (reflection.monthStart) {
-        const monthKey = new Date(reflection.monthStart).toISOString().slice(0, 7); // YYYY-MM
+        const monthKey = new Date(reflection.monthStart).toISOString().slice(0, 7);
         const existing = monthMap.get(monthKey);
         
-        // Only replace if this is a newer entry or if no entry exists
         if (!existing || (reflection.lastUpdated && existing.lastUpdated && 
             new Date(reflection.lastUpdated) > new Date(existing.lastUpdated))) {
           monthMap.set(monthKey, reflection);
         }
       } else {
-        // For entries without monthStart, use the monthId as the key
         monthMap.set(reflection.monthId, reflection);
       }
     });
     
-    // Convert back to array
     reflectionsArray = Array.from(monthMap.values());
     
     reflectionsArray.sort((a, b) => 
@@ -130,11 +123,9 @@ export function MonthlyReflectionsList() {
     console.log("Monthly reflections array:", reflectionsArray);
     setReflections(reflectionsArray);
     
-    // Now load all weekly reflections to filter by month
     const allWeeklyReflections = getAllWeeklyReflections();
     const weeklyReflectionsByMonth: Record<string, WeeklyReflection[]> = {};
     
-    // Group weekly reflections by month
     Object.values(allWeeklyReflections).forEach((weeklyReflection: any) => {
       if (weeklyReflection && weeklyReflection.weekStart) {
         try {
@@ -145,14 +136,26 @@ export function MonthlyReflectionsList() {
             weeklyReflectionsByMonth[monthKey] = [];
           }
           
-          weeklyReflectionsByMonth[monthKey].push(weeklyReflection as WeeklyReflection);
+          const existingIndex = weeklyReflectionsByMonth[monthKey].findIndex(
+            w => w.weekId === weeklyReflection.weekId
+          );
+          
+          if (existingIndex >= 0) {
+            if (weeklyReflection.lastUpdated && 
+                weeklyReflectionsByMonth[monthKey][existingIndex].lastUpdated &&
+                new Date(weeklyReflection.lastUpdated) > 
+                new Date(weeklyReflectionsByMonth[monthKey][existingIndex].lastUpdated)) {
+              weeklyReflectionsByMonth[monthKey][existingIndex] = weeklyReflection as WeeklyReflection;
+            }
+          } else {
+            weeklyReflectionsByMonth[monthKey].push(weeklyReflection as WeeklyReflection);
+          }
         } catch (error) {
           console.error("Error processing weekly reflection:", error);
         }
       }
     });
     
-    // Sort weekly reflections within each month
     Object.keys(weeklyReflectionsByMonth).forEach(monthKey => {
       weeklyReflectionsByMonth[monthKey].sort((a, b) => {
         if (!a.weekStart || !b.weekStart) return 0;
@@ -162,15 +165,12 @@ export function MonthlyReflectionsList() {
     
     setWeeklyReflections(weeklyReflectionsByMonth);
     
-    // Calculate stats for each reflection
     const allTrades = getTradesWithMetrics();
     const stats: Record<string, { totalPnL: number, totalR: number, tradeCount: number }> = {};
     
     reflectionsArray.forEach(reflection => {
-      // Initialize month trades array
       let monthTrades = [];
       
-      // First check by date range
       if (reflection.monthStart && reflection.monthEnd) {
         const monthStart = new Date(reflection.monthStart);
         const monthEnd = new Date(reflection.monthEnd);
@@ -184,12 +184,10 @@ export function MonthlyReflectionsList() {
         });
       }
       
-      // If we have explicit tradeIds, use those too
       if (reflection.tradeIds && reflection.tradeIds.length > 0) {
         const tradeIdsSet = new Set(reflection.tradeIds);
         const tradesByIds = allTrades.filter(trade => tradeIdsSet.has(trade.id));
         
-        // Merge trades from date range and explicit IDs, avoiding duplicates
         const allMonthTradesMap = new Map();
         
         [...monthTrades, ...tradesByIds].forEach(trade => {
@@ -218,12 +216,10 @@ export function MonthlyReflectionsList() {
   const handleEditReflection = (monthId: string) => {
     if (!monthId) return;
     
-    // Use the exact monthId for navigation to ensure we go to the correct entry
     navigate(`/journal/monthly/${monthId}`);
   };
   
   const handleEditWeeklyReflection = (weekId: string) => {
-    // If we're on the monthly edit page, show the weekly reflection in a dialog
     if (location.pathname.includes('/journal/monthly/')) {
       const weeklyReflection = getWeeklyReflectionById(weekId);
       if (weeklyReflection) {
@@ -231,18 +227,15 @@ export function MonthlyReflectionsList() {
         setIsWeeklyDialogOpen(true);
       }
     } else {
-      // Otherwise navigate to the weekly journal page
       if (!weekId) return;
       navigate(`/journal/weekly/${weekId}`);
     }
   };
   
   const handleCreateNew = () => {
-    // Use current month for new reflection
     const today = new Date();
     const formattedDate = format(today, 'yyyy-MM');
     
-    // Always navigate to the monthly journal for the current month
     navigate(`/journal/monthly/${formattedDate}`);
   };
   
@@ -278,7 +271,6 @@ export function MonthlyReflectionsList() {
   const getReflectionSummary = (content: string, maxLength: number = 150) => {
     if (!content) return 'No reflection content';
     
-    // Remove HTML tags if present
     const textOnly = content.replace(/<[^>]*>/g, '');
     
     if (textOnly.length <= maxLength) return textOnly;
@@ -300,14 +292,11 @@ export function MonthlyReflectionsList() {
       saveWeeklyReflection(editWeekId, editReflection, editGrade, editWeeklyPlan);
       toast.success("Weekly reflection updated");
       
-      // Update the selected reflection to show the changes
       const updatedReflection = getWeeklyReflection(editWeekId);
       setSelectedWeeklyReflection(updatedReflection || null);
       
-      // Exit edit mode
       setIsEditMode(false);
       
-      // Reload reflections to update the list
       loadReflections();
     }
   };
@@ -316,7 +305,6 @@ export function MonthlyReflectionsList() {
     setIsEditMode(false);
   };
   
-  // Calculate stats for a weekly reflection
   const getWeeklyStats = (weeklyReflection: WeeklyReflection) => {
     if (!weeklyReflection.weekStart || !weeklyReflection.weekEnd) {
       return { pnl: 0, rValue: 0, tradeCount: 0 };
@@ -503,7 +491,6 @@ export function MonthlyReflectionsList() {
         </CardContent>
       </Card>
 
-      {/* Weekly Reflection Dialog - Updated to support both view and edit modes */}
       <Dialog open={isWeeklyDialogOpen} onOpenChange={setIsWeeklyDialogOpen}>
         <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
