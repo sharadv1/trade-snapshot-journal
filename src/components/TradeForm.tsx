@@ -227,9 +227,10 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
             <TabsContent value="details" className="space-y-4 mt-0">
               <TradeDetailsForm 
                 trade={trade}
-                handleChange={handleChange}
-                handleTypeChange={handleTypeChange}
+                onTradeChange={handleChange}
+                onTradeTypeChange={handleTypeChange}
                 contractDetails={contractDetails}
+                onContractDetailsChange={handleContractDetailsChange}
                 pointValue={pointValue}
                 maxRisk={maxRisk}
                 disableEdits={false}

@@ -1,13 +1,12 @@
 
 import React from 'react';
-import { Trade } from '@/types';
+import { Trade, TRADE_TYPES } from '@/types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { SymbolSelector } from '@/components/SymbolSelector';
 import { FuturesContractDetails } from '@/components/FuturesContractDetails';
 import { Button } from '@/components/ui/button';
-import { TRADE_TYPES } from '@/types';
 
 // Define props interface
 interface TradeDetailsFormProps {
@@ -16,6 +15,9 @@ interface TradeDetailsFormProps {
   onTradeTypeChange: (type: Trade['type']) => void;
   onContractDetailsChange: (details: any) => void;
   contractDetails: Record<string, any>;
+  pointValue?: number;
+  maxRisk?: number | undefined;
+  disableEdits?: boolean;
 }
 
 export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
@@ -24,6 +26,9 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
   onTradeTypeChange,
   onContractDetailsChange,
   contractDetails,
+  pointValue,
+  maxRisk,
+  disableEdits = false,
 }) => {
   // Determine which types to show in the selector based on available symbols
   const handleSymbolChange = (value: string) => {
@@ -42,6 +47,7 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
               variant={trade.type === type ? 'default' : 'outline'}
               onClick={() => onTradeTypeChange(type)}
               className="text-sm py-1 px-3 h-auto"
+              disabled={disableEdits}
             >
               {type.charAt(0).toUpperCase() + type.slice(1)}
             </Button>
@@ -64,6 +70,7 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
           symbol={trade.symbol || ''}
           onChange={onContractDetailsChange}
           value={contractDetails}
+          pointValue={pointValue}
         />
       )}
 
@@ -75,6 +82,7 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
             variant={trade.direction === 'long' ? 'default' : 'outline'}
             onClick={() => onTradeChange('direction', 'long')}
             className="flex-1"
+            disabled={disableEdits}
           >
             Long
           </Button>
@@ -83,6 +91,7 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
             variant={trade.direction === 'short' ? 'default' : 'outline'}
             onClick={() => onTradeChange('direction', 'short')}
             className="flex-1"
+            disabled={disableEdits}
           >
             Short
           </Button>
@@ -96,18 +105,20 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
           type="datetime-local"
           value={trade.entryDate || ''}
           onChange={(e) => onTradeChange('entryDate', e.target.value)}
+          disabled={disableEdits}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="price">Entry Price</Label>
+        <Label htmlFor="entryPrice">Entry Price</Label>
         <Input
-          id="price"
+          id="entryPrice"
           type="number"
           step="any"
           placeholder="Entry price"
-          value={trade.price || ''}
-          onChange={(e) => onTradeChange('price', parseFloat(e.target.value) || '')}
+          value={trade.entryPrice || ''}
+          onChange={(e) => onTradeChange('entryPrice', parseFloat(e.target.value) || '')}
+          disabled={disableEdits}
         />
       </div>
 
@@ -119,6 +130,7 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
           placeholder="Quantity"
           value={trade.quantity || ''}
           onChange={(e) => onTradeChange('quantity', parseInt(e.target.value) || '')}
+          disabled={disableEdits}
         />
       </div>
 
@@ -129,17 +141,19 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
           placeholder="Strategy used"
           value={trade.strategy || ''}
           onChange={(e) => onTradeChange('strategy', e.target.value)}
+          disabled={disableEdits}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="setupNotes">Setup Notes</Label>
+        <Label htmlFor="notes">Setup Notes</Label>
         <Textarea
-          id="setupNotes"
+          id="notes"
           placeholder="Notes about the trade setup"
-          value={trade.setupNotes || ''}
-          onChange={(e) => onTradeChange('setupNotes', e.target.value)}
+          value={trade.notes || ''}
+          onChange={(e) => onTradeChange('notes', e.target.value)}
           rows={3}
+          disabled={disableEdits}
         />
       </div>
     </div>

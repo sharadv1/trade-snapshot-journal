@@ -1,4 +1,3 @@
-
 export interface Trade {
   id: string;
   symbol: string;
@@ -10,7 +9,7 @@ export interface Trade {
   positionSize: number;
   quantity: number;
   status: 'open' | 'closed';
-  type?: 'stock' | 'futures' | 'forex' | 'crypto' | 'option';
+  type?: 'stock' | 'futures' | 'forex' | 'crypto' | 'options';
   fees?: number;
   notes?: string;
   strategyId?: string;
@@ -120,7 +119,6 @@ export interface LessonMedia {
   caption?: string;
 }
 
-// Define common futures contracts
 export const COMMON_FUTURES_CONTRACTS = [
   {
     symbol: 'ES',
@@ -184,3 +182,6 @@ export interface PartialExit {
   fees?: number;
   notes?: string;
 }
+
+export const TRADE_TYPES = ['stock', 'futures', 'forex', 'crypto', 'options'] as const;
+export type TradeType = typeof TRADE_TYPES[number];

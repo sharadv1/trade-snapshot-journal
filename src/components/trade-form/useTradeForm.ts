@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Trade } from '@/types';
+import { Trade, TradeType } from '@/types';
 import { getTradeIdea } from '@/utils/tradeStorage';
 import { getAllSymbols } from '@/utils/symbolStorage';
 import { useTradeSubmit } from './hooks/useTradeSubmit';
@@ -83,12 +83,12 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
   }, [ideaId, isEditing]);
 
   // Helper to get symbol type
-  const getSymbolType = (symbol?: string): 'stock' | 'futures' | 'forex' | 'crypto' | 'options' | undefined => {
+  const getSymbolType = (symbol?: string): TradeType | undefined => {
     if (!symbol) return undefined;
     
     const allSymbols = getAllSymbols();
     const foundSymbol = allSymbols.find(s => s.symbol === symbol);
-    return foundSymbol?.type;
+    return foundSymbol?.type as TradeType | undefined;
   };
   
   const handleChange = (
@@ -102,7 +102,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
   };
   
   const handleTypeChange = (
-    type: Trade['type']
+    type: TradeType
   ) => {
     setTrade(prev => ({
       ...prev,
