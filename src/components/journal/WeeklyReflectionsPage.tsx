@@ -83,7 +83,7 @@ export function WeeklyReflectionsPage() {
   };
   
   return (
-    <div className="w-full">
+    <div className="w-full container mx-auto">
       <ReflectionsList 
         reflections={reflections}
         type="weekly"
