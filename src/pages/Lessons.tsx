@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Filter, Download, Upload, AlertTriangle } from 'lucide-react';
@@ -53,13 +52,11 @@ export default function Lessons() {
 
   const checkStorageUsage = () => {
     try {
-      // Only check local storage usage if not using server sync
       if (isUsingServerSync()) {
         setIsStorageNearLimit(false);
         return;
       }
       
-      // Check localStorage usage as percentage
       let total = 0;
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -69,11 +66,9 @@ export default function Lessons() {
         }
       }
       
-      // Approximate typical localStorage limit (5MB)
       const estimatedLimit = 5 * 1024 * 1024;
       const usagePercentage = (total / estimatedLimit) * 100;
       
-      // If we're using more than 70% of estimated storage, show warning
       setIsStorageNearLimit(usagePercentage > 70);
       
       console.log(`Estimated localStorage usage: ${usagePercentage.toFixed(1)}%`);
@@ -163,7 +158,6 @@ export default function Lessons() {
       )
     : lessons;
 
-  // Get all unique types from lessons
   const allTypes = [...new Set(lessons.flatMap(lesson => lesson.types || []))];
 
   return (
@@ -224,7 +218,7 @@ export default function Lessons() {
       </div>
 
       {showFilters && (
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto mb-6">
           <LessonFilters 
             allTypes={allTypes}
             selectedTypes={selectedTypes}
@@ -253,7 +247,6 @@ export default function Lessons() {
         lesson={editingLesson}
       />
 
-      {/* Export Dialog */}
       <Dialog 
         open={isExportDialogOpen} 
         onOpenChange={setIsExportDialogOpen}
@@ -284,7 +277,6 @@ export default function Lessons() {
         </DialogContent>
       </Dialog>
 
-      {/* Import Dialog */}
       <Dialog 
         open={isImportDialogOpen} 
         onOpenChange={setIsImportDialogOpen}

@@ -20,7 +20,7 @@ export function LessonList({ lessons, onEdit, onUpdate }: LessonListProps) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {lessons.map((lesson) => (
         <LessonCard 
           key={lesson.id} 
