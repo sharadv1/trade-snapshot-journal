@@ -78,12 +78,16 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
             const stats = getStats(reflection);
             const id = getReflectionId(reflection);
             const dateRange = formatDateRange(reflection);
-            const hasTradesOrContent = stats.tradeCount > 0 || stats.hasContent;
+            
+            // For weekly reflections, check if there's content in either the weekly plan or reflection
+            const hasReflectionContent = type === 'weekly' 
+              ? !!(reflection as WeeklyReflection).reflection || !!(reflection as WeeklyReflection).weeklyPlan
+              : !!(reflection as MonthlyReflection).reflection;
 
             return (
               <Card 
                 key={id} 
-                className={`hover:bg-accent/10 transition-colors ${hasTradesOrContent ? '' : 'opacity-70'}`}
+                className={`hover:bg-accent/10 transition-colors ${stats.tradeCount > 0 || hasReflectionContent ? '' : 'opacity-70'}`}
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-medium flex justify-between">
@@ -102,12 +106,12 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                     
                     <Button 
                       asChild
-                      variant={stats.hasContent ? "outline" : "default"}
+                      variant={hasReflectionContent ? "outline" : "default"}
                       size="sm"
-                      className={stats.hasContent ? "border-blue-400 hover:bg-blue-50 hover:text-blue-600" : "bg-green-600 hover:bg-green-700"}
+                      className={hasReflectionContent ? "border-blue-400 hover:bg-blue-50 hover:text-blue-600" : "bg-green-600 hover:bg-green-700"}
                     >
                       <Link to={`/journal/${type}/${id}`}>
-                        {stats.hasContent ? (
+                        {hasReflectionContent ? (
                           <>
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit Reflection
