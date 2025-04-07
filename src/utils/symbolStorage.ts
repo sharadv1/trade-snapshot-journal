@@ -2,7 +2,7 @@
 // Custom user symbols storage utility
 import { COMMON_FUTURES_CONTRACTS } from '@/types';
 import { isUsingServerSync, getServerUrl } from './storage/serverSync';
-import { toast } from './utils/toast';
+import { toast } from '@/utils/toast';
 
 // Default preset symbols that should be in the system 
 const PRESET_SYMBOLS = [

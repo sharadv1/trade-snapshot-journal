@@ -1,408 +1,147 @@
 
-import React, { useEffect, useState } from 'react';
-import { Trade, FuturesContractDetails } from '@/types';
+import React from 'react';
+import { Trade } from '@/types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { SymbolSelector } from '@/components/SymbolSelector';
-import { FuturesContractSelector } from '@/components/FuturesContractSelector';
-import { FuturesContractDetailsComponent } from '@/components/FuturesContractDetails';
-import { MistakesField } from './MistakesField';
-import { TrendingDown, TrendingUp, Ratio, Target, AlertCircle } from 'lucide-react';
-import { getStrategies } from '@/utils/strategyStorage';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { getAllSymbols } from '@/utils/symbolStorage';
+import { FuturesContractDetails } from '@/components/FuturesContractDetails';
+import { Button } from '@/components/ui/button';
+import { TRADE_TYPES } from '@/types';
 
+// Define props interface
 interface TradeDetailsFormProps {
   trade: Partial<Trade>;
-  handleChange: (field: keyof Trade, value: any) => void;
-  handleTypeChange: (type: Trade['type']) => void;
-  contractDetails: Partial<FuturesContractDetails>;
-  pointValue: number | undefined;
-  maxRisk?: number;
-  disableEdits?: boolean;
+  onTradeChange: (field: keyof Trade, value: any) => void;
+  onTradeTypeChange: (type: Trade['type']) => void;
+  onContractDetailsChange: (details: any) => void;
+  contractDetails: Record<string, any>;
 }
 
-export function TradeDetailsForm({
+export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
   trade,
-  handleChange,
-  handleTypeChange,
+  onTradeChange,
+  onTradeTypeChange,
+  onContractDetailsChange,
   contractDetails,
-  pointValue,
-  maxRisk,
-  disableEdits = false
-}: TradeDetailsFormProps) {
-  const [strategies, setStrategies] = useState<any[]>([]);
-  const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null);
-  const [calculatedRisk, setCalculatedRisk] = useState<number | null>(null);
-  const [isRiskExceeded, setIsRiskExceeded] = useState(false);
-  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
-
-  // Load strategies and available symbol types
-  useEffect(() => {
-    // Load strategies from storage
-    const loadedStrategies = getStrategies();
-    setStrategies(loadedStrategies);
-    
-    // Get available symbol types
-    const symbols = getAllSymbols();
-    const types = Array.from(new Set(symbols.map(s => s.type)));
-    setAvailableTypes(types);
-  }, []);
-
-  // Calculate risk-reward ratio when stopLoss or takeProfit changes
-  useEffect(() => {
-    if (trade.stopLoss && trade.takeProfit && trade.entryPrice) {
-      const riskPerUnit = Math.abs(trade.entryPrice - trade.stopLoss);
-      const rewardPerUnit = Math.abs(trade.takeProfit - trade.entryPrice);
-      
-      if (riskPerUnit > 0) {
-        const ratio = rewardPerUnit / riskPerUnit;
-        setRiskRewardRatio(ratio);
-      } else {
-        setRiskRewardRatio(null);
-      }
-    } else {
-      setRiskRewardRatio(null);
-    }
-  }, [trade.stopLoss, trade.takeProfit, trade.entryPrice]);
-
-  // Calculate total risk amount when necessary values change
-  useEffect(() => {
-    if (trade.entryPrice && trade.stopLoss && trade.quantity) {
-      const riskPerUnit = Math.abs(trade.entryPrice - trade.stopLoss);
-      let totalRisk = riskPerUnit * trade.quantity;
-
-      // Apply point value for futures
-      if (trade.type === 'futures' && pointValue) {
-        totalRisk = riskPerUnit * trade.quantity * pointValue;
-      }
-
-      setCalculatedRisk(totalRisk);
-      
-      // Check if risk exceeds max risk
-      if (maxRisk && totalRisk > maxRisk) {
-        setIsRiskExceeded(true);
-      } else {
-        setIsRiskExceeded(false);
-      }
-    } else {
-      setCalculatedRisk(null);
-      setIsRiskExceeded(false);
-    }
-  }, [trade.entryPrice, trade.stopLoss, trade.quantity, trade.type, pointValue, maxRisk]);
+}) => {
+  // Determine which types to show in the selector based on available symbols
+  const handleSymbolChange = (value: string) => {
+    onTradeChange('symbol', value);
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Trade Type Selection */}
+    <div className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="type">Trade Type</Label>
-        <Select
-          value={trade.type}
-          onValueChange={(value) => handleTypeChange(value as Trade["type"])}
-          disabled={disableEdits}
-        >
-          <SelectTrigger id="type">
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            {/* Only show trade types that have symbols available */}
-            {availableTypes.includes('stock') && <SelectItem value="stock">Stock</SelectItem>}
-            {availableTypes.includes('options') && <SelectItem value="option">Options</SelectItem>}
-            {availableTypes.includes('futures') && <SelectItem value="futures">Futures</SelectItem>}
-            {availableTypes.includes('forex') && <SelectItem value="forex">Forex</SelectItem>}
-            {availableTypes.includes('crypto') && <SelectItem value="crypto">Crypto</SelectItem>}
-          </SelectContent>
-        </Select>
+        <Label htmlFor="tradeType">Trade Type</Label>
+        <div className="flex flex-wrap gap-2">
+          {TRADE_TYPES.map((type) => (
+            <Button
+              key={type}
+              type="button"
+              variant={trade.type === type ? 'default' : 'outline'}
+              onClick={() => onTradeTypeChange(type)}
+              className="text-sm py-1 px-3 h-auto"
+            >
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </Button>
+          ))}
+        </div>
       </div>
 
-      {/* Symbol and Direction Selections - Side by Side */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Symbol Selection */}
-        <div className="space-y-2">
-          <Label htmlFor="symbol">Symbol</Label>
-          {trade.type === 'futures' ? (
-            <FuturesContractSelector
-              value={trade.symbol}
-              onChange={(symbol) => handleChange('symbol', symbol)}
-            />
-          ) : (
-            <SymbolSelector
-              value={trade.symbol || ''}
-              onChange={(symbol) => handleChange('symbol', symbol)}
-              tradeType={trade.type as 'stock' | 'futures' | 'forex' | 'crypto' | 'options'}
-              onTypeChange={handleTypeChange}
-            />
-          )}
-        </div>
-        
-        {/* Trade Direction */}
-        <div className="space-y-2">
-          <Label htmlFor="direction">Direction</Label>
-          <Select
-            value={trade.direction}
-            onValueChange={(value: 'long' | 'short') => handleChange('direction', value)}
+      <div className="space-y-2">
+        <Label htmlFor="symbol">Symbol</Label>
+        <SymbolSelector
+          value={trade.symbol || ''}
+          onChange={handleSymbolChange}
+          tradeType={trade.type}
+          onTypeChange={onTradeTypeChange}
+        />
+      </div>
+
+      {trade.type === 'futures' && (
+        <FuturesContractDetails
+          symbol={trade.symbol || ''}
+          onChange={onContractDetailsChange}
+          value={contractDetails}
+        />
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="direction">Direction</Label>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant={trade.direction === 'long' ? 'default' : 'outline'}
+            onClick={() => onTradeChange('direction', 'long')}
+            className="flex-1"
           >
-            <SelectTrigger id="direction">
-              <SelectValue placeholder="Select Direction" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="long">Long</SelectItem>
-              <SelectItem value="short">Short</SelectItem>
-            </SelectContent>
-          </Select>
+            Long
+          </Button>
+          <Button
+            type="button"
+            variant={trade.direction === 'short' ? 'default' : 'outline'}
+            onClick={() => onTradeChange('direction', 'short')}
+            className="flex-1"
+          >
+            Short
+          </Button>
         </div>
       </div>
 
-      {/* Contract Details for Futures */}
-      {trade.type === 'futures' && trade.symbol && (
-        <FuturesContractDetailsComponent
-          contractDetails={contractDetails}
-          details={contractDetails}
-          symbol={trade.symbol}
-          value={pointValue}
-        />
-      )}
-
-      {/* Entry Date/Time */}
       <div className="space-y-2">
-        <Label htmlFor="entryDate">Entry Date & Time</Label>
+        <Label htmlFor="entryDate">Entry Date</Label>
         <Input
-          type="datetime-local"
           id="entryDate"
-          value={trade.entryDate ? trade.entryDate.slice(0, 16) : ''}
-          onChange={(e) => handleChange('entryDate', e.target.value)}
+          type="datetime-local"
+          value={trade.entryDate || ''}
+          onChange={(e) => onTradeChange('entryDate', e.target.value)}
         />
       </div>
 
-      {/* Entry Price */}
       <div className="space-y-2">
-        <Label htmlFor="entryPrice">
-          Entry Price {trade.type === 'futures' && pointValue ? `($${pointValue.toFixed(2)} per point)` : ''}
-        </Label>
+        <Label htmlFor="price">Entry Price</Label>
         <Input
+          id="price"
           type="number"
-          id="entryPrice"
-          placeholder="0.00"
-          step="0.01"
-          value={trade.entryPrice || ''}
-          onChange={(e) => handleChange('entryPrice', parseFloat(e.target.value) || 0)}
+          step="any"
+          placeholder="Entry price"
+          value={trade.price || ''}
+          onChange={(e) => onTradeChange('price', parseFloat(e.target.value) || '')}
         />
       </div>
-      
-      {/* Stop Loss and Take Profit - Side by Side */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Stop Loss */}
-        <div className="space-y-2">
-          <Label htmlFor="stopLoss" className="flex items-center gap-1">
-            <TrendingDown className="h-4 w-4 text-destructive" />
-            Stop Loss Price <span className="text-destructive">*</span>
-          </Label>
-          <Input 
-            id="stopLoss" 
-            type="number" 
-            min="0" 
-            step="0.01"
-            value={trade.stopLoss || ''}
-            onChange={(e) => handleChange('stopLoss', parseFloat(e.target.value) || 0)}
-            required
-          />
-        </div>
-        
-        {/* Take Profit */}
-        <div className="space-y-2">
-          <Label htmlFor="takeProfit" className="flex items-center gap-1">
-            <TrendingUp className="h-4 w-4 text-green-600" />
-            Take Profit Price
-          </Label>
-          <Input 
-            id="takeProfit" 
-            type="number" 
-            min="0" 
-            step="0.01"
-            value={trade.takeProfit || ''}
-            onChange={(e) => handleChange('takeProfit', parseFloat(e.target.value) || 0)}
-          />
-        </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="quantity">Quantity</Label>
+        <Input
+          id="quantity"
+          type="number"
+          placeholder="Quantity"
+          value={trade.quantity || ''}
+          onChange={(e) => onTradeChange('quantity', parseInt(e.target.value) || '')}
+        />
       </div>
-      
-      {/* Risk Warning Alert - Show when risk exceeds max risk */}
-      {isRiskExceeded && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Risk amount (${calculatedRisk?.toFixed(2)}) exceeds your max risk limit of ${maxRisk}
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {/* Risk Reward Ratio Display */}
-      {riskRewardRatio !== null && (
-        <div className="bg-muted/30 p-3 rounded-md flex items-center">
-          <Ratio className="h-5 w-5 mr-2 text-primary" />
-          <div>
-            <span className="font-medium">Risk-Reward Ratio: </span>
-            <span className="font-mono">{riskRewardRatio.toFixed(2)}:1</span>
-            {calculatedRisk !== null && (
-              <span className="ml-2 text-muted-foreground">
-                (Risk: ${calculatedRisk.toFixed(2)})
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-      
-      {/* Risk Management Info */}
-      <div className="border rounded-md p-4 bg-muted/30">
-        <h3 className="text-sm font-medium mb-2 flex items-center">
-          <Target className="h-4 w-4 mr-2" />
-          Risk Management
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Setting a stop loss and take profit helps you maintain discipline and automatically calculates your risk-to-reward ratio.
-        </p>
-      </div>
-      
-      {/* Quantity and Fees - Side by Side */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Quantity */}
-        <div className="space-y-2">
-          <Label htmlFor="quantity">
-            Quantity {trade.type === 'futures' ? '(# of Contracts)' : '(# of Shares)'}
-          </Label>
-          <Input
-            type="number"
-            id="quantity"
-            placeholder="0"
-            value={trade.quantity || ''}
-            onChange={(e) => handleChange('quantity', parseFloat(e.target.value) || 0)}
-          />
-        </div>
-        
-        {/* Fees */}
-        <div className="space-y-2">
-          <Label htmlFor="fees">Fees</Label>
-          <Input
-            type="number"
-            id="fees"
-            placeholder="0.00"
-            step="0.01"
-            value={trade.fees || ''}
-            onChange={(e) => handleChange('fees', parseFloat(e.target.value) || 0)}
-          />
-        </div>
-      </div>
-      
-      {/* Strategy - Moved before timeframe */}
+
       <div className="space-y-2">
         <Label htmlFor="strategy">Strategy</Label>
-        <Select 
-          value={trade.strategy || 'default-strategy'}
-          onValueChange={(value) => handleChange('strategy', value)}
-        >
-          <SelectTrigger id="strategy">
-            <SelectValue placeholder="Select strategy" />
-          </SelectTrigger>
-          <SelectContent>
-            {strategies && strategies.length > 0 ? (
-              strategies.map((strategy) => {
-                // Ensure strategy name is never empty and always a string
-                const strategyName = strategy.name || `strategy-${strategy.id}`;
-                return (
-                  <SelectItem key={strategy.id} value={strategyName || `strategy-${strategy.id}`}>
-                    <div className="flex items-center">
-                      {strategy.color && (
-                        <div 
-                          className="w-3 h-3 rounded-full mr-2" 
-                          style={{ backgroundColor: strategy.color }} 
-                        />
-                      )}
-                      {strategyName}
-                    </div>
-                  </SelectItem>
-                );
-              })
-            ) : (
-              <SelectItem value="default-strategy">Default Strategy</SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+        <Input
+          id="strategy"
+          placeholder="Strategy used"
+          value={trade.strategy || ''}
+          onChange={(e) => onTradeChange('strategy', e.target.value)}
+        />
       </div>
-      
-      {/* SSMT Quarters */}
+
       <div className="space-y-2">
-        <Label htmlFor="ssmtQuarters">SSMT Quarters</Label>
-        <Select
-          value={trade.ssmtQuarters || ''}
-          onValueChange={(value) => handleChange('ssmtQuarters', value)}
-        >
-          <SelectTrigger id="ssmtQuarters">
-            <SelectValue placeholder="Select SSMT Quarters" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="q1/q2">Q1/Q2</SelectItem>
-            <SelectItem value="q2/q3">Q2/Q3</SelectItem>
-            <SelectItem value="q3/q4">Q3/Q4</SelectItem>
-            <SelectItem value="q4/q5">Q4/Q5</SelectItem>
-            <SelectItem value="q5/q1">Q5/Q1</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      {/* Timeframe */}
-      <div className="space-y-2">
-        <Label htmlFor="timeframe">Timeframe</Label>
-        <Select
-          value={trade.timeframe || ''}
-          onValueChange={(value) => handleChange('timeframe', value)}
-        >
-          <SelectTrigger id="timeframe">
-            <SelectValue placeholder="Select Timeframe" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1m">1 Minute</SelectItem>
-            <SelectItem value="5m">5 Minutes</SelectItem>
-            <SelectItem value="15m">15 Minutes</SelectItem>
-            <SelectItem value="30m">30 Minutes</SelectItem>
-            <SelectItem value="1h">1 Hour</SelectItem>
-            <SelectItem value="4h">4 Hours</SelectItem>
-            <SelectItem value="1d">Daily</SelectItem>
-            <SelectItem value="1w">Weekly</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      {/* Grade and Mistakes Fields - Side by Side */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Grade Field */}
-        <div className="space-y-2">
-          <Label htmlFor="grade">Trade Grade</Label>
-          <Select
-            value={trade.grade || ''}
-            onValueChange={(value) => handleChange('grade', value)}
-          >
-            <SelectTrigger id="grade">
-              <SelectValue placeholder="Select a grade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="A">A - Excellent</SelectItem>
-              <SelectItem value="B">B - Good</SelectItem>
-              <SelectItem value="C">C - Average</SelectItem>
-              <SelectItem value="D">D - Poor</SelectItem>
-              <SelectItem value="F">F - Failed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* Mistakes Field */}
-        <div className="space-y-2">
-          <Label htmlFor="mistakes">Mistakes</Label>
-          <MistakesField 
-            value={trade.mistakes} 
-            onChange={(mistakes) => handleChange('mistakes', mistakes)} 
-          />
-        </div>
+        <Label htmlFor="setupNotes">Setup Notes</Label>
+        <Textarea
+          id="setupNotes"
+          placeholder="Notes about the trade setup"
+          value={trade.setupNotes || ''}
+          onChange={(e) => onTradeChange('setupNotes', e.target.value)}
+          rows={3}
+        />
       </div>
     </div>
   );
-}
+};

@@ -18,7 +18,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
     }
   );
   
-  const [contractDetails, setContractDetails] = useState(
+  const [contractDetails, setContractDetails] = useState<Record<string, any>>(
     initialTrade?.contractDetails || {}
   );
   
@@ -34,8 +34,10 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
   
   // Symbol point value for futures
   const [pointValue, setPointValue] = useState<number | undefined>(
-    initialTrade?.type === 'futures' 
-      ? initialTrade.contractDetails?.tickValue
+    initialTrade?.type === 'futures' && 
+    initialTrade.contractDetails && 
+    'tickValue' in initialTrade.contractDetails 
+      ? initialTrade.contractDetails.tickValue as number
       : undefined
   );
   
@@ -55,11 +57,11 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
       const allSymbols = getAllSymbols();
       const symbolData = allSymbols.find(s => s.symbol === trade.symbol);
       
-      if (symbolData && contractDetails.tickValue) {
-        setPointValue(contractDetails.tickValue);
+      if (symbolData && contractDetails && 'tickValue' in contractDetails) {
+        setPointValue(contractDetails.tickValue as number);
       }
     }
-  }, [trade.type, trade.symbol, contractDetails.tickValue]);
+  }, [trade.type, trade.symbol, contractDetails]);
   
   // Load idea data if ideaId is provided
   useEffect(() => {
