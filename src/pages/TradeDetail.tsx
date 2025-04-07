@@ -9,7 +9,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbS
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TradeCommentsList } from '@/components/journal/TradeCommentsList';
 import { PartialExitsList } from '@/components/PartialExitsList';
-import { calculateTradeMetrics, formatCurrency } from '@/utils/calculations';
+import { calculateTradeMetrics, formatCurrency, formatPercentage } from '@/utils/calculations';
 import { ContentRenderer } from '@/components/journal/ContentRenderer';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
 import { Badge } from '@/components/ui/badge';
@@ -276,7 +276,7 @@ export default function TradeDetail() {
                       <div>
                         <p className="text-sm text-muted-foreground">P&L %</p>
                         <p className={`font-medium ${metrics.profitLossPercentage >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {metrics.profitLossPercentage.toFixed(2)}%
+                          {formatPercentage(metrics.profitLossPercentage)}
                         </p>
                       </div>
                     )}

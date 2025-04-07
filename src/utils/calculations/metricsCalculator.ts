@@ -1,6 +1,7 @@
+
 import { Trade } from '@/types';
 
-export function getTradeMetrics(trade: Trade) {
+export const getTradeMetrics = (trade: Trade) => {
   let profitLoss = 0;
   let riskRewardRatio = 0;
   let rMultiple = 0;
@@ -132,4 +133,7 @@ export function getTradeMetrics(trade: Trade) {
     weightedExitPrice,
     latestExitDate
   };
-}
+};
+
+// Export as calculateTradeMetrics as well for backward compatibility
+export const calculateTradeMetrics = getTradeMetrics;

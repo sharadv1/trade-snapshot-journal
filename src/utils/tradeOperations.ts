@@ -1,7 +1,7 @@
 
 import { Trade, TradeWithMetrics } from '@/types';
 import { getTrades, getTradesSync, saveTrades } from '@/utils/storage/storageCore';
-import { calculateTradeMetrics } from '@/utils/calculations/metricsCalculator';
+import { calculateTradeMetrics } from '@/utils/calculations';
 import { markIdeaAsTaken, getIdeaById } from '@/utils/ideaStorage';
 
 // Add a new trade
