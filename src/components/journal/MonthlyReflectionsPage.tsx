@@ -10,7 +10,7 @@ export function MonthlyReflectionsPage() {
   useEffect(() => {
     // Load monthly reflections
     const allReflections = getAllMonthlyReflections();
-    const reflectionsList = Object.values(allReflections)
+    const reflectionsList = Object.values(allReflections as Record<string, MonthlyReflection>)
       .sort((a, b) => {
         // Sort by month start date (most recent first)
         if (!a.monthStart || !b.monthStart) return 0;
@@ -22,7 +22,7 @@ export function MonthlyReflectionsPage() {
     // Listen for updates to reflections
     const handleUpdate = () => {
       const updatedReflections = getAllMonthlyReflections();
-      const updatedList = Object.values(updatedReflections)
+      const updatedList = Object.values(updatedReflections as Record<string, MonthlyReflection>)
         .sort((a, b) => {
           if (!a.monthStart || !b.monthStart) return 0;
           return new Date(b.monthStart).getTime() - new Date(a.monthStart).getTime();

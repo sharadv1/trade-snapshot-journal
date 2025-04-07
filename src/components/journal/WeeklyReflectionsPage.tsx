@@ -10,7 +10,7 @@ export function WeeklyReflectionsPage() {
   useEffect(() => {
     // Load weekly reflections
     const allReflections = getAllWeeklyReflections();
-    const reflectionsList = Object.values(allReflections)
+    const reflectionsList = Object.values(allReflections as Record<string, WeeklyReflection>)
       .sort((a, b) => {
         // Sort by week start date (most recent first)
         if (!a.weekStart || !b.weekStart) return 0;
@@ -22,7 +22,7 @@ export function WeeklyReflectionsPage() {
     // Listen for updates to reflections
     const handleUpdate = () => {
       const updatedReflections = getAllWeeklyReflections();
-      const updatedList = Object.values(updatedReflections)
+      const updatedList = Object.values(updatedReflections as Record<string, WeeklyReflection>)
         .sort((a, b) => {
           if (!a.weekStart || !b.weekStart) return 0;
           return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
