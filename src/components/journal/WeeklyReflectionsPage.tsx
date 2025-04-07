@@ -83,7 +83,7 @@ export function WeeklyReflectionsPage() {
   };
   
   return (
-    <div className="w-full max-w-full">
+    <div className="w-full">
       <ReflectionsList 
         reflections={reflections}
         type="weekly"

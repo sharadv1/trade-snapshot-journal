@@ -1,381 +1,155 @@
-
 import { 
-  saveWeeklyReflection, 
   getWeeklyReflection, 
-  saveMonthlyReflection, 
-  getMonthlyReflection,
-  saveWeeklyReflectionObject,
-  saveMonthlyReflectionObject
+  saveWeeklyReflection, 
+  getMonthlyReflection, 
+  saveMonthlyReflection 
 } from './journalStorage';
-import { TradeWithMetrics, WeeklyReflection, MonthlyReflection } from '@/types';
+import { getTradesWithMetrics } from './storage/tradeOperations';
+import { TradeWithMetrics } from '@/types';
 import { 
-  format, 
   startOfWeek, 
   endOfWeek, 
   startOfMonth, 
-  endOfMonth,
-  isWithinInterval,
-  parseISO
+  endOfMonth, 
+  format,
+  addWeeks,
+  addMonths,
+  isWithinInterval
 } from 'date-fns';
-import { toast } from './toast';
-import { 
-  calculateWinRate, 
-  calculateTotalPnL, 
-  calculateTotalR, 
-  calculateAverageWin,
-  calculateAverageLoss,
-} from '@/pages/dashboard/dashboardUtils';
 
-/**
- * Automatically generate weekly and monthly reflections based on trade data
- * @param trades All trades with metrics
- * @returns Object with counts of reflections generated
- */
-export function generateMissingReflections(trades: TradeWithMetrics[]) {
-  // Skip if no trades
-  if (!trades.length) return { weekly: 0, monthly: 0 };
+// Function to generate missing weekly reflections
+export const generateMissingReflections = (trades: TradeWithMetrics[]) => {
+  const today = new Date();
+  let currentDate = new Date(2025, 0, 1); // Start from January 1, 2025
   
-  // Filter to closed trades with exit dates
-  const closedTrades = trades.filter(trade => 
-    trade.status === 'closed' && trade.exitDate
-  );
-  
-  if (!closedTrades.length) return { weekly: 0, monthly: 0 };
-
-  console.log(`Generating reflections for ${closedTrades.length} closed trades`);
-  
-  // Track unique weeks and months
-  const weeks = new Map<string, TradeWithMetrics[]>();
-  const months = new Map<string, TradeWithMetrics[]>();
-  
-  // Group trades by week and month
-  closedTrades.forEach(trade => {
-    if (!trade.exitDate) return;
-    
-    const exitDate = new Date(trade.exitDate);
-    
-    // Weekly grouping
-    const weekStart = startOfWeek(exitDate, { weekStartsOn: 1 }); // Week starts on Monday
-    const weekEnd = endOfWeek(exitDate, { weekStartsOn: 1 });
+  while (currentDate <= today) {
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
     const weekId = format(weekStart, 'yyyy-MM-dd');
     
-    if (!weeks.has(weekId)) {
-      weeks.set(weekId, []);
-    }
-    weeks.get(weekId)?.push(trade);
-    
-    // Monthly grouping
-    const monthId = format(exitDate, 'yyyy-MM');
-    if (!months.has(monthId)) {
-      months.set(monthId, []);
-    }
-    months.get(monthId)?.push(trade);
-  });
-  
-  // Generate reflections
-  let weeklyGenerated = 0;
-  let monthlyGenerated = 0;
-  
-  // Generate weekly reflections
-  for (const [weekId, weekTrades] of weeks.entries()) {
-    if (!weekTrades.length) continue;
-    
-    // Check if reflection already exists
+    // Check if a reflection already exists for this week
     const existingReflection = getWeeklyReflection(weekId);
-    if (existingReflection && existingReflection.reflection) {
-      // Update the stats for existing reflection
-      updateWeeklyReflectionStats(existingReflection, weekTrades);
-      continue; // Skip generating new reflection content
+    
+    if (!existingReflection) {
+      // Filter trades for the current week
+      const weekTrades = trades.filter(trade => {
+        if (trade.exitDate) {
+          const exitDate = new Date(trade.exitDate);
+          return isWithinInterval(exitDate, { start: weekStart, end: weekEnd });
+        }
+        return false;
+      });
+      
+      // Generate a reflection for the week
+      const newReflection = generateWeeklyReflection(weekId, weekStart, weekEnd, weekTrades);
+      
+      // Save the new reflection
+      saveWeeklyReflection(weekId, newReflection.reflection, newReflection.grade, newReflection.weeklyPlan);
+      
+      console.log(`Generated and saved weekly reflection for ${weekId}`);
     }
     
-    // Generate reflection for week
-    const weekStart = format(parseISO(weekId), 'yyyy-MM-dd');
-    const weekEnd = format(endOfWeek(parseISO(weekId), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    
-    // Calculate weekly metrics
-    const totalPnL = calculateTotalPnL(weekTrades);
-    const winRate = calculateWinRate(weekTrades);
-    const totalWins = weekTrades.filter(t => (t.metrics.profitLoss || 0) > 0).length;
-    const totalLosses = weekTrades.filter(t => (t.metrics.profitLoss || 0) <= 0).length;
-    const totalR = calculateTotalR(weekTrades);
-    const avgWin = calculateAverageWin(weekTrades);
-    const avgLoss = calculateAverageLoss(weekTrades);
-    
-    // Determine weekly grade based on performance
-    let grade = 'C';
-    if (totalPnL > 0 && winRate > 60) grade = 'A';
-    else if (totalPnL > 0) grade = 'B';
-    else if (totalPnL < 0 && winRate < 30) grade = 'F';
-    else if (totalPnL < 0) grade = 'D';
-    
-    // Generate weekly reflection content
-    const reflection = generateWeeklyReflectionContent(weekTrades, {
-      totalPnL,
-      winRate,
-      totalWins,
-      totalLosses,
-      totalR,
-      avgWin,
-      avgLoss,
-      totalTrades: weekTrades.length
-    });
-    
-    // Generate weekly plan
-    const weeklyPlan = generateWeeklyPlanContent(weekTrades, grade);
-    
-    // Save the reflection with totalPnL and totalR
-    const weekStartDate = new Date(weekId);
-    const weekEndDate = new Date(weekStartDate);
-    weekEndDate.setDate(weekStartDate.getDate() + 6);
-    
-    // Prepare tradeIds array
-    const tradeIds = weekTrades.map(trade => trade.id);
-    
-    // Create reflection object
-    const newReflection: WeeklyReflection = {
-      id: weekId,
-      weekId: weekId,
-      type: 'weekly',
-      date: weekId,
-      title: `Weekly Reflection: ${format(weekStartDate, 'MMM d')} - ${format(weekEndDate, 'MMM d, yyyy')}`,
-      content: reflection,
-      weekStart: weekStartDate.toISOString(),
-      weekEnd: weekEndDate.toISOString(),
-      reflection: reflection,
-      weeklyPlan: weeklyPlan,
-      grade: grade,
-      lastUpdated: new Date().toISOString(),
-      tradeIds: tradeIds,
-      totalPnL: totalPnL,
-      totalR: totalR
-    };
-    
-    saveWeeklyReflectionObject(newReflection);
-    weeklyGenerated++;
+    currentDate = addWeeks(currentDate, 1);
   }
   
-  // Generate monthly reflections
-  for (const [monthId, monthTrades] of months.entries()) {
-    if (!monthTrades.length) continue;
+  // Generate missing monthly reflections
+  currentDate = new Date(2025, 0, 1); // Reset to January 1, 2025
+  
+  while (currentDate <= today) {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const monthId = format(monthStart, 'yyyy-MM');
     
-    // Check if reflection already exists
+    // Check if a reflection already exists for this month
     const existingReflection = getMonthlyReflection(monthId);
-    if (existingReflection && existingReflection.reflection) {
-      // Update the stats for existing reflection
-      updateMonthlyReflectionStats(existingReflection, monthTrades);
-      continue; // Skip generating new reflection content
+    
+    if (!existingReflection) {
+      // Filter trades for the current month
+      const monthTrades = trades.filter(trade => {
+        if (trade.exitDate) {
+          const exitDate = new Date(trade.exitDate);
+          return isWithinInterval(exitDate, { start: monthStart, end: monthEnd });
+        }
+        return false;
+      });
+      
+      // Generate a reflection for the month
+      const newReflection = generateMonthlyReflection(monthId, monthStart, monthEnd, monthTrades);
+      
+      // Save the new reflection
+      saveMonthlyReflection(monthId, newReflection.reflection, newReflection.grade);
+      
+      console.log(`Generated and saved monthly reflection for ${monthId}`);
     }
     
-    // Calculate monthly metrics
-    const totalPnL = calculateTotalPnL(monthTrades);
-    const winRate = calculateWinRate(monthTrades);
-    const totalWins = monthTrades.filter(t => (t.metrics.profitLoss || 0) > 0).length;
-    const totalLosses = monthTrades.filter(t => (t.metrics.profitLoss || 0) <= 0).length;
-    const totalR = calculateTotalR(monthTrades);
-    
-    // Determine monthly grade based on performance
-    let grade = 'C';
-    if (totalPnL > 0 && winRate > 60) grade = 'A';
-    else if (totalPnL > 0) grade = 'B';
-    else if (totalPnL < 0 && winRate < 30) grade = 'F';
-    else if (totalPnL < 0) grade = 'D';
-    
-    // Generate monthly reflection content
-    const reflection = generateMonthlyReflectionContent(monthTrades, {
-      totalPnL,
-      winRate,
-      totalWins,
-      totalLosses,
-      totalR,
-      totalTrades: monthTrades.length
-    });
-    
-    // Parse month and create date range
-    const [year, month] = monthId.split('-').map(Number);
-    const monthStart = new Date(year, month - 1, 1);
-    const monthEnd = new Date(year, month, 0);
-    
-    // Prepare tradeIds array
-    const tradeIds = monthTrades.map(trade => trade.id);
-    
-    // Create reflection object
-    const newReflection: MonthlyReflection = {
-      id: monthId,
-      monthId: monthId,
-      type: 'monthly',
-      date: monthId + '-01', // First day of month
-      title: `Monthly Reflection: ${format(monthStart, 'MMMM yyyy')}`,
-      content: reflection,
-      monthStart: monthStart.toISOString(),
-      monthEnd: monthEnd.toISOString(),
-      reflection: reflection,
-      grade: grade,
-      lastUpdated: new Date().toISOString(),
-      tradeIds: tradeIds,
-      totalPnL: totalPnL,
-      totalR: totalR
-    };
-    
-    saveMonthlyReflectionObject(newReflection);
-    monthlyGenerated++;
+    currentDate = addMonths(currentDate, 1);
   }
+};
+
+function generateWeeklyReflection(weekId: string, weekStart: Date, weekEnd: Date, trades: TradeWithMetrics[]) {
+  let reflection = '';
+  let weeklyPlan = '';
+  let grade = '';
+  let tradeIds: string[] = [];
+  let totalPnL = 0;
+  let totalR = 0;
   
-  // Show toast if reflections were generated
-  if (weeklyGenerated > 0 || monthlyGenerated > 0) {
-    toast.success(`Generated ${weeklyGenerated} weekly and ${monthlyGenerated} monthly reflections`);
+  if (trades.length > 0) {
+    reflection = `This week I took ${trades.length} trades. `;
+    weeklyPlan = 'My plan for next week is to focus on...';
+    grade = 'B';
+    
+    tradeIds = trades.map(trade => trade.id);
+    totalPnL = trades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
+    totalR = trades.reduce((sum, trade) => sum + (trade.metrics.riskRewardRatio || 0), 0);
+  } else {
+    reflection = 'No trades were taken this week.';
+    weeklyPlan = 'My plan for next week is to focus on...';
+    grade = 'A';
   }
-  
-  return { weekly: weeklyGenerated, monthly: monthlyGenerated };
+
+  return {
+    id: weekId,
+    weekId,
+    weekStart: weekStart.toISOString(),
+    weekEnd: weekEnd.toISOString(),
+    reflection,
+    weeklyPlan,
+    grade,
+    tradeIds,
+    totalPnL,
+    totalR
+  };
 }
 
-// Helper function to update stats for existing weekly reflections
-function updateWeeklyReflectionStats(reflection: WeeklyReflection, trades: TradeWithMetrics[]) {
-  if (!trades.length) return;
+function generateMonthlyReflection(monthId: string, monthStart: Date, monthEnd: Date, trades: TradeWithMetrics[]) {
+  let reflection = '';
+  let grade = '';
+  let tradeIds: string[] = [];
+  let totalPnL = 0;
+  let totalR = 0;
   
-  const totalPnL = calculateTotalPnL(trades);
-  const totalR = calculateTotalR(trades);
-  
-  // Only update if values have changed
-  if (reflection.totalPnL !== totalPnL || reflection.totalR !== totalR) {
-    reflection.totalPnL = totalPnL;
-    reflection.totalR = totalR;
-    saveWeeklyReflectionObject(reflection);
+  if (trades.length > 0) {
+    reflection = `This month I took ${trades.length} trades. `;
+    grade = 'B';
+    
+    tradeIds = trades.map(trade => trade.id);
+    totalPnL = trades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
+    totalR = trades.reduce((sum, trade) => sum + (trade.metrics.riskRewardRatio || 0), 0);
+  } else {
+    reflection = 'No trades were taken this month.';
+    grade = 'A';
   }
-}
 
-// Helper function to update stats for existing monthly reflections
-function updateMonthlyReflectionStats(reflection: MonthlyReflection, trades: TradeWithMetrics[]) {
-  if (!trades.length) return;
-  
-  const totalPnL = calculateTotalPnL(trades);
-  const totalR = calculateTotalR(trades);
-  
-  // Only update if values have changed
-  if (reflection.totalPnL !== totalPnL || reflection.totalR !== totalR) {
-    reflection.totalPnL = totalPnL;
-    reflection.totalR = totalR;
-    saveMonthlyReflectionObject(reflection);
-  }
-}
-
-// Helper functions to generate reflection content
-function generateWeeklyReflectionContent(trades: TradeWithMetrics[], metrics: {
-  totalPnL: number;
-  winRate: number;
-  totalWins: number;
-  totalLosses: number;
-  totalR: number;
-  avgWin: number;
-  avgLoss: number;
-  totalTrades: number;
-}) {
-  const isProfitable = metrics.totalPnL > 0;
-  const symbols = [...new Set(trades.map(t => t.symbol))];
-  const strategies = [...new Set(trades.map(t => t.strategy).filter(Boolean))] as string[];
-  
-  return `<h2>Weekly Trading Summary</h2>
-<p>This week I traded ${metrics.totalTrades} positions across ${symbols.length} different symbols
-${strategies.length ? `using ${strategies.length} different strategies (${strategies.join(', ')})` : ''}.
-My performance was ${isProfitable ? 'profitable' : 'unprofitable'} with a ${metrics.winRate.toFixed(1)}% win rate.</p>
-
-<h3>Performance Metrics</h3>
-<ul>
-  <li>Total P&L: ${isProfitable ? '+' : ''}$${Math.abs(metrics.totalPnL).toFixed(2)}</li>
-  <li>Win Rate: ${metrics.winRate.toFixed(1)}%</li>
-  <li>Wins/Losses: ${metrics.totalWins}/${metrics.totalLosses}</li>
-  <li>Average Win: $${metrics.avgWin.toFixed(2)}</li>
-  <li>Average Loss: $${Math.abs(metrics.avgLoss).toFixed(2)}</li>
-  <li>Total R: ${metrics.totalR > 0 ? '+' : ''}${metrics.totalR.toFixed(2)}R</li>
-</ul>
-
-<h3>What Went Well</h3>
-<p>${isProfitable 
-  ? 'I maintained discipline with my trading plan and executed my setups properly.'
-  : 'I tracked all my trades and followed my risk management rules.'}</p>
-
-<h3>What Could Be Improved</h3>
-<p>${isProfitable 
-  ? 'I could improve my performance by being more selective with entries.'
-  : 'I need to analyze my losing trades to identify patterns and improve my strategy.'}</p>
-
-<h3>Lessons Learned</h3>
-<p>This week reinforced the importance of ${isProfitable 
-  ? 'patience and waiting for high-probability setups.' 
-  : 'proper risk management and sticking to my trading plan.'}</p>`;
-}
-
-function generateWeeklyPlanContent(trades: TradeWithMetrics[], grade: string) {
-  const isGoodWeek = grade === 'A' || grade === 'B';
-  
-  return `<h2>Next Week's Trading Plan</h2>
-
-<h3>Focus Areas</h3>
-<ul>
-  <li>${isGoodWeek 
-    ? 'Continue executing my current strategy with discipline'
-    : 'Review losing trades to identify common mistakes'}</li>
-  <li>Be more selective with trade entries</li>
-  <li>Focus on high-probability setups</li>
-</ul>
-
-<h3>Risk Management</h3>
-<ul>
-  <li>Maintain consistent position sizing</li>
-  <li>Set clear stop losses on all trades</li>
-  <li>Aim for minimum 1:2 risk-reward ratio</li>
-</ul>
-
-<h3>Goals</h3>
-<ul>
-  <li>Achieve at least 50% win rate</li>
-  <li>Review trading journal daily</li>
-  <li>Document lessons after each trade</li>
-</ul>`;
-}
-
-function generateMonthlyReflectionContent(trades: TradeWithMetrics[], metrics: {
-  totalPnL: number;
-  winRate: number;
-  totalWins: number;
-  totalLosses: number;
-  totalR: number;
-  totalTrades: number;
-}) {
-  const isProfitable = metrics.totalPnL > 0;
-  const symbols = [...new Set(trades.map(t => t.symbol))];
-  const strategies = [...new Set(trades.map(t => t.strategy).filter(Boolean))] as string[];
-  
-  return `<h2>Monthly Trading Performance Summary</h2>
-<p>This month I completed ${metrics.totalTrades} trades across ${symbols.length} different symbols
-${strategies.length ? `using primarily ${strategies.slice(0, 3).join(', ')} strategies` : ''}.
-My overall performance was ${isProfitable ? 'profitable' : 'unprofitable'} with a net P&L of 
-${isProfitable ? '+' : ''}$${Math.abs(metrics.totalPnL).toFixed(2)} and a ${metrics.winRate.toFixed(1)}% win rate.</p>
-
-<h3>Key Performance Metrics</h3>
-<ul>
-  <li>Total P&L: ${isProfitable ? '+' : ''}$${Math.abs(metrics.totalPnL).toFixed(2)}</li>
-  <li>Win Rate: ${metrics.winRate.toFixed(1)}%</li>
-  <li>Wins/Losses: ${metrics.totalWins}/${metrics.totalLosses}</li>
-  <li>Total R: ${metrics.totalR > 0 ? '+' : ''}${metrics.totalR.toFixed(2)}R</li>
-</ul>
-
-<h3>Monthly Review</h3>
-<p>${isProfitable 
-  ? 'This was a positive month that demonstrated the effectiveness of my trading strategy when executed with discipline. I found success in maintaining consistent position sizing and focusing on high-probability setups.'
-  : 'This was a challenging month that highlighted areas where my trading approach needs refinement. I need to focus on improving my trade selection criteria and ensuring I\'m only taking high-probability setups.'}</p>
-
-<h3>Strengths</h3>
-<p>${isProfitable 
-  ? 'My strongest performance came from maintaining discipline and following my trading plan consistently. I was patient with entries and exits, which contributed significantly to my positive results.'
-  : 'Despite the overall performance, I maintained consistent risk management and position sizing, which prevented larger losses. I also documented all trades thoroughly for future analysis.'}</p>
-
-<h3>Areas for Improvement</h3>
-<p>${isProfitable 
-  ? 'I could improve my consistency by being more selective with my trades and avoiding lower-probability setups. I should also consider scaling position sizes on higher-conviction trades.'
-  : 'I need to be more selective with my trades and avoid trading during unfavorable market conditions. I should also review my entry criteria to ensure I\'m only taking high-probability setups.'}</p>
-
-<h3>Plan for Next Month</h3>
-<p>${isProfitable 
-  ? 'Next month, I plan to continue executing my current strategy while being even more selective with my trade entries. I will focus on high-conviction setups and consider scaling position sizes on my best setups.'
-  : 'For the coming month, I will focus on improving my trade selection process, being more patient with entries, and avoiding trading during unfavorable market conditions. I will also review my losing trades to identify common patterns that I can avoid in the future.'}</p>`;
+  return {
+    id: monthId,
+    monthId,
+    monthStart: monthStart.toISOString(),
+    monthEnd: monthEnd.toISOString(),
+    reflection,
+    grade,
+    tradeIds,
+    totalPnL,
+    totalR
+  };
 }
