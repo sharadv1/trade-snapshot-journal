@@ -1,3 +1,4 @@
+
 export interface Trade {
   id: string;
   symbol: string;
@@ -7,9 +8,13 @@ export interface Trade {
   exitDate?: string;
   exitPrice?: number;
   positionSize: number;
+  quantity: number;
+  status: 'open' | 'closed';
+  type?: 'stock' | 'futures' | 'forex' | 'crypto' | 'option';
   fees?: number;
   notes?: string;
   strategyId?: string;
+  strategy?: string;
   createdAt?: string;
   updatedAt?: string;
   images?: string[];
@@ -17,6 +22,15 @@ export interface Trade {
   stopLoss?: number;
   takeProfit?: number;
   partialExits?: PartialExit[];
+  ideaId?: string;
+  contractDetails?: FuturesContractDetails;
+  account?: string;
+  grade?: string;
+  mistakes?: string[];
+  timeframe?: string;
+  pspTime?: string;
+  ssmtQuarters?: string;
+  tags?: string[];
 }
 
 export interface TradeWithMetrics extends Trade {
@@ -45,6 +59,7 @@ export interface WeeklyReflection {
   totalPnL?: number;
   totalR?: number;
   isPlaceholder?: boolean;
+  lastUpdated?: string;
 }
 
 export interface MonthlyReflection {
@@ -58,6 +73,7 @@ export interface MonthlyReflection {
   totalPnL?: number;
   totalR?: number;
   isPlaceholder?: boolean;
+  lastUpdated?: string;
 }
 
 export interface Strategy {
@@ -88,11 +104,11 @@ export interface Lesson {
   title: string;
   content: string;
   category: string;
+  description?: string;
   media?: LessonMedia[];
   createdAt: string;
   updatedAt?: string;
   types?: string[];
-  description?: string;
 }
 
 export interface LessonMedia {
@@ -146,13 +162,14 @@ export const COMMON_FUTURES_CONTRACTS = [
 export interface TradeIdea {
   id: string;
   symbol: string;
-  direction: string;
+  direction: 'long' | 'short' | string;
   entryPrice?: number;
   stopLoss?: number;
   takeProfit?: number;
   description: string;
-  status: 'active' | 'executed' | 'expired' | 'canceled';
+  status: 'active' | 'executed' | 'expired' | 'canceled' | 'taken' | 'still valid' | 'invalidated' | 'missed' | 'open' | 'invalid';
   createdAt: string;
+  date?: string;
   updatedAt?: string;
   images?: string[];
 }
@@ -160,7 +177,9 @@ export interface TradeIdea {
 export interface PartialExit {
   id: string;
   exitDate: string;
+  date?: string;
   exitPrice: number;
+  price?: number;
   quantity: number;
   fees?: number;
   notes?: string;
