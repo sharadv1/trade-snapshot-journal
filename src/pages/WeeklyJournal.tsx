@@ -179,6 +179,12 @@ export default function WeeklyJournal() {
       
       setPeriodTrades(filteredTrades);
       console.log(`Loaded ${filteredTrades.length} trades for ${isMonthView ? 'month' : 'week'}`);
+      
+      if (filteredTrades.length > 0) {
+        import('@/utils/reflectionGenerator').then(module => {
+          module.generateMissingReflections(getTradesWithMetrics());
+        });
+      }
     };
     
     loadPeriodTrades();
@@ -527,7 +533,7 @@ export default function WeeklyJournal() {
   };
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 max-w-5xl">
       <div className="mb-4 grid grid-cols-3 items-center">
         <div className="col-span-1">
           <Button 
@@ -811,7 +817,7 @@ export default function WeeklyJournal() {
       </Card>
       
       <Dialog open={isWeeklyDialogOpen} onOpenChange={setIsWeeklyDialogOpen}>
-        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedWeeklyReflection && selectedWeeklyReflection.weekStart ? 

@@ -237,7 +237,7 @@ export function ReflectionsList() {
   };
   
   return (
-    <Card className="mt-0">
+    <Card className="mt-0 max-w-5xl mx-auto">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Weekly Trading Journal Reflections</CardTitle>
         <div className="flex items-center space-x-2">
