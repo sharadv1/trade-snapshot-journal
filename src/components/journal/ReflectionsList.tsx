@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Pencil } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
@@ -14,6 +14,7 @@ export interface ReflectionsListProps {
     pnl: number;
     rValue: number;
     tradeCount: number;
+    hasContent: boolean;
   };
 }
 
@@ -76,26 +77,50 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
             const stats = getStats(reflection);
             const id = getReflectionId(reflection);
             const dateRange = formatDateRange(reflection);
+            const hasTradesOrContent = stats.tradeCount > 0 || stats.hasContent;
 
             return (
-              <Link key={id} to={`/journal/${type}/${id}`}>
-                <Card className="hover:bg-accent/10 transition-colors cursor-pointer">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg font-medium flex justify-between">
-                      <span>{type === 'weekly' ? `Week of ${dateRange}` : `Month of ${new Date(id).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`}</span>
-                      <span className={stats.pnl >= 0 ? 'text-profit' : 'text-loss'}>
-                        {formatCurrency(stats.pnl)}
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between text-sm text-muted-foreground">
+              <Card 
+                key={id} 
+                className={`hover:bg-accent/10 transition-colors ${hasTradesOrContent ? '' : 'opacity-70'}`}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-medium flex justify-between">
+                    <span>{type === 'weekly' ? `Week of ${dateRange}` : `Month of ${new Date(id.toString()).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`}</span>
+                    <span className={stats.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {formatCurrency(stats.pnl)}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between">
+                    <div className="text-sm text-muted-foreground">
                       <div>Trades: {stats.tradeCount}</div>
                       <div>R-Value: {stats.rValue > 0 ? '+' : ''}{stats.rValue.toFixed(2)}R</div>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                    
+                    <Button 
+                      asChild
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Link to={`/journal/${type}/${id}`}>
+                        {stats.hasContent ? (
+                          <>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit Reflection
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Create Reflection
+                          </>
+                        )}
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             );
           })}
         </div>

@@ -46,7 +46,7 @@ export function WeeklySummaryMetrics({ trades = [] }: WeeklySummaryMetricsProps)
   return (
     <Card className={`${getBgColor()} border shadow-sm w-full`}>
       <CardContent className="p-6">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="flex justify-between">
             <span className="text-lg text-muted-foreground">Win Rate:</span>
             <span className="text-lg font-semibold">{winRate.toFixed(1)}%</span>

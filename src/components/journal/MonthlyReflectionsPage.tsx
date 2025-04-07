@@ -2,40 +2,64 @@
 import React, { useEffect, useState } from 'react';
 import { ReflectionsList } from './ReflectionsList';
 import { MonthlyReflection } from '@/types';
-import { getAllMonthlyReflections } from '@/utils/journalStorage';
+import { 
+  getAllMonthlyReflections,
+  getMonthlyReflection 
+} from '@/utils/journalStorage';
+import { startOfMonth, endOfMonth, addMonths, format } from 'date-fns';
 
 export function MonthlyReflectionsPage() {
   const [reflections, setReflections] = useState<MonthlyReflection[]>([]);
   
   useEffect(() => {
-    // Load monthly reflections
-    const allReflections = getAllMonthlyReflections();
-    const reflectionsList = Object.values(allReflections as Record<string, MonthlyReflection>)
-      .filter(reflection => {
-        // Only include reflections with trade IDs
-        return reflection.tradeIds && reflection.tradeIds.length > 0;
-      })
-      .sort((a, b) => {
+    // Generate all months from start of 2025
+    const generateAllMonths = () => {
+      const allMonths: MonthlyReflection[] = [];
+      const start = new Date(2025, 0, 1); // January 1, 2025
+      const today = new Date();
+      
+      let currentDate = startOfMonth(start);
+      
+      while (currentDate <= today) {
+        const monthId = format(currentDate, 'yyyy-MM');
+        const monthEnd = endOfMonth(currentDate);
+        
+        // Check if a reflection already exists for this month
+        const existingReflection = getMonthlyReflection(monthId);
+        
+        if (existingReflection) {
+          allMonths.push(existingReflection);
+        } else {
+          // Create a placeholder reflection
+          allMonths.push({
+            id: monthId,
+            monthId: monthId,
+            monthStart: currentDate.toISOString(),
+            monthEnd: monthEnd.toISOString(),
+            reflection: '',
+            grade: '',
+            tradeIds: [],
+            isPlaceholder: true
+          });
+        }
+        
+        currentDate = addMonths(currentDate, 1);
+      }
+      
+      return allMonths.sort((a, b) => {
         // Sort by month start date (most recent first)
         if (!a.monthStart || !b.monthStart) return 0;
         return new Date(b.monthStart).getTime() - new Date(a.monthStart).getTime();
       });
+    };
     
-    setReflections(reflectionsList);
+    const allMonths = generateAllMonths();
+    setReflections(allMonths);
     
     // Listen for updates to reflections
     const handleUpdate = () => {
-      const updatedReflections = getAllMonthlyReflections();
-      const updatedList = Object.values(updatedReflections as Record<string, MonthlyReflection>)
-        .filter(reflection => {
-          // Only include reflections with trade IDs
-          return reflection.tradeIds && reflection.tradeIds.length > 0;
-        })
-        .sort((a, b) => {
-          if (!a.monthStart || !b.monthStart) return 0;
-          return new Date(b.monthStart).getTime() - new Date(a.monthStart).getTime();
-        });
-      setReflections(updatedList);
+      const updatedMonths = generateAllMonths();
+      setReflections(updatedMonths);
     };
     
     window.addEventListener('journal-updated', handleUpdate);
@@ -51,12 +75,13 @@ export function MonthlyReflectionsPage() {
     return {
       pnl: reflection.totalPnL || 0,
       rValue: reflection.totalR || 0,
-      tradeCount: tradeIds.length
+      tradeCount: tradeIds.length,
+      hasContent: !!reflection.reflection
     };
   };
   
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto px-4 w-full">
       <ReflectionsList 
         reflections={reflections}
         type="monthly"

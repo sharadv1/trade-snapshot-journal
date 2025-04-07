@@ -2,40 +2,66 @@
 import React, { useEffect, useState } from 'react';
 import { ReflectionsList } from './ReflectionsList';
 import { WeeklyReflection } from '@/types';
-import { getAllWeeklyReflections } from '@/utils/journalStorage';
+import { 
+  getAllWeeklyReflections, 
+  weeklyReflectionExists,
+  getWeeklyReflection
+} from '@/utils/journalStorage';
+import { startOfWeek, endOfWeek, addWeeks, format } from 'date-fns';
 
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
   
   useEffect(() => {
-    // Load weekly reflections
-    const allReflections = getAllWeeklyReflections();
-    const reflectionsList = Object.values(allReflections as Record<string, WeeklyReflection>)
-      .filter(reflection => {
-        // Only include reflections with trade IDs
-        return reflection.tradeIds && reflection.tradeIds.length > 0;
-      })
-      .sort((a, b) => {
+    // Generate all weeks from start of 2025
+    const generateAllWeeks = () => {
+      const allWeeks: WeeklyReflection[] = [];
+      const start = new Date(2025, 0, 1); // January 1, 2025
+      const today = new Date();
+      
+      let currentDate = startOfWeek(start, { weekStartsOn: 1 });
+      
+      while (currentDate <= today) {
+        const weekId = format(currentDate, 'yyyy-MM-dd');
+        const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+        
+        // Check if a reflection already exists for this week
+        const existingReflection = getWeeklyReflection(weekId);
+        
+        if (existingReflection) {
+          allWeeks.push(existingReflection);
+        } else {
+          // Create a placeholder reflection
+          allWeeks.push({
+            id: weekId,
+            weekId: weekId,
+            weekStart: currentDate.toISOString(),
+            weekEnd: weekEnd.toISOString(),
+            reflection: '',
+            weeklyPlan: '',
+            grade: '',
+            tradeIds: [],
+            isPlaceholder: true
+          });
+        }
+        
+        currentDate = addWeeks(currentDate, 1);
+      }
+      
+      return allWeeks.sort((a, b) => {
         // Sort by week start date (most recent first)
         if (!a.weekStart || !b.weekStart) return 0;
         return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
       });
+    };
     
-    setReflections(reflectionsList);
+    const allWeeks = generateAllWeeks();
+    setReflections(allWeeks);
     
     // Listen for updates to reflections
     const handleUpdate = () => {
-      const updatedReflections = getAllWeeklyReflections();
-      const updatedList = Object.values(updatedReflections as Record<string, WeeklyReflection>)
-        .filter(reflection => {
-          // Only include reflections with trade IDs
-          return reflection.tradeIds && reflection.tradeIds.length > 0;
-        })
-        .sort((a, b) => {
-          if (!a.weekStart || !b.weekStart) return 0;
-          return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
-        });
-      setReflections(updatedList);
+      const updatedWeeks = generateAllWeeks();
+      setReflections(updatedWeeks);
     };
     
     window.addEventListener('journal-updated', handleUpdate);
@@ -51,12 +77,13 @@ export function WeeklyReflectionsPage() {
     return {
       pnl: reflection.totalPnL || 0,
       rValue: reflection.totalR || 0,
-      tradeCount: tradeIds.length
+      tradeCount: tradeIds.length,
+      hasContent: !!reflection.reflection || !!reflection.weeklyPlan
     };
   };
   
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto px-4 w-full">
       <ReflectionsList 
         reflections={reflections}
         type="weekly"
