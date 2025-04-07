@@ -16,6 +16,9 @@ export interface MetricCardProps {
   subStats?: Stat[];
   className?: string;
   tooltip?: string;
+  twoColumnLayout?: boolean;
+  columnOneStats?: Stat[];
+  columnTwoStats?: Stat[];
 }
 
 export function MetricCard({ 
@@ -24,7 +27,10 @@ export function MetricCard({
   subValue, 
   subStats, 
   className = "",
-  tooltip
+  tooltip,
+  twoColumnLayout = false,
+  columnOneStats = [],
+  columnTwoStats = []
 }: MetricCardProps) {
   return (
     <Card className="shadow-sm h-full">
@@ -59,7 +65,8 @@ export function MetricCard({
           </div>
         )}
         
-        {subStats && subStats.length > 0 && (
+        {/* Standard single-column layout */}
+        {!twoColumnLayout && subStats && subStats.length > 0 && (
           <div className={`${value ? 'mt-4' : 'mt-2'} space-y-1.5`}>
             {subStats.map((stat, index) => (
               <div key={index} className="flex justify-between items-center">
@@ -67,6 +74,46 @@ export function MetricCard({
                 <span className={`text-sm font-medium ${stat.className || ''}`}>{stat.value}</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Two-column layout */}
+        {twoColumnLayout && (
+          <div className="mt-2">
+            {/* Top section with subStats (usually Net P&L and Total R) */}
+            {subStats && subStats.length > 0 && (
+              <div className="mb-3 space-y-1.5">
+                {subStats.map((stat, index) => (
+                  <div key={index} className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">{stat.label}</span>
+                    <span className={`text-sm font-medium ${stat.className || ''}`}>{stat.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Two column grid for the rest of the stats */}
+            <div className="grid grid-cols-2 gap-x-4">
+              {/* Left column */}
+              <div className="space-y-1.5">
+                {columnOneStats.map((stat, index) => (
+                  <div key={index} className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">{stat.label}</span>
+                    <span className={`text-sm font-medium ${stat.className || ''}`}>{stat.value}</span>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Right column */}
+              <div className="space-y-1.5">
+                {columnTwoStats.map((stat, index) => (
+                  <div key={index} className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">{stat.label}</span>
+                    <span className={`text-sm font-medium ${stat.className || ''}`}>{stat.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </CardContent>

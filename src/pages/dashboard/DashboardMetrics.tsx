@@ -59,6 +59,9 @@ export function DashboardMetrics({ trades }: DashboardMetricsProps) {
                 value: `${keyMetrics.totalR > 0 ? '+' : ''}${(keyMetrics.totalR || 0).toFixed(2)}R`,
                 className: keyMetrics.totalR >= 0 ? "text-profit" : "text-loss"
               },
+            ]}
+            twoColumnLayout={true}
+            columnOneStats={[
               {
                 label: "Win Rate",
                 value: `${(keyMetrics.winRate || 0).toFixed(1)}%`
@@ -71,6 +74,8 @@ export function DashboardMetrics({ trades }: DashboardMetricsProps) {
                 label: "Wins / Losses",
                 value: `${keyMetrics.totalWins} / ${keyMetrics.totalLosses}`
               },
+            ]}
+            columnTwoStats={[
               {
                 label: "Avg Win",
                 value: formatCurrency(keyMetrics.avgWin),
