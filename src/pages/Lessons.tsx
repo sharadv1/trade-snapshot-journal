@@ -163,22 +163,24 @@ export default function Lessons() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col max-w-6xl mx-auto mb-6">
+      <div className="max-w-6xl mx-auto mb-6">
         <div className="relative w-full">
-          <h1 className="text-3xl font-bold tracking-tight">Lessons</h1>
-          <div className="absolute top-0 left-[200px] flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleToggleFilters}
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-            <Button onClick={handleOpenDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Lesson
-            </Button>
+          <div className="flex items-center mb-4">
+            <h1 className="text-3xl font-bold tracking-tight">Lessons</h1>
+            <div className="ml-[200px] flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleToggleFilters}
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+              </Button>
+              <Button onClick={handleOpenDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Lesson
+              </Button>
+            </div>
           </div>
         </div>
 
