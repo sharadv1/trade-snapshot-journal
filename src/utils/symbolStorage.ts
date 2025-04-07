@@ -1,4 +1,3 @@
-
 // Custom user symbols storage utility
 import { COMMON_FUTURES_CONTRACTS } from '@/types';
 import { isUsingServerSync, getServerUrl } from './storage/serverSync';
@@ -6,37 +5,49 @@ import { toast } from './toast';
 
 // Default preset symbols that should be in the system 
 const PRESET_SYMBOLS = [
-  // Common stocks with their types
-  { symbol: 'AAPL', type: 'stock' as const },
-  { symbol: 'MSFT', type: 'stock' as const },
-  { symbol: 'GOOGL', type: 'stock' as const },
-  { symbol: 'AMZN', type: 'stock' as const },
-  { symbol: 'META', type: 'stock' as const },
-  { symbol: 'TSLA', type: 'stock' as const },
-  { symbol: 'NVDA', type: 'stock' as const },
-  { symbol: 'AMD', type: 'stock' as const },
-  { symbol: 'JPM', type: 'stock' as const },
-  { symbol: 'BAC', type: 'stock' as const },
-  { symbol: 'WMT', type: 'stock' as const },
-  { symbol: 'NFLX', type: 'stock' as const },
-  { symbol: 'DIS', type: 'stock' as const },
-  { symbol: 'INTC', type: 'stock' as const },
-  { symbol: 'V', type: 'stock' as const },
-  { symbol: 'PFE', type: 'stock' as const },
-  { symbol: 'KO', type: 'stock' as const },
-  { symbol: 'NKE', type: 'stock' as const },
-  // Common forex pairs
-  { symbol: 'EUR/USD', type: 'forex' as const },
-  { symbol: 'USD/JPY', type: 'forex' as const },
-  { symbol: 'GBP/USD', type: 'forex' as const },
-  { symbol: 'USD/CHF', type: 'forex' as const },
-  { symbol: 'AUD/USD', type: 'forex' as const },
-  { symbol: 'USD/CAD', type: 'forex' as const },
-  // Common crypto symbols
-  { symbol: 'BTC/USD', type: 'crypto' as const },
-  { symbol: 'ETH/USD', type: 'crypto' as const },
-  { symbol: 'SOL/USD', type: 'crypto' as const },
-  { symbol: 'XRP/USD', type: 'crypto' as const },
+  // Major Futures contracts
+  { symbol: 'ES', type: 'futures' as const, meaning: 'E-mini S&P 500' },
+  { symbol: 'NQ', type: 'futures' as const, meaning: 'E-mini NASDAQ-100' },
+  { symbol: 'YM', type: 'futures' as const, meaning: 'E-mini Dow Jones' },
+  { symbol: 'RTY', type: 'futures' as const, meaning: 'E-mini Russell 2000' },
+  { symbol: 'CL', type: 'futures' as const, meaning: 'Crude Oil' },
+  { symbol: 'GC', type: 'futures' as const, meaning: 'Gold' },
+  { symbol: 'SI', type: 'futures' as const, meaning: 'Silver' },
+  { symbol: 'HG', type: 'futures' as const, meaning: 'Copper' },
+  { symbol: 'ZB', type: 'futures' as const, meaning: '30-Year U.S. Treasury Bond' },
+  { symbol: 'ZN', type: 'futures' as const, meaning: '10-Year U.S. Treasury Note' },
+  { symbol: 'ZT', type: 'futures' as const, meaning: '2-Year U.S. Treasury Note' },
+  { symbol: 'ZF', type: 'futures' as const, meaning: '5-Year U.S. Treasury Note' },
+  { symbol: 'ZC', type: 'futures' as const, meaning: 'Corn' },
+  { symbol: 'ZS', type: 'futures' as const, meaning: 'Soybeans' },
+  { symbol: 'ZW', type: 'futures' as const, meaning: 'Wheat' },
+  { symbol: 'KE', type: 'futures' as const, meaning: 'KC Wheat' },
+  { symbol: 'NG', type: 'futures' as const, meaning: 'Natural Gas' },
+  { symbol: 'HE', type: 'futures' as const, meaning: 'Lean Hogs' },
+  { symbol: 'LE', type: 'futures' as const, meaning: 'Live Cattle' },
+  
+  // Micro Futures
+  { symbol: 'MES', type: 'futures' as const, meaning: 'Micro E-mini S&P 500' },
+  { symbol: 'MNQ', type: 'futures' as const, meaning: 'Micro E-mini NASDAQ-100' },
+  { symbol: 'MYM', type: 'futures' as const, meaning: 'Micro E-mini Dow Jones' },
+  { symbol: 'M2K', type: 'futures' as const, meaning: 'Micro E-mini Russell 2000' },
+  { symbol: 'MCL', type: 'futures' as const, meaning: 'Micro Crude Oil' },
+  { symbol: 'MGC', type: 'futures' as const, meaning: 'Micro Gold' },
+  { symbol: 'SIL', type: 'futures' as const, meaning: 'Micro Silver' },
+  
+  // Major Crypto
+  { symbol: 'BTC/USD', type: 'crypto' as const, meaning: 'Bitcoin' },
+  { symbol: 'ETH/USD', type: 'crypto' as const, meaning: 'Ethereum' },
+  { symbol: 'SOL/USD', type: 'crypto' as const, meaning: 'Solana' },
+  { symbol: 'XRP/USD', type: 'crypto' as const, meaning: 'Ripple' },
+  { symbol: 'ADA/USD', type: 'crypto' as const, meaning: 'Cardano' },
+  { symbol: 'DOT/USD', type: 'crypto' as const, meaning: 'Polkadot' },
+  { symbol: 'DOGE/USD', type: 'crypto' as const, meaning: 'Dogecoin' },
+  { symbol: 'LINK/USD', type: 'crypto' as const, meaning: 'Chainlink' },
+  { symbol: 'AVAX/USD', type: 'crypto' as const, meaning: 'Avalanche' },
+  { symbol: 'MATIC/USD', type: 'crypto' as const, meaning: 'Polygon' },
+  { symbol: 'ATOM/USD', type: 'crypto' as const, meaning: 'Cosmos' },
+  { symbol: 'UNI/USD', type: 'crypto' as const, meaning: 'Uniswap' },
 ];
 
 const CUSTOM_SYMBOLS_KEY = 'customSymbols';
@@ -61,6 +72,12 @@ export function getSymbolMeaning(symbol: string): string | null {
     return customSymbol.meaning;
   }
   
+  // Then check preset symbols for meaning
+  const presetSymbol = PRESET_SYMBOLS.find(s => s.symbol === symbol);
+  if (presetSymbol && presetSymbol.meaning) {
+    return presetSymbol.meaning;
+  }
+  
   // Then check futures contracts
   const futuresContract = COMMON_FUTURES_CONTRACTS.find(
     contract => contract.symbol === symbol
@@ -70,19 +87,7 @@ export function getSymbolMeaning(symbol: string): string | null {
     return futuresContract.name;
   }
   
-  // Known equity symbols
-  const equityMeanings: Record<string, string> = {
-    'AAPL': 'Apple Inc.',
-    'MSFT': 'Microsoft Corporation',
-    'GOOGL': 'Alphabet Inc. (Google)',
-    'AMZN': 'Amazon.com Inc.',
-    'META': 'Meta Platforms Inc. (Facebook)',
-    'TSLA': 'Tesla Inc.',
-    'NVDA': 'NVIDIA Corporation',
-    'AMD': 'Advanced Micro Devices Inc.',
-  };
-  
-  return equityMeanings[symbol] || null;
+  return null;
 }
 
 // Get all preset symbols (including futures)
