@@ -1,10 +1,13 @@
+
 import { 
   saveWeeklyReflection, 
   getWeeklyReflection, 
   saveMonthlyReflection, 
-  getMonthlyReflection 
+  getMonthlyReflection,
+  saveWeeklyReflectionObject,
+  saveMonthlyReflectionObject
 } from './journalStorage';
-import { TradeWithMetrics } from '@/types';
+import { TradeWithMetrics, WeeklyReflection, MonthlyReflection } from '@/types';
 import { 
   format, 
   startOfWeek, 
@@ -80,7 +83,9 @@ export function generateMissingReflections(trades: TradeWithMetrics[]) {
     // Check if reflection already exists
     const existingReflection = getWeeklyReflection(weekId);
     if (existingReflection && existingReflection.reflection) {
-      continue; // Skip if reflection exists
+      // Update the stats for existing reflection
+      updateWeeklyReflectionStats(existingReflection, weekTrades);
+      continue; // Skip generating new reflection content
     }
     
     // Generate reflection for week
@@ -118,9 +123,34 @@ export function generateMissingReflections(trades: TradeWithMetrics[]) {
     // Generate weekly plan
     const weeklyPlan = generateWeeklyPlanContent(weekTrades, grade);
     
-    // Fixed: Passing the correct number of arguments (4 instead of 5)
-    saveWeeklyReflection(weekId, reflection, grade, weeklyPlan);
+    // Save the reflection with totalPnL and totalR
+    const weekStartDate = new Date(weekId);
+    const weekEndDate = new Date(weekStartDate);
+    weekEndDate.setDate(weekStartDate.getDate() + 6);
     
+    // Prepare tradeIds array
+    const tradeIds = weekTrades.map(trade => trade.id);
+    
+    // Create reflection object
+    const newReflection: WeeklyReflection = {
+      id: weekId,
+      weekId: weekId,
+      type: 'weekly',
+      date: weekId,
+      title: `Weekly Reflection: ${format(weekStartDate, 'MMM d')} - ${format(weekEndDate, 'MMM d, yyyy')}`,
+      content: reflection,
+      weekStart: weekStartDate.toISOString(),
+      weekEnd: weekEndDate.toISOString(),
+      reflection: reflection,
+      weeklyPlan: weeklyPlan,
+      grade: grade,
+      lastUpdated: new Date().toISOString(),
+      tradeIds: tradeIds,
+      totalPnL: totalPnL,
+      totalR: totalR
+    };
+    
+    saveWeeklyReflectionObject(newReflection);
     weeklyGenerated++;
   }
   
@@ -131,7 +161,9 @@ export function generateMissingReflections(trades: TradeWithMetrics[]) {
     // Check if reflection already exists
     const existingReflection = getMonthlyReflection(monthId);
     if (existingReflection && existingReflection.reflection) {
-      continue; // Skip if reflection exists
+      // Update the stats for existing reflection
+      updateMonthlyReflectionStats(existingReflection, monthTrades);
+      continue; // Skip generating new reflection content
     }
     
     // Calculate monthly metrics
@@ -158,9 +190,33 @@ export function generateMissingReflections(trades: TradeWithMetrics[]) {
       totalTrades: monthTrades.length
     });
     
-    // Save the reflection
-    saveMonthlyReflection(monthId, reflection, grade);
+    // Parse month and create date range
+    const [year, month] = monthId.split('-').map(Number);
+    const monthStart = new Date(year, month - 1, 1);
+    const monthEnd = new Date(year, month, 0);
     
+    // Prepare tradeIds array
+    const tradeIds = monthTrades.map(trade => trade.id);
+    
+    // Create reflection object
+    const newReflection: MonthlyReflection = {
+      id: monthId,
+      monthId: monthId,
+      type: 'monthly',
+      date: monthId + '-01', // First day of month
+      title: `Monthly Reflection: ${format(monthStart, 'MMMM yyyy')}`,
+      content: reflection,
+      monthStart: monthStart.toISOString(),
+      monthEnd: monthEnd.toISOString(),
+      reflection: reflection,
+      grade: grade,
+      lastUpdated: new Date().toISOString(),
+      tradeIds: tradeIds,
+      totalPnL: totalPnL,
+      totalR: totalR
+    };
+    
+    saveMonthlyReflectionObject(newReflection);
     monthlyGenerated++;
   }
   
@@ -170,6 +226,36 @@ export function generateMissingReflections(trades: TradeWithMetrics[]) {
   }
   
   return { weekly: weeklyGenerated, monthly: monthlyGenerated };
+}
+
+// Helper function to update stats for existing weekly reflections
+function updateWeeklyReflectionStats(reflection: WeeklyReflection, trades: TradeWithMetrics[]) {
+  if (!trades.length) return;
+  
+  const totalPnL = calculateTotalPnL(trades);
+  const totalR = calculateTotalR(trades);
+  
+  // Only update if values have changed
+  if (reflection.totalPnL !== totalPnL || reflection.totalR !== totalR) {
+    reflection.totalPnL = totalPnL;
+    reflection.totalR = totalR;
+    saveWeeklyReflectionObject(reflection);
+  }
+}
+
+// Helper function to update stats for existing monthly reflections
+function updateMonthlyReflectionStats(reflection: MonthlyReflection, trades: TradeWithMetrics[]) {
+  if (!trades.length) return;
+  
+  const totalPnL = calculateTotalPnL(trades);
+  const totalR = calculateTotalR(trades);
+  
+  // Only update if values have changed
+  if (reflection.totalPnL !== totalPnL || reflection.totalR !== totalR) {
+    reflection.totalPnL = totalPnL;
+    reflection.totalR = totalR;
+    saveMonthlyReflectionObject(reflection);
+  }
 }
 
 // Helper functions to generate reflection content

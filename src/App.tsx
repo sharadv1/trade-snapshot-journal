@@ -13,8 +13,8 @@ import { Layout } from '@/components/layout/Layout';
 import SymbolManagement from '@/pages/SymbolManagement';
 import WeeklyJournal from '@/pages/WeeklyJournal';
 import { JournalLayout } from '@/components/journal/JournalLayout';
-import { ReflectionsList } from '@/components/journal/ReflectionsList';
-import { MonthlyReflectionsList } from '@/components/journal/MonthlyReflectionsList';
+import { WeeklyReflectionsPage } from '@/components/journal/WeeklyReflectionsPage';
+import { MonthlyReflectionsPage } from '@/components/journal/MonthlyReflectionsPage';
 import Configs from '@/pages/Configs';
 import Lessons from '@/pages/Lessons';
 
@@ -48,8 +48,8 @@ function App() {
             <Route index element={<Navigate to="/journal/weekly" replace />} />
             
             {/* Explicit weekly and monthly list views */}
-            <Route path="weekly" element={<ReflectionsList />} />
-            <Route path="monthly" element={<MonthlyReflectionsList />} />
+            <Route path="weekly" element={<WeeklyReflectionsPage />} />
+            <Route path="monthly" element={<MonthlyReflectionsPage />} />
             
             {/* Weekly detail view */}
             <Route path="weekly/:weekId" element={<WeeklyJournal />} />

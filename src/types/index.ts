@@ -271,6 +271,9 @@ export interface ReflectionEntry {
   // Common fields for both reflection types
   lastUpdated?: string;
   tradeIds?: string[];
+  // Performance metrics
+  totalPnL?: number;
+  totalR?: number;
 }
 
 // Create specific types with non-optional required fields
