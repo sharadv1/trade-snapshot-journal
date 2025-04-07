@@ -1,4 +1,3 @@
-
 import { TradeWithMetrics } from '@/types';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { MetricCard } from './MetricCard';
@@ -43,9 +42,9 @@ export function DashboardMetrics({ trades }: DashboardMetricsProps) {
   return (
     <div className="grid grid-cols-1 gap-4">
       {/* First row of metrics - vertical layout on the left */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {/* Key Trading Stats card - now positioned after Net P&L */}
-        <div className="md:col-span-3">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        {/* Key Trading Stats card - now positioned after Net P&L with reduced width */}
+        <div className="md:col-span-2">
           <MetricCard 
             title="Key Trading Stats" 
             subStats={[
@@ -91,8 +90,8 @@ export function DashboardMetrics({ trades }: DashboardMetricsProps) {
         </div>
 
         {/* Other metrics in a more compact layout */}
-        <div className="md:col-span-2">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="md:col-span-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <MetricCard 
               title="Profit Factor" 
               value={isFinite(keyMetrics.profitFactor) ? (keyMetrics.profitFactor || 0).toFixed(2) : "∞"} 
