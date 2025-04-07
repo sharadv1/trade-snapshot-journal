@@ -7,21 +7,43 @@ import { toast } from './toast';
 // Default preset symbols that should be in the system 
 const PRESET_SYMBOLS = [
   // Common stocks with their types
-  { symbol: 'AAPL', type: 'stock' as const }, // Changed from 'equity' to 'stock'
-  { symbol: 'MSFT', type: 'stock' as const }, // Changed from 'equity' to 'stock'
-  { symbol: 'GOOGL', type: 'stock' as const }, // Changed from 'equity' to 'stock'
-  { symbol: 'AMZN', type: 'stock' as const }, // Changed from 'equity' to 'stock'
-  { symbol: 'META', type: 'stock' as const }, // Changed from 'equity' to 'stock'
-  { symbol: 'TSLA', type: 'stock' as const }, // Changed from 'equity' to 'stock'
-  { symbol: 'NVDA', type: 'stock' as const }, // Changed from 'equity' to 'stock'
-  { symbol: 'AMD', type: 'stock' as const }, // Changed from 'equity' to 'stock'
+  { symbol: 'AAPL', type: 'stock' as const },
+  { symbol: 'MSFT', type: 'stock' as const },
+  { symbol: 'GOOGL', type: 'stock' as const },
+  { symbol: 'AMZN', type: 'stock' as const },
+  { symbol: 'META', type: 'stock' as const },
+  { symbol: 'TSLA', type: 'stock' as const },
+  { symbol: 'NVDA', type: 'stock' as const },
+  { symbol: 'AMD', type: 'stock' as const },
+  { symbol: 'JPM', type: 'stock' as const },
+  { symbol: 'BAC', type: 'stock' as const },
+  { symbol: 'WMT', type: 'stock' as const },
+  { symbol: 'NFLX', type: 'stock' as const },
+  { symbol: 'DIS', type: 'stock' as const },
+  { symbol: 'INTC', type: 'stock' as const },
+  { symbol: 'V', type: 'stock' as const },
+  { symbol: 'PFE', type: 'stock' as const },
+  { symbol: 'KO', type: 'stock' as const },
+  { symbol: 'NKE', type: 'stock' as const },
+  // Common forex pairs
+  { symbol: 'EUR/USD', type: 'forex' as const },
+  { symbol: 'USD/JPY', type: 'forex' as const },
+  { symbol: 'GBP/USD', type: 'forex' as const },
+  { symbol: 'USD/CHF', type: 'forex' as const },
+  { symbol: 'AUD/USD', type: 'forex' as const },
+  { symbol: 'USD/CAD', type: 'forex' as const },
+  // Common crypto symbols
+  { symbol: 'BTC/USD', type: 'crypto' as const },
+  { symbol: 'ETH/USD', type: 'crypto' as const },
+  { symbol: 'SOL/USD', type: 'crypto' as const },
+  { symbol: 'XRP/USD', type: 'crypto' as const },
 ];
 
 const CUSTOM_SYMBOLS_KEY = 'customSymbols';
 
 export interface SymbolDetails {
   symbol: string;
-  type: 'stock' | 'futures' | 'options' | 'forex' | 'crypto'; // Changed from 'equity'/'option' to 'stock'/'options'
+  type: 'stock' | 'futures' | 'options' | 'forex' | 'crypto';
   isPreset?: boolean;
   meaning?: string; // Adding support for custom meanings
 }
@@ -268,9 +290,19 @@ export function getAllSymbols(): SymbolDetails[] {
   const presetSymbols = getPresetSymbols();
   const customSymbols = getCustomSymbols();
   
-  // Filter out duplicates by creating a combined array with unique symbols
-  return [
-    ...presetSymbols, 
-    ...customSymbols.filter(s => !presetSymbols.some(p => p.symbol === s.symbol))
-  ];
+  // Create a Set of symbols to remove duplicates (prioritizing custom symbols)
+  const symbolMap = new Map<string, SymbolDetails>();
+  
+  // Add preset symbols first
+  presetSymbols.forEach(symbol => {
+    symbolMap.set(symbol.symbol, symbol);
+  });
+  
+  // Then add custom symbols (will overwrite presets if duplicate exists)
+  customSymbols.forEach(symbol => {
+    symbolMap.set(symbol.symbol, symbol);
+  });
+  
+  // Convert map back to array
+  return Array.from(symbolMap.values());
 }
