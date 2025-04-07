@@ -73,7 +73,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
         setTrade(prevTrade => ({
           ...prevTrade,
           symbol: idea.symbol,
-          direction: idea.direction || 'long',
+          direction: (idea.direction as 'long' | 'short') || 'long',
           notes: idea.description || '',
           ideaId: ideaId || '',
           account: 'default' // Always set default account for new trades from ideas

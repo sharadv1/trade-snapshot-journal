@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PencilLine, ArrowRight, ArrowUp, ArrowDown, Trash2, ChevronLeft, ChevronRight, Link as LinkIcon } from 'lucide-react';
@@ -64,7 +63,7 @@ export function IdeaCard({
     }
   };
 
-  const renderDirectionBadge = (direction?: 'long' | 'short') => {
+  const renderDirectionBadge = (direction?: 'long' | 'short' | string) => {
     if (!direction) return null;
     
     return direction === 'long' 

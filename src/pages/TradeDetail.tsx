@@ -113,7 +113,10 @@ export default function TradeDetail() {
             Back to Dashboard
           </Button>
           <h1 className="text-3xl font-bold">
-            {trade.symbol} {trade.type === 'futures' ? '(Futures)' : '(Stock)'}
+            {trade.symbol} {trade.type === 'futures' ? '(Futures)' : 
+                         trade.type === 'option' ? '(Options)' : 
+                         trade.type === 'forex' ? '(Forex)' : 
+                         '(Stock)'}
           </h1>
           <div className="flex items-center space-x-4 mt-1">
             {trade.account && (
@@ -186,7 +189,8 @@ export default function TradeDetail() {
                 <p className="font-medium">
                   {trade.type === 'stock' ? 'Stock' : 
                    trade.type === 'futures' ? 'Futures' : 
-                   trade.type === 'options' ? 'Options' : 
+                   trade.type === 'option' ? 'Options' : 
+                   trade.type === 'forex' ? 'Forex' : 
                    trade.type.charAt(0).toUpperCase() + trade.type.slice(1)}
                 </p>
               </div>
@@ -315,6 +319,86 @@ export default function TradeDetail() {
             <CardHeader>
               <CardTitle>Contract Specifications</CardTitle>
               <CardDescription>Futures contract details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-y-4">
+                {trade.contractDetails.exchange && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Exchange</p>
+                    <p className="font-medium">{trade.contractDetails.exchange}</p>
+                  </div>
+                )}
+                
+                {trade.contractDetails.tickSize && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tick Size</p>
+                    <p className="font-medium">{trade.contractDetails.tickSize}</p>
+                  </div>
+                )}
+                
+                {trade.contractDetails.contractSize && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Contract Size</p>
+                    <p className="font-medium">{trade.contractDetails.contractSize}</p>
+                  </div>
+                )}
+                
+                {trade.contractDetails.tickValue && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Point Value</p>
+                    <p className="font-medium">${trade.contractDetails.tickValue}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        {trade.type === 'option' && trade.contractDetails && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Contract Specifications</CardTitle>
+              <CardDescription>Options contract details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-y-4">
+                {trade.contractDetails.exchange && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Exchange</p>
+                    <p className="font-medium">{trade.contractDetails.exchange}</p>
+                  </div>
+                )}
+                
+                {trade.contractDetails.tickSize && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tick Size</p>
+                    <p className="font-medium">{trade.contractDetails.tickSize}</p>
+                  </div>
+                )}
+                
+                {trade.contractDetails.contractSize && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Contract Size</p>
+                    <p className="font-medium">{trade.contractDetails.contractSize}</p>
+                  </div>
+                )}
+                
+                {trade.contractDetails.tickValue && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Point Value</p>
+                    <p className="font-medium">${trade.contractDetails.tickValue}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        {trade.type === 'forex' && trade.contractDetails && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Contract Specifications</CardTitle>
+              <CardDescription>Forex contract details</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-y-4">

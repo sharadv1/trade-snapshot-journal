@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { 
   Dialog, 
@@ -190,6 +189,8 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
         const newLesson: Lesson = {
           id: generateUUID(),
           title,
+          content: description || '', // Ensure content is provided
+          category: 'general', // Provide a default category
           description,
           types,
           media,

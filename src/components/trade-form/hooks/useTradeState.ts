@@ -44,7 +44,7 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
           ...prev,
           symbol: idea.symbol,
           ideaId: idea.id || '',
-          direction: idea.direction || 'long',
+          direction: (idea.direction as 'long' | 'short') || 'long',
           notes: prev.notes ? `${prev.notes}\n\nBased on trade idea: ${idea.description || 'No description'}` : `Based on trade idea: ${idea.description || 'No description'}`
         }));
       } else {

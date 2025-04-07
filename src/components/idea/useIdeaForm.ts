@@ -34,8 +34,8 @@ export function useIdeaForm({
         ...initialIdea,
         date: initialIdea.date || initialIdea.createdAt || new Date().toISOString().slice(0, 16),
         description: initialIdea.description || '',
-        direction: initialIdea.direction || 'long',
-        status: initialIdea.status || 'still valid',
+        direction: (initialIdea.direction as 'long' | 'short') || 'long',
+        status: (initialIdea.status as 'still valid' | 'invalidated' | 'taken' | 'missed' | 'open' | 'expired' | 'invalid') || 'still valid',
         images: initialIdea.images || []
       });
       setImages(initialIdea.images || []);
@@ -106,10 +106,13 @@ export function useIdeaForm({
         }
       } else {
         // Add new idea
-        success = addIdea({
+        const newIdea = {
           ...ideaToSave,
           id: generateUUID(),
-        } as TradeIdea);
+          createdAt: new Date().toISOString()
+        } as unknown as TradeIdea;
+        
+        success = addIdea(newIdea);
         
         if (success) {
           toast.success("Trade idea added successfully");
