@@ -69,8 +69,8 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
         <FuturesContractDetails
           symbol={trade.symbol || ''}
           onChange={onContractDetailsChange}
-          value={contractDetails}
-          pointValue={pointValue}
+          contractDetails={contractDetails}
+          value={pointValue}
         />
       )}
 
