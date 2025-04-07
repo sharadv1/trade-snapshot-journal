@@ -9,22 +9,6 @@ import { TradeMetrics } from '@/components/TradeMetrics';
 import { MonthlyPerformanceTable } from '@/components/MonthlyPerformanceTable';
 import { DataTransferControls } from '@/components/DataTransferControls';
 import { DayOfWeekPerformance } from '@/components/DayOfWeekPerformance';
-import { Card, CardContent } from '@/components/ui/card';
-import { formatCurrency } from '@/utils/calculations/formatters';
-import { 
-  calculateProfitFactor, 
-  calculateCalmarRatio, 
-  calculateParetoIndex,
-  calculateExpectedValue
-} from '@/utils/calculations/advancedMetrics';
-import { 
-  calculateWinRate, 
-  calculateTotalPnL, 
-  calculateTotalR, 
-  calculateAverageWin, 
-  calculateAverageLoss 
-} from './dashboard/dashboardUtils';
-import { MetricCard } from './dashboard/MetricCard';
 
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -59,25 +43,6 @@ export default function Analytics() {
     )
   );
 
-  // Calculate metrics
-  const closedTrades = trades.filter(trade => trade.status === 'closed');
-  const winningTrades = closedTrades.filter(trade => trade.metrics.profitLoss > 0);
-  const losingTrades = closedTrades.filter(trade => trade.metrics.profitLoss < 0);
-
-  const totalTrades = closedTrades.length;
-  const winRate = calculateWinRate(trades);
-  const totalWins = winningTrades.length;
-  const totalLosses = losingTrades.length;
-  const avgWin = calculateAverageWin(trades);
-  const avgLoss = calculateAverageLoss(trades);
-  
-  // Advanced metrics
-  const netPnL = calculateTotalPnL(trades);
-  const profitFactor = calculateProfitFactor(trades);
-  const expectedValue = calculateExpectedValue(trades);
-  const calmarRatio = calculateCalmarRatio(trades);
-  const paretoIndex = calculateParetoIndex(trades);
-
   const handleAddDummyTrades = () => {
     addDummyTrades();
     setRefreshKey(prev => prev + 1);
@@ -105,72 +70,7 @@ export default function Analytics() {
       </div>
       
       {trades.length > 0 ? (
-        <div className="space-y-8">
-          {/* Key Trading Stats */}
-          <div className="w-full">
-            <h2 className="text-2xl font-bold tracking-tight mb-4">
-              Key Trading Stats
-            </h2>
-            
-            {/* Basic Trading Stats Card - Similar to the image */}
-            <Card className="shadow-sm mb-6 border">
-              <CardContent className="p-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex justify-between">
-                    <span className="text-lg text-muted-foreground">Win Rate:</span>
-                    <span className="text-lg font-semibold">{winRate.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-lg text-muted-foreground">Total Trades:</span>
-                    <span className="text-lg font-semibold">{totalTrades}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-lg text-muted-foreground">Wins / Losses:</span>
-                    <span className="text-lg font-semibold">{totalWins} / {totalLosses}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-lg text-muted-foreground">Avg Win:</span>
-                    <span className="text-lg font-semibold text-green-600">{formatCurrency(avgWin)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-lg text-muted-foreground">Avg Loss:</span>
-                    <span className="text-lg font-semibold text-red-500">{formatCurrency(Math.abs(avgLoss))}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Advanced Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <MetricCard 
-                title="Net P&L" 
-                value={formatCurrency(netPnL)}
-                className={netPnL >= 0 ? "text-profit" : "text-loss"}
-              />
-              <MetricCard 
-                title="Profit Factor" 
-                value={isFinite(profitFactor) ? profitFactor.toFixed(2) : "∞"} 
-                tooltip="Gross Profit / Gross Loss"
-              />
-              <MetricCard 
-                title="Expected Value" 
-                value={formatCurrency(expectedValue)}
-                className={expectedValue >= 0 ? "text-profit" : "text-loss"}
-                tooltip="(Win Rate × Avg Win) - (Loss Rate × Avg Loss)"
-              />
-              <MetricCard 
-                title="Calmar Ratio" 
-                value={calmarRatio.toFixed(2)}
-                tooltip="Annualized Return / Maximum Drawdown"
-              />
-              <MetricCard 
-                title="Pareto Index" 
-                value={`${paretoIndex.toFixed(1)}%`}
-                tooltip="% of profits from top 20% of trades"
-              />
-            </div>
-          </div>
-          
+        <div className="space-y-8">          
           <div className="w-full">
             <h2 className="text-2xl font-bold tracking-tight mb-4">
               Cumulative Profit & Loss
