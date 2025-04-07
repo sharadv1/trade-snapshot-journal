@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trade } from '@/types';
 import { TrendingDown, TrendingUp, Ratio, Target } from 'lucide-react';
+import { AccountField } from './AccountField';
 
 interface RiskParametersFormProps {
   trade: Partial<Trade>;
@@ -77,19 +77,10 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
       
       <div className="space-y-2">
         <Label htmlFor="account">Account</Label>
-        <Select 
-          value={trade.account || ''}
-          onValueChange={(value) => handleChange('account', value)}
-        >
-          <SelectTrigger id="account">
-            <SelectValue placeholder="Select account" />
-          </SelectTrigger>
-          <SelectContent className="bg-background">
-            <SelectItem value="default">Default Account</SelectItem>
-            <SelectItem value="demo">Demo Account</SelectItem>
-            <SelectItem value="live">Live Account</SelectItem>
-          </SelectContent>
-        </Select>
+        <AccountField 
+          value={trade.account}
+          onChange={(value) => handleChange('account', value)}
+        />
       </div>
 
       <div className="border rounded-md p-4 bg-muted/30">
