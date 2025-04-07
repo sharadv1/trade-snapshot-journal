@@ -154,50 +154,6 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
         />
       </div>
 
-      {/* Risk Management Section */}
-      <div className="space-y-2 border-t pt-4">
-        <Label className="text-base font-semibold">Risk Management</Label>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="stopLoss">Stop Loss</Label>
-            <Input
-              id="stopLoss"
-              type="number"
-              step="any"
-              placeholder="Stop loss price"
-              value={trade.stopLoss || ''}
-              onChange={(e) => onTradeChange('stopLoss', parseFloat(e.target.value) || '')}
-              disabled={disableEdits}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="takeProfit">Take Profit</Label>
-            <Input
-              id="takeProfit"
-              type="number"
-              step="any"
-              placeholder="Take profit price"
-              value={trade.takeProfit || ''}
-              onChange={(e) => onTradeChange('takeProfit', parseFloat(e.target.value) || '')}
-              disabled={disableEdits}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="strategy">Strategy</Label>
-        <Input
-          id="strategy"
-          placeholder="Strategy used"
-          value={trade.strategy || ''}
-          onChange={(e) => onTradeChange('strategy', e.target.value)}
-          disabled={disableEdits}
-        />
-      </div>
-
       {/* Timeframe and Analysis Section */}
       <div className="space-y-2 border-t pt-4">
         <Label className="text-base font-semibold">Trade Analysis</Label>
