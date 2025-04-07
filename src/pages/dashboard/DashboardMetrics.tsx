@@ -43,7 +43,17 @@ export function DashboardMetrics({ trades }: DashboardMetricsProps) {
     <div className="grid grid-cols-1 gap-4">
       {/* First row of metrics - vertical layout on the left */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {/* Expectancy card - remove expectancy but keep subStats */}
+        {/* Net P&L card - moved to the top */}
+        <div className="md:col-span-1">
+          <MetricCard 
+            title="Net P&L" 
+            value={formatCurrency(keyMetrics.netPnL)} 
+            subValue={`${keyMetrics.totalR > 0 ? '+' : ''}${(keyMetrics.totalR || 0).toFixed(2)}R`}
+            className={keyMetrics.netPnL >= 0 ? "text-profit" : "text-loss"}
+          />
+        </div>
+
+        {/* Key Trading Stats card - now positioned after Net P&L */}
         <div className="md:col-span-2">
           <MetricCard 
             title="Key Trading Stats" 
@@ -71,16 +81,6 @@ export function DashboardMetrics({ trades }: DashboardMetricsProps) {
                 className: "text-loss"
               }
             ]}
-          />
-        </div>
-
-        {/* Net P&L card - keep as is */}
-        <div className="md:col-span-1">
-          <MetricCard 
-            title="Net P&L" 
-            value={formatCurrency(keyMetrics.netPnL)} 
-            subValue={`${keyMetrics.totalR > 0 ? '+' : ''}${(keyMetrics.totalR || 0).toFixed(2)}R`}
-            className={keyMetrics.netPnL >= 0 ? "text-profit" : "text-loss"}
           />
         </div>
 
