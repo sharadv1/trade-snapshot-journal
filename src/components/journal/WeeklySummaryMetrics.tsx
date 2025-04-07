@@ -20,6 +20,17 @@ export function WeeklySummaryMetrics({ trades = [] }: WeeklySummaryMetricsProps)
   // Calculate P&L
   const totalPnL = trades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
   
+  // Calculate average win/loss
+  const avgWin = winningTrades > 0 
+    ? trades.filter(trade => (trade.metrics.profitLoss || 0) > 0)
+        .reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0) / winningTrades 
+    : 0;
+    
+  const avgLoss = losingTrades > 0
+    ? Math.abs(trades.filter(trade => (trade.metrics.profitLoss || 0) < 0)
+        .reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0)) / losingTrades
+    : 0;
+  
   // Calculate average R
   const tradesWithR = trades.filter(trade => trade.metrics.riskRewardRatio !== undefined);
   const totalR = tradesWithR.reduce((sum, trade) => sum + (trade.metrics.riskRewardRatio || 0), 0);
@@ -33,41 +44,35 @@ export function WeeklySummaryMetrics({ trades = [] }: WeeklySummaryMetricsProps)
   };
 
   return (
-    <Card className={`${getBgColor()} border-0 shadow-sm w-full`}>
-      <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4">
-        <div className="text-center p-3">
-          <p className="text-sm text-muted-foreground">Total Trades</p>
-          <p className="text-2xl font-bold">{totalTrades}</p>
-        </div>
-        
-        <div className="text-center p-3">
-          <p className="text-sm text-muted-foreground">Win Rate</p>
-          <p className="text-2xl font-bold">{winRate.toFixed(1)}%</p>
-        </div>
-        
-        <div className="text-center p-3">
-          <p className="text-sm text-muted-foreground">Total P&L</p>
-          <p className={`text-2xl font-bold ${totalPnL > 0 ? 'text-green-600' : totalPnL < 0 ? 'text-red-600' : ''}`}>
-            {formatCurrency(totalPnL)}
-          </p>
-        </div>
-        
-        <div className="text-center p-3">
-          <p className="text-sm text-muted-foreground">W/L Ratio</p>
-          <p className="text-2xl font-bold">
-            {losingTrades > 0 
-              ? (winningTrades / losingTrades).toFixed(2) 
-              : winningTrades > 0 
-                ? "∞" 
-                : "0.00"}
-          </p>
-        </div>
-        
-        <div className="text-center p-3">
-          <p className="text-sm text-muted-foreground">Avg R</p>
-          <p className={`text-2xl font-bold ${avgR > 0 ? 'text-green-600' : avgR < 0 ? 'text-red-600' : ''}`}>
-            {avgR.toFixed(2)}R
-          </p>
+    <Card className={`${getBgColor()} border shadow-sm w-full`}>
+      <CardContent className="p-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex justify-between">
+            <span className="text-lg text-muted-foreground">Win Rate:</span>
+            <span className="text-lg font-semibold">{winRate.toFixed(1)}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-lg text-muted-foreground">Total Trades:</span>
+            <span className="text-lg font-semibold">{totalTrades}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-lg text-muted-foreground">Wins / Losses:</span>
+            <span className="text-lg font-semibold">{winningTrades} / {losingTrades}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-lg text-muted-foreground">Avg Win:</span>
+            <span className="text-lg font-semibold text-green-600">{formatCurrency(avgWin)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-lg text-muted-foreground">Avg Loss:</span>
+            <span className="text-lg font-semibold text-red-500">{formatCurrency(avgLoss)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-lg text-muted-foreground">Total P&L:</span>
+            <span className={`text-lg font-semibold ${totalPnL > 0 ? 'text-green-600' : totalPnL < 0 ? 'text-red-500' : ''}`}>
+              {formatCurrency(totalPnL)}
+            </span>
+          </div>
         </div>
       </CardContent>
     </Card>
