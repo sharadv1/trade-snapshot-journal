@@ -40,9 +40,9 @@ export function LessonCard({ lesson, onEdit, onUpdate }: LessonCardProps) {
   const hasMedia = lesson.media && lesson.media.length > 0;
 
   return (
-    <Card className="overflow-hidden w-full mx-auto">
+    <Card className="overflow-hidden w-full">
       <CardContent className="p-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
           {/* Left side: Title and text */}
           <div className="p-6">
             <h3 className="text-xl font-semibold mb-4">{lesson.title}</h3>
