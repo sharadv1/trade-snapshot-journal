@@ -1,3 +1,4 @@
+
 import { TradeWithMetrics } from '@/types';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { MetricCard } from './MetricCard';
@@ -43,21 +44,21 @@ export function DashboardMetrics({ trades }: DashboardMetricsProps) {
     <div className="grid grid-cols-1 gap-4">
       {/* First row of metrics - vertical layout on the left */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {/* Net P&L card - moved to the top */}
-        <div className="md:col-span-1">
-          <MetricCard 
-            title="Net P&L" 
-            value={formatCurrency(keyMetrics.netPnL)} 
-            subValue={`${keyMetrics.totalR > 0 ? '+' : ''}${(keyMetrics.totalR || 0).toFixed(2)}R`}
-            className={keyMetrics.netPnL >= 0 ? "text-profit" : "text-loss"}
-          />
-        </div>
-
         {/* Key Trading Stats card - now positioned after Net P&L */}
-        <div className="md:col-span-2">
+        <div className="md:col-span-3">
           <MetricCard 
             title="Key Trading Stats" 
             subStats={[
+              {
+                label: "Net P&L",
+                value: formatCurrency(keyMetrics.netPnL),
+                className: keyMetrics.netPnL >= 0 ? "text-profit font-bold" : "text-loss font-bold"
+              },
+              {
+                label: "Total R",
+                value: `${keyMetrics.totalR > 0 ? '+' : ''}${(keyMetrics.totalR || 0).toFixed(2)}R`,
+                className: keyMetrics.totalR >= 0 ? "text-profit" : "text-loss"
+              },
               {
                 label: "Win Rate",
                 value: `${(keyMetrics.winRate || 0).toFixed(1)}%`
