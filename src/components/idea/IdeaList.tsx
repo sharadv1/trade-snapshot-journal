@@ -46,7 +46,7 @@ export function IdeaList({ statusFilter = 'all', sortBy = 'date' }: { statusFilt
       {ideas.length === 0 ? (
         <IdeaEmptyState onIdeaAdded={loadIdeas} />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
           {sortedIdeas.map((idea) => {
             // Find the related trade ID if idea is taken
             const relatedTradeId = idea.status === 'taken' ? findTradeForIdea(idea.id) : null;
