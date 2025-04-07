@@ -1,17 +1,16 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { format, parseISO } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/utils/calculations/formatters';
-import { WeeklyReflection, MonthlyReflection } from '@/types';
+import { MonthlyReflection, WeeklyReflection } from '@/types';
 
-interface ReflectionsListProps {
-  reflections: (WeeklyReflection | MonthlyReflection)[];
+export interface ReflectionsListProps {
+  reflections: WeeklyReflection[] | MonthlyReflection[];
   type: 'weekly' | 'monthly';
-  getStats: (reflection: WeeklyReflection | MonthlyReflection) => { 
+  getStats: (reflection: WeeklyReflection | MonthlyReflection) => {
     pnl: number;
     rValue: number;
     tradeCount: number;
@@ -19,101 +18,88 @@ interface ReflectionsListProps {
 }
 
 export function ReflectionsList({ reflections, type, getStats }: ReflectionsListProps) {
-  if (!reflections || reflections.length === 0) {
-    return (
-      <div className="container mx-auto">
-        <Card>
-          <CardContent className="py-10 text-center">
-            <p className="text-muted-foreground">No {type} reflections found.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Function to format date ranges for display
+  const formatDateRange = (reflection: WeeklyReflection | MonthlyReflection) => {
+    if (type === 'weekly') {
+      const weeklyReflection = reflection as WeeklyReflection;
+      if (weeklyReflection.weekStart && weeklyReflection.weekEnd) {
+        const start = new Date(weeklyReflection.weekStart);
+        const end = new Date(weeklyReflection.weekEnd);
+        return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+      }
+      return 'Date range unavailable';
+    } else {
+      const monthlyReflection = reflection as MonthlyReflection;
+      if (monthlyReflection.monthStart && monthlyReflection.monthEnd) {
+        const start = new Date(monthlyReflection.monthStart);
+        const end = new Date(monthlyReflection.monthEnd);
+        return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+      }
+      return 'Date range unavailable';
+    }
+  };
 
-  const formatDate = (date: string) => {
-    try {
-      return format(parseISO(date), 'MMM d, yyyy');
-    } catch (e) {
-      return 'Invalid date';
+  // Helper to get reflection ID (weekId or monthId)
+  const getReflectionId = (reflection: WeeklyReflection | MonthlyReflection) => {
+    if (type === 'weekly') {
+      return (reflection as WeeklyReflection).weekId;
+    } else {
+      return (reflection as MonthlyReflection).monthId;
     }
-  };
-  
-  const formatDateRange = (startDate?: string, endDate?: string) => {
-    if (!startDate || !endDate) return 'Unknown';
-    
-    try {
-      const start = parseISO(startDate);
-      const end = parseISO(endDate);
-      
-      return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
-    } catch (error) {
-      console.error("Error formatting date range:", error);
-      return 'Invalid dates';
-    }
-  };
-  
-  const getGradeColor = (grade: string = '') => {
-    if (grade.startsWith('A')) return 'bg-green-100 text-green-800';
-    if (grade.startsWith('B')) return 'bg-blue-100 text-blue-800';
-    if (grade.startsWith('C')) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
   };
 
   return (
-    <div className="container mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>{type === 'weekly' ? 'Weekly' : 'Monthly'} Reflections</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{type === 'weekly' ? 'Week' : 'Month'}</TableHead>
-                <TableHead>Grade</TableHead>
-                <TableHead>P&L</TableHead>
-                <TableHead>R Value</TableHead>
-                <TableHead>Trades</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {reflections.map((reflection) => {
-                const stats = getStats(reflection);
-                
-                return (
-                  <TableRow key={reflection.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">
-                      <Link 
-                        to={`/journal/${type}/${type === 'weekly' ? reflection.weekId : reflection.monthId}`}
-                        className="hover:underline text-primary"
-                      >
-                        {type === 'weekly' 
-                          ? formatDateRange(reflection.weekStart, reflection.weekEnd)
-                          : format(parseISO(reflection.monthId), 'MMMM yyyy')}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={getGradeColor(reflection.grade)}>
-                        {reflection.grade || 'No Grade'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className={stats.pnl >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                      {formatCurrency(stats.pnl)}
-                    </TableCell>
-                    <TableCell className={stats.rValue >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                      {stats.rValue > 0 ? '+' : ''}{stats.rValue.toFixed(1)}R
-                    </TableCell>
-                    <TableCell>
-                      {stats.tradeCount} {stats.tradeCount === 1 ? 'trade' : 'trades'}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+    <div className="w-full">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">
+          {type === 'weekly' ? 'Weekly' : 'Monthly'} Reflections
+        </h2>
+        <Button asChild>
+          <Link to={`/journal/${type}/${type === 'weekly' ? 'new-week' : 'new-month'}`}>
+            <Plus className="mr-2 h-4 w-4" />
+            New {type === 'weekly' ? 'Week' : 'Month'}
+          </Link>
+        </Button>
+      </div>
+
+      {reflections.length === 0 ? (
+        <Card>
+          <CardContent className="py-8">
+            <p className="text-center text-muted-foreground">
+              No {type} reflections yet. Create your first one!
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {reflections.map((reflection) => {
+            const stats = getStats(reflection);
+            const id = getReflectionId(reflection);
+            const dateRange = formatDateRange(reflection);
+
+            return (
+              <Link key={id} to={`/journal/${type}/${id}`}>
+                <Card className="hover:bg-accent/10 transition-colors cursor-pointer">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg font-medium flex justify-between">
+                      <span>{type === 'weekly' ? `Week of ${dateRange}` : `Month of ${new Date(id).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`}</span>
+                      <span className={stats.pnl >= 0 ? 'text-profit' : 'text-loss'}>
+                        {formatCurrency(stats.pnl)}
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <div>Trades: {stats.tradeCount}</div>
+                      <div>R-Value: {stats.rValue > 0 ? '+' : ''}{stats.rValue.toFixed(2)}R</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

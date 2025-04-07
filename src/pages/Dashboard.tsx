@@ -6,6 +6,9 @@ import { DashboardHeader } from './dashboard/DashboardHeader';
 import { DashboardMetrics } from './dashboard/DashboardMetrics';
 import { useReflectionGenerator } from '@/hooks/useReflectionGenerator';
 import { restoreServerConnection } from '@/utils/storage/serverSync';
+import { TradeList } from '@/components/trade-list/TradeList';
+import { CumulativePnLChart } from '@/components/CumulativePnLChart';
+import { TradeMetrics } from '@/components/TradeMetrics';
 
 export default function Dashboard() {
   const [trades, setTrades] = useState<TradeWithMetrics[]>([]);
@@ -50,6 +53,24 @@ export default function Dashboard() {
     <div className="container mx-auto py-6 space-y-6">
       <DashboardHeader onImportComplete={handleImportComplete} />
       <DashboardMetrics trades={trades} />
+      
+      {/* Add the missing Dashboard components */}
+      <div className="mt-8">
+        <CumulativePnLChart trades={trades} />
+      </div>
+      
+      <div className="mt-8">
+        <TradeMetrics trades={trades} />
+      </div>
+      
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Recent Trades</h2>
+        <TradeList 
+          trades={trades.slice(0, 10)} 
+          showPagination={false}
+          hideFilters={true}
+        />
+      </div>
     </div>
   );
 }
