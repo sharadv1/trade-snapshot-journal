@@ -584,7 +584,7 @@ export default function WeeklyJournal() {
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-5xl">
+    <div className="container mx-auto py-8 max-w-screen-xl">
       <div className="mb-4 grid grid-cols-3 items-center">
         <div className="col-span-1">
           <Button 

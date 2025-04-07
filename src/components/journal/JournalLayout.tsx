@@ -12,7 +12,7 @@ export function JournalLayout() {
   const value = isWeekly ? 'weekly' : isMonthly ? 'monthly' : 'weekly';
   
   return (
-    <div className="w-full py-6 space-y-6 container mx-auto">
+    <div className="w-full py-6 space-y-6 container mx-auto max-w-screen-xl">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Trading Journal</h1>
       </div>
