@@ -28,7 +28,8 @@ import {
   subWeeks,
   addMonths,
   subMonths,
-  parseISO
+  parseISO,
+  isValid
 } from 'date-fns';
 import { ArrowLeft, ArrowRight, Save, Calendar, Pencil, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
@@ -63,8 +64,13 @@ export default function WeeklyJournal() {
   const isInitialMount = useRef(true);
   
   const isMonthView = location.pathname.includes('/journal/monthly/');
+  const isNewWeekView = paramWeekId === 'new-week';
   
   const [currentDate, setCurrentDate] = useState(() => {
+    if (isNewWeekView) {
+      return new Date();
+    }
+    
     if (isMonthView && paramMonthId) {
       try {
         if (paramMonthId.match(/^\d{4}-\d{2}$/)) {
@@ -72,19 +78,43 @@ export default function WeeklyJournal() {
           const month = parseInt(paramMonthId.split('-')[1], 10) - 1;
           return new Date(year, month, 1);
         }
-        return new Date(paramMonthId);
+        
+        const parsedDate = new Date(paramMonthId);
+        if (isValid(parsedDate)) {
+          return parsedDate;
+        }
+        return new Date();
       } catch (e) {
         console.error("Failed to parse monthId", paramMonthId, e);
         return new Date();
       }
     }
-    return paramWeekId ? new Date(paramWeekId) : new Date();
+    
+    if (paramWeekId && paramWeekId !== 'new-week') {
+      try {
+        const parsedDate = new Date(paramWeekId);
+        if (isValid(parsedDate)) {
+          return parsedDate;
+        }
+        return new Date();
+      } catch (e) {
+        console.error("Failed to parse weekId", paramWeekId, e);
+        return new Date();
+      }
+    }
+    
+    return new Date();
   });
   
   const [weekId, setWeekId] = useState(() => {
-    if (paramWeekId) {
+    if (isNewWeekView) {
+      return format(new Date(), 'yyyy-MM-dd');
+    }
+    
+    if (paramWeekId && paramWeekId !== 'new-week') {
       return paramWeekId;
     }
+    
     return format(currentDate, 'yyyy-MM-dd');
   });
   
@@ -93,8 +123,19 @@ export default function WeeklyJournal() {
       if (paramMonthId.match(/^\d{4}-\d{2}$/)) {
         return paramMonthId;
       }
-      return format(new Date(paramMonthId), 'yyyy-MM');
+      
+      try {
+        const parsedDate = new Date(paramMonthId);
+        if (isValid(parsedDate)) {
+          return format(parsedDate, 'yyyy-MM');
+        }
+        return format(new Date(), 'yyyy-MM');
+      } catch (e) {
+        console.error("Failed to parse monthId for format", paramMonthId, e);
+        return format(new Date(), 'yyyy-MM');
+      }
     }
+    
     return format(currentDate, 'yyyy-MM');
   });
   
@@ -389,6 +430,12 @@ export default function WeeklyJournal() {
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
+      
+      if (isNewWeekView) {
+        const actualWeekId = format(new Date(), 'yyyy-MM-dd');
+        navigate(`/journal/weekly/${actualWeekId}`, { replace: true });
+      }
+      
       return;
     }
     
@@ -399,7 +446,7 @@ export default function WeeklyJournal() {
     }, 5000);
     
     return () => clearInterval(autoSaveInterval);
-  }, [saveReflections, hasChanged]);
+  }, [saveReflections, hasChanged, isNewWeekView, navigate]);
 
   if (isLoading) {
     return (
@@ -441,6 +488,10 @@ export default function WeeklyJournal() {
     try {
       const start = parseISO(startDate);
       const end = parseISO(endDate);
+      
+      if (!isValid(start) || !isValid(end)) {
+        return 'Invalid dates';
+      }
       
       return `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`;
     } catch (error) {
