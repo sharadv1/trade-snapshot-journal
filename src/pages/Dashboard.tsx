@@ -54,7 +54,6 @@ export default function Dashboard() {
       <DashboardHeader onImportComplete={handleImportComplete} />
       <DashboardMetrics trades={trades} />
       
-      {/* Add the missing Dashboard components */}
       <div className="mt-8">
         <CumulativePnLChart trades={trades} />
       </div>
@@ -66,7 +65,7 @@ export default function Dashboard() {
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Recent Trades</h2>
         <TradeList 
-          trades={trades.slice(0, 10)} 
+          initialTrades={trades.slice(0, 10)} 
           showPagination={false}
           hideFilters={true}
         />
