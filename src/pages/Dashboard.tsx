@@ -66,8 +66,7 @@ export default function Dashboard() {
         <h2 className="text-2xl font-bold mb-4">Recent Trades</h2>
         <TradeList 
           initialTrades={trades.slice(0, 10)} 
-          showPagination={false}
-          hideFilters={true}
+          limit={10}
         />
       </div>
     </div>
