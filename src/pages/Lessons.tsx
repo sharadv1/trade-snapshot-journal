@@ -163,59 +163,61 @@ export default function Lessons() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="relative max-w-6xl mx-auto mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Lessons</h1>
-        <div className="absolute top-0 left-[200px] flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleToggleFilters}
+      <div className="flex flex-col max-w-6xl mx-auto mb-6">
+        <div className="relative w-full">
+          <h1 className="text-3xl font-bold tracking-tight">Lessons</h1>
+          <div className="absolute top-0 left-[200px] flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleToggleFilters}
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+            </Button>
+            <Button onClick={handleOpenDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Lesson
+            </Button>
+          </div>
+        </div>
+
+        {isStorageNearLimit && (
+          <div className="w-full mb-4">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Storage Warning</AlertTitle>
+              <AlertDescription>
+                You're approaching storage limits. Consider enabling server sync or exporting your data.
+                <div className="mt-2 flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleExport}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Data
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 mb-4 w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsImportDialogOpen(true)}
           >
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
+            <Upload className="h-4 w-4 mr-2" />
+            Import
           </Button>
-          <Button onClick={handleOpenDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Lesson
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
           </Button>
         </div>
-      </div>
-
-      {isStorageNearLimit && (
-        <div className="max-w-6xl mx-auto mb-4">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Storage Warning</AlertTitle>
-            <AlertDescription>
-              You're approaching storage limits. Consider enabling server sync or exporting your data.
-              <div className="mt-2 flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleExport}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Data
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-
-      <div className="flex justify-end gap-2 mb-4 max-w-6xl mx-auto">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsImportDialogOpen(true)}
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          Import
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Export
-        </Button>
       </div>
 
       {showFilters && (
