@@ -80,6 +80,14 @@ export default function Analytics() {
       
       {trades.length > 0 ? (
         <div className="space-y-8">
+          {/* Key Trading Stats - Moved to the top */}
+          <div className="w-full">
+            <h2 className="text-2xl font-bold tracking-tight mb-4">
+              Key Trading Stats
+            </h2>
+            <TradeMetrics trades={trades} showOnlyKeyMetrics={true} key={`key-metrics-${refreshKey}`} />
+          </div>
+          
           <div className="w-full">
             <h2 className="text-2xl font-bold tracking-tight mb-4">
               Cumulative Profit & Loss

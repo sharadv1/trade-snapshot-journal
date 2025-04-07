@@ -52,13 +52,22 @@ export default function Dashboard() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <DashboardHeader onImportComplete={handleImportComplete} />
+      
+      {/* Move key trading metrics to the top */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold mb-4">Key Trading Stats</h2>
+        <TradeMetrics trades={trades} showOnlyKeyMetrics={true} />
+      </div>
+      
       <DashboardMetrics trades={trades} />
       
       <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Cumulative P&L</h2>
         <CumulativePnLChart trades={trades} />
       </div>
       
       <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Detailed Performance</h2>
         <TradeMetrics trades={trades} />
       </div>
       
