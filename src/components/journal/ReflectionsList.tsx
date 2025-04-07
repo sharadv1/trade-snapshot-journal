@@ -6,6 +6,7 @@ import { Plus, Pencil } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
+import { Badge } from '@/components/ui/badge';
 
 export interface ReflectionsListProps {
   reflections: WeeklyReflection[] | MonthlyReflection[];
@@ -49,6 +50,16 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
     }
   };
 
+  // Helper to get grade color class
+  const getGradeColor = (grade: string) => {
+    if (!grade) return '';
+    
+    if (grade.startsWith('A')) return 'bg-green-100 text-green-800';
+    if (grade.startsWith('B')) return 'bg-blue-100 text-blue-800';
+    if (grade.startsWith('C')) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
+
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
@@ -83,6 +94,11 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
             const hasReflectionContent = type === 'weekly' 
               ? !!(reflection as WeeklyReflection).reflection || !!(reflection as WeeklyReflection).weeklyPlan
               : !!(reflection as MonthlyReflection).reflection;
+              
+            // Get the grade
+            const grade = type === 'weekly' 
+              ? (reflection as WeeklyReflection).grade 
+              : (reflection as MonthlyReflection).grade;
 
             return (
               <Card 
@@ -91,7 +107,14 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-medium flex justify-between">
-                    <span>{type === 'weekly' ? `Week of ${dateRange}` : `Month of ${new Date(id.toString()).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`}</span>
+                    <div className="flex items-center">
+                      <span>{type === 'weekly' ? `Week of ${dateRange}` : `Month of ${new Date(id.toString()).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`}</span>
+                      {grade && (
+                        <Badge variant="outline" className={`ml-3 ${getGradeColor(grade)}`}>
+                          Grade: {grade}
+                        </Badge>
+                      )}
+                    </div>
                     <span className={stats.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
                       {formatCurrency(stats.pnl)}
                     </span>

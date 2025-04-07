@@ -752,7 +752,6 @@ export default function WeeklyJournal() {
                       <TableHead>P&L</TableHead>
                       <TableHead>R Value</TableHead>
                       <TableHead>Trades</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -781,19 +780,6 @@ export default function WeeklyJournal() {
                           </TableCell>
                           <TableCell>
                             {weekStats.tradeCount} trades
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleViewWeeklyReflection(weeklyReflection.weekId);
-                              }}
-                            >
-                              <Pencil className="h-4 w-4 mr-1" />
-                              Edit
-                            </Button>
                           </TableCell>
                         </TableRow>
                       );
@@ -884,14 +870,6 @@ export default function WeeklyJournal() {
                   Grade: {selectedWeeklyReflection.grade || 'Not graded'}
                 </Badge>
                 <div className="space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleEditInModal}
-                  >
-                    <Pencil className="h-4 w-4 mr-1" />
-                    Edit in Modal
-                  </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
