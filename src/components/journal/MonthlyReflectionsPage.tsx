@@ -11,6 +11,10 @@ export function MonthlyReflectionsPage() {
     // Load monthly reflections
     const allReflections = getAllMonthlyReflections();
     const reflectionsList = Object.values(allReflections as Record<string, MonthlyReflection>)
+      .filter(reflection => {
+        // Only include reflections with trade IDs
+        return reflection.tradeIds && reflection.tradeIds.length > 0;
+      })
       .sort((a, b) => {
         // Sort by month start date (most recent first)
         if (!a.monthStart || !b.monthStart) return 0;
@@ -23,6 +27,10 @@ export function MonthlyReflectionsPage() {
     const handleUpdate = () => {
       const updatedReflections = getAllMonthlyReflections();
       const updatedList = Object.values(updatedReflections as Record<string, MonthlyReflection>)
+        .filter(reflection => {
+          // Only include reflections with trade IDs
+          return reflection.tradeIds && reflection.tradeIds.length > 0;
+        })
         .sort((a, b) => {
           if (!a.monthStart || !b.monthStart) return 0;
           return new Date(b.monthStart).getTime() - new Date(a.monthStart).getTime();
@@ -48,10 +56,12 @@ export function MonthlyReflectionsPage() {
   };
   
   return (
-    <ReflectionsList 
-      reflections={reflections}
-      type="monthly"
-      getStats={getMonthlyStats}
-    />
+    <div className="max-w-6xl mx-auto">
+      <ReflectionsList 
+        reflections={reflections}
+        type="monthly"
+        getStats={getMonthlyStats}
+      />
+    </div>
   );
 }

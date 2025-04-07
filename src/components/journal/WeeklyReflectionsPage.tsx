@@ -11,6 +11,10 @@ export function WeeklyReflectionsPage() {
     // Load weekly reflections
     const allReflections = getAllWeeklyReflections();
     const reflectionsList = Object.values(allReflections as Record<string, WeeklyReflection>)
+      .filter(reflection => {
+        // Only include reflections with trade IDs
+        return reflection.tradeIds && reflection.tradeIds.length > 0;
+      })
       .sort((a, b) => {
         // Sort by week start date (most recent first)
         if (!a.weekStart || !b.weekStart) return 0;
@@ -23,6 +27,10 @@ export function WeeklyReflectionsPage() {
     const handleUpdate = () => {
       const updatedReflections = getAllWeeklyReflections();
       const updatedList = Object.values(updatedReflections as Record<string, WeeklyReflection>)
+        .filter(reflection => {
+          // Only include reflections with trade IDs
+          return reflection.tradeIds && reflection.tradeIds.length > 0;
+        })
         .sort((a, b) => {
           if (!a.weekStart || !b.weekStart) return 0;
           return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
@@ -48,10 +56,12 @@ export function WeeklyReflectionsPage() {
   };
   
   return (
-    <ReflectionsList 
-      reflections={reflections}
-      type="weekly"
-      getStats={getWeeklyStats}
-    />
+    <div className="max-w-6xl mx-auto">
+      <ReflectionsList 
+        reflections={reflections}
+        type="weekly"
+        getStats={getWeeklyStats}
+      />
+    </div>
   );
 }

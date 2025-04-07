@@ -9,6 +9,16 @@ import { TradeMetrics } from '@/components/TradeMetrics';
 import { MonthlyPerformanceTable } from '@/components/MonthlyPerformanceTable';
 import { DataTransferControls } from '@/components/DataTransferControls';
 import { DayOfWeekPerformance } from '@/components/DayOfWeekPerformance';
+import { Card, CardContent } from '@/components/ui/card';
+import { formatCurrency } from '@/utils/calculations/formatters';
+import { 
+  calculateProfitFactor, 
+  calculateCalmarRatio, 
+  calculateParetoIndex,
+  calculateExpectedValue
+} from '@/utils/calculations/advancedMetrics';
+import { calculateTotalPnL } from './dashboard/dashboardUtils';
+import { MetricCard } from './dashboard/MetricCard';
 
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -43,14 +53,12 @@ export default function Analytics() {
     )
   );
 
-  console.log('Analytics - Available timeframes:', timeframeCount);
-  console.log('Analytics - Has 15m trades:', has15mTrades);
-  console.log('Analytics - Has 1h trades:', has1hTrades);
-  console.log('Analytics - Trades with timeframes:', trades.map(t => ({ 
-    symbol: t.symbol, 
-    timeframe: t.timeframe,
-    status: t.status
-  })));
+  // Calculate metrics (same as Dashboard)
+  const netPnL = calculateTotalPnL(trades);
+  const profitFactor = calculateProfitFactor(trades);
+  const expectedValue = calculateExpectedValue(trades);
+  const calmarRatio = calculateCalmarRatio(trades);
+  const paretoIndex = calculateParetoIndex(trades);
 
   const handleAddDummyTrades = () => {
     addDummyTrades();
@@ -80,12 +88,39 @@ export default function Analytics() {
       
       {trades.length > 0 ? (
         <div className="space-y-8">
-          {/* Key Trading Stats - Moved to the top */}
+          {/* Key Trading Stats - from Dashboard */}
           <div className="w-full">
             <h2 className="text-2xl font-bold tracking-tight mb-4">
               Key Trading Stats
             </h2>
-            <TradeMetrics trades={trades} showOnlyKeyMetrics={true} key={`key-metrics-${refreshKey}`} />
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <MetricCard 
+                title="Net P&L" 
+                value={formatCurrency(netPnL)}
+                className={netPnL >= 0 ? "text-profit" : "text-loss"}
+              />
+              <MetricCard 
+                title="Profit Factor" 
+                value={isFinite(profitFactor) ? profitFactor.toFixed(2) : "∞"} 
+                tooltip="Gross Profit / Gross Loss"
+              />
+              <MetricCard 
+                title="Expected Value" 
+                value={formatCurrency(expectedValue)}
+                className={expectedValue >= 0 ? "text-profit" : "text-loss"}
+                tooltip="(Win Rate × Avg Win) - (Loss Rate × Avg Loss)"
+              />
+              <MetricCard 
+                title="Calmar Ratio" 
+                value={calmarRatio.toFixed(2)}
+                tooltip="Annualized Return / Maximum Drawdown"
+              />
+              <MetricCard 
+                title="Pareto Index" 
+                value={`${paretoIndex.toFixed(1)}%`}
+                tooltip="% of profits from top 20% of trades"
+              />
+            </div>
           </div>
           
           <div className="w-full">
