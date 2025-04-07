@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Command,
@@ -30,17 +30,40 @@ export function SymbolSelector({
 }: SymbolSelectorProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value || '');
-  const [symbols, setSymbols] = useState<SymbolDetails[]>(() => getAllSymbols());
+  const [symbols, setSymbols] = useState<SymbolDetails[]>([]);
+  const [availableTypes, setAvailableTypes] = useState<Set<string>>(new Set());
+  
+  // Load all symbols when component mounts and when tradeType changes
+  useEffect(() => {
+    const allSymbols = getAllSymbols();
+    setSymbols(allSymbols);
+    
+    // Collect all available symbol types
+    const types = new Set<string>();
+    allSymbols.forEach(symbol => {
+      if (symbol.type) {
+        types.add(symbol.type);
+      }
+    });
+    setAvailableTypes(types);
+    
+    // Reset input value when value changes externally
+    if (value) {
+      setInputValue(value);
+    }
+  }, [value, tradeType]);
 
   // Filter symbols based on trade type - ensure we always have an array even if filtering returns nothing
-  const filteredSymbols = tradeType === 'futures' 
-    ? symbols.filter(s => s.type === 'futures')
-    : symbols.filter(s => s.type !== 'futures') || [];
-
-  // Refresh symbols when component mounts
-  useEffect(() => {
-    setSymbols(getAllSymbols());
-  }, []);
+  const filteredSymbols = useMemo(() => {
+    if (!tradeType || !symbols.length) return symbols;
+    
+    // If the selected type doesn't exist in available types, show all symbols
+    if (!availableTypes.has(tradeType)) {
+      return symbols;
+    }
+    
+    return symbols.filter(s => s.type === tradeType) || [];
+  }, [symbols, tradeType, availableTypes]);
 
   const handleSelect = (currentValue: string) => {
     onChange(currentValue);
@@ -48,15 +71,9 @@ export function SymbolSelector({
     // Find the selected symbol to get its type
     const selectedSymbol = symbols.find(s => s.symbol === currentValue);
     
-    // Auto-select type if a symbol with specific type is selected
-    if (selectedSymbol && onTypeChange) {
-      // Convert legacy types to their modern equivalents
-      let normalizedType = selectedSymbol.type;
-      if (normalizedType === 'stock' || normalizedType === 'futures' || 
-          normalizedType === 'forex' || normalizedType === 'crypto' || 
-          normalizedType === 'options') {
-        onTypeChange(normalizedType);
-      }
+    // Auto-update trade type if onTypeChange is provided and symbol has a type
+    if (selectedSymbol?.type && onTypeChange && selectedSymbol.type !== tradeType) {
+      onTypeChange(selectedSymbol.type as 'stock' | 'futures' | 'forex' | 'crypto' | 'options');
     }
     
     setOpen(false);
@@ -75,6 +92,17 @@ export function SymbolSelector({
     }
   };
 
+  const filteredSymbolsByInput = useMemo(() => {
+    if (!inputValue.trim()) {
+      return filteredSymbols;
+    }
+    
+    return filteredSymbols.filter(symbol => 
+      symbol.symbol.toLowerCase().includes(inputValue.toLowerCase()) ||
+      (symbol.meaning && symbol.meaning.toLowerCase().includes(inputValue.toLowerCase()))
+    );
+  }, [filteredSymbols, inputValue]);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -84,7 +112,18 @@ export function SymbolSelector({
           aria-expanded={open}
           className="w-full justify-between"
         >
-          {value || "Select symbol..."}
+          {value ? (
+            <span className="flex items-center gap-1">
+              <span className="font-mono">{value}</span>
+              {getSymbolMeaning(value) && (
+                <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                  ({getSymbolMeaning(value)})
+                </span>
+              )}
+            </span>
+          ) : (
+            "Select symbol..."
+          )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -111,29 +150,41 @@ export function SymbolSelector({
               </div>
             </CommandEmpty>
             <CommandGroup>
-              {filteredSymbols.map((symbolData) => {
-                const meaning = getSymbolMeaning(symbolData.symbol);
-                return (
-                  <CommandItem
-                    key={symbolData.symbol}
-                    value={symbolData.symbol}
-                    onSelect={(currentValue) => handleSelect(currentValue)}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === symbolData.symbol ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <span className="font-mono font-medium">{symbolData.symbol}</span>
-                    {meaning && (
-                      <span className="ml-2 text-xs text-muted-foreground truncate max-w-[150px]">
-                        {meaning}
+              {filteredSymbolsByInput.length > 0 ? (
+                filteredSymbolsByInput.map((symbolData) => {
+                  const meaning = getSymbolMeaning(symbolData.symbol);
+                  return (
+                    <CommandItem
+                      key={symbolData.symbol}
+                      value={symbolData.symbol}
+                      onSelect={handleSelect}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Check
+                          className={cn(
+                            "h-4 w-4",
+                            value === symbolData.symbol ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <span className="font-mono">{symbolData.symbol}</span>
+                        {meaning && (
+                          <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                            ({meaning})
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {symbolData.type}
                       </span>
-                    )}
-                  </CommandItem>
-                );
-              })}
+                    </CommandItem>
+                  );
+                })
+              ) : (
+                <div className="py-6 text-center text-sm">
+                  <p>No symbols found</p>
+                </div>
+              )}
             </CommandGroup>
           </CommandList>
         </Command>

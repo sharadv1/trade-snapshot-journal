@@ -1,18 +1,17 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Trade, FuturesContractDetails } from '@/types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SymbolSelector } from '@/components/SymbolSelector';
 import { FuturesContractSelector } from '@/components/FuturesContractSelector';
-import { FuturesContractDetails as FuturesContractDetailsComponent } from '@/components/FuturesContractDetails';
+import { FuturesContractDetailsComponent } from '@/components/FuturesContractDetails';
 import { MistakesField } from './MistakesField';
 import { TrendingDown, TrendingUp, Ratio, Target, AlertCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { Strategy } from '@/types';
 import { getStrategies } from '@/utils/strategyStorage';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getAllSymbols } from '@/utils/symbolStorage';
 
 interface TradeDetailsFormProps {
   trade: Partial<Trade>;
@@ -33,15 +32,22 @@ export function TradeDetailsForm({
   maxRisk,
   disableEdits = false
 }: TradeDetailsFormProps) {
-  const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [strategies, setStrategies] = useState<any[]>([]);
   const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null);
   const [calculatedRisk, setCalculatedRisk] = useState<number | null>(null);
   const [isRiskExceeded, setIsRiskExceeded] = useState(false);
+  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
 
+  // Load strategies and available symbol types
   useEffect(() => {
     // Load strategies from storage
     const loadedStrategies = getStrategies();
     setStrategies(loadedStrategies);
+    
+    // Get available symbol types
+    const symbols = getAllSymbols();
+    const types = Array.from(new Set(symbols.map(s => s.type)));
+    setAvailableTypes(types);
   }, []);
 
   // Calculate risk-reward ratio when stopLoss or takeProfit changes
@@ -96,15 +102,16 @@ export function TradeDetailsForm({
           onValueChange={(value) => handleTypeChange(value as Trade["type"])}
           disabled={disableEdits}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger id="type">
             <SelectValue placeholder="Select type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="stock">Stock</SelectItem>
-            <SelectItem value="option">Options</SelectItem>
-            <SelectItem value="futures">Futures</SelectItem>
-            <SelectItem value="forex">Forex</SelectItem>
-            <SelectItem value="crypto">Crypto</SelectItem>
+            {/* Only show trade types that have symbols available */}
+            {availableTypes.includes('stock') && <SelectItem value="stock">Stock</SelectItem>}
+            {availableTypes.includes('options') && <SelectItem value="option">Options</SelectItem>}
+            {availableTypes.includes('futures') && <SelectItem value="futures">Futures</SelectItem>}
+            {availableTypes.includes('forex') && <SelectItem value="forex">Forex</SelectItem>}
+            {availableTypes.includes('crypto') && <SelectItem value="crypto">Crypto</SelectItem>}
           </SelectContent>
         </Select>
       </div>
@@ -121,9 +128,10 @@ export function TradeDetailsForm({
             />
           ) : (
             <SymbolSelector
-              value={trade.symbol}
+              value={trade.symbol || ''}
               onChange={(symbol) => handleChange('symbol', symbol)}
               tradeType={trade.type as 'stock' | 'futures' | 'forex' | 'crypto' | 'options'}
+              onTypeChange={handleTypeChange}
             />
           )}
         </div>
@@ -187,8 +195,8 @@ export function TradeDetailsForm({
         {/* Stop Loss */}
         <div className="space-y-2">
           <Label htmlFor="stopLoss" className="flex items-center gap-1">
-            <TrendingDown className="h-4 w-4 text-loss" />
-            Stop Loss Price <span className="text-red-500">*</span>
+            <TrendingDown className="h-4 w-4 text-destructive" />
+            Stop Loss Price <span className="text-destructive">*</span>
           </Label>
           <Input 
             id="stopLoss" 
@@ -196,7 +204,7 @@ export function TradeDetailsForm({
             min="0" 
             step="0.01"
             value={trade.stopLoss || ''}
-            onChange={(e) => handleChange('stopLoss', parseFloat(e.target.value))}
+            onChange={(e) => handleChange('stopLoss', parseFloat(e.target.value) || 0)}
             required
           />
         </div>
@@ -204,7 +212,7 @@ export function TradeDetailsForm({
         {/* Take Profit */}
         <div className="space-y-2">
           <Label htmlFor="takeProfit" className="flex items-center gap-1">
-            <TrendingUp className="h-4 w-4 text-profit" />
+            <TrendingUp className="h-4 w-4 text-green-600" />
             Take Profit Price
           </Label>
           <Input 
@@ -213,17 +221,17 @@ export function TradeDetailsForm({
             min="0" 
             step="0.01"
             value={trade.takeProfit || ''}
-            onChange={(e) => handleChange('takeProfit', parseFloat(e.target.value))}
+            onChange={(e) => handleChange('takeProfit', parseFloat(e.target.value) || 0)}
           />
         </div>
       </div>
       
       {/* Risk Warning Alert - Show when risk exceeds max risk */}
-      {isRiskExceeded && maxRisk && calculatedRisk && (
+      {isRiskExceeded && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Risk amount (${calculatedRisk.toFixed(2)}) exceeds your max risk limit of ${maxRisk}
+            Risk amount (${calculatedRisk?.toFixed(2)}) exceeds your max risk limit of ${maxRisk}
           </AlertDescription>
         </Alert>
       )}
@@ -244,7 +252,7 @@ export function TradeDetailsForm({
         </div>
       )}
       
-      {/* Risk Management Info - Moved here from bottom */}
+      {/* Risk Management Info */}
       <div className="border rounded-md p-4 bg-muted/30">
         <h3 className="text-sm font-medium mb-2 flex items-center">
           <Target className="h-4 w-4 mr-2" />
@@ -321,7 +329,7 @@ export function TradeDetailsForm({
         </Select>
       </div>
       
-      {/* SSMT Quarters - New field */}
+      {/* SSMT Quarters */}
       <div className="space-y-2">
         <Label htmlFor="ssmtQuarters">SSMT Quarters</Label>
         <Select
@@ -337,12 +345,11 @@ export function TradeDetailsForm({
             <SelectItem value="q3/q4">Q3/Q4</SelectItem>
             <SelectItem value="q4/q5">Q4/Q5</SelectItem>
             <SelectItem value="q5/q1">Q5/Q1</SelectItem>
-            <SelectItem value="q4/q1">Q4/Q1</SelectItem>
           </SelectContent>
         </Select>
       </div>
       
-      {/* Timeframe - Moved after strategy */}
+      {/* Timeframe */}
       <div className="space-y-2">
         <Label htmlFor="timeframe">Timeframe</Label>
         <Select
@@ -375,7 +382,7 @@ export function TradeDetailsForm({
             onValueChange={(value) => handleChange('grade', value)}
           >
             <SelectTrigger id="grade">
-              <SelectValue placeholder="Select a grade for this trade" />
+              <SelectValue placeholder="Select a grade" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="A">A - Excellent</SelectItem>
@@ -389,7 +396,7 @@ export function TradeDetailsForm({
         
         {/* Mistakes Field */}
         <div className="space-y-2">
-          <Label htmlFor="mistakes">Mistakes Made</Label>
+          <Label htmlFor="mistakes">Mistakes</Label>
           <MistakesField 
             value={trade.mistakes} 
             onChange={(mistakes) => handleChange('mistakes', mistakes)} 

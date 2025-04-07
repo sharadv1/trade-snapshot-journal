@@ -1,7 +1,8 @@
+
 // Custom user symbols storage utility
 import { COMMON_FUTURES_CONTRACTS } from '@/types';
 import { isUsingServerSync, getServerUrl } from './storage/serverSync';
-import { toast } from './toast';
+import { toast } from './utils/toast';
 
 // Default preset symbols that should be in the system 
 const PRESET_SYMBOLS = [
@@ -25,15 +26,25 @@ const PRESET_SYMBOLS = [
   { symbol: 'NG', type: 'futures' as const, meaning: 'Natural Gas' },
   { symbol: 'HE', type: 'futures' as const, meaning: 'Lean Hogs' },
   { symbol: 'LE', type: 'futures' as const, meaning: 'Live Cattle' },
+  { symbol: 'ZO', type: 'futures' as const, meaning: 'Oats' },
+  { symbol: 'ZL', type: 'futures' as const, meaning: 'Soybean Oil' },
+  { symbol: 'ZM', type: 'futures' as const, meaning: 'Soybean Meal' },
+  { symbol: 'GF', type: 'futures' as const, meaning: 'Feeder Cattle' },
+  { symbol: 'HO', type: 'futures' as const, meaning: 'NY Harbor ULSD' },
+  { symbol: 'RB', type: 'futures' as const, meaning: 'RBOB Gasoline' },
+  { symbol: 'PA', type: 'futures' as const, meaning: 'Palladium' },
+  { symbol: 'PL', type: 'futures' as const, meaning: 'Platinum' },
   
   // Micro Futures
   { symbol: 'MES', type: 'futures' as const, meaning: 'Micro E-mini S&P 500' },
   { symbol: 'MNQ', type: 'futures' as const, meaning: 'Micro E-mini NASDAQ-100' },
   { symbol: 'MYM', type: 'futures' as const, meaning: 'Micro E-mini Dow Jones' },
   { symbol: 'M2K', type: 'futures' as const, meaning: 'Micro E-mini Russell 2000' },
-  { symbol: 'MCL', type: 'futures' as const, meaning: 'Micro Crude Oil' },
+  { symbol: 'MCL', type: 'futures' as const, meaning: 'Micro WTI Crude Oil' },
   { symbol: 'MGC', type: 'futures' as const, meaning: 'Micro Gold' },
   { symbol: 'SIL', type: 'futures' as const, meaning: 'Micro Silver' },
+  { symbol: 'MBT', type: 'futures' as const, meaning: 'Micro Bitcoin' },
+  { symbol: 'MET', type: 'futures' as const, meaning: 'Micro Ether' },
   
   // Major Crypto
   { symbol: 'BTC/USD', type: 'crypto' as const, meaning: 'Bitcoin' },
@@ -48,34 +59,41 @@ const PRESET_SYMBOLS = [
   { symbol: 'MATIC/USD', type: 'crypto' as const, meaning: 'Polygon' },
   { symbol: 'ATOM/USD', type: 'crypto' as const, meaning: 'Cosmos' },
   { symbol: 'UNI/USD', type: 'crypto' as const, meaning: 'Uniswap' },
+  { symbol: 'LTC/USD', type: 'crypto' as const, meaning: 'Litecoin' },
+  { symbol: 'BCH/USD', type: 'crypto' as const, meaning: 'Bitcoin Cash' },
+  { symbol: 'XLM/USD', type: 'crypto' as const, meaning: 'Stellar' },
+  { symbol: 'ALGO/USD', type: 'crypto' as const, meaning: 'Algorand' },
+  { symbol: 'FIL/USD', type: 'crypto' as const, meaning: 'Filecoin' },
 ];
 
 const CUSTOM_SYMBOLS_KEY = 'customSymbols';
 
 export interface SymbolDetails {
   symbol: string;
-  type: 'stock' | 'futures' | 'options' | 'forex' | 'crypto';
+  type: 'stock' | 'futures' | 'forex' | 'crypto' | 'options';
+  meaning?: string;
   isPreset?: boolean;
-  meaning?: string; // Adding support for custom meanings
 }
 
 /**
  * Gets the description/meaning of a symbol
- * @param symbol Symbol to get meaning for
- * @returns Description or name of the symbol
+ * @param symbol Symbol to look up
+ * @returns The meaning or null if not found
  */
 export function getSymbolMeaning(symbol: string): string | null {
-  // First check if there's a custom meaning
+  if (!symbol) return null;
+  
+  // First check if it's a preset symbol
+  const presetSymbol = PRESET_SYMBOLS.find(s => s.symbol === symbol);
+  if (presetSymbol && presetSymbol.meaning) {
+    return presetSymbol.meaning;
+  }
+  
+  // Then check custom symbols
   const customSymbols = getCustomSymbols();
   const customSymbol = customSymbols.find(s => s.symbol === symbol);
   if (customSymbol && customSymbol.meaning) {
     return customSymbol.meaning;
-  }
-  
-  // Then check preset symbols for meaning
-  const presetSymbol = PRESET_SYMBOLS.find(s => s.symbol === symbol);
-  if (presetSymbol && presetSymbol.meaning) {
-    return presetSymbol.meaning;
   }
   
   // Then check futures contracts
@@ -92,21 +110,11 @@ export function getSymbolMeaning(symbol: string): string | null {
 
 // Get all preset symbols (including futures)
 export function getPresetSymbols(): SymbolDetails[] {
-  // Get futures symbols from the common contracts
-  const futuresSymbols = COMMON_FUTURES_CONTRACTS.map(contract => ({
-    symbol: contract.symbol,
-    type: 'futures' as const,
-    isPreset: true
-  }));
-  
   // Add isPreset flag to stock preset symbols
-  const stockSymbols = PRESET_SYMBOLS.map(item => ({
-    ...item,
+  return PRESET_SYMBOLS.map(symbol => ({
+    ...symbol,
     isPreset: true
   }));
-  
-  // Combine stock and futures preset symbols
-  return [...stockSymbols, ...futuresSymbols];
 }
 
 // Save custom symbols to storage (localStorage and server)
@@ -157,7 +165,7 @@ export const syncSymbolsWithServer = async (): Promise<boolean> => {
   
   try {
     const serverUrl = `${getServerUrl().replace(/\/trades$/, '')}/symbols`;
-    console.log('Syncing symbols with server at:', serverUrl);
+    console.log('Syncing symbols with server:', serverUrl);
     const response = await fetch(serverUrl);
     
     if (response.ok) {
@@ -167,7 +175,7 @@ export const syncSymbolsWithServer = async (): Promise<boolean> => {
       console.log('Symbols synced with server successfully');
       return true;
     } else {
-      console.error('Server returned an error status when syncing symbols', response.status);
+      console.error('Server returned an error when syncing symbols', response.status);
       return false;
     }
   } catch (error) {
@@ -295,18 +303,18 @@ export function getAllSymbols(): SymbolDetails[] {
   const presetSymbols = getPresetSymbols();
   const customSymbols = getCustomSymbols();
   
-  // Create a Set of symbols to remove duplicates (prioritizing custom symbols)
+  // Create a Map to handle duplicates (custom symbols take precedence)
   const symbolMap = new Map<string, SymbolDetails>();
   
   // Add preset symbols first
-  presetSymbols.forEach(symbol => {
-    symbolMap.set(symbol.symbol, symbol);
-  });
+  for (const symbol of presetSymbols) {
+    symbolMap.set(symbol.symbol, { ...symbol, isPreset: true });
+  }
   
   // Then add custom symbols (will overwrite presets if duplicate exists)
-  customSymbols.forEach(symbol => {
+  for (const symbol of customSymbols) {
     symbolMap.set(symbol.symbol, symbol);
-  });
+  }
   
   // Convert map back to array
   return Array.from(symbolMap.values());

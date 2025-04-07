@@ -5,26 +5,22 @@ import { getTradeIdea } from '@/utils/tradeStorage';
 import { getAllSymbols } from '@/utils/symbolStorage';
 import { useTradeSubmit } from './hooks/useTradeSubmit';
 import { useTradeImages } from './hooks/useTradeImages';
-import { useTradeState } from './hooks/useTradeState';
 
 export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: string | null) {
   // Get initial trade state
-  const {
-    trade,
-    contractDetails,
-    setTrade,
-    setContractDetails
-  } = useTradeState(initialTrade, !!isEditing, ideaId);
-  
-  // Set default account value
-  useEffect(() => {
-    if (!trade.account) {
-      setTrade(prevTrade => ({
-        ...prevTrade,
-        account: 'default'
-      }));
+  const [trade, setTrade] = useState<Partial<Trade>>(
+    initialTrade || {
+      account: 'default',
+      type: 'futures', // Default to futures since that's what we have most symbols for
+      direction: 'long',
+      entryDate: new Date().toISOString().slice(0, 16),
+      status: 'open'
     }
-  }, [trade.account, setTrade]);
+  );
+  
+  const [contractDetails, setContractDetails] = useState(
+    initialTrade?.contractDetails || {}
+  );
   
   // Tab state
   const [activeTab, setActiveTab] = useState<string>('details');
@@ -76,33 +72,47 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
           direction: (idea.direction as 'long' | 'short') || 'long',
           notes: idea.description || '',
           ideaId: ideaId || '',
-          account: 'default' // Always set default account for new trades from ideas
+          account: 'default', // Always set default account for new trades from ideas
+          // If we have a known symbol type, set the trade type to match
+          type: getSymbolType(idea.symbol) || prevTrade.type || 'futures'
         }));
       }
     }
-  }, [ideaId, isEditing, setTrade]);
+  }, [ideaId, isEditing]);
+
+  // Helper to get symbol type
+  const getSymbolType = (symbol?: string): 'stock' | 'futures' | 'forex' | 'crypto' | 'options' | undefined => {
+    if (!symbol) return undefined;
+    
+    const allSymbols = getAllSymbols();
+    const foundSymbol = allSymbols.find(s => s.symbol === symbol);
+    return foundSymbol?.type;
+  };
   
   const handleChange = (
     field: keyof Trade,
     value: any
   ) => {
-    setTrade({
-      ...trade,
+    setTrade(prev => ({
+      ...prev,
       [field]: value
-    });
+    }));
   };
   
   const handleTypeChange = (
     type: Trade['type']
   ) => {
-    setTrade({
-      ...trade,
-      type: type
-    });
+    setTrade(prev => ({
+      ...prev,
+      type,
+      // Clear the symbol if changing type
+      ...(prev.type !== type ? { symbol: '' } : {})
+    }));
     
-    // Reset contract details if changing from futures to stock
+    // Reset contract details when changing from futures
     if (type !== 'futures') {
       setContractDetails({});
+      setPointValue(undefined);
     }
   };
   
