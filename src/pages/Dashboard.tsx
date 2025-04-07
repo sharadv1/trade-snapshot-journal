@@ -39,9 +39,16 @@ export default function Dashboard() {
     };
   }, []);
   
+  // Handler for when data import is completed
+  const handleImportComplete = () => {
+    console.log("Dashboard: Data import completed, refreshing trades");
+    const refreshedTrades = getTradesWithMetrics();
+    setTrades(refreshedTrades);
+  };
+  
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <DashboardHeader />
+      <DashboardHeader onImportComplete={handleImportComplete} />
       <DashboardMetrics trades={trades} />
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { 
   saveWeeklyReflection, 
   getWeeklyReflection, 
@@ -116,14 +115,11 @@ export function generateMissingReflections(trades: TradeWithMetrics[]) {
       totalTrades: weekTrades.length
     });
     
-    // Save the reflection
-    saveWeeklyReflection(
-      weekId, 
-      reflection, 
-      grade,
-      generateWeeklyPlanContent(weekTrades, grade),
-      weekTrades.map(t => t.id)
-    );
+    // Generate weekly plan
+    const weeklyPlan = generateWeeklyPlanContent(weekTrades, grade);
+    
+    // Fixed: Passing the correct number of arguments (4 instead of 5)
+    saveWeeklyReflection(weekId, reflection, grade, weeklyPlan);
     
     weeklyGenerated++;
   }
