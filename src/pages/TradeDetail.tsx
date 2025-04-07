@@ -114,7 +114,7 @@ export default function TradeDetail() {
           </Button>
           <h1 className="text-3xl font-bold">
             {trade.symbol} {trade.type === 'futures' ? '(Futures)' : 
-                         trade.type === 'option' ? '(Options)' : 
+                         trade.type === 'options' ? '(Options)' : 
                          trade.type === 'forex' ? '(Forex)' : 
                          '(Stock)'}
           </h1>
@@ -189,7 +189,7 @@ export default function TradeDetail() {
                 <p className="font-medium">
                   {trade.type === 'stock' ? 'Stock' : 
                    trade.type === 'futures' ? 'Futures' : 
-                   trade.type === 'option' ? 'Options' : 
+                   trade.type === 'options' ? 'Options' : 
                    trade.type === 'forex' ? 'Forex' : 
                    trade.type.charAt(0).toUpperCase() + trade.type.slice(1)}
                 </p>
@@ -354,7 +354,7 @@ export default function TradeDetail() {
           </Card>
         )}
         
-        {trade.type === 'option' && trade.contractDetails && (
+        {trade.type === 'options' && trade.contractDetails && (
           <Card>
             <CardHeader>
               <CardTitle>Contract Specifications</CardTitle>

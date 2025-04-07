@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Trade, TRADE_TYPES } from '@/types';
+import { Trade, TRADE_TYPES, TradeType } from '@/types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 interface TradeDetailsFormProps {
   trade: Partial<Trade>;
   onTradeChange: (field: keyof Trade, value: any) => void;
-  onTradeTypeChange: (type: Trade['type']) => void;
+  onTradeTypeChange: (type: TradeType) => void;
   onContractDetailsChange: (details: any) => void;
   contractDetails: Record<string, any>;
   pointValue?: number;
@@ -60,7 +60,7 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
         <SymbolSelector
           value={trade.symbol || ''}
           onChange={handleSymbolChange}
-          tradeType={trade.type}
+          tradeType={trade.type as TradeType}
           onTypeChange={onTradeTypeChange}
         />
       </div>
