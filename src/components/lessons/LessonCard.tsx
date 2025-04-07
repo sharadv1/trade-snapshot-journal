@@ -42,9 +42,9 @@ export function LessonCard({ lesson, onEdit, onUpdate }: LessonCardProps) {
   return (
     <Card className="overflow-hidden w-full">
       <CardContent className="p-0">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+        <div className="flex flex-col md:flex-row">
           {/* Left side: Title and text */}
-          <div className="p-6">
+          <div className="flex-1 p-6">
             <h3 className="text-xl font-semibold mb-4">{lesson.title}</h3>
             
             <div className="mb-4">
@@ -67,11 +67,11 @@ export function LessonCard({ lesson, onEdit, onUpdate }: LessonCardProps) {
           </div>
 
           {/* Right side: Media */}
-          <div className={`${hasMedia ? 'bg-gray-50' : ''} p-4 flex items-center justify-center`}>
-            {hasMedia && (
+          {hasMedia && (
+            <div className="bg-gray-50 p-4 md:w-1/3 flex items-center justify-center">
               <LessonMedia media={lesson.media} />
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Actions at the bottom */}

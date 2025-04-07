@@ -167,7 +167,7 @@ export default function Lessons() {
   const allTypes = [...new Set(lessons.flatMap(lesson => lesson.types || []))];
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6 max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold tracking-tight">Lessons</h1>
         <div className="flex gap-2">
@@ -233,7 +233,7 @@ export default function Lessons() {
         </div>
       )}
 
-      <div className="space-y-6">
+      <div className="max-w-6xl mx-auto">
         {isLoading ? (
           <div className="text-center py-10">
             <p className="text-muted-foreground">Loading lessons...</p>
