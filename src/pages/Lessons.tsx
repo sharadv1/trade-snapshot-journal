@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Filter, Download, Upload, AlertTriangle } from 'lucide-react';
@@ -162,9 +163,9 @@ export default function Lessons() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6 max-w-6xl mx-auto">
+      <div className="relative max-w-6xl mx-auto mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Lessons</h1>
-        <div className="flex gap-2">
+        <div className="absolute top-0 left-[300px] flex gap-2">
           <Button 
             variant="outline" 
             size="sm" 
