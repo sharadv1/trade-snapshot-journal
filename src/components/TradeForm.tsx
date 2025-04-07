@@ -218,8 +218,9 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="px-6">
-            <TabsList className="grid grid-cols-2 w-full">
+            <TabsList className="grid grid-cols-3 w-full">
               <TabsTrigger value="details">Trade Details</TabsTrigger>
+              <TabsTrigger value="risk">Risk Parameters</TabsTrigger>
               <TabsTrigger value="notes">Notes & Images</TabsTrigger>
             </TabsList>
           </div>
@@ -235,6 +236,13 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
                 pointValue={pointValue}
                 maxRisk={maxRisk}
                 disableEdits={false}
+              />
+            </TabsContent>
+            
+            <TabsContent value="risk" className="space-y-4 mt-0">
+              <RiskParametersForm 
+                trade={trade}
+                handleChange={handleChange}
               />
             </TabsContent>
             

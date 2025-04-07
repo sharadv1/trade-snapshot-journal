@@ -231,10 +231,10 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="notes">Setup Notes</Label>
+        <Label htmlFor="notes">Trade Notes</Label>
         <Textarea
           id="notes"
-          placeholder="Notes about the trade setup"
+          placeholder="Notes about this trade"
           value={trade.notes || ''}
           onChange={(e) => onTradeChange('notes', e.target.value)}
           rows={3}
@@ -243,4 +243,4 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
       </div>
     </div>
   );
-};
+}
