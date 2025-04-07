@@ -167,7 +167,7 @@ export default function Lessons() {
         <div className="relative w-full">
           <div className="flex items-center mb-4">
             <h1 className="text-3xl font-bold tracking-tight">Lessons</h1>
-            <div className="ml-[200px] flex gap-2">
+            <div className="ml-[300px] flex gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
