@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +54,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
         <h2 className="text-2xl font-bold">
           {type === 'weekly' ? 'Weekly' : 'Monthly'} Reflections
         </h2>
+        <div className="w-[100px]"></div>
         <Button asChild>
           <Link to={`/journal/${type}/${type === 'weekly' ? 'new-week' : 'new-month'}`}>
             <Plus className="mr-2 h-4 w-4" />
