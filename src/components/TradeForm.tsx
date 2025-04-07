@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trade } from '@/types';
 import { TradeDetailsForm } from './trade-form/TradeDetailsForm';
 import { NotesAndImagesForm } from './trade-form/NotesAndImagesForm';
+import { RiskParametersForm } from './trade-form/RiskParametersForm';
 import { useTradeForm } from './trade-form/useTradeForm';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';

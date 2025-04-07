@@ -40,14 +40,12 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
     }
   }, [trade.stopLoss, trade.takeProfit, trade.entryPrice]);
 
-  console.log('Current trade strategy:', trade.strategy);
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="stopLoss" className="flex items-center gap-1">
-            <TrendingDown className="h-4 w-4 text-loss" />
+            <TrendingDown className="h-4 w-4 text-red-500" />
             Stop Loss Price
           </Label>
           <Input 
@@ -62,7 +60,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
         
         <div className="space-y-2">
           <Label htmlFor="takeProfit" className="flex items-center gap-1">
-            <TrendingUp className="h-4 w-4 text-profit" />
+            <TrendingUp className="h-4 w-4 text-green-500" />
             Take Profit Price
           </Label>
           <Input 
@@ -88,43 +86,44 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
         <div className="space-y-2 col-span-2">
           <Label htmlFor="strategy">Strategy</Label>
           <Select 
-            value={trade.strategy || 'default-strategy'}
-            onValueChange={(value) => {
-              console.log('Selecting strategy:', value);
-              handleChange('strategy', value);
-            }}
+            value={trade.strategy || ''}
+            onValueChange={(value) => handleChange('strategy', value)}
           >
             <SelectTrigger id="strategy">
               <SelectValue placeholder="Select strategy" />
             </SelectTrigger>
             <SelectContent>
               {strategies && strategies.length > 0 ? (
-                strategies.map((strategy) => {
-                  // Ensure strategy name is never empty and always a string
-                  const strategyName = strategy.name || `strategy-${strategy.id}`;
-                  console.log('Rendering strategy item:', strategyName, strategy.id);
-                  return (
-                    <SelectItem key={strategy.id} value={strategyName || `strategy-${strategy.id}`}>
-                      <div className="flex items-center">
-                        {strategy.color && (
-                          <div 
-                            className="w-3 h-3 rounded-full mr-2" 
-                            style={{ backgroundColor: strategy.color }} 
-                          />
-                        )}
-                        {strategyName}
-                      </div>
-                    </SelectItem>
-                  );
-                })
+                strategies.map((strategy) => (
+                  <SelectItem key={strategy.id} value={strategy.id}>
+                    {strategy.name}
+                  </SelectItem>
+                ))
               ) : (
-                <SelectItem value="default-strategy">Default Strategy</SelectItem>
+                <SelectItem value="default">Default Strategy</SelectItem>
               )}
             </SelectContent>
           </Select>
         </div>
       </div>
       
+      <div className="space-y-2">
+        <Label htmlFor="account">Account</Label>
+        <Select 
+          value={trade.account || ''}
+          onValueChange={(value) => handleChange('account', value)}
+        >
+          <SelectTrigger id="account">
+            <SelectValue placeholder="Select account" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default">Default Account</SelectItem>
+            <SelectItem value="demo">Demo Account</SelectItem>
+            <SelectItem value="live">Live Account</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="border rounded-md p-4 bg-muted/30">
         <h3 className="text-sm font-medium mb-2 flex items-center">
           <Target className="h-4 w-4 mr-2" />

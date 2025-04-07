@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { SymbolSelector } from '@/components/SymbolSelector';
 import { FuturesContractDetails } from '@/components/FuturesContractDetails';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Define props interface
 interface TradeDetailsFormProps {
@@ -34,6 +35,25 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
   const handleSymbolChange = (value: string) => {
     onTradeChange('symbol', value);
   };
+
+  const timeframeOptions = [
+    { value: '1m', label: '1 Minute' },
+    { value: '5m', label: '5 Minutes' },
+    { value: '15m', label: '15 Minutes' },
+    { value: '30m', label: '30 Minutes' },
+    { value: '1h', label: '1 Hour' },
+    { value: '4h', label: '4 Hours' },
+    { value: 'D', label: 'Daily' },
+    { value: 'W', label: 'Weekly' },
+    { value: 'M', label: 'Monthly' },
+  ];
+
+  const ssmtOptions = [
+    { value: 'Q1', label: 'Q1' },
+    { value: 'Q2', label: 'Q2' },
+    { value: 'Q3', label: 'Q3' },
+    { value: 'Q4', label: 'Q4' },
+  ];
 
   return (
     <div className="space-y-5">
@@ -134,6 +154,39 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
         />
       </div>
 
+      {/* Risk Management Section */}
+      <div className="space-y-2 border-t pt-4">
+        <Label className="text-base font-semibold">Risk Management</Label>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="stopLoss">Stop Loss</Label>
+            <Input
+              id="stopLoss"
+              type="number"
+              step="any"
+              placeholder="Stop loss price"
+              value={trade.stopLoss || ''}
+              onChange={(e) => onTradeChange('stopLoss', parseFloat(e.target.value) || '')}
+              disabled={disableEdits}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="takeProfit">Take Profit</Label>
+            <Input
+              id="takeProfit"
+              type="number"
+              step="any"
+              placeholder="Take profit price"
+              value={trade.takeProfit || ''}
+              onChange={(e) => onTradeChange('takeProfit', parseFloat(e.target.value) || '')}
+              disabled={disableEdits}
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="strategy">Strategy</Label>
         <Input
@@ -143,6 +196,82 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
           onChange={(e) => onTradeChange('strategy', e.target.value)}
           disabled={disableEdits}
         />
+      </div>
+
+      {/* Timeframe and Analysis Section */}
+      <div className="space-y-2 border-t pt-4">
+        <Label className="text-base font-semibold">Trade Analysis</Label>
+        
+        <div className="space-y-2">
+          <Label htmlFor="timeframe">Timeframe</Label>
+          <Select 
+            value={trade.timeframe || ''} 
+            onValueChange={(value) => onTradeChange('timeframe', value)}
+            disabled={disableEdits}
+          >
+            <SelectTrigger id="timeframe">
+              <SelectValue placeholder="Select timeframe" />
+            </SelectTrigger>
+            <SelectContent>
+              {timeframeOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="pspTime">PSP Time</Label>
+          <Input
+            id="pspTime"
+            placeholder="PSP time"
+            value={trade.pspTime || ''}
+            onChange={(e) => onTradeChange('pspTime', e.target.value)}
+            disabled={disableEdits}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ssmtQuarters">SSMT Quarters</Label>
+          <Select 
+            value={trade.ssmtQuarters || ''} 
+            onValueChange={(value) => onTradeChange('ssmtQuarters', value)}
+            disabled={disableEdits}
+          >
+            <SelectTrigger id="ssmtQuarters">
+              <SelectValue placeholder="Select SSMT quarter" />
+            </SelectTrigger>
+            <SelectContent>
+              {ssmtOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="grade">Trade Grade</Label>
+          <Select 
+            value={trade.grade || ''} 
+            onValueChange={(value) => onTradeChange('grade', value)}
+            disabled={disableEdits}
+          >
+            <SelectTrigger id="grade">
+              <SelectValue placeholder="Grade this trade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="A">A - Excellent</SelectItem>
+              <SelectItem value="B">B - Good</SelectItem>
+              <SelectItem value="C">C - Average</SelectItem>
+              <SelectItem value="D">D - Below Average</SelectItem>
+              <SelectItem value="F">F - Poor</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="space-y-2">
