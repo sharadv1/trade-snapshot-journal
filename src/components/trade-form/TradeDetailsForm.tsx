@@ -8,6 +8,7 @@ import { SymbolSelector } from '@/components/SymbolSelector';
 import { FuturesContractDetails } from '@/components/FuturesContractDetails';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getStrategies } from '@/utils/strategyStorage';
 
 // Define props interface
 interface TradeDetailsFormProps {
@@ -54,6 +55,8 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
     { value: 'Q3', label: 'Q3' },
     { value: 'Q4', label: 'Q4' },
   ];
+
+  const strategies = getStrategies();
 
   return (
     <div className="space-y-5">
@@ -154,6 +157,30 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
         />
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="strategy">Strategy</Label>
+        <Select 
+          value={trade.strategy || ''}
+          onValueChange={(value) => onTradeChange('strategy', value)}
+          disabled={disableEdits}
+        >
+          <SelectTrigger id="strategy">
+            <SelectValue placeholder="Select strategy" />
+          </SelectTrigger>
+          <SelectContent className="bg-background">
+            {strategies && strategies.length > 0 ? (
+              strategies.map((strategy) => (
+                <SelectItem key={strategy.id} value={strategy.id}>
+                  {strategy.name}
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem value="default">Default Strategy</SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Timeframe and Analysis Section */}
       <div className="space-y-2 border-t pt-4">
         <Label className="text-base font-semibold">Trade Analysis</Label>
@@ -168,7 +195,7 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
             <SelectTrigger id="timeframe">
               <SelectValue placeholder="Select timeframe" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background">
               {timeframeOptions.map(option => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -199,7 +226,7 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
             <SelectTrigger id="ssmtQuarters">
               <SelectValue placeholder="Select SSMT quarter" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background">
               {ssmtOptions.map(option => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -219,7 +246,7 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
             <SelectTrigger id="grade">
               <SelectValue placeholder="Grade this trade" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background">
               <SelectItem value="A">A - Excellent</SelectItem>
               <SelectItem value="B">B - Good</SelectItem>
               <SelectItem value="C">C - Average</SelectItem>
@@ -228,18 +255,6 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="notes">Trade Notes</Label>
-        <Textarea
-          id="notes"
-          placeholder="Notes about this trade"
-          value={trade.notes || ''}
-          onChange={(e) => onTradeChange('notes', e.target.value)}
-          rows={3}
-          disabled={disableEdits}
-        />
       </div>
     </div>
   );

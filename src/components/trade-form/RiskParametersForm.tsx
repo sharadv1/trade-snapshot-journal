@@ -3,9 +3,8 @@ import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trade, Strategy } from '@/types';
-import { getStrategies } from '@/utils/strategyStorage';
-import { Target, TrendingDown, TrendingUp, Ratio } from 'lucide-react';
+import { Trade } from '@/types';
+import { TrendingDown, TrendingUp, Ratio, Target } from 'lucide-react';
 
 interface RiskParametersFormProps {
   trade: Partial<Trade>;
@@ -13,15 +12,7 @@ interface RiskParametersFormProps {
 }
 
 export function RiskParametersForm({ trade, handleChange }: RiskParametersFormProps) {
-  const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null);
-
-  useEffect(() => {
-    // Load strategies from storage
-    const loadedStrategies = getStrategies();
-    console.log('Loaded strategies:', loadedStrategies);
-    setStrategies(loadedStrategies);
-  }, []);
 
   // Calculate risk-reward ratio when stopLoss or takeProfit changes
   useEffect(() => {
@@ -82,29 +73,6 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
             </div>
           </div>
         )}
-        
-        <div className="space-y-2 col-span-2">
-          <Label htmlFor="strategy">Strategy</Label>
-          <Select 
-            value={trade.strategy || ''}
-            onValueChange={(value) => handleChange('strategy', value)}
-          >
-            <SelectTrigger id="strategy">
-              <SelectValue placeholder="Select strategy" />
-            </SelectTrigger>
-            <SelectContent>
-              {strategies && strategies.length > 0 ? (
-                strategies.map((strategy) => (
-                  <SelectItem key={strategy.id} value={strategy.id}>
-                    {strategy.name}
-                  </SelectItem>
-                ))
-              ) : (
-                <SelectItem value="default">Default Strategy</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
       
       <div className="space-y-2">
@@ -116,7 +84,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
           <SelectTrigger id="account">
             <SelectValue placeholder="Select account" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-background">
             <SelectItem value="default">Default Account</SelectItem>
             <SelectItem value="demo">Demo Account</SelectItem>
             <SelectItem value="live">Live Account</SelectItem>

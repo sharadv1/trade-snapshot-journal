@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -161,7 +160,6 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     }
   };
 
-  // Adapter functions to match the expected prop types for NotesAndImagesForm
   const handleImageUploadAdapter = (files: FileList) => {
     if (files.length > 0) {
       return handleImageUpload(files[0]);
@@ -169,7 +167,6 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   };
 
   const handleRemoveImageAdapter = (url: string) => {
-    // Find the index of the image URL in the images array
     const index = images.findIndex(img => img === url);
     if (index !== -1) {
       handleRemoveImage(index);
@@ -218,9 +215,8 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="px-6">
-            <TabsList className="grid grid-cols-3 w-full">
+            <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="details">Trade Details</TabsTrigger>
-              <TabsTrigger value="risk">Risk Parameters</TabsTrigger>
               <TabsTrigger value="notes">Notes & Images</TabsTrigger>
             </TabsList>
           </div>
@@ -237,13 +233,13 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
                 maxRisk={maxRisk}
                 disableEdits={false}
               />
-            </TabsContent>
-            
-            <TabsContent value="risk" className="space-y-4 mt-0">
-              <RiskParametersForm 
-                trade={trade}
-                handleChange={handleChange}
-              />
+              
+              <div className="mt-8 pt-4 border-t">
+                <RiskParametersForm 
+                  trade={trade}
+                  handleChange={handleChange}
+                />
+              </div>
             </TabsContent>
             
             <TabsContent value="notes" className="space-y-4 mt-0">
