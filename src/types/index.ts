@@ -1,4 +1,3 @@
-
 export interface Trade {
   id: string;
   symbol: string;
@@ -42,6 +41,7 @@ export interface TradeWithMetrics extends Trade {
     profitLossPercentage?: number;
     calculationExplanation?: string;
     latestExitDate?: string;
+    weightedExitPrice?: number;
   };
 }
 
@@ -108,6 +108,7 @@ export interface Strategy {
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
+  color?: string;
 }
 
 export interface FuturesContractDetails {
@@ -120,6 +121,7 @@ export interface FuturesContractDetails {
   expirationDate?: string;
   contractSize?: number;
   tradingHours?: string;
+  tickValue?: number;
 }
 
 export interface Lesson {
@@ -132,6 +134,8 @@ export interface Lesson {
   media?: LessonMedia[];
   createdAt: string;
   updatedAt?: string;
+  types?: string[];
+  description?: string;
 }
 
 export interface LessonMedia {
@@ -140,6 +144,7 @@ export interface LessonMedia {
   url: string;
   title?: string;
   description?: string;
+  caption?: string;
 }
 
 // Define common futures contracts
