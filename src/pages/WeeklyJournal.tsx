@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -851,8 +850,9 @@ export default function WeeklyJournal() {
                     <TableCell className={trade.metrics.profitLoss >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
                       {formatCurrency(trade.metrics.profitLoss || 0)}
                     </TableCell>
-                    <TableCell className={trade.metrics.rMultiple >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                      {trade.metrics.rMultiple > 0 ? '+' : ''}{(trade.metrics.rMultiple || 0).toFixed(2)}R
+                    <TableCell className={(trade.metrics.rMultiple || 0) >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                      {(trade.metrics.rMultiple || 0) > 0 ? '+' : ''}
+                      {(trade.metrics.rMultiple || 0).toFixed(2)}R
                     </TableCell>
                   </TableRow>
                 ))}

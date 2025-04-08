@@ -129,13 +129,11 @@ export function useMonthlyPerformanceData(trades: TradeWithMetrics[]): MonthlyPe
             0
           );
           
-          // Calculate total R value using rMultiple instead of riskRewardRatio
-          let totalR = 0;
-          tradesInCategory.forEach(trade => {
-            if (trade.status === 'closed' && trade.metrics && trade.metrics.rMultiple) {
-              totalR += trade.metrics.rMultiple;
-            }
-          });
+          // Calculate total R value using rMultiple directly
+          const totalR = tradesInCategory.reduce(
+            (sum, trade) => sum + (trade.metrics?.rMultiple || 0),
+            0
+          );
           
           // Store metrics in month data
           monthData[category.id] = {

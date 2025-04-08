@@ -201,7 +201,7 @@ export function MonthlyReflectionsList() {
         sum + (trade.metrics.profitLoss || 0), 0);
       
       const totalR = monthTrades.reduce((sum, trade) => 
-        sum + (trade.metrics.riskRewardRatio || 0), 0);
+        sum + (trade.metrics.rMultiple || 0), 0);
       
       stats[reflection.id] = { 
         totalPnL, 
@@ -323,7 +323,7 @@ export function MonthlyReflectionsList() {
     });
     
     const pnl = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
-    const rValue = weekTrades.reduce((sum, trade) => sum + (trade.metrics.riskRewardRatio || 0), 0);
+    const rValue = weekTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
     
     return {
       pnl,
