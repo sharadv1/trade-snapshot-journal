@@ -1,3 +1,4 @@
+
 import { WeeklyReflection, MonthlyReflection } from '@/types';
 import { toast } from '@/utils/toast';
 
@@ -108,11 +109,14 @@ const dispatchStorageEvent = (key: string) => {
   const anotherCustomEvent = new CustomEvent('journal-updated', { detail: { key } });
   window.dispatchEvent(anotherCustomEvent);
   
+  // Using a try-catch to handle potential issues with StorageEvent in Safari
   try {
     const storageEvent = new StorageEvent('storage', { key });
     window.dispatchEvent(storageEvent);
   } catch (e) {
     console.error('Error dispatching storage event:', e);
+    // Fallback for Safari
+    window.dispatchEvent(new Event('storage'));
   }
   
   console.log(`Storage events dispatched for key: ${key}`);
@@ -194,7 +198,8 @@ export const saveWeeklyReflection = (weekId: string, reflection: string, grade?:
       weeklyPlan: weeklyPlan || '',
       grade: grade || '',
       lastUpdated: new Date().toISOString(),
-      tradeIds: reflections[weekId]?.tradeIds || []
+      tradeIds: reflections[weekId]?.tradeIds || [],
+      isPlaceholder: false
     };
     
     const reflectionsJson = JSON.stringify(reflections);
@@ -207,7 +212,8 @@ export const saveWeeklyReflection = (weekId: string, reflection: string, grade?:
         throw new Error('Failed to retrieve data after saving');
       }
       
-      if (!savedData.includes(weekId)) {
+      // Safari-compatible check for content
+      if (savedData.indexOf('"' + weekId + '"') === -1) {
         throw new Error(`Saved data doesn't contain the weekId: ${weekId}`);
       }
       
@@ -275,7 +281,8 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
       reflection,
       grade: grade || '',
       lastUpdated: new Date().toISOString(),
-      tradeIds: reflections[exactMonthId]?.tradeIds || []
+      tradeIds: reflections[exactMonthId]?.tradeIds || [],
+      isPlaceholder: false
     };
     
     debugStorage("Saving monthly reflection object", exactMonthId, reflections[exactMonthId]);
@@ -290,7 +297,8 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
         throw new Error('Failed to retrieve data after saving');
       }
       
-      if (!savedData.includes(exactMonthId)) {
+      // Safari-compatible check for content
+      if (savedData.indexOf('"' + exactMonthId + '"') === -1) {
         throw new Error(`Saved data doesn't contain the monthId: ${exactMonthId}`);
       }
       
@@ -335,7 +343,8 @@ export const saveWeeklyReflectionObject = (reflection: WeeklyReflection): void =
       ...reflection,
       id: weekId,
       weekId: weekId,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      isPlaceholder: false
     };
     
     localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
@@ -366,7 +375,8 @@ export const saveMonthlyReflectionObject = (reflection: MonthlyReflection): void
       ...reflection,
       id: monthId,
       monthId: monthId,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      isPlaceholder: false
     };
     
     localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));

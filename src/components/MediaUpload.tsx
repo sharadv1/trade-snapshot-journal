@@ -1,8 +1,8 @@
-
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, X, Play, Video } from 'lucide-react';
 import { toast } from '@/utils/toast';
+import { isVideo, ensureSafeUrl } from '@/utils/storage/imageOperations';
 
 interface MediaFile {
   url: string;
@@ -10,25 +10,49 @@ interface MediaFile {
 }
 
 interface MediaUploadProps {
-  media: MediaFile[];
-  onMediaUpload: (file: File) => void;
-  onMediaRemove: (index: number) => void;
+  media?: MediaFile[];
+  images?: string[];
+  onImageUpload: (file: File) => void;
+  onImageRemove: (index: number) => void;
+  onMediaUpload?: (file: File) => void;
+  onMediaRemove?: (index: number) => void;
   disabled?: boolean;
+  maxImages?: number;
   maxFiles?: number;
+  acceptVideos?: boolean;
 }
 
 export function MediaUpload({
   media,
+  images,
+  onImageUpload,
+  onImageRemove,
   onMediaUpload,
   onMediaRemove,
   disabled = false,
-  maxFiles = 5
+  maxImages = 5,
+  maxFiles = 5,
+  acceptVideos = false
 }: MediaUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Track last file uploaded to prevent duplicates
   const [lastUploadedFile, setLastUploadedFile] = useState<{ name: string, time: number } | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+
+  // Backwards compatibility - support both media and images props
+  const mediaItems: MediaFile[] = media || 
+    (images ? images.map(url => ({
+      url: ensureSafeUrl(url),
+      type: isVideo(url) ? 'video' : 'image'
+    })) : []);
+  
+  const maxItemsCount = maxFiles || maxImages;
+  
+  // Backwards compatibility - use either the media or image handlers
+  const handleFileUpload = onMediaUpload || onImageUpload;
+  const handleRemove = onMediaRemove || ((index: number) => {
+    onImageRemove(index);
+  });
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -42,48 +66,39 @@ export function MediaUpload({
       return;
     }
 
-    if (media.length >= maxFiles) {
-      toast.error(`Maximum ${maxFiles} files allowed`);
+    if (mediaItems.length >= maxItemsCount) {
+      toast.error(`Maximum ${maxItemsCount} files allowed`);
       return;
     }
 
-    if (disabled || isUploading) {
-      return;
-    }
-
-    setIsUploading(true);
-    
     const isVideoFile = file.type.startsWith('video/');
+    
+    // Check if video uploads are allowed
+    if (isVideoFile && !acceptVideos) {
+      toast.error("Video uploads are not allowed here");
+      return;
+    }
     
     // Check file size - different limits for images vs videos
     if (isVideoFile) {
       if (file.size > 20 * 1024 * 1024) {
         toast.error("Video must be under 20MB");
-        setIsUploading(false);
         return;
       }
     } else {
       // For images
       if (file.size > 5 * 1024 * 1024) {
         toast.error("Image must be under 5MB");
-        setIsUploading(false);
         return;
       }
     }
 
     // Record this upload to prevent duplicates
     setLastUploadedFile({ name: file.name, time: Date.now() });
-    
-    console.log('MediaUpload: Processing file upload for trade:', file.name);
-    onMediaUpload(file);
+    handleFileUpload(file);
     
     // Clear the input value so the same file can be uploaded again (but not immediately)
     if (event.target.value) event.target.value = '';
-    
-    // Reset uploading state after a delay to prevent multiple submissions
-    setTimeout(() => {
-      setIsUploading(false);
-    }, 500);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -93,8 +108,8 @@ export function MediaUpload({
     
     if (disabled) return;
     
-    if (media.length >= maxFiles) {
-      toast.error(`Maximum ${maxFiles} files allowed`);
+    if (mediaItems.length >= maxItemsCount) {
+      toast.error(`Maximum ${maxItemsCount} files allowed`);
       return;
     }
     
@@ -102,48 +117,40 @@ export function MediaUpload({
       const file = e.dataTransfer.files[0];
       console.log('File dropped in MediaUpload:', file.name, file.type);
       
-      if (disabled || isUploading) {
-        return;
-      }
-      
-      setIsUploading(true);
-      
       // Prevent duplicate uploads (same file within 2 seconds)
       if (lastUploadedFile && 
           lastUploadedFile.name === file.name && 
           (Date.now() - lastUploadedFile.time) < 2000) {
         console.log('Prevented duplicate file drag-and-drop:', file.name);
-        setIsUploading(false);
         return;
       }
       
       const isVideoFile = file.type.startsWith('video/');
       
+      // Check if video uploads are allowed
+      if (isVideoFile && !acceptVideos) {
+        toast.error("Video uploads are not allowed here");
+        return;
+      }
+      
       // Check file size - different limits for images vs videos
       if (isVideoFile) {
         if (file.size > 20 * 1024 * 1024) {
           toast.error("Video must be under 20MB");
-          setIsUploading(false);
           return;
         }
       } else {
         // For images
         if (file.size > 5 * 1024 * 1024) {
           toast.error("Image must be under 5MB");
-          setIsUploading(false);
           return;
         }
       }
       
       // Record this upload to prevent duplicates
       setLastUploadedFile({ name: file.name, time: Date.now() });
-      console.log('MediaUpload: Processing dropped file for trade:', file.name);
-      onMediaUpload(file);
-      
-      // Reset uploading state after a delay
-      setTimeout(() => {
-        setIsUploading(false);
-      }, 500);
+      handleFileUpload(file);
+      console.log('File dropped and being processed:', file.name);
     }
   };
 
@@ -164,37 +171,47 @@ export function MediaUpload({
 
   return (
     <div className="space-y-4">
-      {media.length > 0 && (
+      {mediaItems.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {media.map((file, index) => (
-            <div key={index} className="relative w-24 h-24 bg-gray-100 border rounded overflow-hidden">
-              {file.type === 'video' ? (
-                <div className="flex items-center justify-center h-full">
-                  <Video className="h-8 w-8 text-primary/60" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Play className="h-8 w-8 text-white bg-black/30 p-1.5 rounded-full" />
+          {mediaItems.map((item, index) => {
+            const url = ensureSafeUrl(item.url);
+            const isVideoItem = isVideo(url);
+            
+            return (
+              <div key={index} className="relative w-24 h-24 bg-gray-100 border rounded overflow-hidden">
+                {isVideoItem ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Video className="h-8 w-8 text-primary/60" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Play className="h-8 w-8 text-white bg-black/30 p-1.5 rounded-full" />
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <img
-                  src={file.url}
-                  alt={`Media ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              )}
-              {!disabled && (
-                <Button
-                  type="button"
-                  onClick={() => onMediaRemove(index)}
-                  size="icon"
-                  variant="destructive"
-                  className="absolute top-1 right-1 h-6 w-6"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          ))}
+                ) : (
+                  <img
+                    src={url}
+                    alt={`Image ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.warn(`Image failed to load: ${url}`);
+                      // Set a fallback image on error
+                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                    }}
+                  />
+                )}
+                {!disabled && (
+                  <Button
+                    type="button"
+                    onClick={() => handleRemove(index)}
+                    size="icon"
+                    variant="destructive"
+                    className="absolute top-1 right-1 h-6 w-6"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -205,25 +222,40 @@ export function MediaUpload({
               isDragging ? 'border-primary bg-primary/10' : 'border-gray-300'
             } transition-colors cursor-pointer`}
             onClick={() => fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!disabled) {
+                setIsDragging(true);
+              }
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsDragging(false);
+            }}
             onDrop={handleDrop}
           >
             <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">
-              Drop image or video here or click to upload
+              Drop {acceptVideos ? 'image or video' : 'image'} here or click to upload
             </p>
           </div>
           <input
             type="file"
             className="hidden"
             onChange={handleFileChange}
-            accept="image/*,video/*"
+            accept={acceptVideos ? "image/*,video/*" : "image/*"}
             ref={fileInputRef}
-            disabled={disabled || isUploading || media.length >= maxFiles}
+            disabled={disabled || mediaItems.length >= maxItemsCount}
           />
         </>
       )}
     </div>
   );
+}
+
+// For backwards compatibility
+export function ImageUpload(props: MediaUploadProps) {
+  return <MediaUpload {...props} />;
 }

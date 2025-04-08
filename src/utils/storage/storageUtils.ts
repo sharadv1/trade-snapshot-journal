@@ -1,3 +1,4 @@
+
 // Basic storage utilities for safe localStorage operations
 
 // Fallback memory storage when localStorage is full
@@ -45,6 +46,12 @@ export const safeSetItem = (key: string, value: string): boolean => {
     
     // Always store in memory fallback first
     memoryStorage[key] = value;
+    
+    // Safari and other browsers have different storage limits
+    // Break data into smaller chunks if necessary
+    if (value.length > 1024 * 1024) { // If > 1MB, consider chunking
+      console.warn(`Large data (${(value.length/1024/1024).toFixed(2)}MB) may exceed browser storage limits`);
+    }
     
     // Try to set the item in localStorage
     try {
@@ -151,8 +158,17 @@ const removeOldestItemsUntilSpace = (
 export const dispatchStorageEvents = () => {
   try {
     if (typeof window !== 'undefined') {
-      // Use a standard storage event for broad compatibility
-      window.dispatchEvent(new Event('storage'));
+      // Handle Safari compatibility issues with storage events
+      try {
+        // Use a standard storage event for broad compatibility
+        window.dispatchEvent(new Event('storage'));
+      } catch (e) {
+        console.warn('Error dispatching event:', e);
+        // Safari fallback
+        const customEvent = new CustomEvent('storage-updated');
+        window.dispatchEvent(customEvent);
+      }
+      
       // Also dispatch a custom event for components listening specifically for trade updates
       window.dispatchEvent(new CustomEvent('trades-updated'));
       console.log('Storage events dispatched successfully');
