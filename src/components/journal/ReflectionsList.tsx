@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, parseISO, startOfWeek } from 'date-fns';
 
 export interface ReflectionsListProps {
   reflections: WeeklyReflection[] | MonthlyReflection[];
@@ -28,7 +28,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
       if (weeklyReflection.weekStart && weeklyReflection.weekEnd) {
         const start = new Date(weeklyReflection.weekStart);
         const end = new Date(weeklyReflection.weekEnd);
-        return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+        return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
       }
       return 'Date range unavailable';
     } else {
@@ -36,7 +36,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
       if (monthlyReflection.monthStart && monthlyReflection.monthEnd) {
         const start = new Date(monthlyReflection.monthStart);
         const end = new Date(monthlyReflection.monthEnd);
-        return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+        return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
       }
       return 'Date range unavailable';
     }
@@ -64,9 +64,24 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
   // Get current week/month ID for the "New" button
   const getCurrentPeriodId = () => {
     const today = new Date();
-    return type === 'weekly' 
-      ? format(today, 'yyyy-MM-dd') // Current week ID
-      : format(today, 'yyyy-MM');   // Current month ID
+    if (type === 'weekly') {
+      // Get the start of current week (Monday)
+      const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+      return format(currentWeekStart, 'yyyy-MM-dd');
+    } else {
+      return format(today, 'yyyy-MM');
+    }
+  };
+
+  // Check if a reflection has actual content
+  const hasReflectionContent = (reflection: WeeklyReflection | MonthlyReflection): boolean => {
+    if (type === 'weekly') {
+      const weeklyReflection = reflection as WeeklyReflection;
+      return !!(weeklyReflection.reflection || weeklyReflection.weeklyPlan);
+    } else {
+      const monthlyReflection = reflection as MonthlyReflection;
+      return !!monthlyReflection.reflection;
+    }
   };
 
   return (
@@ -99,10 +114,8 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
             const id = getReflectionId(reflection);
             const dateRange = formatDateRange(reflection);
             
-            // For weekly reflections, check if there's content in either the weekly plan or reflection
-            const hasReflectionContent = type === 'weekly' 
-              ? !!(reflection as WeeklyReflection).reflection || !!(reflection as WeeklyReflection).weeklyPlan
-              : !!(reflection as MonthlyReflection).reflection;
+            // Check if there's content directly
+            const hasContent = hasReflectionContent(reflection);
               
             // Get the grade
             const grade = type === 'weekly' 
@@ -112,7 +125,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
             return (
               <Card 
                 key={id} 
-                className={`hover:bg-accent/10 transition-colors ${stats.tradeCount > 0 || hasReflectionContent ? '' : 'opacity-70'}`}
+                className={`hover:bg-accent/10 transition-colors ${stats.tradeCount > 0 || hasContent ? '' : 'opacity-70'}`}
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-medium flex justify-between">
@@ -138,12 +151,12 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                     
                     <Button 
                       asChild
-                      variant={hasReflectionContent ? "outline" : "default"}
+                      variant={hasContent ? "outline" : "default"}
                       size="sm"
-                      className={hasReflectionContent ? "border-blue-400 hover:bg-blue-50 hover:text-blue-600" : "bg-green-600 hover:bg-green-700"}
+                      className={hasContent ? "border-blue-400 hover:bg-blue-50 hover:text-blue-600" : "bg-green-600 hover:bg-green-700"}
                     >
                       <Link to={`/journal/${type}/${id}`}>
-                        {hasReflectionContent ? (
+                        {hasContent ? (
                           <>
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit Reflection

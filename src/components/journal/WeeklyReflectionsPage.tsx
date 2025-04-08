@@ -48,6 +48,20 @@ export function WeeklyReflectionsPage() {
         currentDate = addWeeks(currentDate, 1);
       }
       
+      // Check for additional reflections that might not be in the date range
+      const existingReflections = getAllWeeklyReflections();
+      Object.values(existingReflections).forEach(reflection => {
+        // Skip reflections that are already in the list
+        if (allWeeks.some(w => w.id === reflection.id)) {
+          return;
+        }
+        
+        // Add any reflection that has content but wasn't included in the date range
+        if (reflection.reflection || reflection.weeklyPlan) {
+          allWeeks.push(reflection);
+        }
+      });
+      
       return allWeeks.sort((a, b) => {
         // Sort by week start date (most recent first)
         if (!a.weekStart || !b.weekStart) return 0;

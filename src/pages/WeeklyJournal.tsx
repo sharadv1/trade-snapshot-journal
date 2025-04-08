@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -62,6 +63,8 @@ export default function WeeklyJournal() {
   const navigate = useNavigate();
   const location = useLocation();
   const isInitialMount = useRef(true);
+  const tradeLoadingRef = useRef(false);
+  const journalUpdatedRef = useRef(false);
   
   const isMonthView = location.pathname.includes('/journal/monthly/');
   const isNewWeekView = paramWeekId === 'new-week';
@@ -169,11 +172,19 @@ export default function WeeklyJournal() {
   
   useEffect(() => {
     const loadAllReflections = () => {
+      if (journalUpdatedRef.current) return;
+      journalUpdatedRef.current = true;
+      
       const weeklyReflections = getAllWeeklyReflections();
       const monthlyReflections = getAllMonthlyReflections();
       
       setAllWeeklyReflections(weeklyReflections);
       setAllMonthlyReflections(monthlyReflections);
+      
+      // Reset flag after a short delay to allow for debouncing
+      setTimeout(() => {
+        journalUpdatedRef.current = false;
+      }, 200);
     };
     
     loadAllReflections();
@@ -191,6 +202,9 @@ export default function WeeklyJournal() {
   
   useEffect(() => {
     const loadPeriodTrades = () => {
+      if (tradeLoadingRef.current) return;
+      tradeLoadingRef.current = true;
+      
       const allTrades = getTradesWithMetrics();
       let filteredTrades: TradeWithMetrics[] = [];
       
@@ -221,11 +235,10 @@ export default function WeeklyJournal() {
       setPeriodTrades(filteredTrades);
       console.log(`Loaded ${filteredTrades.length} trades for ${isMonthView ? 'month' : 'week'}`);
       
-      if (filteredTrades.length > 0) {
-        import('@/utils/reflectionGenerator').then(module => {
-          module.generateMissingReflections(getTradesWithMetrics());
-        });
-      }
+      // Reset flag to allow future loading
+      setTimeout(() => {
+        tradeLoadingRef.current = false;
+      }, 200);
     };
     
     loadPeriodTrades();
@@ -439,13 +452,14 @@ export default function WeeklyJournal() {
       return;
     }
     
-    const autoSaveInterval = setInterval(() => {
+    // Use a single auto-save timer to prevent multiple instances
+    const autoSaveInterval = setTimeout(() => {
       if (hasChanged) {
         saveReflections();
       }
     }, 5000);
     
-    return () => clearInterval(autoSaveInterval);
+    return () => clearTimeout(autoSaveInterval);
   }, [saveReflections, hasChanged, isNewWeekView, navigate]);
 
   if (isLoading) {
