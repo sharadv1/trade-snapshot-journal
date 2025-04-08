@@ -26,10 +26,20 @@ export function MediaUpload({
 }: MediaUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Track last file uploaded to prevent duplicates
+  const [lastUploadedFile, setLastUploadedFile] = useState<{ name: string, time: number } | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Prevent duplicate uploads (same file within 2 seconds)
+    if (lastUploadedFile && 
+        lastUploadedFile.name === file.name && 
+        (Date.now() - lastUploadedFile.time) < 2000) {
+      console.log('Prevented duplicate file upload:', file.name);
+      return;
+    }
 
     if (media.length >= maxFiles) {
       toast.error(`Maximum ${maxFiles} files allowed`);
@@ -52,9 +62,11 @@ export function MediaUpload({
       }
     }
 
+    // Record this upload to prevent duplicates
+    setLastUploadedFile({ name: file.name, time: Date.now() });
     onMediaUpload(file);
     
-    // Clear the input value so the same file can be uploaded again
+    // Clear the input value so the same file can be uploaded again (but not immediately)
     if (event.target.value) event.target.value = '';
   };
 
@@ -74,6 +86,14 @@ export function MediaUpload({
       const file = e.dataTransfer.files[0];
       console.log('File dropped:', file.name, file.type);
       
+      // Prevent duplicate uploads (same file within 2 seconds)
+      if (lastUploadedFile && 
+          lastUploadedFile.name === file.name && 
+          (Date.now() - lastUploadedFile.time) < 2000) {
+        console.log('Prevented duplicate file drag-and-drop:', file.name);
+        return;
+      }
+      
       const isVideoFile = file.type.startsWith('video/');
       
       // Check file size - different limits for images vs videos
@@ -90,6 +110,8 @@ export function MediaUpload({
         }
       }
       
+      // Record this upload to prevent duplicates
+      setLastUploadedFile({ name: file.name, time: Date.now() });
       onMediaUpload(file);
     }
   };

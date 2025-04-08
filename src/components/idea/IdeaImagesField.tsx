@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ImageUpload';
@@ -22,13 +23,24 @@ export function IdeaImagesField({
 }: IdeaImagesFieldProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  // Add this state to prevent duplicate uploads
+  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
   
   const handleFileUpload = (file: File) => {
+    // Prevent duplicate uploads
+    if (isProcessingUpload) {
+      console.log('Upload already in progress, ignoring duplicate request');
+      return;
+    }
+    
+    setIsProcessingUpload(true);
+    
     const isVideoFile = file.type.startsWith('video/');
     
     if (isVideoFile) {
       if (file.size > 10 * 1024 * 1024) {
         toast.error("Videos for trade ideas must be under 10MB");
+        setIsProcessingUpload(false);
         return;
       }
       
@@ -37,6 +49,10 @@ export function IdeaImagesField({
         if (typeof reader.result === 'string') {
           onImageUpload(reader.result);
         }
+        setIsProcessingUpload(false);
+      };
+      reader.onerror = () => {
+        setIsProcessingUpload(false);
       };
       reader.readAsDataURL(file);
       return;
@@ -82,8 +98,16 @@ export function IdeaImagesField({
           
           onImageUpload(compressedBase64);
         }
+        setIsProcessingUpload(false);
+      };
+      img.onerror = () => {
+        setIsProcessingUpload(false);
       };
       img.src = reader.result as string;
+    };
+    
+    reader.onerror = () => {
+      setIsProcessingUpload(false);
     };
     
     reader.readAsDataURL(file);
@@ -128,7 +152,7 @@ export function IdeaImagesField({
         images={images}
         onImageUpload={handleFileUpload}
         onImageRemove={onImageRemove}
-        disabled={isReadOnly}
+        disabled={isReadOnly || isProcessingUpload}
         maxImages={3}
         acceptVideos={true}
       />

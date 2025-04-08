@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, X, Play, Video } from 'lucide-react';
@@ -24,10 +23,20 @@ export function ImageUpload({
 }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Track last file uploaded to prevent duplicates
+  const [lastUploadedFile, setLastUploadedFile] = useState<{ name: string, time: number } | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Prevent duplicate uploads (same file within 2 seconds)
+    if (lastUploadedFile && 
+        lastUploadedFile.name === file.name && 
+        (Date.now() - lastUploadedFile.time) < 2000) {
+      console.log('Prevented duplicate file upload:', file.name);
+      return;
+    }
 
     if (images.length >= maxImages) {
       toast.error(`Maximum ${maxImages} files allowed`);
@@ -56,9 +65,11 @@ export function ImageUpload({
       }
     }
 
+    // Record this upload to prevent duplicates
+    setLastUploadedFile({ name: file.name, time: Date.now() });
     onImageUpload(file);
     
-    // Clear the input value so the same file can be uploaded again
+    // Clear the input value so the same file can be uploaded again (but not immediately)
     if (event.target.value) event.target.value = '';
   };
 
@@ -77,6 +88,14 @@ export function ImageUpload({
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
       console.log('File dropped in ImageUpload:', file.name, file.type);
+      
+      // Prevent duplicate uploads (same file within 2 seconds)
+      if (lastUploadedFile && 
+          lastUploadedFile.name === file.name && 
+          (Date.now() - lastUploadedFile.time) < 2000) {
+        console.log('Prevented duplicate file drag-and-drop:', file.name);
+        return;
+      }
       
       const isVideoFile = file.type.startsWith('video/');
       
@@ -100,6 +119,8 @@ export function ImageUpload({
         }
       }
       
+      // Record this upload to prevent duplicates
+      setLastUploadedFile({ name: file.name, time: Date.now() });
       onImageUpload(file);
       console.log('File dropped and being processed:', file.name);
     }
@@ -163,8 +184,19 @@ export function ImageUpload({
               isDragging ? 'border-primary bg-primary/10' : 'border-gray-300'
             } transition-colors cursor-pointer`}
             onClick={() => fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!disabled) {
+                setIsDragging(true);
+                console.log('Drag over detected in ImageUpload');
+              }
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsDragging(false);
+            }}
             onDrop={handleDrop}
           >
             <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
