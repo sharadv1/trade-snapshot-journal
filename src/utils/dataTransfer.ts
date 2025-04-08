@@ -34,8 +34,12 @@ export const exportTradesToFile = async () => {
     const ideas = getIdeas();
     const strategies = getStrategies();
     const symbols = getAllSymbols();
-    const weeklyReflections = getWeeklyReflections();
-    const monthlyReflections = getMonthlyReflections();
+    const weeklyReflectionsObj = getWeeklyReflections();
+    const monthlyReflectionsObj = getMonthlyReflections();
+    
+    // Convert reflection objects to arrays for the export summary
+    const weeklyReflectionsArray = Object.values(weeklyReflectionsObj);
+    const monthlyReflectionsArray = Object.values(monthlyReflectionsObj);
     
     // Store the export summary
     lastExportSummary = {
@@ -43,8 +47,8 @@ export const exportTradesToFile = async () => {
       ideas,
       strategies,
       symbols,
-      weeklyReflections,
-      monthlyReflections
+      weeklyReflections: weeklyReflectionsArray,
+      monthlyReflections: monthlyReflectionsArray
     };
 
     // Create a data object with all elements
@@ -53,8 +57,8 @@ export const exportTradesToFile = async () => {
       ideas,
       strategies,
       symbols,
-      weeklyReflections,
-      monthlyReflections,
+      weeklyReflections: weeklyReflectionsObj,
+      monthlyReflections: monthlyReflectionsObj,
       version: "1.1",
       exportDate: new Date().toISOString()
     };
