@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, ChevronDown, ChevronUp, Star, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Edit, ChevronDown, ChevronUp, Star, AlertTriangle, Ratio } from 'lucide-react';
 import { format } from 'date-fns';
 import { getTradeById } from '@/utils/storage/tradeOperations';
 import { Button } from '@/components/ui/button';
@@ -343,6 +343,16 @@ export default function TradeDetail() {
                 <div>
                   <p className="text-sm text-muted-foreground">Potential Reward</p>
                   <p className="font-medium">${metrics.maxPotentialGain.toFixed(2)}</p>
+                </div>
+              )}
+              
+              {metrics && metrics.riskRewardRatio !== undefined && metrics.riskRewardRatio > 0 && (
+                <div className="col-span-2 bg-muted/30 p-3 rounded-md flex items-center">
+                  <Ratio className="h-5 w-5 mr-2 text-primary" />
+                  <div>
+                    <span className="font-medium">Risk-Reward Ratio: </span>
+                    <span className="font-mono">{metrics.riskRewardRatio.toFixed(2)}:1</span>
+                  </div>
                 </div>
               )}
             </div>
