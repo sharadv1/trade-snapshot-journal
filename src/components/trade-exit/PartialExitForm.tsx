@@ -46,17 +46,21 @@ export function PartialExitForm({
         <Input
           id="partialQuantity"
           type="number"
-          min="1"
+          min="0.000000001"
           max={remainingQuantity}
-          step="1"
+          step="any"
           value={partialQuantity}
           onChange={(e) => setPartialQuantity(Number(e.target.value))}
           required
           disabled={isClosedTradeConversion} // Disable if this is a closed trade conversion
         />
-        {isClosedTradeConversion && (
+        {isClosedTradeConversion ? (
           <p className="text-xs text-muted-foreground">
             Full quantity used for closed trade
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Supports small values (e.g. 0.000033432). Max: {remainingQuantity}
           </p>
         )}
       </div>
@@ -70,7 +74,7 @@ export function PartialExitForm({
           id="partialExitPrice"
           type="number"
           min="0"
-          step="0.01"
+          step="any"
           value={partialExitPrice || ''}
           onChange={(e) => setPartialExitPrice(Number(e.target.value))}
           required
@@ -100,7 +104,7 @@ export function PartialExitForm({
           id="partialFees"
           type="number"
           min="0"
-          step="0.01"
+          step="any"
           value={partialFees || ''}
           onChange={(e) => setPartialFees(e.target.value ? Number(e.target.value) : undefined)}
         />

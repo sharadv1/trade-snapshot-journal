@@ -111,12 +111,11 @@ export const getTradeMetrics = (trade: Trade) => {
 
   if (riskedAmount !== 0) {
     rMultiple = profitLoss / riskedAmount;
-
     // No capping of R-multiple values
 
     if (maxPotentialGain) {
       riskRewardRatio = maxPotentialGain / riskedAmount;
-      // Remove the risk-reward ratio cap as well
+      // No capping of risk-reward ratio
     }
   } else {
     calculationExplanation += 'Risked amount is zero. Cannot calculate R-multiple or risk-reward ratio. ';
@@ -131,8 +130,8 @@ export const getTradeMetrics = (trade: Trade) => {
   // Always include calculation details for clarity
   if (calculationExplanation === '') {
     // If no issues found, add basic calculation info
-    calculationExplanation = `Entry: ${trade.entryPrice}, Exit: ${weightedExitPrice?.toFixed(4) || trade.exitPrice}, Stop: ${trade.stopLoss}. `;
-    calculationExplanation += `P&L: $${profitLoss.toFixed(2)}, Risk: $${riskedAmount.toFixed(2)}, R-Multiple: ${rMultiple.toFixed(4)}`;
+    calculationExplanation = `Entry: ${trade.entryPrice}, Exit: ${weightedExitPrice?.toFixed(8) || trade.exitPrice}, Stop: ${trade.stopLoss}. `;
+    calculationExplanation += `P&L: $${profitLoss.toFixed(8)}, Risk: $${riskedAmount.toFixed(8)}, R-Multiple: ${rMultiple.toFixed(8)}`;
   }
 
   return {

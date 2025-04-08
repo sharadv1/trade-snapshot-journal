@@ -8,6 +8,18 @@
  */
 export function formatCurrency(value: number | undefined | null): string {
   if (value === undefined || value === null) return '$0.00';
+  
+  // For very small values, use more decimal places
+  const absValue = Math.abs(value);
+  if (absValue > 0 && absValue < 0.01) {
+    return new Intl.NumberFormat('en-US', { 
+      style: 'currency', 
+      currency: 'USD',
+      minimumFractionDigits: 8,
+      maximumFractionDigits: 8
+    }).format(value);
+  }
+  
   return new Intl.NumberFormat('en-US', { 
     style: 'currency', 
     currency: 'USD',
@@ -28,9 +40,17 @@ export function formatPercentage(value: number | undefined | null): string {
 }
 
 /**
- * Format a decimal number to at most 2 decimal places
+ * Format a decimal number with appropriate decimal places
+ * Uses more decimal places for very small numbers
  */
 export function formatDecimal(value: number | undefined | null): string {
   if (value === undefined || value === null) return '0.00';
+  
+  // For very small non-zero values, use more decimal places
+  const absValue = Math.abs(value);
+  if (absValue > 0 && absValue < 0.01) {
+    return Number(value).toFixed(8);
+  }
+  
   return Number(value).toFixed(2);
 }

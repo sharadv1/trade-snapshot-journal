@@ -152,6 +152,7 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
                   <Input 
                     id="entry-price" 
                     type="number"
+                    step="any"
                     placeholder="0.00"
                     value={entryPrice}
                     onChange={(e) => setEntryPrice(e.target.value)}
@@ -165,10 +166,13 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
               <Input 
                 id="quantity" 
                 type="number"
+                step="any"
+                min="0.000000001"
                 placeholder="0"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground mt-1">Supports small values (e.g. 0.000033432)</p>
             </div>
           </div>
           
@@ -204,6 +208,7 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
                     <Input 
                       id="exit-price" 
                       type="number"
+                      step="any"
                       placeholder="0.00"
                       value={exitPrice}
                       onChange={(e) => setExitPrice(e.target.value)}

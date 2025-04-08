@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Trade, TRADE_TYPES, TradeType } from '@/types';
 import { Label } from '@/components/ui/label';
@@ -150,11 +149,14 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
         <Input
           id="quantity"
           type="number"
+          step="any"
+          min="0.000000001"
           placeholder="Quantity"
           value={trade.quantity || ''}
-          onChange={(e) => onTradeChange('quantity', parseInt(e.target.value) || '')}
+          onChange={(e) => onTradeChange('quantity', parseFloat(e.target.value) || '')}
           disabled={disableEdits}
         />
+        <p className="text-xs text-muted-foreground">Supports small values (e.g. 0.000033432)</p>
       </div>
 
       <div className="space-y-2">
