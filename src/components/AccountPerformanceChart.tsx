@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { TradeWithMetrics } from '@/types';
 import {
@@ -112,11 +111,9 @@ export function AccountPerformanceChart({ trades }: AccountPerformanceChartProps
         <div className="h-[400px]">
           <ChartContainer 
             config={{
-              colors: {
-                profit: { color: chartColors.profit },
-                loss: { color: chartColors.loss },
-                pnl: { color: chartColors.pnl }
-              },
+              profit: { color: chartColors.profit, label: "Profit" },
+              loss: { color: chartColors.loss, label: "Loss" },
+              pnl: { color: chartColors.pnl, label: "P&L" },
               grid: { label: "Show Grid" },
               tooltip: { label: "Show Tooltip" },
               legend: { label: "Show Legend" }
