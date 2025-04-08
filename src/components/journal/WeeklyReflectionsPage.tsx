@@ -41,7 +41,7 @@ export function WeeklyReflectionsPage() {
             return false;
           });
           
-          // Calculate metrics based on actual trade metrics
+          // Calculate metrics using pre-calculated trade metrics
           const totalPnL = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
           const totalR = weekTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
           

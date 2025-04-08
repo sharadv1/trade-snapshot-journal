@@ -41,7 +41,7 @@ export function MonthlyReflectionsPage() {
             return false;
           });
           
-          // Calculate metrics based on actual trade metrics
+          // Calculate metrics using pre-calculated trade metrics
           const totalPnL = monthTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
           const totalR = monthTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
           

@@ -95,15 +95,6 @@ export function TradeCommentsList({
                     ? differenceInDays(parseISO(trade.exitDate), parseISO(trade.entryDate)) 
                     : 0;
                     
-                  // Format risk-reward metrics
-                  const riskReward = trade.metrics.riskRewardRatio !== undefined 
-                    ? trade.metrics.riskRewardRatio.toFixed(2) 
-                    : "N/A";
-                    
-                  const expectedR = trade.stopLoss && trade.takeProfit 
-                    ? Math.abs((trade.takeProfit - trade.entryPrice) / (trade.entryPrice - trade.stopLoss)).toFixed(2)
-                    : "N/A";
-                    
                   return (
                     <div 
                       key={trade.id} 
@@ -123,9 +114,9 @@ export function TradeCommentsList({
                         </div>
                         <div className={`font-medium ${trade.metrics.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {formatCurrency(trade.metrics.profitLoss)}
-                          {trade.metrics.riskRewardRatio !== undefined && (
+                          {trade.metrics.rMultiple !== undefined && (
                             <span className="ml-2">
-                              ({trade.metrics.riskRewardRatio > 0 ? '+' : ''}{riskReward}R)
+                              ({trade.metrics.rMultiple > 0 ? '+' : ''}{trade.metrics.rMultiple.toFixed(2)}R)
                             </span>
                           )}
                         </div>
@@ -146,7 +137,7 @@ export function TradeCommentsList({
                         </div>
                         <div>
                           <span className="text-muted-foreground">R:R setup: </span>
-                          {expectedR !== "N/A" ? `1:${expectedR}` : "N/A"}
+                          {trade.metrics.riskRewardRatio !== undefined ? `1:${trade.metrics.riskRewardRatio.toFixed(2)}` : "N/A"}
                         </div>
                       </div>
                       

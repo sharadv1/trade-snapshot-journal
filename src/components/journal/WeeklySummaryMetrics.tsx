@@ -9,14 +9,18 @@ interface WeeklySummaryMetricsProps {
 }
 
 export function WeeklySummaryMetrics({ trades }: WeeklySummaryMetricsProps) {
+  // Use pre-calculated metrics directly instead of recomputing them
   const totalPnL = trades.reduce((total, trade) => total + (trade.metrics.profitLoss || 0), 0);
   
+  // Use pre-calculated rMultiple values directly
   const totalR = trades.reduce((total, trade) => total + (trade.metrics.rMultiple || 0), 0);
   
+  // Direct count based on pre-calculated profitLoss
   const winCount = trades.filter(trade => (trade.metrics.profitLoss || 0) > 0).length;
   const lossCount = trades.filter(trade => (trade.metrics.profitLoss || 0) < 0).length;
   const winRate = trades.length > 0 ? (winCount / trades.length) * 100 : 0;
   
+  // Use pre-calculated profitLoss directly
   const avgWin = winCount > 0 
     ? trades.filter(trade => (trade.metrics.profitLoss || 0) > 0)
       .reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0) / winCount 
