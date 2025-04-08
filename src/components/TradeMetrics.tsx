@@ -54,6 +54,14 @@ const calculatePerformanceMetrics = (trades: TradeWithMetrics[]) => {
     ? -totalLoss / losingTrades.length 
     : 0;
   
+  // Calculate total R value - using rMultiple instead of riskRewardRatio
+  let totalR = 0;
+  closedTrades.forEach(trade => {
+    if (trade.metrics.rMultiple !== undefined) {
+      totalR += trade.metrics.rMultiple;
+    }
+  });
+  
   // Updated Expectancy calculation
   let expectancy;
   // Get trades with valid risk values
@@ -83,7 +91,8 @@ const calculatePerformanceMetrics = (trades: TradeWithMetrics[]) => {
     expectancy,
     calmarRatio,
     paretoIndex,
-    expectedValue
+    expectedValue,
+    totalR
   };
 };
 

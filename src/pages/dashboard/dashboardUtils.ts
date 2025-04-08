@@ -17,8 +17,8 @@ export function calculateTotalPnL(trades: TradeWithMetrics[]): number {
 
 export function calculateTotalR(trades: TradeWithMetrics[]): number {
   return trades
-    .filter(trade => trade.status === 'closed' && trade.metrics.riskRewardRatio !== undefined)
-    .reduce((sum, trade) => sum + (trade.metrics.riskRewardRatio || 0), 0);
+    .filter(trade => trade.status === 'closed' && trade.metrics.rMultiple !== undefined)
+    .reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
 }
 
 export function calculateAverageWin(trades: TradeWithMetrics[]): number {
