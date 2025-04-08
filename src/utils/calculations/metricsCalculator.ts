@@ -116,11 +116,7 @@ export const getTradeMetrics = (trade: Trade) => {
 
     if (maxPotentialGain) {
       riskRewardRatio = maxPotentialGain / riskedAmount;
-      // Cap risk-reward ratio as well
-      if (riskRewardRatio > 20) {
-        riskRewardRatio = 20;
-        calculationExplanation += 'Extremely high risk-reward ratio was capped to 20. ';
-      }
+      // Remove the risk-reward ratio cap as well
     }
   } else {
     calculationExplanation += 'Risked amount is zero. Cannot calculate R-multiple or risk-reward ratio. ';

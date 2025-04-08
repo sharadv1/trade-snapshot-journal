@@ -308,9 +308,9 @@ export default function TradeDetail() {
                   <div className="mt-4 p-3 bg-muted/30 rounded-md text-sm whitespace-pre-wrap">
                     {metrics.calculationExplanation ? (
                       <div>
-                        <p className={metrics.calculationExplanation.includes('Warning') ? "text-amber-600 font-medium mb-2" : "mb-2"}>
+                        <div className="mb-2">
                           {metrics.calculationExplanation}
-                        </p>
+                        </div>
                         <div className="mt-2 text-xs text-muted-foreground">
                           <p>Entry: {trade.entryPrice} | Exit: {metrics.weightedExitPrice?.toFixed(4) || trade.exitPrice}</p>
                           <p>Stop Loss: {trade.stopLoss} | Risk per share: ${Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString())).toFixed(4)}</p>

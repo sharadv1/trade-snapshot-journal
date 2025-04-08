@@ -117,9 +117,9 @@ export function TradeListTable({
                       <span className={trade.metrics?.profitLoss >= 0 ? 'text-profit' : 'text-loss'}>
                         {formatCurrency(trade.metrics?.profitLoss || 0)}
                       </span>
-                      {trade.metrics?.riskRewardRatio && trade.metrics?.riskedAmount > 0 && (
+                      {trade.metrics?.riskedAmount > 0 && (
                         <span className={`ml-2 ${trade.metrics?.profitLoss >= 0 ? 'text-profit' : 'text-loss'}`}>
-                          ({trade.metrics.riskRewardRatio.toFixed(2)}R)
+                          ({trade.metrics.rMultiple.toFixed(2)}R)
                         </span>
                       )}
                     </div>
