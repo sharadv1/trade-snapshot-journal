@@ -347,6 +347,15 @@ export default function TradeDetail() {
               )}
             </div>
             
+            {trade?.status === 'open' && isOverMaxRisk && (
+              <Alert variant="destructive" className="mb-4 bg-destructive/10 border-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="ml-2">
+                  Warning: This trade exceeds your maximum risk threshold.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {metrics && (
               <>
                 <div className="border-t pt-4 mb-4">
@@ -407,15 +416,6 @@ export default function TradeDetail() {
                       "No calculation details available."
                     )}
                   </div>
-                )}
-                
-                {trade?.status === 'open' && isOverMaxRisk && (
-                  <Alert variant="destructive" className="mt-4 bg-destructive/10 border-destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription className="ml-2">
-                      Warning: This trade exceeds your maximum risk threshold.
-                    </AlertDescription>
-                  </Alert>
                 )}
               </>
             )}
