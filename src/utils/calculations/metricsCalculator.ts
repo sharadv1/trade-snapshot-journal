@@ -84,19 +84,6 @@ export const getTradeMetrics = (trade: Trade) => {
     profitLoss = (exitPrice - entryPrice) * quantity * tradeDirectionMultiplier;
     weightedExitPrice = exitPrice;
     latestExitDate = trade.exitDate;
-  } else {
-    calculationExplanation += 'No exit price or partial exits found. ';
-    return {
-      profitLoss,
-      riskRewardRatio,
-      rMultiple,
-      profitLossPercentage,
-      riskedAmount,
-      maxPotentialGain,
-      calculationExplanation,
-      weightedExitPrice,
-      latestExitDate
-    };
   }
 
   // Calculate risk per share based on entry and stop loss
@@ -106,19 +93,25 @@ export const getTradeMetrics = (trade: Trade) => {
   riskedAmount = riskedAmountPerShare * parseFloat(trade.quantity.toString());
 
   if (trade.takeProfit) {
-    maxPotentialGain = Math.abs(parseFloat(trade.takeProfit.toString()) - parseFloat(trade.entryPrice.toString())) * parseFloat(trade.quantity.toString());
+    const takeProfitValue = parseFloat(trade.takeProfit.toString());
+    const entryPrice = parseFloat(trade.entryPrice.toString());
+    maxPotentialGain = Math.abs(takeProfitValue - entryPrice) * parseFloat(trade.quantity.toString());
+    
+    if (riskedAmount > 0 && maxPotentialGain > 0) {
+      riskRewardRatio = maxPotentialGain / riskedAmount;
+    }
   }
 
-  if (riskedAmount !== 0) {
-    rMultiple = profitLoss / riskedAmount;
-    // No capping of R-multiple values
-
-    if (maxPotentialGain) {
-      riskRewardRatio = maxPotentialGain / riskedAmount;
-      // No capping of risk-reward ratio
+  // For open trades, calculate the rMultiple based on current price or last close
+  if (trade.status === 'open') {
+    // If we have partial exits, we can calculate a partial r-multiple
+    if (profitLoss !== 0 && riskedAmount > 0) {
+      rMultiple = profitLoss / riskedAmount;
     }
-  } else {
-    calculationExplanation += 'Risked amount is zero. Cannot calculate R-multiple or risk-reward ratio. ';
+    
+    calculationExplanation += 'Trade is still open. ';
+  } else if (riskedAmount > 0) {
+    rMultiple = profitLoss / riskedAmount;
   }
 
   if (trade.entryPrice !== 0) {
@@ -130,8 +123,27 @@ export const getTradeMetrics = (trade: Trade) => {
   // Always include calculation details for clarity
   if (calculationExplanation === '') {
     // If no issues found, add basic calculation info
-    calculationExplanation = `Entry: ${trade.entryPrice}, Exit: ${weightedExitPrice?.toFixed(8) || trade.exitPrice}, Stop: ${trade.stopLoss}. `;
-    calculationExplanation += `P&L: $${profitLoss.toFixed(8)}, Risk: $${riskedAmount.toFixed(8)}, R-Multiple: ${rMultiple.toFixed(8)}`;
+    calculationExplanation = `Entry: ${trade.entryPrice}, `;
+    calculationExplanation += trade.status === 'open' ? 
+      `StopLoss: ${trade.stopLoss}, TakeProfit: ${trade.takeProfit || 'Not Set'}. ` :
+      `Exit: ${weightedExitPrice?.toFixed(8) || trade.exitPrice}, Stop: ${trade.stopLoss}. `;
+    
+    calculationExplanation += `Risk: $${riskedAmount.toFixed(2)}`;
+    
+    if (maxPotentialGain > 0) {
+      calculationExplanation += `, Potential Gain: $${maxPotentialGain.toFixed(2)}`;
+    }
+    
+    if (riskRewardRatio > 0) {
+      calculationExplanation += `, R:R Ratio: ${riskRewardRatio.toFixed(2)}:1`;
+    }
+    
+    if (trade.status !== 'open' || profitLoss !== 0) {
+      calculationExplanation += `, P&L: $${profitLoss.toFixed(2)}`;
+      if (rMultiple !== 0) {
+        calculationExplanation += `, R-Multiple: ${rMultiple.toFixed(2)}`;
+      }
+    }
   }
 
   return {

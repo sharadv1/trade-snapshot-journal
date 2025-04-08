@@ -13,12 +13,22 @@ interface RiskParametersFormProps {
 
 export function RiskParametersForm({ trade, handleChange }: RiskParametersFormProps) {
   const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null);
+  const [riskedAmount, setRiskedAmount] = useState<number | null>(null);
+  const [potentialReward, setPotentialReward] = useState<number | null>(null);
 
   // Calculate risk-reward ratio when stopLoss or takeProfit changes
   useEffect(() => {
-    if (trade.stopLoss && trade.takeProfit && trade.entryPrice) {
-      const riskPerUnit = Math.abs(trade.entryPrice - trade.stopLoss);
-      const rewardPerUnit = Math.abs(trade.takeProfit - trade.entryPrice);
+    if (trade.stopLoss && trade.takeProfit && trade.entryPrice && trade.quantity) {
+      const quantity = parseFloat(trade.quantity.toString());
+      const riskPerUnit = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString()));
+      const rewardPerUnit = Math.abs(parseFloat(trade.takeProfit.toString()) - parseFloat(trade.entryPrice.toString()));
+      
+      // Calculate total risk and reward
+      const totalRisk = riskPerUnit * quantity;
+      const totalReward = rewardPerUnit * quantity;
+      
+      setRiskedAmount(totalRisk);
+      setPotentialReward(totalReward);
       
       if (riskPerUnit > 0) {
         const ratio = rewardPerUnit / riskPerUnit;
@@ -28,8 +38,10 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
       }
     } else {
       setRiskRewardRatio(null);
+      setRiskedAmount(null);
+      setPotentialReward(null);
     }
-  }, [trade.stopLoss, trade.takeProfit, trade.entryPrice]);
+  }, [trade.stopLoss, trade.takeProfit, trade.entryPrice, trade.quantity]);
 
   return (
     <div className="space-y-4">
@@ -63,6 +75,30 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
             onChange={(e) => handleChange('takeProfit', parseFloat(e.target.value))}
           />
         </div>
+        
+        {riskedAmount !== null && (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1">
+              <TrendingDown className="h-4 w-4 text-red-500" />
+              Risk Amount
+            </Label>
+            <div className="p-2 border rounded bg-background">
+              ${riskedAmount.toFixed(2)}
+            </div>
+          </div>
+        )}
+        
+        {potentialReward !== null && (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1">
+              <TrendingUp className="h-4 w-4 text-green-500" />
+              Potential Reward
+            </Label>
+            <div className="p-2 border rounded bg-background">
+              ${potentialReward.toFixed(2)}
+            </div>
+          </div>
+        )}
         
         {riskRewardRatio !== null && (
           <div className="col-span-2 bg-muted/30 p-3 rounded-md flex items-center">
