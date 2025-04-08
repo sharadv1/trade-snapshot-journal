@@ -7,7 +7,7 @@ import {
   weeklyReflectionExists,
   getWeeklyReflection
 } from '@/utils/journalStorage';
-import { startOfWeek, endOfWeek, addWeeks, format } from 'date-fns';
+import { startOfWeek, endOfWeek, addWeeks, format, parseISO, isBefore, isEqual } from 'date-fns';
 
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
@@ -65,8 +65,11 @@ export function WeeklyReflectionsPage() {
     };
     
     window.addEventListener('journal-updated', handleUpdate);
+    window.addEventListener('journalUpdated', handleUpdate);
+    
     return () => {
       window.removeEventListener('journal-updated', handleUpdate);
+      window.removeEventListener('journalUpdated', handleUpdate);
     };
   }, []);
   

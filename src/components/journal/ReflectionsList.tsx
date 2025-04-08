@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 
 export interface ReflectionsListProps {
   reflections: WeeklyReflection[] | MonthlyReflection[];
@@ -60,6 +61,14 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
     return 'bg-red-100 text-red-800';
   };
 
+  // Get current week/month ID for the "New" button
+  const getCurrentPeriodId = () => {
+    const today = new Date();
+    return type === 'weekly' 
+      ? format(today, 'yyyy-MM-dd') // Current week ID
+      : format(today, 'yyyy-MM');   // Current month ID
+  };
+
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
@@ -68,7 +77,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
         </h2>
         <div className="w-[200px]"></div>
         <Button asChild>
-          <Link to={`/journal/${type}/${type === 'weekly' ? 'new-week' : 'new-month'}`}>
+          <Link to={`/journal/${type}/${getCurrentPeriodId()}`}>
             <Plus className="mr-2 h-4 w-4" />
             New {type === 'weekly' ? 'Week' : 'Month'}
           </Link>
@@ -116,7 +125,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                       )}
                     </div>
                     <span className={stats.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
-                      {formatCurrency(stats.pnl)}
+                      {formatCurrency(stats.pnL)}
                     </span>
                   </CardTitle>
                 </CardHeader>

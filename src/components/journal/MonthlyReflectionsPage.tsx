@@ -3,8 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { ReflectionsList } from './ReflectionsList';
 import { MonthlyReflection } from '@/types';
 import { 
-  getAllMonthlyReflections,
-  getMonthlyReflection 
+  getAllMonthlyReflections, 
+  monthlyReflectionExists,
+  getMonthlyReflection
 } from '@/utils/journalStorage';
 import { startOfMonth, endOfMonth, addMonths, format } from 'date-fns';
 
@@ -63,8 +64,11 @@ export function MonthlyReflectionsPage() {
     };
     
     window.addEventListener('journal-updated', handleUpdate);
+    window.addEventListener('journalUpdated', handleUpdate);
+    
     return () => {
       window.removeEventListener('journal-updated', handleUpdate);
+      window.removeEventListener('journalUpdated', handleUpdate);
     };
   }, []);
   
