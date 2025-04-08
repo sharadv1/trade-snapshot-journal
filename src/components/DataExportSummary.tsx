@@ -12,12 +12,13 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trade, TradeIdea, Strategy, WeeklyReflection, MonthlyReflection } from '@/types';
+import { SymbolDetails } from '@/utils/symbolStorage';
 
 interface ExportSummaryData {
   trades: Trade[];
   ideas: TradeIdea[];
   strategies: Strategy[];
-  symbols: string[];
+  symbols: SymbolDetails[];
   weeklyReflections: WeeklyReflection[];
   monthlyReflections: MonthlyReflection[];
 }
@@ -220,15 +221,25 @@ export function DataExportSummary({ isOpen, onClose, summaryData }: DataExportSu
                 <div className="p-4">
                   {summaryData.symbols.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {summaryData.symbols.map((symbol, index) => (
-                        <div key={index} className="border rounded-md p-3 text-center">
-                          {symbol}
+                      {summaryData.symbols.map((symbolData, index) => (
+                        <div key={index} className="border rounded-md p-3">
+                          <div className="font-medium">{symbolData.symbol}</div>
+                          {symbolData.type && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Type: {symbolData.type}
+                            </div>
+                          )}
+                          {symbolData.meaning && (
+                            <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                              {symbolData.meaning}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="py-4 text-center text-muted-foreground">
-                      No custom symbols to export
+                      No symbols to export
                     </div>
                   )}
                 </div>
