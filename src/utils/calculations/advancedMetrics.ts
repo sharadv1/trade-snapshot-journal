@@ -68,8 +68,8 @@ export const calculateCalmarRatio = (trades: TradeWithMetrics[]): number => {
     }
   });
   
-  // Prevent division by zero
-  if (maxDrawdown === 0) return 0;
+  // Prevent division by zero or very small drawdowns
+  if (maxDrawdown < 0.01) return 0;
   
   return annualizedReturn / maxDrawdown;
 };
@@ -85,6 +85,8 @@ export const calculateParetoIndex = (trades: TradeWithMetrics[]): number => {
   if (winningTrades.length === 0) return 0;
   
   const totalProfit = winningTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
+  if (totalProfit <= 0) return 0;
+  
   const topTradeCount = Math.max(1, Math.ceil(winningTrades.length * 0.2));
   const topTradesProfit = winningTrades
     .slice(0, topTradeCount)

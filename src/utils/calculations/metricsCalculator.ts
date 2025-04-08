@@ -99,16 +99,22 @@ export const getTradeMetrics = (trade: Trade) => {
     };
   }
 
-  // Calculate risked amount per share based on entry and stop loss
+  // Calculate risk per share based on entry and stop loss
   let riskedAmountPerShare = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString()));
+  let originalRiskedAmountPerShare = riskedAmountPerShare;
   
-  // Check if risked amount is too small (for example, 0.0001 or less)
-  if (riskedAmountPerShare < 0.0001) {
-    calculationExplanation += 'Warning: Very small stop loss distance detected. This can cause extreme R-multiple values. ';
-    // Use a minimum meaningful risk value to avoid division by near-zero
-    riskedAmountPerShare = 0.0001;
+  // Set a minimum risk threshold to avoid unrealistic R-multiples
+  // Minimum risk is set to approximately 0.5% of entry price as a reasonable default
+  const minRiskPercentage = 0.005; // 0.5%
+  const minRiskValue = parseFloat(trade.entryPrice.toString()) * minRiskPercentage;
+  
+  if (riskedAmountPerShare < minRiskValue) {
+    calculationExplanation += `Warning: Very small stop loss distance detected (${riskedAmountPerShare.toFixed(5)}). `;
+    calculationExplanation += `Using minimum risk value of ${minRiskValue.toFixed(5)} to calculate R-multiple. `;
+    riskedAmountPerShare = minRiskValue;
   }
   
+  // Calculate risked amount total
   riskedAmount = riskedAmountPerShare * parseFloat(trade.quantity.toString());
 
   if (trade.takeProfit) {
@@ -119,18 +125,19 @@ export const getTradeMetrics = (trade: Trade) => {
     rMultiple = profitLoss / riskedAmount;
 
     // Cap the R-multiple to a reasonable range to prevent extreme values
-    if (Math.abs(rMultiple) > 100) {
+    if (Math.abs(rMultiple) > 20) {
       const oldRMultiple = rMultiple;
-      rMultiple = Math.sign(rMultiple) * 100;
-      calculationExplanation += `Extremely high R-multiple (${oldRMultiple.toFixed(2)}) was capped to ${rMultiple.toFixed(2)}. Check your stop loss placement. `;
+      rMultiple = Math.sign(rMultiple) * 20;
+      calculationExplanation += `Extremely high R-multiple (${oldRMultiple.toFixed(2)}) was capped to ${rMultiple.toFixed(2)}. `;
+      calculationExplanation += `Original stop distance: ${originalRiskedAmountPerShare.toFixed(5)}, adjusted for calculation: ${riskedAmountPerShare.toFixed(5)}. `;
     }
 
     if (maxPotentialGain) {
       riskRewardRatio = maxPotentialGain / riskedAmount;
       // Cap risk-reward ratio as well
-      if (riskRewardRatio > 100) {
-        riskRewardRatio = 100;
-        calculationExplanation += 'Extremely high risk-reward ratio was capped to 100. Check your take profit and stop loss placement. ';
+      if (riskRewardRatio > 20) {
+        riskRewardRatio = 20;
+        calculationExplanation += 'Extremely high risk-reward ratio was capped to 20. ';
       }
     }
   } else {
