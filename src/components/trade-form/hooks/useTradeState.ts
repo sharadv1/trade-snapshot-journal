@@ -19,7 +19,7 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
       tags: [],
       mistakes: [],
       partialExits: [],
-      pspTime: '', // Properly included now that it's defined in Trade interface
+      pspTime: '',
       timeframe: undefined,
       ideaId: ideaIdFromProps || ''
     }
@@ -81,8 +81,10 @@ export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFro
     setTrade(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleContractDetailsChange = (field: keyof FuturesContractDetails, value: any) => {
-    setContractDetails(prev => ({ ...prev, [field]: value }));
+  // Change this function to accept a single details object instead of field and value
+  const handleContractDetailsChange = (details: Partial<FuturesContractDetails>) => {
+    console.log('Updating contract details:', details);
+    setContractDetails(prev => ({ ...prev, ...details }));
   };
 
   const handleTypeChange = (type: Trade['type']) => {

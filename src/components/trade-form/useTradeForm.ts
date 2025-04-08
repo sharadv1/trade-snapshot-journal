@@ -17,7 +17,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId: st
     contractDetails,
     handleContractDetailsChange,
     pointValue,
-  } = useTradeState(initialTrade, ideaId);
+  } = useTradeState(initialTrade, isEditing, ideaId);
 
   // Initialize images state
   const {

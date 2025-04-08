@@ -173,6 +173,10 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     }
   };
 
+  const handleContractDetailsChangeAdapter = (details: any) => {
+    handleContractDetailsChange(details);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="w-full" id="trade-form" name="trade-form">
       <Card className="border">
@@ -228,7 +232,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
                 onTradeChange={handleChange}
                 onTradeTypeChange={handleTypeChange}
                 contractDetails={contractDetails}
-                onContractDetailsChange={handleContractDetailsChange}
+                onContractDetailsChange={handleContractDetailsChangeAdapter}
                 pointValue={pointValue}
                 maxRisk={maxRisk}
                 disableEdits={false}
