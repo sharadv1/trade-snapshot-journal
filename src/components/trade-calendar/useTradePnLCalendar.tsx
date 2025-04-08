@@ -2,7 +2,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { TradeWithMetrics } from '@/types';
-import { getTradesWithMetrics, getAccounts } from '@/utils/tradeStorage';
+import { getTradesWithMetrics } from '@/utils/tradeStorage';
+import { getAccounts } from '@/utils/accountStorage';
 import { DailyPnL } from './types';
 
 export function useTradePnLCalendar() {

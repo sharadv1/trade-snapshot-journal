@@ -112,10 +112,14 @@ export function AccountPerformanceChart({ trades }: AccountPerformanceChartProps
         <div className="h-[400px]">
           <ChartContainer 
             config={{
-              colors: [chartColors.profit, chartColors.loss, chartColors.pnl],
-              grid: true,
-              tooltip: true,
-              legend: true
+              colors: {
+                profit: { color: chartColors.profit },
+                loss: { color: chartColors.loss },
+                pnl: { color: chartColors.pnl }
+              },
+              grid: { label: "Show Grid" },
+              tooltip: { label: "Show Tooltip" },
+              legend: { label: "Show Legend" }
             }}
           >
             <BarChart

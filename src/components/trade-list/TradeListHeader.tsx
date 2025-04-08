@@ -149,11 +149,11 @@ export function TradeListHeader({
                   <h4 className="font-medium">Date Range</h4>
                   <DateRangeFilterComponent
                     dateRangeFilter={dateRangeFilter}
-                    filterByDate={filterByDate}
-                    filterByWeek={filterByWeek}
-                    filterByMonth={filterByMonth}
-                    filterByDateRange={filterByDateRange}
-                    clearDateFilter={clearDateFilter}
+                    onFilterByDate={filterByDate}
+                    onFilterByWeek={filterByWeek}
+                    onFilterByMonth={filterByMonth}
+                    onFilterByDateRange={filterByDateRange}
+                    onClearFilter={clearDateFilter}
                   />
                 </div>
                 
