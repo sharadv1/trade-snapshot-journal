@@ -99,7 +99,16 @@ export const getTradeMetrics = (trade: Trade) => {
     };
   }
 
+  // Calculate risked amount per share based on entry and stop loss
   const riskedAmountPerShare = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString()));
+  
+  // Check if risked amount is too small (for example, 0.0001 or less)
+  if (riskedAmountPerShare < 0.0001) {
+    calculationExplanation += 'Warning: Very small stop loss distance detected. This can cause extreme R-multiple values. ';
+    // Use a minimum meaningful risk value to avoid division by near-zero
+    riskedAmountPerShare = 0.0001;
+  }
+  
   riskedAmount = riskedAmountPerShare * parseFloat(trade.quantity.toString());
 
   if (trade.takeProfit) {
@@ -109,8 +118,20 @@ export const getTradeMetrics = (trade: Trade) => {
   if (riskedAmount !== 0) {
     rMultiple = profitLoss / riskedAmount;
 
+    // Cap the R-multiple to a reasonable range to prevent extreme values
+    if (Math.abs(rMultiple) > 100) {
+      const oldRMultiple = rMultiple;
+      rMultiple = Math.sign(rMultiple) * 100;
+      calculationExplanation += `Extremely high R-multiple (${oldRMultiple.toFixed(2)}) was capped to ${rMultiple.toFixed(2)}. Check your stop loss placement. `;
+    }
+
     if (maxPotentialGain) {
       riskRewardRatio = maxPotentialGain / riskedAmount;
+      // Cap risk-reward ratio as well
+      if (riskRewardRatio > 100) {
+        riskRewardRatio = 100;
+        calculationExplanation += 'Extremely high risk-reward ratio was capped to 100. Check your take profit and stop loss placement. ';
+      }
     }
   } else {
     calculationExplanation += 'Risked amount is zero. Cannot calculate R-multiple or risk-reward ratio. ';

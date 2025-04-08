@@ -1,132 +1,102 @@
 
 import { TradeWithMetrics } from '@/types';
-import { calculateTotalPnL } from '@/pages/dashboard/dashboardUtils';
+import { startOfMonth, endOfMonth, format, parseISO } from 'date-fns';
 
 /**
- * Calculate the Profit Factor
- * Profit Factor = Gross Profit / Gross Loss
+ * Calculate the profit factor: Gross Profits / Gross Losses
  */
-export function calculateProfitFactor(trades: TradeWithMetrics[]): number {
+export const calculateProfitFactor = (trades: TradeWithMetrics[]): number => {
   const closedTrades = trades.filter(trade => trade.status === 'closed');
-  if (closedTrades.length === 0) return 0;
   
-  const winningTrades = closedTrades.filter(trade => trade.metrics.profitLoss > 0);
-  const losingTrades = closedTrades.filter(trade => trade.metrics.profitLoss < 0);
+  let grossProfit = 0;
+  let grossLoss = 0;
   
-  const grossProfit = winningTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
-  const grossLoss = Math.abs(losingTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0));
+  closedTrades.forEach(trade => {
+    const pnl = trade.metrics.profitLoss;
+    if (pnl > 0) {
+      grossProfit += pnl;
+    } else if (pnl < 0) {
+      grossLoss += Math.abs(pnl);
+    }
+  });
   
-  // Avoid division by zero
+  // Prevent division by zero
   if (grossLoss === 0) {
-    return grossProfit > 0 ? Number.POSITIVE_INFINITY : 0;
+    return grossProfit > 0 ? Infinity : 1; // Return Infinity if there are profits, 1 if no trades
   }
   
   return grossProfit / grossLoss;
-}
+};
 
 /**
- * Calculate the Calmar Ratio
- * Calmar Ratio = Annualized Return / Maximum Drawdown
- * Note: Simplified version using available trade data
+ * Calculate Calmar Ratio: Annualized Return / Maximum Drawdown
  */
-export function calculateCalmarRatio(trades: TradeWithMetrics[]): number {
-  if (trades.length === 0) return 0;
-  const closedTrades = trades.filter(trade => trade.status === 'closed');
-  if (closedTrades.length === 0) return 0;
+export const calculateCalmarRatio = (trades: TradeWithMetrics[]): number => {
+  const closedTrades = trades.filter(trade => 
+    trade.status === 'closed' && trade.exitDate
+  ).sort((a, b) => 
+    new Date(a.exitDate || '').getTime() - new Date(b.exitDate || '').getTime()
+  );
   
-  // Sort trades by date
-  const sortedTrades = [...closedTrades].sort((a, b) => {
-    const dateA = a.exitDate ? new Date(a.exitDate).getTime() : 0;
-    const dateB = b.exitDate ? new Date(b.exitDate).getTime() : 0;
-    return dateA - dateB;
-  });
-  
-  // Get first and last trade dates for time period
-  const firstTradeDate = sortedTrades[0].entryDate ? new Date(sortedTrades[0].entryDate) : new Date();
-  const lastTradeDate = sortedTrades[sortedTrades.length - 1].exitDate ? 
-    new Date(sortedTrades[sortedTrades.length - 1].exitDate) : new Date();
-  
-  // Calculate trading period in years
-  const tradingPeriodMs = lastTradeDate.getTime() - firstTradeDate.getTime();
-  const tradingPeriodYears = tradingPeriodMs / (1000 * 60 * 60 * 24 * 365);
-  
-  // If period is too short, return 0
-  if (tradingPeriodYears < 0.1) return 0;
+  if (closedTrades.length < 2) return 0;
   
   // Calculate annualized return
-  const totalPnL = calculateTotalPnL(trades);
-  const annualizedReturn = totalPnL / tradingPeriodYears;
+  const firstTradeDate = new Date(closedTrades[0].exitDate || '');
+  const lastTradeDate = new Date(closedTrades[closedTrades.length - 1].exitDate || '');
+  const tradingPeriodInDays = (lastTradeDate.getTime() - firstTradeDate.getTime()) / (1000 * 60 * 60 * 24);
+  
+  if (tradingPeriodInDays < 1) return 0;
+  
+  const totalReturn = closedTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
+  const annualizedReturn = (totalReturn / tradingPeriodInDays) * 365;
   
   // Calculate maximum drawdown
-  const maxDrawdown = calculateMaxDrawdown(sortedTrades);
+  let peak = 0;
+  let maxDrawdown = 0;
+  let runningPnL = 0;
   
-  // Avoid division by zero
+  closedTrades.forEach(trade => {
+    runningPnL += trade.metrics.profitLoss;
+    
+    if (runningPnL > peak) {
+      peak = runningPnL;
+    }
+    
+    const drawdown = peak - runningPnL;
+    if (drawdown > maxDrawdown) {
+      maxDrawdown = drawdown;
+    }
+  });
+  
+  // Prevent division by zero
   if (maxDrawdown === 0) return 0;
   
   return annualizedReturn / maxDrawdown;
-}
+};
 
 /**
- * Calculate Maximum Drawdown
+ * Calculate Pareto Index: Percentage of profit from top 20% of winning trades
  */
-function calculateMaxDrawdown(trades: TradeWithMetrics[]): number {
-  if (trades.length === 0) return 0;
-  
-  let cumulativePnL = 0;
-  let peak = 0;
-  let maxDrawdown = 0;
-  
-  trades.forEach(trade => {
-    cumulativePnL += trade.metrics.profitLoss;
-    
-    // Update peak if we have a new high
-    if (cumulativePnL > peak) {
-      peak = cumulativePnL;
-    }
-    
-    // Calculate current drawdown and update max if needed
-    const currentDrawdown = peak - cumulativePnL;
-    if (currentDrawdown > maxDrawdown) {
-      maxDrawdown = currentDrawdown;
-    }
-  });
-  
-  return maxDrawdown;
-}
-
-/**
- * Calculate Pareto Index (80/20 rule analysis)
- * Measures what percentage of profits come from the top 20% of trades
- */
-export function calculateParetoIndex(trades: TradeWithMetrics[]): number {
-  const profitableTrades = trades
+export const calculateParetoIndex = (trades: TradeWithMetrics[]): number => {
+  const winningTrades = trades
     .filter(trade => trade.status === 'closed' && trade.metrics.profitLoss > 0)
     .sort((a, b) => b.metrics.profitLoss - a.metrics.profitLoss);
   
-  if (profitableTrades.length === 0) return 0;
+  if (winningTrades.length === 0) return 0;
   
-  const totalProfit = profitableTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
-  
-  // If no profit, return 0
-  if (totalProfit <= 0) return 0;
-  
-  // Calculate the number of trades that make up the top 20%
-  const top20PercentCount = Math.max(1, Math.ceil(profitableTrades.length * 0.2));
-  
-  // Sum the profits from the top 20% of trades
-  const top20PercentProfit = profitableTrades
-    .slice(0, top20PercentCount)
+  const totalProfit = winningTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
+  const topTradeCount = Math.max(1, Math.ceil(winningTrades.length * 0.2));
+  const topTradesProfit = winningTrades
+    .slice(0, topTradeCount)
     .reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
   
-  // Calculate what percentage of total profit comes from top 20% of trades
-  return (top20PercentProfit / totalProfit) * 100;
-}
+  return (topTradesProfit / totalProfit) * 100;
+};
 
 /**
- * Calculate Expected Value
- * Expected Value = (Win Rate × Average Win) - (Loss Rate × Average Loss)
+ * Calculate Expected Value: (Win Rate * Average Win) - (Loss Rate * Average Loss)
  */
-export function calculateExpectedValue(trades: TradeWithMetrics[]): number {
+export const calculateExpectedValue = (trades: TradeWithMetrics[]): number => {
   const closedTrades = trades.filter(trade => trade.status === 'closed');
   if (closedTrades.length === 0) return 0;
   
@@ -145,4 +115,49 @@ export function calculateExpectedValue(trades: TradeWithMetrics[]): number {
     : 0;
   
   return (winRate * avgWin) - (lossRate * avgLoss);
-}
+};
+
+/**
+ * Get monthly performance data for trades
+ */
+export const getMonthlyPerformanceData = (trades: TradeWithMetrics[]) => {
+  const closedTrades = trades.filter(trade => 
+    trade.status === 'closed' && trade.exitDate
+  );
+  
+  // Group trades by month
+  const tradesByMonth: Record<string, TradeWithMetrics[]> = {};
+  
+  closedTrades.forEach(trade => {
+    if (!trade.exitDate) return;
+    
+    const exitDate = parseISO(trade.exitDate);
+    const monthStart = startOfMonth(exitDate);
+    const monthKey = format(monthStart, 'yyyy-MM');
+    
+    if (!tradesByMonth[monthKey]) {
+      tradesByMonth[monthKey] = [];
+    }
+    
+    tradesByMonth[monthKey].push(trade);
+  });
+  
+  // Calculate metrics for each month
+  return Object.entries(tradesByMonth).map(([monthKey, monthTrades]) => {
+    const month = format(parseISO(`${monthKey}-01`), 'MMM yyyy');
+    const totalPnL = monthTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
+    const winningTrades = monthTrades.filter(trade => trade.metrics.profitLoss > 0);
+    const winRate = (winningTrades.length / monthTrades.length) * 100;
+    
+    return {
+      month,
+      monthKey,
+      trades: monthTrades.length,
+      pnl: totalPnL,
+      winRate
+    };
+  }).sort((a, b) => {
+    // Sort by date (latest months first)
+    return b.monthKey.localeCompare(a.monthKey);
+  });
+};

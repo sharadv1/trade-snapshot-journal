@@ -285,11 +285,11 @@ export default function TradeDetail() {
                       </div>
                     )}
                     
-                    {metrics.riskRewardRatio !== undefined && (
+                    {metrics.rMultiple !== undefined && (
                       <div>
                         <p className="text-sm text-muted-foreground">R Multiple</p>
-                        <p className={`font-medium ${metrics.riskRewardRatio >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {metrics.riskRewardRatio > 0 ? `+${metrics.riskRewardRatio.toFixed(2)}` : metrics.riskRewardRatio.toFixed(2)}R
+                        <p className={`font-medium ${metrics.rMultiple >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {metrics.rMultiple > 0 ? `+${metrics.rMultiple.toFixed(2)}` : metrics.rMultiple.toFixed(2)}R
                         </p>
                       </div>
                     )}
@@ -304,9 +304,23 @@ export default function TradeDetail() {
                   {showCalculationDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
                 
-                {showCalculationDetails && metrics.calculationExplanation && (
+                {showCalculationDetails && (
                   <div className="mt-4 p-3 bg-muted/30 rounded-md text-sm whitespace-pre-wrap">
-                    {metrics.calculationExplanation}
+                    {metrics.calculationExplanation ? (
+                      <div>
+                        <p className={metrics.calculationExplanation.includes('Warning') ? "text-amber-600 font-medium mb-2" : "mb-2"}>
+                          {metrics.calculationExplanation}
+                        </p>
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          <p>Entry: {trade.entryPrice} | Exit: {metrics.weightedExitPrice?.toFixed(4) || trade.exitPrice}</p>
+                          <p>Stop Loss: {trade.stopLoss} | Risk per share: ${Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString())).toFixed(4)}</p>
+                          <p>P&L: ${metrics.profitLoss.toFixed(2)} | Risked: ${metrics.riskedAmount.toFixed(2)}</p>
+                          <p>R-Multiple = P&L ÷ Risked Amount = {metrics.rMultiple.toFixed(4)}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      "No calculation details available."
+                    )}
                   </div>
                 )}
               </>
