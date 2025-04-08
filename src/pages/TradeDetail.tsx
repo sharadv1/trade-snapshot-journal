@@ -26,7 +26,16 @@ const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
     'h4': '4 Hours (H4)',
     'd1': 'Daily (D1)',
     'w1': 'Weekly (W1)',
-    'm1': 'Monthly (M1)'
+    'm1': 'Monthly (M1)',
+    '1m': '1 Minute',
+    '5m': '5 Minutes',
+    '15m': '15 Minutes',
+    '30m': '30 Minutes',
+    '1h': '1 Hour',
+    '4h': '4 Hours',
+    'D': 'Daily',
+    'W': 'Weekly',
+    'M': 'Monthly'
   };
   
   return timeframeDisplayMap[timeframe] || timeframe;
@@ -160,7 +169,7 @@ export default function TradeDetail() {
           </h1>
           <div className="flex items-center space-x-4 mt-1">
             {trade.account && (
-              <span className="px-3 py-1 bg-muted rounded-full text-sm">{trade.account}</span>
+              <span className="px-3 py-1 bg-muted rounded-full text-sm">{trade.account || 'Not specified'}</span>
             )}
             <span className="px-3 py-1 bg-muted rounded-full text-sm">{trade.status === 'closed' ? 'Closed' : 'Open'}</span>
             <span className="px-3 py-1 bg-muted rounded-full text-sm">{getStrategyName(trade.strategy)}</span>
@@ -191,17 +200,21 @@ export default function TradeDetail() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-y-4">
-              {trade.account && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Account</p>
-                  <p className="font-medium">{trade.account}</p>
-                </div>
-              )}
+              <div>
+                <p className="text-sm text-muted-foreground">Account</p>
+                <p className="font-medium">{trade.account || 'Not specified'}</p>
+              </div>
+              
+              <div>
+                <p className="text-sm text-muted-foreground">Strategy</p>
+                <p className="font-medium">{getStrategyName(trade.strategy)}</p>
+              </div>
               
               <div>
                 <p className="text-sm text-muted-foreground">Entry Date</p>
                 <p className="font-medium">{format(new Date(trade.entryDate), 'MM/dd/yyyy')}</p>
               </div>
+              
               <div>
                 <p className="text-sm text-muted-foreground">Entry Price</p>
                 <p className="font-medium">{trade.entryPrice}</p>
@@ -224,6 +237,7 @@ export default function TradeDetail() {
                 <p className="text-sm text-muted-foreground">Quantity</p>
                 <p className="font-medium">{trade.quantity}</p>
               </div>
+              
               <div>
                 <p className="text-sm text-muted-foreground">Type</p>
                 <p className="font-medium">
@@ -235,6 +249,16 @@ export default function TradeDetail() {
                 </p>
               </div>
               
+              <div>
+                <p className="text-sm text-muted-foreground">Direction</p>
+                <p className="font-medium">{trade.direction === 'long' ? 'Long' : 'Short'}</p>
+              </div>
+              
+              <div>
+                <p className="text-sm text-muted-foreground">Timeframe</p>
+                <p className="font-medium">{getTimeframeDisplayValue(trade.timeframe) || 'Not specified'}</p>
+              </div>
+              
               {trade.pspTime && (
                 <div>
                   <p className="text-sm text-muted-foreground">PSP Time</p>
@@ -242,17 +266,10 @@ export default function TradeDetail() {
                 </div>
               )}
               
-              {trade.timeframe && (
+              {trade.ssmtQuarters && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Timeframe</p>
-                  <p className="font-medium">{getTimeframeDisplayValue(trade.timeframe)}</p>
-                </div>
-              )}
-              
-              {trade.direction && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Direction</p>
-                  <p className="font-medium">{trade.direction === 'long' ? 'Long' : 'Short'}</p>
+                  <p className="text-sm text-muted-foreground">SSMT Quarters</p>
+                  <p className="font-medium">{trade.ssmtQuarters}</p>
                 </div>
               )}
             </div>
