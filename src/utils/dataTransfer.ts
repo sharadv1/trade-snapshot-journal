@@ -1,4 +1,3 @@
-
 import { Trade, TradeIdea, Strategy, WeeklyReflection, MonthlyReflection } from '@/types';
 import { getTrades, saveTrades } from './storage/storageCore';
 import { getIdeas, saveIdeas } from './ideaStorage';
@@ -8,7 +7,9 @@ import {
   getWeeklyReflections, 
   getMonthlyReflections,
   saveWeeklyReflectionObject,
-  saveMonthlyReflectionObject
+  saveMonthlyReflectionObject,
+  weeklyReflectionExists,
+  monthlyReflectionExists
 } from './journalStorage';
 import { toast } from './toast';
 
@@ -304,20 +305,48 @@ const importData = (jsonData: string): boolean => {
       // Import weekly journal reflections (new in v1.1)
       if (data.weeklyReflections) {
         const weeklyReflectionsArray = Object.values(data.weeklyReflections);
+        const existingReflections = getWeeklyReflections();
+        let importedCount = 0;
+        
         weeklyReflectionsArray.forEach((reflection: any) => {
-          saveWeeklyReflectionObject(reflection as WeeklyReflection);
+          if (reflection && typeof reflection === 'object' && 'id' in reflection) {
+            const reflectionObj = reflection as WeeklyReflection;
+            
+            // Check if this reflection already exists before saving
+            if (reflectionObj.weekId && !weeklyReflectionExists(reflectionObj.weekId)) {
+              saveWeeklyReflectionObject(reflectionObj as WeeklyReflection);
+              importedCount++;
+            } else {
+              console.log(`Skipping duplicate weekly reflection: ${reflectionObj.weekId}`);
+            }
+          }
         });
-        console.log(`Imported ${weeklyReflectionsArray.length} weekly reflections`);
+        
+        console.log(`Imported ${importedCount} of ${weeklyReflectionsArray.length} weekly reflections (skipped duplicates)`);
         lastImportSummary.weeklyReflections = weeklyReflectionsArray;
       }
       
       // Import monthly journal reflections (new in v1.1)
       if (data.monthlyReflections) {
         const monthlyReflectionsArray = Object.values(data.monthlyReflections);
+        const existingReflections = getMonthlyReflections();
+        let importedCount = 0;
+        
         monthlyReflectionsArray.forEach((reflection: any) => {
-          saveMonthlyReflectionObject(reflection as MonthlyReflection);
+          if (reflection && typeof reflection === 'object' && 'id' in reflection) {
+            const reflectionObj = reflection as MonthlyReflection;
+            
+            // Check if this reflection already exists before saving
+            if (reflectionObj.monthId && !monthlyReflectionExists(reflectionObj.monthId)) {
+              saveMonthlyReflectionObject(reflectionObj as MonthlyReflection);
+              importedCount++;
+            } else {
+              console.log(`Skipping duplicate monthly reflection: ${reflectionObj.monthId}`);
+            }
+          }
         });
-        console.log(`Imported ${monthlyReflectionsArray.length} monthly reflections`);
+        
+        console.log(`Imported ${importedCount} of ${monthlyReflectionsArray.length} monthly reflections (skipped duplicates)`);
         lastImportSummary.monthlyReflections = monthlyReflectionsArray;
       }
       
