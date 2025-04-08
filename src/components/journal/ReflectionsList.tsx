@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -71,14 +72,22 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
     }
   };
 
-  // Check if a reflection has actual content
-  const hasReflectionContent = (reflection: WeeklyReflection | MonthlyReflection): boolean => {
+  // Check if a reflection has actual content - now respecting the isPlaceholder flag
+  const hasContent = (reflection: WeeklyReflection | MonthlyReflection): boolean => {
+    // First check if our stats function says it has content
+    const statsHasContent = getStats(reflection).hasContent;
+    
+    // Also check for isPlaceholder flag
+    if ('isPlaceholder' in reflection && reflection.isPlaceholder === true) {
+      return false;
+    }
+    
     if (type === 'weekly') {
       const weeklyReflection = reflection as WeeklyReflection;
-      return !!(weeklyReflection.reflection || weeklyReflection.weeklyPlan);
+      return !!(weeklyReflection.reflection || weeklyReflection.weeklyPlan) && statsHasContent;
     } else {
       const monthlyReflection = reflection as MonthlyReflection;
-      return !!monthlyReflection.reflection;
+      return !!monthlyReflection.reflection && statsHasContent;
     }
   };
 
@@ -141,18 +150,21 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
               }
             }
             
-            // Get actual content status using stats.hasContent
-            const hasContent = stats.hasContent;
-              
+            // Determine if reflection has content - accounting for the isPlaceholder flag
+            const reflectionHasContent = hasContent(reflection);
+            
             // Get the grade
             const grade = type === 'weekly' 
               ? (reflection as WeeklyReflection).grade 
               : (reflection as MonthlyReflection).grade;
 
+            // Check if this is explicitly marked as a placeholder
+            const isPlaceholder = 'isPlaceholder' in reflection && reflection.isPlaceholder === true;
+
             return (
               <Card 
                 key={id} 
-                className={`hover:bg-accent/10 transition-colors ${stats.tradeCount > 0 || hasContent ? '' : 'opacity-70'}`}
+                className={`hover:bg-accent/10 transition-colors ${stats.tradeCount > 0 || reflectionHasContent ? '' : 'opacity-70'}`}
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-medium flex justify-between">
@@ -178,12 +190,12 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                     
                     <Button 
                       asChild
-                      variant={hasContent ? "outline" : "default"}
+                      variant={reflectionHasContent ? "outline" : "default"}
                       size="sm"
-                      className={hasContent ? "border-blue-400 hover:bg-blue-50 hover:text-blue-600" : "bg-green-600 hover:bg-green-700"}
+                      className={reflectionHasContent ? "border-blue-400 hover:bg-blue-50 hover:text-blue-600" : "bg-green-600 hover:bg-green-700"}
                     >
                       <Link to={`/journal/${type}/${id}`}>
-                        {hasContent ? (
+                        {reflectionHasContent ? (
                           <>
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit Reflection

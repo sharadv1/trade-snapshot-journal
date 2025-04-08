@@ -16,26 +16,26 @@ export function MonthlyReflectionsPage() {
   useEffect(() => {
     // Generate all months from start of 2025
     const generateAllMonths = () => {
-      const allMonths: MonthlyReflection[] = [];
+      const monthMap = new Map<string, MonthlyReflection>(); // Use a map to prevent duplicates
       const start = new Date(2025, 0, 1); // January 1, 2025
       const today = new Date();
       
-      let currentDate = startOfMonth(start);
+      // First, collect all existing reflections from storage
+      const existingReflections = getAllMonthlyReflections();
       
-      while (currentDate <= today) {
-        const monthId = format(currentDate, 'yyyy-MM');
-        const monthEnd = endOfMonth(currentDate);
-        
-        // Check if a reflection already exists for this month
-        const existingReflection = getMonthlyReflection(monthId);
-        
-        if (existingReflection) {
-          // Pre-calculate metrics for existing reflection
+      Object.values(existingReflections).forEach(reflection => {
+        if (reflection && typeof reflection === 'object' && 'id' in reflection) {
+          const reflectionObj = reflection as MonthlyReflection;
+          
+          // Skip placeholders or empty reflections
+          if (!reflectionObj.monthId) return;
+          
+          // Calculate metrics for this reflection
           const monthTrades = getTradesWithMetrics().filter(trade => {
-            if (trade.exitDate) {
+            if (trade.exitDate && reflectionObj.monthStart && reflectionObj.monthEnd) {
               const exitDate = new Date(trade.exitDate);
-              const monthStart = new Date(existingReflection.monthStart);
-              const monthEndDate = new Date(existingReflection.monthEnd);
+              const monthStart = new Date(reflectionObj.monthStart);
+              const monthEndDate = new Date(reflectionObj.monthEnd);
               return exitDate >= monthStart && exitDate <= monthEndDate;
             }
             return false;
@@ -46,33 +46,57 @@ export function MonthlyReflectionsPage() {
           const totalR = monthTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
           
           // Include additional metrics in the reflection object
-          allMonths.push({
-            ...existingReflection,
+          monthMap.set(reflectionObj.monthId, {
+            ...reflectionObj,
             totalPnL,
             totalR,
-            tradeIds: monthTrades.map(trade => trade.id)
+            tradeIds: monthTrades.map(trade => trade.id),
+            isPlaceholder: false
           });
-        } else {
-          // Create a placeholder reflection
-          allMonths.push({
+        }
+      });
+      
+      // Then, generate placeholder reflections for months that don't exist yet
+      let currentDate = startOfMonth(start);
+      
+      while (currentDate <= today) {
+        const monthId = format(currentDate, 'yyyy-MM');
+        const monthEnd = endOfMonth(currentDate);
+        
+        // Only add a placeholder if this month doesn't already exist in our map
+        if (!monthMap.has(monthId)) {
+          // Check if there are any trades for this month
+          const monthTrades = getTradesWithMetrics().filter(trade => {
+            if (trade.exitDate) {
+              const exitDate = new Date(trade.exitDate);
+              return exitDate >= currentDate && exitDate <= monthEnd;
+            }
+            return false;
+          });
+          
+          const totalPnL = monthTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
+          const totalR = monthTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
+          
+          // Create a placeholder reflection with trade info
+          monthMap.set(monthId, {
             id: monthId,
             monthId: monthId,
             monthStart: currentDate.toISOString(),
             monthEnd: monthEnd.toISOString(),
             reflection: '',
             grade: '',
-            tradeIds: [],
+            tradeIds: monthTrades.map(trade => trade.id),
             isPlaceholder: true,
-            totalPnL: 0,
-            totalR: 0
+            totalPnL,
+            totalR
           });
         }
         
         currentDate = addMonths(currentDate, 1);
       }
       
-      return allMonths.sort((a, b) => {
-        // Sort by month start date (most recent first)
+      // Convert map to array and sort by date (most recent first)
+      return Array.from(monthMap.values()).sort((a, b) => {
         if (!a.monthStart || !b.monthStart) return 0;
         return new Date(b.monthStart).getTime() - new Date(a.monthStart).getTime();
       });
@@ -104,7 +128,8 @@ export function MonthlyReflectionsPage() {
       pnl: reflection.totalPnL || 0,
       rValue: reflection.totalR || 0,
       tradeCount: reflection.tradeIds?.length || 0,
-      hasContent: !!reflection.reflection
+      // Correctly determine if the reflection has content
+      hasContent: !!reflection.reflection && !reflection.isPlaceholder
     };
   };
   

@@ -22,6 +22,7 @@ export function WeeklyReflectionsPage() {
       
       // First, collect all existing reflections from storage
       const existingReflections = getAllWeeklyReflections();
+      
       Object.values(existingReflections).forEach(reflection => {
         if (reflection && typeof reflection === 'object' && 'id' in reflection) {
           const reflectionObj = reflection as WeeklyReflection;
@@ -43,12 +44,14 @@ export function WeeklyReflectionsPage() {
           const totalPnL = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
           const totalR = weekTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
           
-          // Add to map with enriched data
+          // Add to map with enriched data - this prevents duplicates by weekId
           weekMap.set(reflectionObj.weekId, {
             ...reflectionObj,
             totalPnL,
             totalR,
-            tradeIds: weekTrades.map(trade => trade.id)
+            tradeIds: weekTrades.map(trade => trade.id),
+            // Make sure we properly identify non-placeholder reflections
+            isPlaceholder: false
           });
         }
       });
@@ -84,7 +87,7 @@ export function WeeklyReflectionsPage() {
             weeklyPlan: '',
             grade: '',
             tradeIds: weekTrades.map(trade => trade.id),
-            isPlaceholder: true,
+            isPlaceholder: true, // Explicitly mark as placeholder
             totalPnL,
             totalR
           });
@@ -126,7 +129,8 @@ export function WeeklyReflectionsPage() {
       pnl: reflection.totalPnL || 0,
       rValue: reflection.totalR || 0,
       tradeCount: reflection.tradeIds?.length || 0,
-      hasContent: !!reflection.reflection || !!reflection.weeklyPlan
+      // Correctly determine if the reflection has content
+      hasContent: !!(reflection.reflection || reflection.weeklyPlan) && !reflection.isPlaceholder
     };
   };
   
