@@ -34,6 +34,14 @@ export function NotesAndImagesForm({
     type: isVideo(url) ? 'video' : 'image' as 'video' | 'image'
   }));
 
+  // Improved handler for file upload
+  const handleFileUpload = (file: File) => {
+    console.log('NotesAndImagesForm: File upload requested', file.name);
+    if (file) {
+      onImageUpload(file);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -51,7 +59,7 @@ export function NotesAndImagesForm({
         <Label>Media Files</Label>
         <MediaUpload 
           media={mediaFiles}
-          onMediaUpload={(file) => onImageUpload(file)}
+          onMediaUpload={handleFileUpload}
           onMediaRemove={(index) => onImageRemove(images[index])}
           disabled={false}
           maxFiles={5}

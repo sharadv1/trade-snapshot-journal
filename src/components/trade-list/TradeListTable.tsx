@@ -5,6 +5,7 @@ import { TradeWithMetrics } from '@/types';
 import { ChevronUp, ChevronDown, Clock, CheckCircle, Award } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/utils/calculations/formatters';
+import { getStrategyById } from '@/utils/strategyStorage';
 
 interface TradeListTableProps {
   trades: TradeWithMetrics[];
@@ -21,6 +22,14 @@ export function TradeListTable({
   handleSort,
   onTradeDeleted
 }: TradeListTableProps) {
+  // Helper function to display strategy name instead of ID
+  const getStrategyName = (strategyId: string | undefined): string => {
+    if (!strategyId) return 'Unspecified';
+    
+    const strategy = getStrategyById(strategyId);
+    return strategy ? strategy.name : strategyId;
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
@@ -100,7 +109,7 @@ export function TradeListTable({
                   </div>
                 </td>
                 <td className="p-2">
-                  {trade.strategy || 'Unspecified'}
+                  {getStrategyName(trade.strategy)}
                 </td>
                 <td className="p-2">
                   {renderGradeBadge(trade.grade)}

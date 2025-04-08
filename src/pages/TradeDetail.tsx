@@ -14,6 +14,7 @@ import { ContentRenderer } from '@/components/journal/ContentRenderer';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { getStrategyById } from '@/utils/strategyStorage';
 
 const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
   if (!timeframe) return '';
@@ -41,6 +42,13 @@ export default function TradeDetail() {
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   
+  const getStrategyName = (strategyId: string | undefined): string => {
+    if (!strategyId) return 'No Strategy';
+    
+    const strategy = getStrategyById(strategyId);
+    return strategy ? strategy.name : strategyId;
+  };
+  
   useEffect(() => {
     if (!id) {
       console.error('No trade ID provided in URL');
@@ -58,8 +66,6 @@ export default function TradeDetail() {
       } else {
         console.error('Trade not found with ID:', id);
         
-        // If we're on the first attempt, try again after a short delay
-        // This helps in case the storage is still being updated
         if (retryCount < 2) {
           console.log(`Retry ${retryCount + 1} scheduled for trade ID: ${id}`);
           setTimeout(() => {
@@ -74,7 +80,6 @@ export default function TradeDetail() {
     
     loadTrade();
     
-    // Listen for trade updates to refresh the data
     const handleTradeUpdated = () => {
       console.log('Trade updated event received, reloading trade data');
       loadTrade();
@@ -158,7 +163,7 @@ export default function TradeDetail() {
               <span className="px-3 py-1 bg-muted rounded-full text-sm">{trade.account}</span>
             )}
             <span className="px-3 py-1 bg-muted rounded-full text-sm">{trade.status === 'closed' ? 'Closed' : 'Open'}</span>
-            <span className="px-3 py-1 bg-muted rounded-full text-sm">{trade.strategy || 'No Strategy'}</span>
+            <span className="px-3 py-1 bg-muted rounded-full text-sm">{getStrategyName(trade.strategy)}</span>
             {trade.grade && (
               <span className="flex items-center px-3 py-1 bg-muted rounded-full text-sm">
                 <Star className="h-3.5 w-3.5 mr-1 text-yellow-500 fill-yellow-500" />

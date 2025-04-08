@@ -76,6 +76,7 @@ export function ImageUpload({
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
+      console.log('File dropped in ImageUpload:', file.name, file.type);
       
       const isVideoFile = file.type.startsWith('video/');
       
@@ -109,7 +110,7 @@ export function ImageUpload({
     e.stopPropagation();
     if (!disabled) {
       setIsDragging(true);
-      console.log('Drag over detected');
+      console.log('Drag over detected in ImageUpload');
     }
   };
 

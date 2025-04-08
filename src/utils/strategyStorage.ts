@@ -14,7 +14,17 @@ export const getStrategies = (): Strategy[] => {
   }
   
   try {
-    return JSON.parse(strategiesJson);
+    // Parse the strategies
+    const strategies = JSON.parse(strategiesJson);
+    
+    // Validation: make sure we have a valid array
+    if (!Array.isArray(strategies)) {
+      console.error('Retrieved strategies is not an array');
+      return getDefaultStrategies();
+    }
+    
+    // Return the parsed strategies
+    return strategies;
   } catch (error) {
     console.error('Error parsing strategies:', error);
     
@@ -29,6 +39,12 @@ export const syncStrategiesWithServer = async (): Promise<boolean> => {
 };
 
 export const saveStrategies = (strategies: Strategy[]): void => {
+  // Ensure we're saving an array
+  if (!Array.isArray(strategies)) {
+    console.error('Attempting to save invalid strategies data (not an array)');
+    return;
+  }
+  
   localStorage.setItem(STRATEGIES_KEY, JSON.stringify(strategies));
   // Dispatch storage event to notify other components
   window.dispatchEvent(new Event('storage'));
@@ -37,8 +53,17 @@ export const saveStrategies = (strategies: Strategy[]): void => {
 
 export const addStrategy = (strategy: Strategy): void => {
   const strategies = getStrategies();
+  
+  // Validate ID - make sure we don't have duplicates
+  if (strategies.some(s => s.id === strategy.id)) {
+    console.warn(`Strategy with ID ${strategy.id} already exists. Using a new ID.`);
+    // Generate a new ID to avoid conflicts
+    strategy.id = `strategy-${Date.now()}`;
+  }
+  
   strategies.push(strategy);
   saveStrategies(strategies);
+  console.log(`Added new strategy: ${strategy.name} (${strategy.id})`);
 };
 
 export const updateStrategy = (updatedStrategy: Strategy): void => {
@@ -47,18 +72,36 @@ export const updateStrategy = (updatedStrategy: Strategy): void => {
   if (index !== -1) {
     strategies[index] = updatedStrategy;
     saveStrategies(strategies);
+    console.log(`Updated strategy: ${updatedStrategy.name} (${updatedStrategy.id})`);
+  } else {
+    console.warn(`Strategy with ID ${updatedStrategy.id} not found for update`);
   }
 };
 
 export const deleteStrategy = (strategyId: string): void => {
   const strategies = getStrategies();
   const filteredStrategies = strategies.filter(s => s.id !== strategyId);
-  saveStrategies(filteredStrategies);
+  
+  // Only save if we actually removed something
+  if (filteredStrategies.length !== strategies.length) {
+    saveStrategies(filteredStrategies);
+    console.log(`Deleted strategy with ID: ${strategyId}`);
+  } else {
+    console.warn(`Strategy with ID ${strategyId} not found for deletion`);
+  }
 };
 
 export const getStrategyById = (strategyId: string): Strategy | undefined => {
+  if (!strategyId) return undefined;
+  
   const strategies = getStrategies();
-  return strategies.find(s => s.id === strategyId);
+  const strategy = strategies.find(s => s.id === strategyId);
+  
+  if (!strategy) {
+    console.warn(`Strategy with ID ${strategyId} not found`);
+  }
+  
+  return strategy;
 };
 
 export const getStrategyUsage = (strategyId: string): number => {

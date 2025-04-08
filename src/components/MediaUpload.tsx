@@ -72,6 +72,7 @@ export function MediaUpload({
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
+      console.log('File dropped:', file.name, file.type);
       
       const isVideoFile = file.type.startsWith('video/');
       
@@ -96,7 +97,10 @@ export function MediaUpload({
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!disabled) setIsDragging(true);
+    if (!disabled) {
+      setIsDragging(true);
+      console.log('Drag over event detected');
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
