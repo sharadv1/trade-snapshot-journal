@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,10 +26,8 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   const [refreshKey, setRefreshKey] = useState(0);
   const [accounts, setAccounts] = useState<string[]>([]);
   
-  // Load trades when component mounts or when refreshKey changes
   useEffect(() => {
     const loadTrades = () => {
-      // If initialTrades is provided, use that, otherwise get from storage
       if (!initialTrades) {
         console.log('Loading trades in TradeList component');
         const allTrades = getTradesWithMetrics();
@@ -40,17 +37,14 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
         setTrades(initialTrades);
       }
       
-      // Load accounts from storage
       const availableAccounts = getAccounts();
       setAccounts(availableAccounts);
     };
     
     loadTrades();
     
-    // Only listen for storage events when initialTrades is not provided
     if (!initialTrades) {
       const handleStorageChange = (event: StorageEvent | Event) => {
-        // Only reload if it's a storage event with the right key or a trades-updated event
         if (
           (event instanceof StorageEvent && event.key === 'trade-journal-trades') || 
           event.type === 'trades-updated'
@@ -102,13 +96,11 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     dateParam
   });
   
-  // Function to manually refresh trades
   const handleRefresh = () => {
     console.log('Manual refresh requested in TradeList');
     setRefreshKey(prev => prev + 1);
   };
   
-  // Combine accounts from storage and those derived from trades to ensure all are shown
   const combinedAccounts = useMemo(() => {
     const combinedSet = new Set([...accounts, ...tradeDerivedAccounts]);
     return Array.from(combinedSet).sort();
