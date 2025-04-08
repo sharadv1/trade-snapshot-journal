@@ -1,8 +1,7 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BadgeDollarSign, Filter, RefreshCw, X } from "lucide-react";
+import { Filter, RefreshCw, X, BadgeDollarSign } from "lucide-react";
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { DateRangeFilterComponent } from './DateRangeFilterComponent';
 import {
@@ -75,6 +74,20 @@ export function TradeListHeader({
               <span>Risk: {formatCurrency(totalOpenRisk)}</span>
             </div>
           )}
+          
+          <Select
+            value={tradeStatus}
+            onValueChange={(value) => setTradeStatus(value as 'open' | 'closed' | 'all')}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="All Trades" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Trades</SelectItem>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
+            </SelectContent>
+          </Select>
           
           <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <PopoverTrigger asChild>
@@ -176,14 +189,6 @@ export function TradeListHeader({
           </Popover>
         </div>
       </div>
-      
-      <Tabs value={tradeStatus} onValueChange={(v) => setTradeStatus(v as 'open' | 'closed' | 'all')}>
-        <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="all">All Trades</TabsTrigger>
-          <TabsTrigger value="open">Open</TabsTrigger>
-          <TabsTrigger value="closed">Closed</TabsTrigger>
-        </TabsList>
-      </Tabs>
     </div>
   );
 }
