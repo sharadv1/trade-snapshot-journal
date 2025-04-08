@@ -1,3 +1,4 @@
+
 import { Trade } from '@/types';
 
 export const getTradeMetrics = (trade: Trade) => {
@@ -111,12 +112,7 @@ export const getTradeMetrics = (trade: Trade) => {
   if (riskedAmount !== 0) {
     rMultiple = profitLoss / riskedAmount;
 
-    // Only cap extremely high R-multiples (likely calculation errors)
-    if (Math.abs(rMultiple) > 20) {
-      const oldRMultiple = rMultiple;
-      rMultiple = Math.sign(rMultiple) * 20;
-      calculationExplanation += `Extremely high R-multiple (${oldRMultiple.toFixed(2)}) was capped to ${rMultiple.toFixed(2)}. `;
-    }
+    // No capping of R-multiple values
 
     if (maxPotentialGain) {
       riskRewardRatio = maxPotentialGain / riskedAmount;
