@@ -76,7 +76,7 @@ export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
     // If trade not found in local array but likely exists in storage,
     // try to refetch trades and try again (to handle stale data)
     console.log('Attempting to refetch trades and retry update');
-    const refreshedTrades = await getTrades(true); // Force refresh from storage
+    const refreshedTrades = await getTrades(); // Remove the argument here - this was causing the error
     const refreshedIndex = refreshedTrades.findIndex(trade => trade.id === updatedTrade.id);
     
     if (refreshedIndex !== -1) {
