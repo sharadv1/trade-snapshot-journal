@@ -9,7 +9,7 @@ interface NotesAndImagesFormProps {
   trade: Trade;
   handleChange: (field: keyof Trade, value: any) => void;
   images: string[];
-  onImageUpload: (file: File) => void;  // Changed from FileList | File to just File
+  onImageUpload: (file: File) => void;
   onImageRemove: (url: string) => void;
 }
 

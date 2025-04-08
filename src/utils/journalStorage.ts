@@ -1,4 +1,3 @@
-
 import { WeeklyReflection, MonthlyReflection } from '@/types';
 import { toast } from '@/utils/toast';
 
@@ -91,6 +90,60 @@ export const monthlyReflectionExists = (monthId: string): boolean => {
   return !!reflections[monthId];
 };
 
+export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRemoved: number } => {
+  let weeklyRemoved = 0;
+  let monthlyRemoved = 0;
+  
+  try {
+    const weeklyReflections = getWeeklyReflections();
+    const uniqueWeekly: { [key: string]: WeeklyReflection } = {};
+    
+    Object.values(weeklyReflections).forEach(reflection => {
+      if (!reflection.weekId) return;
+      
+      if (!uniqueWeekly[reflection.weekId] || 
+          (reflection.lastUpdated && uniqueWeekly[reflection.weekId].lastUpdated &&
+           new Date(reflection.lastUpdated) > new Date(uniqueWeekly[reflection.weekId].lastUpdated))) {
+        uniqueWeekly[reflection.weekId] = reflection;
+      }
+    });
+    
+    weeklyRemoved = Object.keys(weeklyReflections).length - Object.keys(uniqueWeekly).length;
+    
+    if (weeklyRemoved > 0) {
+      localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(uniqueWeekly));
+      dispatchStorageEvent(WEEKLY_REFLECTIONS_KEY);
+      console.log(`Removed ${weeklyRemoved} duplicate weekly reflections`);
+    }
+    
+    const monthlyReflections = getMonthlyReflections();
+    const uniqueMonthly: { [key: string]: MonthlyReflection } = {};
+    
+    Object.values(monthlyReflections).forEach(reflection => {
+      if (!reflection.monthId) return;
+      
+      if (!uniqueMonthly[reflection.monthId] || 
+          (reflection.lastUpdated && uniqueMonthly[reflection.monthId].lastUpdated &&
+           new Date(reflection.lastUpdated) > new Date(uniqueMonthly[reflection.monthId].lastUpdated))) {
+        uniqueMonthly[reflection.monthId] = reflection;
+      }
+    });
+    
+    monthlyRemoved = Object.keys(monthlyReflections).length - Object.keys(uniqueMonthly).length;
+    
+    if (monthlyRemoved > 0) {
+      localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(uniqueMonthly));
+      dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
+      console.log(`Removed ${monthlyRemoved} duplicate monthly reflections`);
+    }
+    
+    return { weeklyRemoved, monthlyRemoved };
+  } catch (error) {
+    console.error('Error removing duplicate reflections:', error);
+    return { weeklyRemoved, monthlyRemoved };
+  }
+};
+
 let lastEventDispatchTime: Record<string, number> = {};
 const MIN_EVENT_INTERVAL = 500;
 
@@ -109,13 +162,11 @@ const dispatchStorageEvent = (key: string) => {
   const anotherCustomEvent = new CustomEvent('journal-updated', { detail: { key } });
   window.dispatchEvent(anotherCustomEvent);
   
-  // Using a try-catch to handle potential issues with StorageEvent in Safari
   try {
     const storageEvent = new StorageEvent('storage', { key });
     window.dispatchEvent(storageEvent);
   } catch (e) {
     console.error('Error dispatching storage event:', e);
-    // Fallback for Safari
     window.dispatchEvent(new Event('storage'));
   }
   
@@ -212,7 +263,6 @@ export const saveWeeklyReflection = (weekId: string, reflection: string, grade?:
         throw new Error('Failed to retrieve data after saving');
       }
       
-      // Safari-compatible check for content
       if (savedData.indexOf('"' + weekId + '"') === -1) {
         throw new Error(`Saved data doesn't contain the weekId: ${weekId}`);
       }
@@ -297,7 +347,6 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
         throw new Error('Failed to retrieve data after saving');
       }
       
-      // Safari-compatible check for content
       if (savedData.indexOf('"' + exactMonthId + '"') === -1) {
         throw new Error(`Saved data doesn't contain the monthId: ${exactMonthId}`);
       }

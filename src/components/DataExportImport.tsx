@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { exportTradesToFile, importTradesFromFile, getLastImportSummary, getLastExportSummary } from '@/utils/dataTransfer';
-import { FileDown, FileUp, FileBox } from 'lucide-react';
+import { FileDown, FileUp, FileBox, Scissors } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
 import { toast } from '@/utils/toast';
 import { DataImportSummary } from './DataImportSummary';
 import { DataExportSummary } from './DataExportSummary';
+import { removeDuplicateReflections } from '@/utils/journalStorage';
 
 interface DataExportImportProps {
   onImportComplete?: () => void;
@@ -31,6 +32,7 @@ export const DataExportImport = ({ onImportComplete }: DataExportImportProps) =>
   const [showExportSummary, setShowExportSummary] = useState(false);
   const [importSummaryData, setImportSummaryData] = useState(getLastImportSummary());
   const [exportSummaryData, setExportSummaryData] = useState(getLastExportSummary());
+  const [isRemoving, setIsRemoving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
@@ -98,6 +100,27 @@ export const DataExportImport = ({ onImportComplete }: DataExportImportProps) =>
     }
   };
   
+  const handleRemoveDuplicates = () => {
+    setIsRemoving(true);
+    try {
+      const { weeklyRemoved, monthlyRemoved } = removeDuplicateReflections();
+      const totalRemoved = weeklyRemoved + monthlyRemoved;
+      
+      if (totalRemoved > 0) {
+        toast.success(`Removed ${totalRemoved} duplicate reflections (${weeklyRemoved} weekly, ${monthlyRemoved} monthly)`);
+        // Force refresh UI components
+        window.dispatchEvent(new Event('storage'));
+      } else {
+        toast.info('No duplicate reflections found');
+      }
+    } catch (error) {
+      console.error('Error removing duplicates:', error);
+      toast.error('Failed to remove duplicates');
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+  
   return (
     <>
       <div className="flex gap-2">
@@ -136,6 +159,26 @@ export const DataExportImport = ({ onImportComplete }: DataExportImportProps) =>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-[220px]">
               <p>Import trades, ideas, strategies and symbols from a backup file</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRemoveDuplicates}
+                disabled={isRemoving}
+                className="flex items-center gap-1"
+              >
+                <Scissors className="h-4 w-4" />
+                <span>{isRemoving ? 'Removing...' : 'Remove Duplicates'}</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[220px]">
+              <p>Remove duplicate journal entries that may have occurred during import</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

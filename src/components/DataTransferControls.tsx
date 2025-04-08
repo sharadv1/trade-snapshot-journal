@@ -2,10 +2,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { exportTradesToFile, importTradesFromFile, getLastImportSummary, getLastExportSummary } from '@/utils/dataTransfer';
-import { Download, Upload } from 'lucide-react';
+import { Download, Upload, Scissors } from 'lucide-react';
 import { toast } from '@/utils/toast';
 import { DataImportSummary } from './DataImportSummary';
 import { DataExportSummary } from './DataExportSummary';
+import { removeDuplicateReflections } from '@/utils/journalStorage';
 
 interface DataTransferControlsProps {
   onImportComplete?: () => void;
@@ -17,6 +18,7 @@ export const DataTransferControls = ({ onImportComplete }: DataTransferControlsP
   const [showExportSummary, setShowExportSummary] = useState(false);
   const [importSummaryData, setImportSummaryData] = useState(getLastImportSummary());
   const [exportSummaryData, setExportSummaryData] = useState(getLastExportSummary());
+  const [isRemoving, setIsRemoving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
@@ -78,6 +80,27 @@ export const DataTransferControls = ({ onImportComplete }: DataTransferControlsP
     }
   };
   
+  const handleRemoveDuplicates = () => {
+    setIsRemoving(true);
+    try {
+      const { weeklyRemoved, monthlyRemoved } = removeDuplicateReflections();
+      const totalRemoved = weeklyRemoved + monthlyRemoved;
+      
+      if (totalRemoved > 0) {
+        toast.success(`Removed ${totalRemoved} duplicate reflections (${weeklyRemoved} weekly, ${monthlyRemoved} monthly)`);
+        // Force refresh UI components
+        window.dispatchEvent(new Event('storage'));
+      } else {
+        toast.info('No duplicate reflections found');
+      }
+    } catch (error) {
+      console.error('Error removing duplicates:', error);
+      toast.error('Failed to remove duplicates');
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+  
   return (
     <>
       <div className="flex gap-2">
@@ -102,6 +125,18 @@ export const DataTransferControls = ({ onImportComplete }: DataTransferControlsP
         >
           <Upload className="h-4 w-4" />
           <span>{isImporting ? 'Importing...' : 'Import'}</span>
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRemoveDuplicates}
+          disabled={isRemoving}
+          className="flex items-center gap-1"
+          title="Remove duplicate journal entries"
+        >
+          <Scissors className="h-4 w-4" />
+          <span>{isRemoving ? 'Removing...' : 'Remove Duplicates'}</span>
         </Button>
         
         <input
