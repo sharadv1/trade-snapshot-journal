@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,16 +10,18 @@ import { removeDuplicateReflections } from '@/utils/journalStorage';
 
 export function JournalLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isWeekly = location.pathname.includes('/weekly') || location.pathname === '/journal';
   const isMonthly = location.pathname.includes('/monthly');
   const [isRemoving, setIsRemoving] = useState(false);
   
   const value = isWeekly ? 'weekly' : isMonthly ? 'monthly' : 'weekly';
   
-  const handleRemoveDuplicates = () => {
+  const handleRemoveDuplicates = async () => {
     setIsRemoving(true);
     
     try {
+      console.log('Starting duplicate removal process...');
       const { weeklyRemoved, monthlyRemoved } = removeDuplicateReflections();
       const totalRemoved = weeklyRemoved + monthlyRemoved;
       
@@ -31,9 +33,11 @@ export function JournalLayout() {
         window.dispatchEvent(new CustomEvent('journal-updated'));
         window.dispatchEvent(new CustomEvent('journalUpdated'));
         
-        // Force redraw components to ensure they reflect the latest data
+        // Force a page reload to ensure everything is updated
         setTimeout(() => {
-          window.dispatchEvent(new Event('storage'));
+          // Re-navigate to current route to force a full component refresh
+          const currentPath = location.pathname;
+          navigate(currentPath, { replace: true });
         }, 100);
       } else {
         toast.info('No duplicate reflections found');
@@ -54,7 +58,7 @@ export function JournalLayout() {
     
     // Set up event listeners for journal updates
     const handleJournalUpdate = () => {
-      console.log('Journal updated event received');
+      console.log('Journal updated event received in JournalLayout');
       window.dispatchEvent(new Event('storage'));
     };
     
