@@ -347,7 +347,8 @@ export const saveMonthlyReflection = (monthId: string, reflection: string, grade
         throw new Error('Failed to retrieve data after saving');
       }
       
-      if (savedData.indexOf('"' + exactMonthId + '"') === -1) {
+      const parsedData = JSON.parse(savedData);
+      if (!parsedData[exactMonthId]) {
         throw new Error(`Saved data doesn't contain the monthId: ${exactMonthId}`);
       }
       
