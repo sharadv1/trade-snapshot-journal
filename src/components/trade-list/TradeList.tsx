@@ -9,6 +9,7 @@ import { TradeListHeader } from './TradeListHeader';
 import { TradeListTable } from './TradeListTable';
 import { DateFilterBanner } from './DateFilterBanner';
 import { useTradeList } from './useTradeList';
+import { getAccounts } from '@/utils/accountStorage';
 
 interface TradeListProps {
   statusFilter?: 'open' | 'closed' | 'all';
@@ -24,6 +25,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   
   const [trades, setTrades] = useState<TradeWithMetrics[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [accounts, setAccounts] = useState<string[]>([]);
   
   // Load trades when component mounts or when refreshKey changes
   useEffect(() => {
@@ -37,6 +39,10 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
       } else {
         setTrades(initialTrades);
       }
+      
+      // Load accounts from storage
+      const availableAccounts = getAccounts();
+      setAccounts(availableAccounts);
     };
     
     loadTrades();
@@ -85,7 +91,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     filterByDateRange,
     clearDateFilter,
     availableStrategies,
-    availableAccounts,
+    availableAccounts: tradeDerivedAccounts,
     totalOpenRisk,
     hasFilters,
     resetFilters
@@ -102,6 +108,12 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     setRefreshKey(prev => prev + 1);
   };
   
+  // Combine accounts from storage and those derived from trades to ensure all are shown
+  const combinedAccounts = useMemo(() => {
+    const combinedSet = new Set([...accounts, ...tradeDerivedAccounts]);
+    return Array.from(combinedSet).sort();
+  }, [accounts, tradeDerivedAccounts]);
+  
   return (
     <Card className="shadow-subtle border">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -114,7 +126,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
           availableStrategies={availableStrategies}
           strategyFilter={strategyFilter}
           setStrategyFilter={setStrategyFilter}
-          availableAccounts={availableAccounts}
+          availableAccounts={combinedAccounts}
           accountFilter={accountFilter}
           setAccountFilter={setAccountFilter}
           resultFilter={resultFilter}

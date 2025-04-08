@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TradeForm } from '@/components/TradeForm';
@@ -127,7 +128,7 @@ export default function TradeEdit() {
         </div>
       </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="edit">Edit Details</TabsTrigger>
           <TabsTrigger value="exit">
@@ -135,7 +136,7 @@ export default function TradeEdit() {
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="edit">
+        <TabsContent value="edit" className="w-full">
           <Card>
             <CardHeader className="py-4">
               <CardTitle className="text-lg">Update Trade Details</CardTitle>
@@ -150,7 +151,7 @@ export default function TradeEdit() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="exit">
+        <TabsContent value="exit" className="w-full">
           <Card>
             <CardHeader className="py-4">
               <CardTitle className="text-lg">

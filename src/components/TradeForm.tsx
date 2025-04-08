@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -222,7 +223,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
           </div>
           
           <CardContent className="pt-6">
-            <TabsContent value="details" className="space-y-4 mt-0">
+            <TabsContent value="details" className="space-y-4 mt-0 w-full">
               <TradeDetailsForm 
                 trade={trade}
                 onTradeChange={handleChange}
@@ -242,7 +243,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
               </div>
             </TabsContent>
             
-            <TabsContent value="notes" className="space-y-4 mt-0">
+            <TabsContent value="notes" className="space-y-4 mt-0 w-full">
               <NotesAndImagesForm 
                 trade={trade as Trade}  
                 handleChange={handleChange}
