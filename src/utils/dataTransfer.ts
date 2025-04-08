@@ -1,4 +1,3 @@
-
 import { Trade, TradeIdea, Strategy, WeeklyReflection, MonthlyReflection } from '@/types';
 import { getTrades, saveTrades } from './storage/storageCore';
 import { getIdeas, saveIdeas } from './ideaStorage';
@@ -41,7 +40,7 @@ export const exportTradesToFile = async () => {
     const weeklyReflectionsArray = Object.values(weeklyReflectionsObj);
     const monthlyReflectionsArray = Object.values(monthlyReflectionsObj);
     
-    // Store the export summary
+    // Store the export summary with symbols data
     lastExportSummary = {
       trades,
       ideas,
