@@ -574,7 +574,7 @@ export default function WeeklyJournal() {
     });
     
     const pnl = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
-    const rValue = weekTrades.reduce((sum, trade) => sum + (trade.metrics.riskRewardRatio || 0), 0);
+    const rValue = weekTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
     
     return {
       pnl,

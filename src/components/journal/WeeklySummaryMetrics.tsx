@@ -31,10 +31,8 @@ export function WeeklySummaryMetrics({ trades = [] }: WeeklySummaryMetricsProps)
         .reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0)) / losingTrades
     : 0;
   
-  // Calculate average R
-  const tradesWithR = trades.filter(trade => trade.metrics.riskRewardRatio !== undefined);
-  const totalR = tradesWithR.reduce((sum, trade) => sum + (trade.metrics.riskRewardRatio || 0), 0);
-  const avgR = tradesWithR.length > 0 ? totalR / tradesWithR.length : 0;
+  // Calculate total R using rMultiple instead of riskRewardRatio
+  const totalR = trades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
   
   // Define background colors based on P&L
   const getBgColor = () => {

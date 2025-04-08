@@ -1,3 +1,4 @@
+
 import { 
   getWeeklyReflection, 
   saveWeeklyReflection, 
@@ -101,7 +102,8 @@ function generateWeeklyReflection(weekId: string, weekStart: Date, weekEnd: Date
     
     tradeIds = trades.map(trade => trade.id);
     totalPnL = trades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
-    totalR = trades.reduce((sum, trade) => sum + (trade.metrics.riskRewardRatio || 0), 0);
+    // Use rMultiple for R value calculation instead of riskRewardRatio
+    totalR = trades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
   } else {
     reflection = 'No trades were taken this week.';
     weeklyPlan = 'My plan for next week is to focus on...';
@@ -135,7 +137,8 @@ function generateMonthlyReflection(monthId: string, monthStart: Date, monthEnd: 
     
     tradeIds = trades.map(trade => trade.id);
     totalPnL = trades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
-    totalR = trades.reduce((sum, trade) => sum + (trade.metrics.riskRewardRatio || 0), 0);
+    // Use rMultiple for R value calculation instead of riskRewardRatio
+    totalR = trades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
   } else {
     reflection = 'No trades were taken this month.';
     grade = 'A';

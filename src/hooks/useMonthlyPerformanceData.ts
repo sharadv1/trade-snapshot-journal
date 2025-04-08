@@ -129,11 +129,11 @@ export function useMonthlyPerformanceData(trades: TradeWithMetrics[]): MonthlyPe
             0
           );
           
-          // Fix: Calculate total R value directly from closed trades
+          // Calculate total R value using rMultiple instead of riskRewardRatio
           let totalR = 0;
           tradesInCategory.forEach(trade => {
-            if (trade.status === 'closed' && trade.metrics && trade.metrics.riskRewardRatio) {
-              totalR += trade.metrics.riskRewardRatio;
+            if (trade.status === 'closed' && trade.metrics && trade.metrics.rMultiple) {
+              totalR += trade.metrics.rMultiple;
             }
           });
           
@@ -186,11 +186,11 @@ export function useMonthlyPerformanceData(trades: TradeWithMetrics[]): MonthlyPe
       }))
     );
     
-    // Fix: Direct calculation of total R from all trades
+    // Direct calculation of total R from all trades using rMultiple
     let directTotalR = 0;
     trades.forEach(trade => {
-      if (trade.status === 'closed' && trade.metrics && trade.metrics.riskRewardRatio) {
-        directTotalR += trade.metrics.riskRewardRatio;
+      if (trade.status === 'closed' && trade.metrics && trade.metrics.rMultiple) {
+        directTotalR += trade.metrics.rMultiple;
       }
     });
     

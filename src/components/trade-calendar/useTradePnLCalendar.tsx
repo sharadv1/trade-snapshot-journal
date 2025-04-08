@@ -87,8 +87,9 @@ export function useTradePnLCalendar() {
         pnlByDay[exitDay].tradeCount += 1;
         pnlByDay[exitDay].tradeIds.push(trade.id);
 
-        if (trade.metrics.riskRewardRatio !== undefined) {
-          pnlByDay[exitDay].rValue += trade.metrics.riskRewardRatio;
+        // Use rMultiple for R value calculation instead of riskRewardRatio
+        if (trade.metrics.rMultiple !== undefined) {
+          pnlByDay[exitDay].rValue += trade.metrics.rMultiple;
         }
       }
     });
