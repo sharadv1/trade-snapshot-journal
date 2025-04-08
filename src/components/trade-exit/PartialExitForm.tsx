@@ -1,9 +1,9 @@
-
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Trade } from '@/types';
 import { CircleDollarSign, SplitSquareVertical, Calendar, DollarSign } from 'lucide-react';
+import { formatCurrency } from '@/utils/calculations/formatters';
 
 interface PartialExitFormProps {
   trade: Trade;
@@ -36,6 +36,51 @@ export function PartialExitForm({
   setPartialNotes,
   isClosedTradeConversion = false,
 }: PartialExitFormProps) {
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Allow input to start with "0." or "."
+    const value = e.target.value;
+    if (value === '' || value === '.' || value === '0.') {
+      // Keep the input as is to allow typing
+      setPartialQuantity(value as any);
+    } else {
+      // Convert to number if it's a valid number
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        // Ensure the value doesn't exceed remainingQuantity
+        setPartialQuantity(Math.min(numValue, remainingQuantity));
+      }
+    }
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Allow input to start with "0." or "."
+    const value = e.target.value;
+    if (value === '' || value === '.' || value === '0.') {
+      // Keep the input as is to allow typing
+      setPartialExitPrice(value as any);
+    } else {
+      // Convert to number if it's a valid number
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        setPartialExitPrice(numValue);
+      }
+    }
+  };
+
+  const handleFeesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '' || value === '.' || value === '0.') {
+      // Keep the input as is to allow typing
+      setPartialFees(value as any);
+    } else if (value === '') {
+      setPartialFees(undefined);
+    } else {
+      // Convert to number if it's a valid number
+      const numValue = parseFloat(value);
+      setPartialFees(isNaN(numValue) ? undefined : numValue);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -45,12 +90,12 @@ export function PartialExitForm({
         </Label>
         <Input
           id="partialQuantity"
-          type="number"
+          type="text"
+          inputMode="decimal"
           min="0.000000001"
           max={remainingQuantity}
-          step="any"
-          value={partialQuantity}
-          onChange={(e) => setPartialQuantity(Number(e.target.value))}
+          value={partialQuantity || ''}
+          onChange={handleQuantityChange}
           required
           disabled={isClosedTradeConversion} // Disable if this is a closed trade conversion
         />
@@ -72,11 +117,11 @@ export function PartialExitForm({
         </Label>
         <Input
           id="partialExitPrice"
-          type="number"
+          type="text"
+          inputMode="decimal"
           min="0"
-          step="any"
           value={partialExitPrice || ''}
-          onChange={(e) => setPartialExitPrice(Number(e.target.value))}
+          onChange={handlePriceChange}
           required
         />
       </div>
@@ -102,11 +147,11 @@ export function PartialExitForm({
         </Label>
         <Input
           id="partialFees"
-          type="number"
+          type="text"
+          inputMode="decimal"
           min="0"
-          step="any"
           value={partialFees || ''}
-          onChange={(e) => setPartialFees(e.target.value ? Number(e.target.value) : undefined)}
+          onChange={handleFeesChange}
         />
       </div>
 

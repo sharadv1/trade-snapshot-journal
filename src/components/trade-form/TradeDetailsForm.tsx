@@ -36,6 +36,19 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
     onTradeChange('symbol', value);
   };
 
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Allow input to start with "0." or "."
+    const value = e.target.value;
+    if (value === '' || value === '.' || value === '0.') {
+      // Keep the input as is to allow typing
+      onTradeChange('quantity', value);
+    } else {
+      // Convert to number if it's a valid number
+      const numValue = parseFloat(value);
+      onTradeChange('quantity', isNaN(numValue) ? '' : numValue);
+    }
+  };
+
   const timeframeOptions = [
     { value: '1m', label: '1 Minute' },
     { value: '5m', label: '5 Minutes' },
@@ -148,12 +161,12 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
         <Label htmlFor="quantity">Quantity</Label>
         <Input
           id="quantity"
-          type="number"
-          step="any"
+          type="text"
+          inputMode="decimal"
           min="0.000000001"
           placeholder="Quantity"
           value={trade.quantity || ''}
-          onChange={(e) => onTradeChange('quantity', parseFloat(e.target.value) || '')}
+          onChange={handleQuantityChange}
           disabled={disableEdits}
         />
         <p className="text-xs text-muted-foreground">Supports small values (e.g. 0.000033432)</p>

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -73,6 +72,12 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
     }
     
     handleAddEntry();
+  };
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Allow input to start with "0." or "."
+    const value = e.target.value;
+    setQuantity(value);
   };
   
   return (
@@ -165,12 +170,11 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
               <Label htmlFor="quantity">Quantity</Label>
               <Input 
                 id="quantity" 
-                type="number"
-                step="any"
-                min="0.000000001"
+                type="text"
+                inputMode="decimal"
                 placeholder="0"
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+                onChange={handleQuantityChange}
               />
               <p className="text-xs text-muted-foreground mt-1">Supports small values (e.g. 0.000033432)</p>
             </div>
