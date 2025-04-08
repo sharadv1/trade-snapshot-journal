@@ -20,13 +20,6 @@ const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
   if (!timeframe) return '';
   
   const timeframeDisplayMap: Record<string, string> = {
-    'm5': '5 Minutes (M5)',
-    'm15': '15 Minutes (M15)',
-    'h1': '1 Hour (H1)',
-    'h4': '4 Hours (H4)',
-    'd1': 'Daily (D1)',
-    'w1': 'Weekly (W1)',
-    'm1': 'Monthly (M1)',
     '1m': '1 Minute',
     '5m': '5 Minutes',
     '15m': '15 Minutes',
@@ -35,7 +28,15 @@ const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
     '4h': '4 Hours',
     'D': 'Daily',
     'W': 'Weekly',
-    'M': 'Monthly'
+    'M': 'Monthly',
+    // Keep legacy mappings for backward compatibility
+    'm5': '5 Minutes (M5)',
+    'm15': '15 Minutes (M15)',
+    'h1': '1 Hour (H1)',
+    'h4': '4 Hours (H4)',
+    'd1': 'Daily (D1)',
+    'w1': 'Weekly (W1)',
+    'm1': 'Monthly (M1)'
   };
   
   return timeframeDisplayMap[timeframe] || timeframe;
@@ -256,7 +257,7 @@ export default function TradeDetail() {
               
               <div>
                 <p className="text-sm text-muted-foreground">Timeframe</p>
-                <p className="font-medium">{getTimeframeDisplayValue(trade.timeframe) || 'Not specified'}</p>
+                <p className="font-medium">{trade.timeframe || 'Not specified'}</p>
               </div>
               
               {trade.pspTime && (
@@ -270,6 +271,18 @@ export default function TradeDetail() {
                 <div>
                   <p className="text-sm text-muted-foreground">SSMT Quarters</p>
                   <p className="font-medium">{trade.ssmtQuarters}</p>
+                </div>
+              )}
+              
+              {trade.grade && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Grade</p>
+                  <p className="font-medium">{trade.grade === 'A' ? 'A - Excellent' : 
+                                            trade.grade === 'B' ? 'B - Good' : 
+                                            trade.grade === 'C' ? 'C - Average' : 
+                                            trade.grade === 'D' ? 'D - Poor' : 
+                                            trade.grade === 'F' ? 'F - Failed' : 
+                                            trade.grade}</p>
                 </div>
               )}
             </div>
