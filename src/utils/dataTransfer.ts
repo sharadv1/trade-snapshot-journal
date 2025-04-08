@@ -1,3 +1,4 @@
+
 import { Trade, TradeIdea, Strategy, WeeklyReflection, MonthlyReflection } from '@/types';
 import { getTrades, saveTrades } from './storage/storageCore';
 import { getIdeas, saveIdeas } from './ideaStorage';
@@ -11,6 +12,21 @@ import {
 } from './journalStorage';
 import { toast } from './toast';
 
+// Variable to store the latest export summary
+let lastExportSummary = {
+  trades: [],
+  ideas: [],
+  strategies: [],
+  symbols: [],
+  weeklyReflections: [],
+  monthlyReflections: []
+};
+
+// Function to get the last export summary
+export const getLastExportSummary = () => {
+  return lastExportSummary;
+};
+
 // Function to export trades, ideas, strategies, and symbols to a file
 export const exportTradesToFile = async () => {
   try {
@@ -21,6 +37,16 @@ export const exportTradesToFile = async () => {
     const weeklyReflections = getWeeklyReflections();
     const monthlyReflections = getMonthlyReflections();
     
+    // Store the export summary
+    lastExportSummary = {
+      trades,
+      ideas,
+      strategies,
+      symbols,
+      weeklyReflections,
+      monthlyReflections
+    };
+
     // Create a data object with all elements
     const data = {
       trades,
@@ -47,6 +73,12 @@ export const exportTradesToFile = async () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    // Fire a custom event to notify that export is complete with summary data
+    const exportCompleteEvent = new CustomEvent('export-complete', { 
+      detail: { summaryData: lastExportSummary } 
+    });
+    document.dispatchEvent(exportCompleteEvent);
     
     toast.success('Export completed successfully');
   } catch (error) {

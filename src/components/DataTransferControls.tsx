@@ -1,10 +1,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { exportTradesToFile, importTradesFromFile, getLastImportSummary } from '@/utils/dataTransfer';
+import { exportTradesToFile, importTradesFromFile, getLastImportSummary, getLastExportSummary } from '@/utils/dataTransfer';
 import { Download, Upload } from 'lucide-react';
 import { toast } from '@/utils/toast';
 import { DataImportSummary } from './DataImportSummary';
+import { DataExportSummary } from './DataExportSummary';
 
 interface DataTransferControlsProps {
   onImportComplete?: () => void;
@@ -12,27 +13,38 @@ interface DataTransferControlsProps {
 
 export const DataTransferControls = ({ onImportComplete }: DataTransferControlsProps) => {
   const [isImporting, setIsImporting] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
-  const [summaryData, setSummaryData] = useState(getLastImportSummary());
+  const [showImportSummary, setShowImportSummary] = useState(false);
+  const [showExportSummary, setShowExportSummary] = useState(false);
+  const [importSummaryData, setImportSummaryData] = useState(getLastImportSummary());
+  const [exportSummaryData, setExportSummaryData] = useState(getLastExportSummary());
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
     const handleImportComplete = (event: CustomEvent) => {
       if (event.detail?.summaryData) {
-        setSummaryData(event.detail.summaryData);
-        setShowSummary(true);
+        setImportSummaryData(event.detail.summaryData);
+        setShowImportSummary(true);
+      }
+    };
+    
+    const handleExportComplete = (event: CustomEvent) => {
+      if (event.detail?.summaryData) {
+        setExportSummaryData(event.detail.summaryData);
+        setShowExportSummary(true);
       }
     };
     
     document.addEventListener('import-complete', handleImportComplete as EventListener);
+    document.addEventListener('export-complete', handleExportComplete as EventListener);
     
     return () => {
       document.removeEventListener('import-complete', handleImportComplete as EventListener);
+      document.removeEventListener('export-complete', handleExportComplete as EventListener);
     };
   }, []);
   
-  const handleExport = () => {
-    exportTradesToFile();
+  const handleExport = async () => {
+    await exportTradesToFile();
   };
   
   const handleImportClick = () => {
@@ -102,9 +114,15 @@ export const DataTransferControls = ({ onImportComplete }: DataTransferControlsP
       </div>
       
       <DataImportSummary 
-        isOpen={showSummary} 
-        onClose={() => setShowSummary(false)} 
-        summaryData={summaryData}
+        isOpen={showImportSummary} 
+        onClose={() => setShowImportSummary(false)} 
+        summaryData={importSummaryData}
+      />
+
+      <DataExportSummary
+        isOpen={showExportSummary}
+        onClose={() => setShowExportSummary(false)}
+        summaryData={exportSummaryData}
       />
     </>
   );
