@@ -7,7 +7,7 @@ import {
   weeklyReflectionExists,
   getWeeklyReflection
 } from '@/utils/journalStorage';
-import { startOfWeek, endOfWeek, addWeeks, format, parseISO, isBefore, isEqual } from 'date-fns';
+import { startOfWeek, endOfWeek, addWeeks, format, parseISO, isBefore, isEqual, isWithinInterval } from 'date-fns';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 
 export function WeeklyReflectionsPage() {
@@ -16,45 +16,66 @@ export function WeeklyReflectionsPage() {
   useEffect(() => {
     // Generate all weeks from start of 2025
     const generateAllWeeks = () => {
-      const allWeeks: WeeklyReflection[] = [];
+      const weekMap = new Map<string, WeeklyReflection>(); // Use a map to prevent duplicates
       const start = new Date(2025, 0, 1); // January 1, 2025
       const today = new Date();
       
+      // First, collect all existing reflections from storage
+      const existingReflections = getAllWeeklyReflections();
+      Object.values(existingReflections).forEach(reflection => {
+        if (reflection && typeof reflection === 'object' && 'id' in reflection) {
+          const reflectionObj = reflection as WeeklyReflection;
+          
+          // Skip placeholders or empty reflections
+          if (!reflectionObj.weekId) return;
+          
+          // Calculate metrics for this reflection
+          const weekTrades = getTradesWithMetrics().filter(trade => {
+            if (trade.exitDate && reflectionObj.weekStart && reflectionObj.weekEnd) {
+              const exitDate = new Date(trade.exitDate);
+              const weekStart = new Date(reflectionObj.weekStart);
+              const weekEnd = new Date(reflectionObj.weekEnd);
+              return exitDate >= weekStart && exitDate <= weekEnd;
+            }
+            return false;
+          });
+          
+          const totalPnL = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
+          const totalR = weekTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
+          
+          // Add to map with enriched data
+          weekMap.set(reflectionObj.weekId, {
+            ...reflectionObj,
+            totalPnL,
+            totalR,
+            tradeIds: weekTrades.map(trade => trade.id)
+          });
+        }
+      });
+      
+      // Then, generate placeholder reflections for weeks that don't exist yet
       let currentDate = startOfWeek(start, { weekStartsOn: 1 });
       
       while (currentDate <= today) {
         const weekId = format(currentDate, 'yyyy-MM-dd');
         const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
         
-        // Check if a reflection already exists for this week
-        const existingReflection = getWeeklyReflection(weekId);
-        
-        if (existingReflection) {
-          // Pre-calculate metrics for existing reflection
+        // Only add a placeholder if this week doesn't already exist in our map
+        if (!weekMap.has(weekId)) {
+          // Check if there are any trades for this week
           const weekTrades = getTradesWithMetrics().filter(trade => {
             if (trade.exitDate) {
               const exitDate = new Date(trade.exitDate);
-              const weekStart = new Date(existingReflection.weekStart);
-              const weekEndDate = new Date(existingReflection.weekEnd);
-              return exitDate >= weekStart && exitDate <= weekEndDate;
+              return exitDate >= currentDate && exitDate <= weekEnd;
             }
             return false;
           });
           
-          // Calculate metrics using pre-calculated trade metrics
           const totalPnL = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
           const totalR = weekTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
           
-          // Include additional metrics in the reflection object
-          allWeeks.push({
-            ...existingReflection,
-            totalPnL,
-            totalR,
-            tradeIds: weekTrades.map(trade => trade.id)
-          });
-        } else {
-          // Create a placeholder reflection
-          allWeeks.push({
+          // Create a placeholder reflection with trade info
+          weekMap.set(weekId, {
             id: weekId,
             weekId: weekId,
             weekStart: currentDate.toISOString(),
@@ -62,55 +83,18 @@ export function WeeklyReflectionsPage() {
             reflection: '',
             weeklyPlan: '',
             grade: '',
-            tradeIds: [],
+            tradeIds: weekTrades.map(trade => trade.id),
             isPlaceholder: true,
-            totalPnL: 0,
-            totalR: 0
+            totalPnL,
+            totalR
           });
         }
         
         currentDate = addWeeks(currentDate, 1);
       }
       
-      // Check for additional reflections that might not be in the date range
-      const existingReflections = getAllWeeklyReflections();
-      Object.values(existingReflections).forEach(reflection => {
-        if (reflection && typeof reflection === 'object' && 'id' in reflection) {
-          // Skip reflections that are already in the list
-          if (allWeeks.some(w => w.id === reflection.id)) {
-            return;
-          }
-          
-          // Add any reflection that has content but wasn't included in the date range
-          if ('reflection' in reflection && 'weeklyPlan' in reflection &&
-              (reflection.reflection || reflection.weeklyPlan)) {
-            // Calculate metrics for this reflection
-            const reflectionObj = reflection as WeeklyReflection;
-            const weekTrades = getTradesWithMetrics().filter(trade => {
-              if (trade.exitDate && reflectionObj.weekStart && reflectionObj.weekEnd) {
-                const exitDate = new Date(trade.exitDate);
-                const weekStart = new Date(reflectionObj.weekStart);
-                const weekEnd = new Date(reflectionObj.weekEnd);
-                return exitDate >= weekStart && exitDate <= weekEnd;
-              }
-              return false;
-            });
-            
-            const totalPnL = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
-            const totalR = weekTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
-            
-            allWeeks.push({
-              ...reflectionObj,
-              totalPnL,
-              totalR,
-              tradeIds: weekTrades.map(trade => trade.id)
-            });
-          }
-        }
-      });
-      
-      return allWeeks.sort((a, b) => {
-        // Sort by week start date (most recent first)
+      // Convert map to array and sort by date (most recent first)
+      return Array.from(weekMap.values()).sort((a, b) => {
         if (!a.weekStart || !b.weekStart) return 0;
         return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
       });

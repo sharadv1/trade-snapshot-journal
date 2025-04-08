@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,7 +64,6 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
   const getCurrentPeriodId = () => {
     const today = new Date();
     if (type === 'weekly') {
-      // Get the start of current week (Monday)
       const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
       return format(currentWeekStart, 'yyyy-MM-dd');
     } else {
@@ -111,9 +109,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
         <div className="grid grid-cols-1 gap-4">
           {reflections.map((reflection) => {
             const stats = getStats(reflection);
-            const id = type === 'weekly' 
-              ? (reflection as WeeklyReflection).weekId 
-              : (reflection as MonthlyReflection).monthId;
+            const id = getReflectionId(reflection);
             
             // Format date range appropriately for weekly or monthly reflections
             let dateRange;
@@ -132,7 +128,6 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                 const start = new Date(monthReflection.monthStart);
                 dateRange = format(start, 'MMMM yyyy');
               } else if (monthReflection.monthId) {
-                // Try to parse from monthId if monthStart isn't available
                 const parts = monthReflection.monthId.split('-');
                 if (parts.length === 2) {
                   const year = parseInt(parts[0], 10);
@@ -146,10 +141,8 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
               }
             }
             
-            // Check if there's content directly
-            const hasContent = type === 'weekly' 
-              ? !!(reflection as WeeklyReflection).reflection || !!(reflection as WeeklyReflection).weeklyPlan
-              : !!(reflection as MonthlyReflection).reflection;
+            // Get actual content status using stats.hasContent
+            const hasContent = stats.hasContent;
               
             // Get the grade
             const grade = type === 'weekly' 
