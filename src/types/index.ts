@@ -46,33 +46,28 @@ export interface TradeWithMetrics extends Trade {
   };
 }
 
-export interface WeeklyReflection {
+export interface BaseReflection {
   id: string;
+  reflection: string;
+  grade?: string;
+  lastUpdated?: string;
+  tradeIds: string[];
+  isPlaceholder?: boolean;
+  totalPnL?: number;
+  totalR?: number;
+}
+
+export interface WeeklyReflection extends BaseReflection {
   weekId: string;
   weekStart: string;
   weekEnd: string;
-  reflection: string;
-  weeklyPlan: string;
-  grade: string;
-  tradeIds: string[];
-  totalPnL?: number;
-  totalR?: number;
-  isPlaceholder?: boolean;
-  lastUpdated?: string;
+  weeklyPlan?: string;
 }
 
-export interface MonthlyReflection {
-  id: string;
+export interface MonthlyReflection extends BaseReflection {
   monthId: string;
   monthStart: string;
   monthEnd: string;
-  reflection: string;
-  grade: string;
-  tradeIds: string[];
-  totalPnL?: number;
-  totalR?: number;
-  isPlaceholder?: boolean;
-  lastUpdated?: string;
 }
 
 export interface Strategy {

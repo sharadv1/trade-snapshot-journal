@@ -8,6 +8,7 @@ import {
   getWeeklyReflection
 } from '@/utils/journalStorage';
 import { startOfWeek, endOfWeek, addWeeks, format, parseISO, isBefore, isEqual } from 'date-fns';
+import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
@@ -29,7 +30,28 @@ export function WeeklyReflectionsPage() {
         const existingReflection = getWeeklyReflection(weekId);
         
         if (existingReflection) {
-          allWeeks.push(existingReflection);
+          // Pre-calculate metrics for existing reflection
+          const weekTrades = getTradesWithMetrics().filter(trade => {
+            if (trade.exitDate) {
+              const exitDate = new Date(trade.exitDate);
+              const weekStart = new Date(existingReflection.weekStart);
+              const weekEndDate = new Date(existingReflection.weekEnd);
+              return exitDate >= weekStart && exitDate <= weekEndDate;
+            }
+            return false;
+          });
+          
+          // Calculate metrics based on actual trade metrics
+          const totalPnL = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
+          const totalR = weekTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
+          
+          // Include additional metrics in the reflection object
+          allWeeks.push({
+            ...existingReflection,
+            totalPnL,
+            totalR,
+            tradeIds: weekTrades.map(trade => trade.id)
+          });
         } else {
           // Create a placeholder reflection
           allWeeks.push({
@@ -41,7 +63,9 @@ export function WeeklyReflectionsPage() {
             weeklyPlan: '',
             grade: '',
             tradeIds: [],
-            isPlaceholder: true
+            isPlaceholder: true,
+            totalPnL: 0,
+            totalR: 0
           });
         }
         
@@ -51,14 +75,37 @@ export function WeeklyReflectionsPage() {
       // Check for additional reflections that might not be in the date range
       const existingReflections = getAllWeeklyReflections();
       Object.values(existingReflections).forEach(reflection => {
-        // Skip reflections that are already in the list
-        if (allWeeks.some(w => w.id === reflection.id)) {
-          return;
-        }
-        
-        // Add any reflection that has content but wasn't included in the date range
-        if (reflection.reflection || reflection.weeklyPlan) {
-          allWeeks.push(reflection);
+        if (reflection && typeof reflection === 'object' && 'id' in reflection) {
+          // Skip reflections that are already in the list
+          if (allWeeks.some(w => w.id === reflection.id)) {
+            return;
+          }
+          
+          // Add any reflection that has content but wasn't included in the date range
+          if ('reflection' in reflection && 'weeklyPlan' in reflection &&
+              (reflection.reflection || reflection.weeklyPlan)) {
+            // Calculate metrics for this reflection
+            const reflectionObj = reflection as WeeklyReflection;
+            const weekTrades = getTradesWithMetrics().filter(trade => {
+              if (trade.exitDate && reflectionObj.weekStart && reflectionObj.weekEnd) {
+                const exitDate = new Date(trade.exitDate);
+                const weekStart = new Date(reflectionObj.weekStart);
+                const weekEnd = new Date(reflectionObj.weekEnd);
+                return exitDate >= weekStart && exitDate <= weekEnd;
+              }
+              return false;
+            });
+            
+            const totalPnL = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
+            const totalR = weekTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
+            
+            allWeeks.push({
+              ...reflectionObj,
+              totalPnL,
+              totalR,
+              tradeIds: weekTrades.map(trade => trade.id)
+            });
+          }
         }
       });
       
@@ -80,21 +127,21 @@ export function WeeklyReflectionsPage() {
     
     window.addEventListener('journal-updated', handleUpdate);
     window.addEventListener('journalUpdated', handleUpdate);
+    window.addEventListener('trades-updated', handleUpdate);
     
     return () => {
       window.removeEventListener('journal-updated', handleUpdate);
       window.removeEventListener('journalUpdated', handleUpdate);
+      window.removeEventListener('trades-updated', handleUpdate);
     };
   }, []);
   
   // Get stats function for weekly reflections
   const getWeeklyStats = (reflection: WeeklyReflection) => {
-    // Calculate stats based on tradeIds
-    const tradeIds = reflection.tradeIds || [];
     return {
       pnl: reflection.totalPnL || 0,
       rValue: reflection.totalR || 0,
-      tradeCount: tradeIds.length,
+      tradeCount: reflection.tradeIds?.length || 0,
       hasContent: !!reflection.reflection || !!reflection.weeklyPlan
     };
   };

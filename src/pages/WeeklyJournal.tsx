@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -901,66 +900,4 @@ export default function WeeklyJournal() {
               <div>
                 <h3 className="text-sm font-medium mb-1">Reflection</h3>
                 <div className="text-sm border rounded-md p-3 bg-muted/20" 
-                  dangerouslySetInnerHTML={{ __html: selectedWeeklyReflection.reflection || 'No reflection recorded' }} />
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium mb-1">Weekly Plan</h3>
-                <div className="text-sm border rounded-md p-3 bg-muted/20" 
-                  dangerouslySetInnerHTML={{ __html: selectedWeeklyReflection.weeklyPlan || 'No plan recorded' }} />
-              </div>
-            </div>
-          )}
-          
-          {isEditMode && (
-            <div className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="modal-weekly-grade">Week Grade</Label>
-                <Select
-                  value={editGrade}
-                  onValueChange={setEditGrade}
-                >
-                  <SelectTrigger id="modal-weekly-grade" className="w-[100px]">
-                    <SelectValue placeholder="Grade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {gradeOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="modal-weekly-plan">Weekly Plan</Label>
-                <RichTextEditor 
-                  id="modal-weekly-plan"
-                  content={editWeeklyPlan}
-                  onChange={setEditWeeklyPlan}
-                  placeholder="Write your plan for the week. Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="modal-reflection">Reflection</Label>
-                <RichTextEditor
-                  id="modal-reflection"
-                  content={editReflection}
-                  onChange={setEditReflection}
-                  placeholder="Write your weekly reflection here. Use markdown: **bold**, # Heading, - bullet points, > for quotes, --- for dividers"
-                />
-              </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={handleCancelEdits}>Cancel</Button>
-                <Button onClick={handleSaveEdits}>Save Changes</Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+                  dangerouslySetInnerHTML={{ __html: selectedWeeklyReflection.

@@ -8,6 +8,7 @@ import {
   getMonthlyReflection
 } from '@/utils/journalStorage';
 import { startOfMonth, endOfMonth, addMonths, format } from 'date-fns';
+import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 
 export function MonthlyReflectionsPage() {
   const [reflections, setReflections] = useState<MonthlyReflection[]>([]);
@@ -29,7 +30,28 @@ export function MonthlyReflectionsPage() {
         const existingReflection = getMonthlyReflection(monthId);
         
         if (existingReflection) {
-          allMonths.push(existingReflection);
+          // Pre-calculate metrics for existing reflection
+          const monthTrades = getTradesWithMetrics().filter(trade => {
+            if (trade.exitDate) {
+              const exitDate = new Date(trade.exitDate);
+              const monthStart = new Date(existingReflection.monthStart);
+              const monthEndDate = new Date(existingReflection.monthEnd);
+              return exitDate >= monthStart && exitDate <= monthEndDate;
+            }
+            return false;
+          });
+          
+          // Calculate metrics based on actual trade metrics
+          const totalPnL = monthTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
+          const totalR = monthTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
+          
+          // Include additional metrics in the reflection object
+          allMonths.push({
+            ...existingReflection,
+            totalPnL,
+            totalR,
+            tradeIds: monthTrades.map(trade => trade.id)
+          });
         } else {
           // Create a placeholder reflection
           allMonths.push({
@@ -40,7 +62,9 @@ export function MonthlyReflectionsPage() {
             reflection: '',
             grade: '',
             tradeIds: [],
-            isPlaceholder: true
+            isPlaceholder: true,
+            totalPnL: 0,
+            totalR: 0
           });
         }
         
@@ -65,21 +89,21 @@ export function MonthlyReflectionsPage() {
     
     window.addEventListener('journal-updated', handleUpdate);
     window.addEventListener('journalUpdated', handleUpdate);
+    window.addEventListener('trades-updated', handleUpdate);
     
     return () => {
       window.removeEventListener('journal-updated', handleUpdate);
       window.removeEventListener('journalUpdated', handleUpdate);
+      window.removeEventListener('trades-updated', handleUpdate);
     };
   }, []);
   
   // Get stats function for monthly reflections
   const getMonthlyStats = (reflection: MonthlyReflection) => {
-    // Calculate stats based on tradeIds
-    const tradeIds = reflection.tradeIds || [];
     return {
       pnl: reflection.totalPnL || 0,
       rValue: reflection.totalR || 0,
-      tradeCount: tradeIds.length,
+      tradeCount: reflection.tradeIds?.length || 0,
       hasContent: !!reflection.reflection
     };
   };

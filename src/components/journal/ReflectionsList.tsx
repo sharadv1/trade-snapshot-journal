@@ -111,11 +111,45 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
         <div className="grid grid-cols-1 gap-4">
           {reflections.map((reflection) => {
             const stats = getStats(reflection);
-            const id = getReflectionId(reflection);
-            const dateRange = formatDateRange(reflection);
+            const id = type === 'weekly' 
+              ? (reflection as WeeklyReflection).weekId 
+              : (reflection as MonthlyReflection).monthId;
+            
+            // Format date range appropriately for weekly or monthly reflections
+            let dateRange;
+            if (type === 'weekly') {
+              const weekReflection = reflection as WeeklyReflection;
+              if (weekReflection.weekStart && weekReflection.weekEnd) {
+                const start = new Date(weekReflection.weekStart);
+                const end = new Date(weekReflection.weekEnd);
+                dateRange = `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
+              } else {
+                dateRange = 'Date range unavailable';
+              }
+            } else {
+              const monthReflection = reflection as MonthlyReflection;
+              if (monthReflection.monthStart) {
+                const start = new Date(monthReflection.monthStart);
+                dateRange = format(start, 'MMMM yyyy');
+              } else if (monthReflection.monthId) {
+                // Try to parse from monthId if monthStart isn't available
+                const parts = monthReflection.monthId.split('-');
+                if (parts.length === 2) {
+                  const year = parseInt(parts[0], 10);
+                  const month = parseInt(parts[1], 10) - 1;
+                  dateRange = format(new Date(year, month, 1), 'MMMM yyyy');
+                } else {
+                  dateRange = 'Date unavailable';
+                }
+              } else {
+                dateRange = 'Date unavailable';
+              }
+            }
             
             // Check if there's content directly
-            const hasContent = hasReflectionContent(reflection);
+            const hasContent = type === 'weekly' 
+              ? !!(reflection as WeeklyReflection).reflection || !!(reflection as WeeklyReflection).weeklyPlan
+              : !!(reflection as MonthlyReflection).reflection;
               
             // Get the grade
             const grade = type === 'weekly' 
@@ -130,7 +164,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-medium flex justify-between">
                     <div className="flex items-center">
-                      <span>{type === 'weekly' ? `Week of ${dateRange}` : `Month of ${new Date(id.toString()).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`}</span>
+                      <span>{type === 'weekly' ? `Week of ${dateRange}` : `${dateRange}`}</span>
                       {grade && (
                         <Badge variant="outline" className={`ml-3 ${getGradeColor(grade)}`}>
                           Grade: {grade}
