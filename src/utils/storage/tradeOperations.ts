@@ -7,7 +7,7 @@ import { associateTradeWithReflections } from '@/utils/journalStorage';
 import { dispatchStorageEvents } from './storageUtils';
 
 // Add a new trade
-export const addTrade = async (trade: Trade): Promise<void> => {
+export const addTrade = async (trade: Trade): Promise<string> => {
   console.log('storage/tradeOperations.addTrade called with trade:', trade.symbol);
   const trades = await getTrades();
   
@@ -30,8 +30,12 @@ export const addTrade = async (trade: Trade): Promise<void> => {
   
   // Dispatch custom event to notify components
   document.dispatchEvent(new CustomEvent('trade-updated'));
+  window.dispatchEvent(new Event('trades-updated'));
   
   console.log('Trade added successfully:', trade.id);
+  
+  // Return the trade ID for reference
+  return trade.id;
 };
 
 // Update an existing trade
@@ -63,6 +67,7 @@ export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
     
     // Dispatch custom event to notify components
     document.dispatchEvent(new CustomEvent('trade-updated'));
+    window.dispatchEvent(new Event('trades-updated'));
     
     console.log('Trade updated successfully:', updatedTrade.id);
   } else {
@@ -89,6 +94,7 @@ export const deleteTrade = async (tradeId: string): Promise<void> => {
   
   // Dispatch custom event to notify components
   document.dispatchEvent(new CustomEvent('trade-updated'));
+  window.dispatchEvent(new Event('trades-updated'));
   
   console.log('Trade deleted successfully:', tradeId);
 };
@@ -97,6 +103,12 @@ export const deleteTrade = async (tradeId: string): Promise<void> => {
 export const getTradeById = (tradeId: string): Trade | undefined => {
   console.log('storage/tradeOperations.getTradeById called with ID:', tradeId);
   const trades = getTradesSync();
+  
+  if (!Array.isArray(trades)) {
+    console.error('Invalid trades data format returned by getTradesSync, expected array but got:', typeof trades);
+    return undefined;
+  }
+  
   const trade = trades.find(trade => trade.id === tradeId);
   
   if (!trade) {
@@ -110,6 +122,12 @@ export const getTradeById = (tradeId: string): Trade | undefined => {
 export const getTradesWithMetrics = (): TradeWithMetrics[] => {
   console.log('Getting trades with metrics');
   const trades = getTradesSync();
+  
+  if (!Array.isArray(trades)) {
+    console.error('Invalid trades data format returned by getTradesSync, expected array but got:', typeof trades);
+    return [];
+  }
+  
   console.log(`Calculating metrics for ${trades.length} trades`);
   
   return trades.map(trade => {

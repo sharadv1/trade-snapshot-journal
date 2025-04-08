@@ -13,6 +13,7 @@ import { calculateTradeMetrics, formatCurrency, formatPercentage } from '@/utils
 import { ContentRenderer } from '@/components/journal/ContentRenderer';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
   if (!timeframe) return '';
@@ -38,21 +39,55 @@ export default function TradeDetail() {
   const [showCalculationDetails, setShowCalculationDetails] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   useEffect(() => {
     if (!id) {
       console.error('No trade ID provided in URL');
+      setIsLoading(false);
       return;
     }
     
-    const tradeData = getTradeById(id);
-    if (tradeData) {
-      setTrade(tradeData);
-    } else {
-      console.error('Trade not found with ID:', id);
-    }
-    setIsLoading(false);
-  }, [id]);
+    const loadTrade = () => {
+      console.log(`Attempting to load trade with ID: ${id}, retry: ${retryCount}`);
+      const tradeData = getTradeById(id);
+      if (tradeData) {
+        console.log('Trade found:', tradeData.symbol);
+        setTrade(tradeData);
+        setIsLoading(false);
+      } else {
+        console.error('Trade not found with ID:', id);
+        
+        // If we're on the first attempt, try again after a short delay
+        // This helps in case the storage is still being updated
+        if (retryCount < 2) {
+          console.log(`Retry ${retryCount + 1} scheduled for trade ID: ${id}`);
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+          }, 500);
+        } else {
+          setIsLoading(false);
+          toast.error('Trade could not be found. It may have been deleted or not saved properly.');
+        }
+      }
+    };
+    
+    loadTrade();
+    
+    // Listen for trade updates to refresh the data
+    const handleTradeUpdated = () => {
+      console.log('Trade updated event received, reloading trade data');
+      loadTrade();
+    };
+    
+    document.addEventListener('trade-updated', handleTradeUpdated);
+    window.addEventListener('trades-updated', handleTradeUpdated);
+    
+    return () => {
+      document.removeEventListener('trade-updated', handleTradeUpdated);
+      window.removeEventListener('trades-updated', handleTradeUpdated);
+    };
+  }, [id, retryCount]);
   
   if (isLoading) {
     return (

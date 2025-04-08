@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { addTrade } from '@/utils/tradeStorage';
 import { toast } from 'sonner';
 import { formatISO } from 'date-fns';
 import { Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface QuickTradeEntryProps {
   onTradeAdded: () => void;
@@ -26,8 +28,9 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
   const [quantity, setQuantity] = useState('');
   const [exitDate, setExitDate] = useState('');
   const [exitPrice, setExitPrice] = useState('');
+  const navigate = useNavigate();
   
-  const handleAddEntry = () => {
+  const handleAddEntry = async () => {
     if (!symbol || !entryDate || !entryPrice || !quantity) {
       toast.error('Please fill in all required entry fields');
       return;
@@ -54,15 +57,31 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
       newTrade.exitPrice = parseFloat(exitPrice);
     }
     
-    const id = addTrade(newTrade as Trade);
-    toast.success('Trade added successfully');
-    onTradeAdded();
-    
-    setSymbol('');
-    setEntryPrice('');
-    setQuantity('');
-    setExitDate('');
-    setExitPrice('');
+    try {
+      // Use await to make sure the trade is saved before proceeding
+      await addTrade(newTrade as Trade);
+      
+      // Explicitly trigger the storage event to update UI
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'trade-journal-trades'
+      }));
+      
+      // Also dispatch the custom event
+      document.dispatchEvent(new CustomEvent('trade-updated'));
+      window.dispatchEvent(new Event('trades-updated'));
+      
+      toast.success('Trade added successfully');
+      onTradeAdded();
+      
+      setSymbol('');
+      setEntryPrice('');
+      setQuantity('');
+      setExitDate('');
+      setExitPrice('');
+    } catch (error) {
+      console.error('Error adding trade:', error);
+      toast.error('Failed to add trade. Please try again.');
+    }
   };
   
   const handleAddExit = () => {

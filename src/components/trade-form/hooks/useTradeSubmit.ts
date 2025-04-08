@@ -12,7 +12,7 @@ export function useTradeSubmit(
   isEditing: boolean,
   initialTrade?: Trade
 ) {
-  const handleSubmit = (e: React.FormEvent, onSuccess?: (tradeId: string) => void): boolean => {
+  const handleSubmit = async (e: React.FormEvent, onSuccess?: (tradeId: string) => void): Promise<boolean> => {
     e.preventDefault();
     console.log('Trade form submitted with data:', trade);
     
@@ -77,7 +77,7 @@ export function useTradeSubmit(
         } as Trade;
         
         console.log('Updating existing trade:', updatedTrade);
-        updateTrade(updatedTrade);
+        await updateTrade(updatedTrade);
         
         // Trigger storage events to update UI
         window.dispatchEvent(new StorageEvent('storage', {
@@ -99,7 +99,7 @@ export function useTradeSubmit(
         } as Trade;
         
         console.log('Adding new trade:', newTrade);
-        addTrade(newTrade);
+        await addTrade(newTrade);
         
         // Trigger storage events to update UI
         window.dispatchEvent(new StorageEvent('storage', {
