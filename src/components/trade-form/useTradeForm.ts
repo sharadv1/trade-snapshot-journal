@@ -10,7 +10,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
   // Get initial trade state
   const [trade, setTrade] = useState<Partial<Trade>>(
     initialTrade || {
-      account: 'default',
+      account: '',
       type: 'futures', // Default to futures since that's what we have most symbols for
       direction: 'long',
       entryDate: new Date().toISOString().slice(0, 16),
@@ -74,7 +74,7 @@ export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: s
           direction: (idea.direction as 'long' | 'short') || 'long',
           notes: idea.description || '',
           ideaId: ideaId || '',
-          account: 'default', // Always set default account for new trades from ideas
+          account: '',  // Don't set any default account
           // If we have a known symbol type, set the trade type to match
           type: getSymbolType(idea.symbol) || prevTrade.type || 'futures'
         }));
