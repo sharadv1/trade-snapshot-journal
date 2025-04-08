@@ -1,3 +1,4 @@
+
 import { WeeklyReflection, MonthlyReflection } from '@/types';
 import { toast } from '@/utils/toast';
 
@@ -95,13 +96,14 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
   let monthlyRemoved = 0;
   
   try {
+    // Handle weekly reflections
     const weeklyReflectionsData = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
     if (weeklyReflectionsData) {
-      const weeklyReflections = safeParse(weeklyReflectionsData, {});
+      const weeklyReflections = safeParse<{ [key: string]: WeeklyReflection }>(weeklyReflectionsData, {});
       const uniqueWeekly: { [key: string]: WeeklyReflection } = {};
       
-      Object.values(weeklyReflections).forEach(reflection => {
-        if (!reflection.weekId) return;
+      Object.values(weeklyReflections).forEach((reflection: WeeklyReflection) => {
+        if (!reflection || !reflection.weekId) return;
         
         if (!uniqueWeekly[reflection.weekId] || 
             (reflection.lastUpdated && uniqueWeekly[reflection.weekId].lastUpdated &&
@@ -119,13 +121,14 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
       }
     }
     
+    // Handle monthly reflections
     const monthlyReflectionsData = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
     if (monthlyReflectionsData) {
-      const monthlyReflections = safeParse(monthlyReflectionsData, {});
+      const monthlyReflections = safeParse<{ [key: string]: MonthlyReflection }>(monthlyReflectionsData, {});
       const uniqueMonthly: { [key: string]: MonthlyReflection } = {};
       
-      Object.values(monthlyReflections).forEach(reflection => {
-        if (!reflection.monthId) return;
+      Object.values(monthlyReflections).forEach((reflection: MonthlyReflection) => {
+        if (!reflection || !reflection.monthId) return;
         
         if (!uniqueMonthly[reflection.monthId] || 
             (reflection.lastUpdated && uniqueMonthly[reflection.monthId].lastUpdated &&
