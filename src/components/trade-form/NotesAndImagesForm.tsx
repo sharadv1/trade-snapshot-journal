@@ -59,6 +59,11 @@ export function NotesAndImagesForm({
     }
   };
 
+  // Adapter for image removal by index to removal by URL
+  const handleImageRemoveByIndex = (index: number) => {
+    onImageRemove(images[index]);
+  };
+
   // Reset processing state when component unmounts
   useEffect(() => {
     return () => {
@@ -84,7 +89,9 @@ export function NotesAndImagesForm({
         <MediaUpload 
           media={mediaFiles}
           onMediaUpload={handleFileUpload}
-          onMediaRemove={(index) => onImageRemove(images[index])}
+          onMediaRemove={handleImageRemoveByIndex}
+          onImageUpload={handleFileUpload}
+          onImageRemove={handleImageRemoveByIndex}
           disabled={isProcessing}
           maxFiles={5}
         />

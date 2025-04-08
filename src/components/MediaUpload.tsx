@@ -50,9 +50,7 @@ export function MediaUpload({
   
   // Backwards compatibility - use either the media or image handlers
   const handleFileUpload = onMediaUpload || onImageUpload;
-  const handleRemove = onMediaRemove || ((index: number) => {
-    onImageRemove(index);
-  });
+  const handleRemove = onMediaRemove || onImageRemove;
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -222,18 +220,8 @@ export function MediaUpload({
               isDragging ? 'border-primary bg-primary/10' : 'border-gray-300'
             } transition-colors cursor-pointer`}
             onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (!disabled) {
-                setIsDragging(true);
-              }
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsDragging(false);
-            }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
             <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-2" />

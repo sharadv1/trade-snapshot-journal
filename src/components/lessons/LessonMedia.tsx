@@ -39,6 +39,8 @@ export function LessonMedia({ media, onUpload, isEditing = false }: LessonMediaP
         media={mediaForUpload}
         onMediaUpload={handleMediaUpload}
         onMediaRemove={handleMediaRemove}
+        onImageUpload={handleMediaUpload}
+        onImageRemove={handleMediaRemove}
       />
     );
   }

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { 
   Dialog, 
@@ -37,22 +36,18 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
 
   useEffect(() => {
     if (open) {
-      // Reset the form when dialog opens
       if (lesson) {
-        // Edit mode - populate form with lesson data
         setTitle(lesson.title || '');
         setDescription(lesson.description || '');
         setTypes(lesson.types || []);
         setMedia(lesson.media || []);
       } else {
-        // Create mode - reset form
         setTitle('');
         setDescription('');
         setTypes([]);
         setMedia([]);
       }
       
-      // Get existing types for suggestions
       setTypeSuggestions(getLessonTypes());
       setNewType('');
     }
@@ -76,7 +71,6 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
     }
 
     try {
-      // Try server upload first if available
       const { isUsingServerSync, getServerUrl } = await import('@/utils/storage/serverSync');
       
       if (isUsingServerSync() && getServerUrl()) {
@@ -113,30 +107,47 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
           throw new Error('Server upload failed');
         } catch (serverError) {
           console.error('Server upload failed, falling back to data URL:', serverError);
-          // Fall back to data URL approach
-        }
-      }
-      
-      // Fallback to data URL if server upload fails or isn't available
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          const fileDataUrl = e.target.result.toString();
-          const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
+          const reader = new FileReader();
           
-          const newMedia: LessonMedia = {
-            id: generateUUID(),
-            type: mediaType,
-            url: fileDataUrl,
-            caption: ''
+          reader.onload = (e) => {
+            if (e.target?.result) {
+              const fileDataUrl = e.target.result.toString();
+              const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
+              
+              const newMedia: LessonMedia = {
+                id: generateUUID(),
+                type: mediaType,
+                url: fileDataUrl,
+                caption: ''
+              };
+              
+              setMedia([...media, newMedia]);
+            }
           };
           
-          setMedia([...media, newMedia]);
+          reader.readAsDataURL(file);
         }
-      };
-      
-      reader.readAsDataURL(file);
+      } else {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            const fileDataUrl = e.target.result.toString();
+            const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
+            
+            const newMedia: LessonMedia = {
+              id: generateUUID(),
+              type: mediaType,
+              url: fileDataUrl,
+              caption: ''
+            };
+            
+            setMedia([...media, newMedia]);
+          }
+        };
+        
+        reader.readAsDataURL(file);
+      }
     } catch (error) {
       console.error('Error uploading media:', error);
       toast.error('Failed to upload media');
@@ -169,7 +180,6 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
       const now = new Date().toISOString();
       
       if (lesson) {
-        // Update existing lesson
         const updatedLesson: Lesson = {
           ...lesson,
           title,
@@ -187,12 +197,11 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
           toast.error('Failed to update lesson due to storage issues');
         }
       } else {
-        // Create new lesson
         const newLesson: Lesson = {
           id: generateUUID(),
           title,
-          content: description || '', // Ensure content is provided
-          category: 'general', // Provide a default category
+          content: description || '',
+          category: 'general',
           description,
           types,
           media,
@@ -322,6 +331,8 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
                 media={media.map(item => ({ url: item.url, type: item.type }))}
                 onMediaUpload={handleMediaUpload}
                 onMediaRemove={handleRemoveMedia}
+                onImageUpload={handleMediaUpload}
+                onImageRemove={handleRemoveMedia}
               />
               
               {media.length > 0 && (
