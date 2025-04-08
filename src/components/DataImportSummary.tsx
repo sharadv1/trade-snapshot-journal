@@ -12,12 +12,13 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trade, TradeIdea, Strategy, WeeklyReflection, MonthlyReflection } from '@/types';
+import { SymbolDetails } from '@/utils/symbolStorage';
 
 interface ImportSummaryData {
   trades: Trade[];
   ideas: TradeIdea[];
   strategies: Strategy[];
-  symbols: string[];
+  symbols: SymbolDetails[] | string[];
   weeklyReflections: WeeklyReflection[];
   monthlyReflections: MonthlyReflection[];
 }
@@ -73,7 +74,7 @@ export function DataImportSummary({ isOpen, onClose, summaryData }: DataImportSu
               Strategies ({summaryData.strategies.length})
             </TabsTrigger>
             <TabsTrigger value="symbols">
-              Symbols ({summaryData.symbols.length})
+              Symbols ({Array.isArray(summaryData.symbols) ? summaryData.symbols.length : 0})
             </TabsTrigger>
             <TabsTrigger value="weeklyJournal">
               Weekly ({summaryData.weeklyReflections.length})
@@ -218,11 +219,29 @@ export function DataImportSummary({ isOpen, onClose, summaryData }: DataImportSu
             <TabsContent value="symbols" className="h-full">
               <ScrollArea className="h-full">
                 <div className="p-4">
-                  {summaryData.symbols.length > 0 ? (
+                  {Array.isArray(summaryData.symbols) && summaryData.symbols.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {summaryData.symbols.map((symbol, index) => (
                         <div key={index} className="border rounded-md p-3 text-center">
-                          {symbol}
+                          {typeof symbol === 'string' ? (
+                            symbol
+                          ) : 'symbol' in symbol ? (
+                            <div>
+                              <div className="font-medium">{symbol.symbol}</div>
+                              {symbol.type && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Type: {symbol.type}
+                                </div>
+                              )}
+                              {symbol.meaning && (
+                                <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                  {symbol.meaning}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            "Unknown Symbol Format"
+                          )}
                         </div>
                       ))}
                     </div>
