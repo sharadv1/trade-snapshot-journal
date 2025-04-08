@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -850,9 +851,8 @@ export default function WeeklyJournal() {
                     <TableCell className={trade.metrics.profitLoss >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
                       {formatCurrency(trade.metrics.profitLoss || 0)}
                     </TableCell>
-                    <TableCell className={(trade.metrics.riskRewardRatio || 0) >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                      {(trade.metrics.riskRewardRatio || 0) > 0 ? '+' : ''}
-                      {(trade.metrics.riskRewardRatio || 0).toFixed(2)}R
+                    <TableCell className={trade.metrics.rMultiple >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                      {trade.metrics.rMultiple > 0 ? '+' : ''}{(trade.metrics.rMultiple || 0).toFixed(2)}R
                     </TableCell>
                   </TableRow>
                 ))}
@@ -899,5 +899,73 @@ export default function WeeklyJournal() {
               
               <div>
                 <h3 className="text-sm font-medium mb-1">Reflection</h3>
-                <div className="text-sm border rounded-md p-3 bg-muted/20" 
-                  dangerouslySetInnerHTML={{ __html: selectedWeeklyReflection.
+                <div 
+                  className="text-sm border rounded-md p-3 bg-muted/20" 
+                  dangerouslySetInnerHTML={{ __html: selectedWeeklyReflection.reflection || 'No reflection content' }}
+                />
+              </div>
+              
+              {selectedWeeklyReflection.weeklyPlan && (
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Weekly Plan</h3>
+                  <div 
+                    className="text-sm border rounded-md p-3 bg-muted/20" 
+                    dangerouslySetInnerHTML={{ __html: selectedWeeklyReflection.weeklyPlan }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          
+          {selectedWeeklyReflection && isEditMode && (
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-reflection">Reflection</Label>
+                <RichTextEditor
+                  id="edit-reflection"
+                  content={editReflection}
+                  onChange={setEditReflection}
+                  placeholder="Write your weekly reflection here."
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-weekly-plan">Weekly Plan</Label>
+                <RichTextEditor
+                  id="edit-weekly-plan"
+                  content={editWeeklyPlan}
+                  onChange={setEditWeeklyPlan}
+                  placeholder="Write your plan for the week."
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-grade">Grade</Label>
+                <Select
+                  value={editGrade}
+                  onValueChange={setEditGrade}
+                >
+                  <SelectTrigger id="edit-grade" className="w-[100px]">
+                    <SelectValue placeholder="Grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {gradeOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={handleCancelEdits}>Cancel</Button>
+                <Button onClick={handleSaveEdits}>Save Changes</Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
