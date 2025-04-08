@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from '@/utils/toast';
 import { isUsingServerSync, getServerUrl } from '@/utils/storage/serverConnection';
 
@@ -7,16 +7,13 @@ export function useTradeImages(initialImages: string[] = []) {
   const [images, setImages] = useState<string[]>(initialImages);
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleImageUpload = async (fileOrFiles: File | FileList): Promise<string[]> => {
-    // Handle both single file and FileList
-    let file: File;
-    
-    if (fileOrFiles instanceof FileList) {
-      if (fileOrFiles.length === 0) return images;
-      file = fileOrFiles[0]; // Use the first file from FileList
-    } else {
-      file = fileOrFiles;
+  const handleImageUpload = useCallback(async (file: File): Promise<string[]> => {
+    if (isUploading) {
+      console.log('Already uploading an image, ignoring duplicate request');
+      return images;
     }
+    
+    console.log('useTradeImages: Processing file upload:', file.name, file.type);
     
     // Check if it's a video file
     const isVideo = file.type.startsWith('video/');
@@ -65,9 +62,10 @@ export function useTradeImages(initialImages: string[] = []) {
         const newImages = [...images, serverFilePath];
         setImages(newImages);
         toast.success(`${isVideo ? 'Video' : 'Image'} uploaded successfully`);
+        setIsUploading(false);
         return newImages;
       } else {
-        // For local storage, use data URL approach (same as before)
+        // For local storage, use data URL approach
         return new Promise<string[]>((resolve, reject) => {
           const reader = new FileReader();
           
@@ -77,6 +75,7 @@ export function useTradeImages(initialImages: string[] = []) {
                 throw new Error('Failed to read file');
               }
               
+              console.log('File read successfully, creating data URL');
               const dataUrl = e.target.result;
               
               // Check if the data URL is too large for localStorage
@@ -90,6 +89,7 @@ export function useTradeImages(initialImages: string[] = []) {
               toast.success(`${isVideo ? 'Video' : 'Image'} uploaded successfully`);
               resolve(newImages);
             } catch (error) {
+              console.error('Error processing file:', error);
               reject(error);
             } finally {
               setIsUploading(false);
@@ -97,11 +97,13 @@ export function useTradeImages(initialImages: string[] = []) {
           };
           
           reader.onerror = (error) => {
+            console.error('Error reading file:', error);
             setIsUploading(false);
             toast.error('Failed to read file');
             reject(error);
           };
           
+          console.log('Starting to read file as data URL');
           reader.readAsDataURL(file);
         });
       }
@@ -110,12 +112,10 @@ export function useTradeImages(initialImages: string[] = []) {
       toast.error('Failed to upload media');
       setIsUploading(false);
       return images;
-    } finally {
-      setIsUploading(false);
     }
-  };
+  }, [images, isUploading]);
 
-  const handleRemoveImage = (indexOrUrl: number | string): string[] => {
+  const handleRemoveImage = useCallback((indexOrUrl: number | string): string[] => {
     let index: number;
     
     // If a string URL is provided, find its index
@@ -130,7 +130,7 @@ export function useTradeImages(initialImages: string[] = []) {
     newImages.splice(index, 1);
     setImages(newImages);
     return newImages;
-  };
+  }, [images]);
 
   return {
     images,

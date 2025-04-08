@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -161,13 +160,13 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     }
   };
 
-  const handleImageUploadAdapter = (files: FileList) => {
-    if (files.length > 0) {
-      return handleImageUpload(files[0]);
-    }
+  const handleImageUploadAdapter = (file: File) => {
+    console.log('TradeForm: handleImageUploadAdapter called with file:', file.name);
+    return handleImageUpload(file);
   };
 
   const handleRemoveImageAdapter = (url: string) => {
+    console.log('TradeForm: handleRemoveImageAdapter called for url');
     const index = images.findIndex(img => img === url);
     if (index !== -1) {
       handleRemoveImage(index);

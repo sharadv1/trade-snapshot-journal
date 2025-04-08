@@ -3,12 +3,13 @@ import { Trade } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { MediaUpload } from '@/components/MediaUpload';
+import { useEffect, useState } from 'react';
 
 interface NotesAndImagesFormProps {
   trade: Trade;
   handleChange: (field: keyof Trade, value: any) => void;
   images: string[];
-  onImageUpload: (files: FileList | File) => void;
+  onImageUpload: (file: File) => void;  // Changed from FileList | File to just File
   onImageRemove: (url: string) => void;
 }
 
@@ -19,6 +20,8 @@ export function NotesAndImagesForm({
   onImageUpload,
   onImageRemove
 }: NotesAndImagesFormProps) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  
   // Detect if an item is a video (basic check, could be enhanced)
   const isVideo = (url: string) => {
     return url.includes('video') || 
@@ -34,13 +37,34 @@ export function NotesAndImagesForm({
     type: isVideo(url) ? 'video' : 'image' as 'video' | 'image'
   }));
 
-  // Improved handler for file upload
+  // Improved handler for file upload with debounce
   const handleFileUpload = (file: File) => {
+    if (isProcessing) {
+      console.log('NotesAndImagesForm: Already processing an upload, ignoring');
+      return;
+    }
+    
     console.log('NotesAndImagesForm: File upload requested', file.name);
+    setIsProcessing(true);
+    
     if (file) {
       onImageUpload(file);
+      
+      // Reset processing state after a delay
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 1000);
+    } else {
+      setIsProcessing(false);
     }
   };
+
+  // Reset processing state when component unmounts
+  useEffect(() => {
+    return () => {
+      setIsProcessing(false);
+    };
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -61,7 +85,7 @@ export function NotesAndImagesForm({
           media={mediaFiles}
           onMediaUpload={handleFileUpload}
           onMediaRemove={(index) => onImageRemove(images[index])}
-          disabled={false}
+          disabled={isProcessing}
           maxFiles={5}
         />
         <p className="text-xs text-muted-foreground">

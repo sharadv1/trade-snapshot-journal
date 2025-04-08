@@ -1,144 +1,87 @@
 
-import { useState, useEffect } from 'react';
-import { Trade, TradeType } from '@/types';
-import { getTradeIdea } from '@/utils/tradeStorage';
-import { getAllSymbols } from '@/utils/symbolStorage';
-import { useTradeSubmit } from './hooks/useTradeSubmit';
+import { useState, useEffect, useCallback } from 'react';
+import { Trade } from '@/types';
+import { useTradeState } from './hooks/useTradeState';
 import { useTradeImages } from './hooks/useTradeImages';
+import { useTradeSubmit } from './hooks/useTradeSubmit';
+import { generateUUID } from '@/utils/generateUUID';
+import { toast } from '@/utils/toast';
 
-export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId?: string | null) {
-  // Get initial trade state
-  const [trade, setTrade] = useState<Partial<Trade>>(
-    initialTrade || {
-      account: '',
-      type: 'futures', // Default to futures since that's what we have most symbols for
-      direction: 'long',
-      entryDate: new Date().toISOString().slice(0, 16),
-      status: 'open'
-    }
-  );
-  
-  const [contractDetails, setContractDetails] = useState<Record<string, any>>(
-    initialTrade?.contractDetails || {}
-  );
-  
-  // Tab state
-  const [activeTab, setActiveTab] = useState<string>('details');
-  
-  // Image handling
+export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId: string | null = null) {
+  // Initialize trade state with proper defaults
   const {
-    images,
-    handleImageUpload,
-    handleRemoveImage
-  } = useTradeImages(initialTrade?.images || []);
-  
-  // Symbol point value for futures
-  const [pointValue, setPointValue] = useState<number | undefined>(
-    initialTrade?.type === 'futures' && 
-    initialTrade.contractDetails && 
-    'tickValue' in initialTrade.contractDetails 
-      ? initialTrade.contractDetails.tickValue as number
-      : undefined
-  );
-  
-  // Submit handler
-  const { handleSubmit: submitHandler } = useTradeSubmit(
     trade,
-    images,
-    contractDetails,
-    isEditing,
-    initialTrade
-  );
-  
-  // Update pointValue when symbol changes for futures
-  useEffect(() => {
-    if (trade.type === 'futures' && trade.symbol) {
-      // Get all symbols and find the matching one to get its details
-      const allSymbols = getAllSymbols();
-      const symbolData = allSymbols.find(s => s.symbol === trade.symbol);
-      
-      if (symbolData && contractDetails && 'tickValue' in contractDetails) {
-        setPointValue(contractDetails.tickValue as number);
-      }
-    }
-  }, [trade.type, trade.symbol, contractDetails]);
-  
-  // Load idea data if ideaId is provided
-  useEffect(() => {
-    if (ideaId && !isEditing) {
-      const idea = getTradeIdea(ideaId);
-      if (idea) {
-        setTrade(prevTrade => ({
-          ...prevTrade,
-          symbol: idea.symbol,
-          direction: (idea.direction as 'long' | 'short') || 'long',
-          notes: idea.description || '',
-          ideaId: ideaId || '',
-          account: '',  // Don't set any default account
-          // If we have a known symbol type, set the trade type to match
-          type: getSymbolType(idea.symbol) || prevTrade.type || 'futures'
-        }));
-      }
-    }
-  }, [ideaId, isEditing]);
-
-  // Helper to get symbol type
-  const getSymbolType = (symbol?: string): TradeType | undefined => {
-    if (!symbol) return undefined;
-    
-    const allSymbols = getAllSymbols();
-    const foundSymbol = allSymbols.find(s => s.symbol === symbol);
-    return foundSymbol?.type as TradeType | undefined;
-  };
-  
-  const handleChange = (
-    field: keyof Trade,
-    value: any
-  ) => {
-    setTrade(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-  
-  const handleTypeChange = (
-    type: TradeType
-  ) => {
-    setTrade(prev => ({
-      ...prev,
-      type,
-      // Clear the symbol if changing type
-      ...(prev.type !== type ? { symbol: '' } : {})
-    }));
-    
-    // Reset contract details when changing from futures
-    if (type !== 'futures') {
-      setContractDetails({});
-      setPointValue(undefined);
-    }
-  };
-  
-  const handleContractDetailsChange = (details: any) => {
-    setContractDetails(details);
-  };
-  
-  const handleSubmit = (e: React.FormEvent, onSuccess?: (tradeId: string) => void) => {
-    e.preventDefault();
-    return submitHandler(e, onSuccess);
-  };
-  
-  return {
-    trade,
-    contractDetails,
-    activeTab,
-    setActiveTab,
-    images,
+    setTrade,
     handleChange,
     handleTypeChange,
+    contractDetails,
     handleContractDetailsChange,
+    pointValue,
+  } = useTradeState(initialTrade, ideaId);
+
+  // Initialize images state
+  const {
+    images,
+    setImages,
+    isUploading,
+    handleImageUpload: handleUploadImage,
+    handleRemoveImage: handleRemoveImageFromState
+  } = useTradeImages(initialTrade?.images || []);
+
+  // Initialize submit logic
+  const { handleSubmit } = useTradeSubmit(trade, images, contractDetails, isEditing, initialTrade);
+
+  // Track active tab
+  const [activeTab, setActiveTab] = useState<string>('details');
+
+  // Handle image upload with proper error handling and logging
+  const handleImageUpload = useCallback(async (file: File) => {
+    console.log('useTradeForm: Handling image upload for file:', file.name);
+    
+    try {
+      return await handleUploadImage(file);
+    } catch (error) {
+      console.error('Error in handleImageUpload:', error);
+      toast.error('Failed to upload image');
+      return images;
+    }
+  }, [handleUploadImage, images]);
+
+  // Handle image removal with proper error handling
+  const handleRemoveImage = useCallback((index: number) => {
+    console.log('useTradeForm: Removing image at index:', index);
+    
+    try {
+      return handleRemoveImageFromState(index);
+    } catch (error) {
+      console.error('Error in handleRemoveImage:', error);
+      toast.error('Failed to remove image');
+      return images;
+    }
+  }, [handleRemoveImageFromState, images]);
+
+  // Set initial images from trade on mount
+  useEffect(() => {
+    if (initialTrade?.images && initialTrade.images.length > 0) {
+      setImages(initialTrade.images);
+    }
+  }, [initialTrade, setImages]);
+
+  // Return all the state and handlers
+  return {
+    trade,
+    setTrade,
+    activeTab,
+    setActiveTab,
+    handleChange,
+    handleTypeChange,
+    contractDetails,
+    handleContractDetailsChange,
+    images,
+    isUploading,
     handleImageUpload,
     handleRemoveImage,
     handleSubmit,
-    pointValue
+    pointValue,
   };
 }

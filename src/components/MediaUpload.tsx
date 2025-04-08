@@ -28,6 +28,7 @@ export function MediaUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Track last file uploaded to prevent duplicates
   const [lastUploadedFile, setLastUploadedFile] = useState<{ name: string, time: number } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -46,28 +47,43 @@ export function MediaUpload({
       return;
     }
 
+    if (disabled || isUploading) {
+      return;
+    }
+
+    setIsUploading(true);
+    
     const isVideoFile = file.type.startsWith('video/');
     
     // Check file size - different limits for images vs videos
     if (isVideoFile) {
       if (file.size > 20 * 1024 * 1024) {
         toast.error("Video must be under 20MB");
+        setIsUploading(false);
         return;
       }
     } else {
       // For images
       if (file.size > 5 * 1024 * 1024) {
         toast.error("Image must be under 5MB");
+        setIsUploading(false);
         return;
       }
     }
 
     // Record this upload to prevent duplicates
     setLastUploadedFile({ name: file.name, time: Date.now() });
+    
+    console.log('MediaUpload: Processing file upload for trade:', file.name);
     onMediaUpload(file);
     
     // Clear the input value so the same file can be uploaded again (but not immediately)
     if (event.target.value) event.target.value = '';
+    
+    // Reset uploading state after a delay to prevent multiple submissions
+    setTimeout(() => {
+      setIsUploading(false);
+    }, 500);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -84,13 +100,20 @@ export function MediaUpload({
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
-      console.log('File dropped:', file.name, file.type);
+      console.log('File dropped in MediaUpload:', file.name, file.type);
+      
+      if (disabled || isUploading) {
+        return;
+      }
+      
+      setIsUploading(true);
       
       // Prevent duplicate uploads (same file within 2 seconds)
       if (lastUploadedFile && 
           lastUploadedFile.name === file.name && 
           (Date.now() - lastUploadedFile.time) < 2000) {
         console.log('Prevented duplicate file drag-and-drop:', file.name);
+        setIsUploading(false);
         return;
       }
       
@@ -100,19 +123,27 @@ export function MediaUpload({
       if (isVideoFile) {
         if (file.size > 20 * 1024 * 1024) {
           toast.error("Video must be under 20MB");
+          setIsUploading(false);
           return;
         }
       } else {
         // For images
         if (file.size > 5 * 1024 * 1024) {
           toast.error("Image must be under 5MB");
+          setIsUploading(false);
           return;
         }
       }
       
       // Record this upload to prevent duplicates
       setLastUploadedFile({ name: file.name, time: Date.now() });
+      console.log('MediaUpload: Processing dropped file for trade:', file.name);
       onMediaUpload(file);
+      
+      // Reset uploading state after a delay
+      setTimeout(() => {
+        setIsUploading(false);
+      }, 500);
     }
   };
 
@@ -121,7 +152,7 @@ export function MediaUpload({
     e.stopPropagation();
     if (!disabled) {
       setIsDragging(true);
-      console.log('Drag over event detected');
+      console.log('Drag over event detected in MediaUpload');
     }
   };
 
@@ -189,7 +220,7 @@ export function MediaUpload({
             onChange={handleFileChange}
             accept="image/*,video/*"
             ref={fileInputRef}
-            disabled={disabled || media.length >= maxFiles}
+            disabled={disabled || isUploading || media.length >= maxFiles}
           />
         </>
       )}
