@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Scissors } from 'lucide-react';
 import { toast } from '@/utils/toast';
@@ -33,12 +32,24 @@ export function JournalLayout() {
         window.dispatchEvent(new CustomEvent('journal-updated'));
         window.dispatchEvent(new CustomEvent('journalUpdated'));
         
-        // Force a page reload to ensure everything is updated
+        // Force a reload to ensure everything is updated
         setTimeout(() => {
           // Re-navigate to current route to force a full component refresh
           const currentPath = location.pathname;
-          navigate(currentPath, { replace: true });
-        }, 100);
+          
+          // For a more complete refresh
+          if (isWeekly) {
+            navigate('/journal/monthly', { replace: true });
+            setTimeout(() => {
+              navigate(currentPath, { replace: true });
+            }, 100);
+          } else {
+            navigate('/journal/weekly', { replace: true });
+            setTimeout(() => {
+              navigate(currentPath, { replace: true });
+            }, 100);
+          }
+        }, 300);
       } else {
         toast.info('No duplicate reflections found');
       }
@@ -48,7 +59,7 @@ export function JournalLayout() {
     } finally {
       setTimeout(() => {
         setIsRemoving(false);
-      }, 800); // Give more time for the operation to complete visually
+      }, 1000); // Give more time for the operation to complete visually
     }
   };
   

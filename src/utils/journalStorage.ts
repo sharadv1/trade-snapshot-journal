@@ -123,6 +123,14 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
     try {
       weeklyReflections = JSON.parse(weeklyReflectionsRaw);
       console.log(`Parsed ${Object.keys(weeklyReflections).length} weekly reflections`);
+      
+      Object.entries(weeklyReflections).forEach(([key, value]) => {
+        if (isValidWeeklyReflection(value)) {
+          console.log(`Weekly entry - key: ${key}, weekId: ${value.weekId}`);
+        } else {
+          console.log(`Invalid weekly entry - key: ${key}, value:`, value);
+        }
+      });
     } catch (e) {
       console.error('Failed to parse weekly reflections JSON:', e);
       return { weeklyRemoved, monthlyRemoved };
@@ -133,11 +141,32 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
       return { weeklyRemoved, monthlyRemoved };
     }
     
+    const weekIdCount = new Map<string, number>();
+    Object.values(weeklyReflections).forEach((value) => {
+      if (isValidWeeklyReflection(value)) {
+        const count = weekIdCount.get(value.weekId) || 0;
+        weekIdCount.set(value.weekId, count + 1);
+      }
+    });
+    
+    let duplicateWeekIds = 0;
+    weekIdCount.forEach((count, weekId) => {
+      if (count > 1) {
+        console.log(`Weekly ID ${weekId} appears ${count} times - DUPLICATE DETECTED`);
+        duplicateWeekIds++;
+      }
+    });
+    console.log(`Found ${duplicateWeekIds} unique weekly IDs with duplicates`);
+    
     const uniqueWeeklyReflections = new Map<string, WeeklyReflection>();
     
-    Object.entries(weeklyReflections).forEach(([key, value]) => {
+    const sortedEntries = Object.entries(weeklyReflections).sort(([keyA], [keyB]) => {
+      return keyA.localeCompare(keyB);
+    });
+    
+    sortedEntries.forEach(([key, value]) => {
       if (!isValidWeeklyReflection(value)) {
-        console.log(`Skipping invalid weekly reflection:`, value);
+        console.log(`🚨 Skipping invalid weekly reflection with key ${key}:`, value);
         return;
       }
       
@@ -145,28 +174,28 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
       
       if (!existingReflection) {
         uniqueWeeklyReflections.set(value.weekId, value);
-        console.log(`Added first reflection for week ${value.weekId}`);
+        console.log(`📥 Added first reflection for week ${value.weekId} with key ${key}`);
       } else if (value.lastUpdated && existingReflection.lastUpdated &&
                 new Date(value.lastUpdated) > new Date(existingReflection.lastUpdated)) {
         uniqueWeeklyReflections.set(value.weekId, value);
-        console.log(`Replaced reflection for week ${value.weekId} with newer version`);
+        console.log(`🔄 Replaced reflection for week ${value.weekId} with newer version (key ${key})`);
       } else {
-        console.log(`Keeping existing reflection for week ${value.weekId}`);
+        console.log(`❌ Discarded duplicate for week ${value.weekId} with key ${key} - keeping existing version`);
       }
     });
     
     weeklyRemoved = Object.keys(weeklyReflections).length - uniqueWeeklyReflections.size;
-    console.log(`Found ${weeklyRemoved} duplicate weekly reflections`);
+    console.log(`Found ${weeklyRemoved} duplicate weekly reflections (${uniqueWeeklyReflections.size} unique vs ${Object.keys(weeklyReflections).length} total)`);
     
     if (weeklyRemoved > 0) {
       const uniqueWeeklyReflectionsObj: Record<string, WeeklyReflection> = {};
       
-      uniqueWeeklyReflections.forEach((reflection, weekId) => {
-        uniqueWeeklyReflectionsObj[weekId] = reflection;
+      uniqueWeeklyReflections.forEach((reflection) => {
+        uniqueWeeklyReflectionsObj[reflection.weekId] = reflection;
       });
       
+      console.log(`Writing ${uniqueWeeklyReflections.size} unique weekly reflections to localStorage`);
       localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(uniqueWeeklyReflectionsObj));
-      console.log(`Saved ${uniqueWeeklyReflections.size} unique weekly reflections`);
       
       dispatchStorageEvent(WEEKLY_REFLECTIONS_KEY);
     }
@@ -186,6 +215,14 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
     try {
       monthlyReflections = JSON.parse(monthlyReflectionsRaw);
       console.log(`Parsed ${Object.keys(monthlyReflections).length} monthly reflections`);
+      
+      Object.entries(monthlyReflections).forEach(([key, value]) => {
+        if (isValidMonthlyReflection(value)) {
+          console.log(`Monthly entry - key: ${key}, monthId: ${value.monthId}`);
+        } else {
+          console.log(`Invalid monthly entry - key: ${key}, value:`, value);
+        }
+      });
     } catch (e) {
       console.error('Failed to parse monthly reflections JSON:', e);
       return { weeklyRemoved, monthlyRemoved };
@@ -196,11 +233,32 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
       return { weeklyRemoved, monthlyRemoved };
     }
     
+    const monthIdCount = new Map<string, number>();
+    Object.values(monthlyReflections).forEach((value) => {
+      if (isValidMonthlyReflection(value)) {
+        const count = monthIdCount.get(value.monthId) || 0;
+        monthIdCount.set(value.monthId, count + 1);
+      }
+    });
+    
+    let duplicateMonthIds = 0;
+    monthIdCount.forEach((count, monthId) => {
+      if (count > 1) {
+        console.log(`Monthly ID ${monthId} appears ${count} times - DUPLICATE DETECTED`);
+        duplicateMonthIds++;
+      }
+    });
+    console.log(`Found ${duplicateMonthIds} unique monthly IDs with duplicates`);
+    
     const uniqueMonthlyReflections = new Map<string, MonthlyReflection>();
     
-    Object.entries(monthlyReflections).forEach(([key, value]) => {
+    const sortedEntries = Object.entries(monthlyReflections).sort(([keyA], [keyB]) => {
+      return keyA.localeCompare(keyB);
+    });
+    
+    sortedEntries.forEach(([key, value]) => {
       if (!isValidMonthlyReflection(value)) {
-        console.log(`Skipping invalid monthly reflection:`, value);
+        console.log(`🚨 Skipping invalid monthly reflection with key ${key}:`, value);
         return;
       }
       
@@ -208,28 +266,28 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
       
       if (!existingReflection) {
         uniqueMonthlyReflections.set(value.monthId, value);
-        console.log(`Added first reflection for month ${value.monthId}`);
+        console.log(`📥 Added first reflection for month ${value.monthId} with key ${key}`);
       } else if (value.lastUpdated && existingReflection.lastUpdated &&
                 new Date(value.lastUpdated) > new Date(existingReflection.lastUpdated)) {
         uniqueMonthlyReflections.set(value.monthId, value);
-        console.log(`Replaced reflection for month ${value.monthId} with newer version`);
+        console.log(`🔄 Replaced reflection for month ${value.monthId} with newer version (key ${key})`);
       } else {
-        console.log(`Keeping existing reflection for month ${value.monthId}`);
+        console.log(`❌ Discarded duplicate for month ${value.monthId} with key ${key} - keeping existing version`);
       }
     });
     
     monthlyRemoved = Object.keys(monthlyReflections).length - uniqueMonthlyReflections.size;
-    console.log(`Found ${monthlyRemoved} duplicate monthly reflections`);
+    console.log(`Found ${monthlyRemoved} duplicate monthly reflections (${uniqueMonthlyReflections.size} unique vs ${Object.keys(monthlyReflections).length} total)`);
     
     if (monthlyRemoved > 0) {
       const uniqueMonthlyReflectionsObj: Record<string, MonthlyReflection> = {};
       
-      uniqueMonthlyReflections.forEach((reflection, monthId) => {
-        uniqueMonthlyReflectionsObj[monthId] = reflection;
+      uniqueMonthlyReflections.forEach((reflection) => {
+        uniqueMonthlyReflectionsObj[reflection.monthId] = reflection;
       });
       
+      console.log(`Writing ${uniqueMonthlyReflections.size} unique monthly reflections to localStorage`);
       localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(uniqueMonthlyReflectionsObj));
-      console.log(`Saved ${uniqueMonthlyReflections.size} unique monthly reflections`);
       
       dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
     }
