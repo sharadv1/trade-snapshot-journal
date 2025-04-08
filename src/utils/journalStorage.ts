@@ -95,51 +95,58 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
   let monthlyRemoved = 0;
   
   try {
-    const weeklyReflections = getWeeklyReflections();
-    const uniqueWeekly: { [key: string]: WeeklyReflection } = {};
-    
-    Object.values(weeklyReflections).forEach(reflection => {
-      if (!reflection.weekId) return;
+    const weeklyReflectionsData = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
+    if (weeklyReflectionsData) {
+      const weeklyReflections = safeParse(weeklyReflectionsData, {});
+      const uniqueWeekly: { [key: string]: WeeklyReflection } = {};
       
-      if (!uniqueWeekly[reflection.weekId] || 
-          (reflection.lastUpdated && uniqueWeekly[reflection.weekId].lastUpdated &&
-           new Date(reflection.lastUpdated) > new Date(uniqueWeekly[reflection.weekId].lastUpdated))) {
-        uniqueWeekly[reflection.weekId] = reflection;
+      Object.values(weeklyReflections).forEach(reflection => {
+        if (!reflection.weekId) return;
+        
+        if (!uniqueWeekly[reflection.weekId] || 
+            (reflection.lastUpdated && uniqueWeekly[reflection.weekId].lastUpdated &&
+             new Date(reflection.lastUpdated) > new Date(uniqueWeekly[reflection.weekId].lastUpdated))) {
+          uniqueWeekly[reflection.weekId] = reflection;
+        }
+      });
+      
+      weeklyRemoved = Object.keys(weeklyReflections).length - Object.keys(uniqueWeekly).length;
+      
+      if (weeklyRemoved > 0) {
+        localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(uniqueWeekly));
+        dispatchStorageEvent(WEEKLY_REFLECTIONS_KEY);
+        console.log(`Removed ${weeklyRemoved} duplicate weekly reflections`);
       }
-    });
-    
-    weeklyRemoved = Object.keys(weeklyReflections).length - Object.keys(uniqueWeekly).length;
-    
-    if (weeklyRemoved > 0) {
-      localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(uniqueWeekly));
-      dispatchStorageEvent(WEEKLY_REFLECTIONS_KEY);
-      console.log(`Removed ${weeklyRemoved} duplicate weekly reflections`);
     }
     
-    const monthlyReflections = getMonthlyReflections();
-    const uniqueMonthly: { [key: string]: MonthlyReflection } = {};
-    
-    Object.values(monthlyReflections).forEach(reflection => {
-      if (!reflection.monthId) return;
+    const monthlyReflectionsData = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
+    if (monthlyReflectionsData) {
+      const monthlyReflections = safeParse(monthlyReflectionsData, {});
+      const uniqueMonthly: { [key: string]: MonthlyReflection } = {};
       
-      if (!uniqueMonthly[reflection.monthId] || 
-          (reflection.lastUpdated && uniqueMonthly[reflection.monthId].lastUpdated &&
-           new Date(reflection.lastUpdated) > new Date(uniqueMonthly[reflection.monthId].lastUpdated))) {
-        uniqueMonthly[reflection.monthId] = reflection;
+      Object.values(monthlyReflections).forEach(reflection => {
+        if (!reflection.monthId) return;
+        
+        if (!uniqueMonthly[reflection.monthId] || 
+            (reflection.lastUpdated && uniqueMonthly[reflection.monthId].lastUpdated &&
+             new Date(reflection.lastUpdated) > new Date(uniqueMonthly[reflection.monthId].lastUpdated))) {
+          uniqueMonthly[reflection.monthId] = reflection;
+        }
+      });
+      
+      monthlyRemoved = Object.keys(monthlyReflections).length - Object.keys(uniqueMonthly).length;
+      
+      if (monthlyRemoved > 0) {
+        localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(uniqueMonthly));
+        dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
+        console.log(`Removed ${monthlyRemoved} duplicate monthly reflections`);
       }
-    });
-    
-    monthlyRemoved = Object.keys(monthlyReflections).length - Object.keys(uniqueMonthly).length;
-    
-    if (monthlyRemoved > 0) {
-      localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(uniqueMonthly));
-      dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
-      console.log(`Removed ${monthlyRemoved} duplicate monthly reflections`);
     }
     
     return { weeklyRemoved, monthlyRemoved };
   } catch (error) {
     console.error('Error removing duplicate reflections:', error);
+    toast.error('Failed to remove duplicates');
     return { weeklyRemoved, monthlyRemoved };
   }
 };

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocation } from 'react-router-dom';
@@ -18,6 +18,7 @@ export function JournalLayout() {
   
   const handleRemoveDuplicates = () => {
     setIsRemoving(true);
+    
     try {
       const { weeklyRemoved, monthlyRemoved } = removeDuplicateReflections();
       const totalRemoved = weeklyRemoved + monthlyRemoved;
@@ -26,6 +27,8 @@ export function JournalLayout() {
         toast.success(`Removed ${totalRemoved} duplicate reflections (${weeklyRemoved} weekly, ${monthlyRemoved} monthly)`);
         // Force refresh UI components
         window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('journal-updated'));
+        window.dispatchEvent(new CustomEvent('journalUpdated'));
       } else {
         toast.info('No duplicate reflections found');
       }
@@ -33,9 +36,16 @@ export function JournalLayout() {
       console.error('Error removing duplicates:', error);
       toast.error('Failed to remove duplicates');
     } finally {
-      setIsRemoving(false);
+      setTimeout(() => {
+        setIsRemoving(false);
+      }, 500);
     }
   };
+  
+  useEffect(() => {
+    // Force refresh on component mount to ensure latest data
+    window.dispatchEvent(new Event('storage'));
+  }, []);
   
   return (
     <div className="w-full py-6 space-y-6 container mx-auto max-w-screen-xl">
