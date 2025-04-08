@@ -272,7 +272,7 @@ export default function TradeDetail() {
               
               <div>
                 <p className="text-sm text-muted-foreground">Timeframe</p>
-                <p className="font-medium">{trade.timeframe || 'Not specified'}</p>
+                <p className="font-medium">{getTimeframeDisplayValue(trade.timeframe)}</p>
               </div>
               
               {trade.pspTime && (
