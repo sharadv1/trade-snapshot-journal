@@ -126,14 +126,14 @@ export function TradeListTable({
                       <span className={trade.metrics?.profitLoss >= 0 ? 'text-profit' : 'text-loss'}>
                         {formatCurrency(trade.metrics?.profitLoss || 0)}
                       </span>
-                      {trade.metrics?.riskedAmount > 0 && (
+                      {trade.metrics?.rMultiple !== undefined && (
                         <span className={`ml-2 ${trade.metrics?.profitLoss >= 0 ? 'text-profit' : 'text-loss'}`}>
                           ({trade.metrics.rMultiple.toFixed(2)}R)
                         </span>
                       )}
                     </div>
                   ) : (
-                    trade.metrics?.riskedAmount ? formatCurrency(trade.metrics.riskedAmount) : '-'
+                    <span className="text-muted-foreground">Open</span>
                   )}
                 </td>
                 <td className="p-2">
