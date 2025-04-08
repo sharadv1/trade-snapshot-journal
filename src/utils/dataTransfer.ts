@@ -1,3 +1,4 @@
+
 import { Trade, TradeIdea, Strategy, WeeklyReflection, MonthlyReflection } from '@/types';
 import { getTrades, saveTrades } from './storage/storageCore';
 import { getIdeas, saveIdeas } from './ideaStorage';
@@ -290,13 +291,14 @@ const importData = (jsonData: string): boolean => {
         console.warn('Invalid strategies data format in import');
       }
       
-      // Validate and import symbols
+      // Validate and import symbols - ensure it's an array
       if (Array.isArray(data.symbols)) {
         saveCustomSymbols(data.symbols);
         console.log(`Imported ${data.symbols.length} symbols`);
         lastImportSummary.symbols = data.symbols;
       } else {
         console.warn('Invalid symbols data format in import');
+        lastImportSummary.symbols = []; // Ensure we always have an array for symbols
       }
       
       // Import weekly journal reflections (new in v1.1)

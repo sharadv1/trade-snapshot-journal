@@ -219,7 +219,7 @@ export function DataExportSummary({ isOpen, onClose, summaryData }: DataExportSu
             <TabsContent value="symbols" className="h-full">
               <ScrollArea className="h-full">
                 <div className="p-4">
-                  {summaryData.symbols.length > 0 ? (
+                  {Array.isArray(summaryData.symbols) && summaryData.symbols.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {summaryData.symbols.map((symbolData, index) => (
                         <div key={index} className="border rounded-md p-3">
