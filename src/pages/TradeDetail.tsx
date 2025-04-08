@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, ChevronDown, ChevronUp, Star } from 'lucide-react';
+import { ArrowLeft, Edit, ChevronDown, ChevronUp, Star, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { getTradeById } from '@/utils/storage/tradeOperations';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,10 @@ import { calculateTradeMetrics, formatCurrency, formatPercentage } from '@/utils
 import { ContentRenderer } from '@/components/journal/ContentRenderer';
 import { ImageViewerDialog } from '@/components/ImageViewerDialog';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { getStrategyById } from '@/utils/strategyStorage';
+import { getCurrentMaxRisk } from '@/utils/maxRiskStorage';
 
 const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
   if (!timeframe) return '';
@@ -29,7 +31,6 @@ const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
     'D': 'Daily',
     'W': 'Weekly',
     'M': 'Monthly',
-    // Keep legacy mappings for backward compatibility
     'm5': '5 Minutes (M5)',
     'm15': '15 Minutes (M15)',
     'h1': '1 Hour (H1)',
@@ -51,6 +52,7 @@ export default function TradeDetail() {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [isOverMaxRisk, setIsOverMaxRisk] = useState(false);
   
   const getStrategyName = (strategyId: string | undefined): string => {
     if (!strategyId) return 'No Strategy';
@@ -103,6 +105,19 @@ export default function TradeDetail() {
       window.removeEventListener('trades-updated', handleTradeUpdated);
     };
   }, [id, retryCount]);
+  
+  useEffect(() => {
+    if (trade && trade.status === 'open') {
+      const metrics = calculateTradeMetrics(trade);
+      const maxRisk = getCurrentMaxRisk();
+      
+      if (maxRisk !== null && metrics.riskedAmount > maxRisk) {
+        setIsOverMaxRisk(true);
+      } else {
+        setIsOverMaxRisk(false);
+      }
+    }
+  }, [trade]);
   
   if (isLoading) {
     return (
@@ -392,6 +407,15 @@ export default function TradeDetail() {
                       "No calculation details available."
                     )}
                   </div>
+                )}
+                
+                {trade?.status === 'open' && isOverMaxRisk && (
+                  <Alert variant="destructive" className="mt-4 bg-destructive/10 border-destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="ml-2">
+                      Warning: This trade exceeds your maximum risk threshold.
+                    </AlertDescription>
+                  </Alert>
                 )}
               </>
             )}

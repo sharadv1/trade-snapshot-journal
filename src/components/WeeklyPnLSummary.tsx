@@ -14,7 +14,7 @@ interface WeeklyPnLSummaryProps {
 }
 
 export function WeeklyPnLSummary({ trades }: WeeklyPnLSummaryProps) {
-  const { weeklyPnL, isOverMaxLoss, maxLoss, openRisk, maxRisk, isOverMaxRisk } = useMemo(() => {
+  const { weeklyPnL, isOverMaxLoss, maxLoss, openRisk } = useMemo(() => {
     // Get current week's date range
     const now = new Date();
     const weekStart = new Date(now);
@@ -45,22 +45,16 @@ export function WeeklyPnLSummary({ trades }: WeeklyPnLSummaryProps) {
     const currentMaxLoss = getCurrentMaxLoss();
     const isExceedingMaxLoss = currentMaxLoss !== null && pnl < 0 && Math.abs(pnl) >= Math.abs(currentMaxLoss);
     
-    // Get max risk setting
-    const currentMaxRisk = getCurrentMaxRisk();
-    const isExceedingMaxRisk = currentMaxRisk !== null && openPositionsRisk > currentMaxRisk;
-    
     return {
       weeklyPnL: pnl,
       isOverMaxLoss: isExceedingMaxLoss,
       maxLoss: currentMaxLoss,
-      openRisk: openPositionsRisk,
-      maxRisk: currentMaxRisk,
-      isOverMaxRisk: isExceedingMaxRisk
+      openRisk: openPositionsRisk
     };
   }, [trades]);
 
   return (
-    <Card className={isOverMaxLoss || isOverMaxRisk ? 'border-destructive' : ''}>
+    <Card className={isOverMaxLoss ? 'border-destructive' : ''}>
       <CardContent className="p-4">
         <div className="space-y-3">
           {/* Open Risk Display */}
@@ -79,13 +73,8 @@ export function WeeklyPnLSummary({ trades }: WeeklyPnLSummaryProps) {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <p className={`text-lg font-medium ${isOverMaxRisk ? 'text-destructive' : ''}`}>
+              <p className="text-lg font-medium">
                 {formatCurrency(openRisk)}
-                {maxRisk !== null && (
-                  <span className="text-xs text-muted-foreground ml-2">
-                    / {formatCurrency(maxRisk)}
-                  </span>
-                )}
               </p>
             </div>
           </div>
@@ -114,16 +103,6 @@ export function WeeklyPnLSummary({ trades }: WeeklyPnLSummaryProps) {
               )}
             </p>
           </div>
-          
-          {/* Warning for exceeding max risk */}
-          {isOverMaxRisk && (
-            <Alert variant="destructive" className="mt-2 bg-destructive/10 border-destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="ml-2">
-                Warning: You've exceeded your maximum risk threshold.
-              </AlertDescription>
-            </Alert>
-          )}
           
           {/* Warning for exceeding max loss */}
           {isOverMaxLoss && (
