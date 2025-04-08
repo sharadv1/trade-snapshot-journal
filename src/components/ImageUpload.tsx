@@ -100,13 +100,17 @@ export function ImageUpload({
       }
       
       onImageUpload(file);
+      console.log('File dropped and being processed:', file.name);
     }
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!disabled) setIsDragging(true);
+    if (!disabled) {
+      setIsDragging(true);
+      console.log('Drag over detected');
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {

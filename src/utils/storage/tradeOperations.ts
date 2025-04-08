@@ -72,6 +72,27 @@ export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
     console.log('Trade updated successfully:', updatedTrade.id);
   } else {
     console.error('Trade not found for update:', updatedTrade.id);
+    
+    // If trade not found in local array but likely exists in storage,
+    // try to refetch trades and try again (to handle stale data)
+    console.log('Attempting to refetch trades and retry update');
+    const refreshedTrades = await getTrades(true); // Force refresh from storage
+    const refreshedIndex = refreshedTrades.findIndex(trade => trade.id === updatedTrade.id);
+    
+    if (refreshedIndex !== -1) {
+      // Trade found after refresh, proceed with update
+      refreshedTrades[refreshedIndex] = updatedTrade;
+      await saveTrades(refreshedTrades);
+      
+      // Trigger events
+      dispatchStorageEvents();
+      document.dispatchEvent(new CustomEvent('trade-updated'));
+      window.dispatchEvent(new Event('trades-updated'));
+      
+      console.log('Trade updated successfully after refresh:', updatedTrade.id);
+    } else {
+      console.error('Trade still not found after refresh, cannot update:', updatedTrade.id);
+    }
   }
 };
 

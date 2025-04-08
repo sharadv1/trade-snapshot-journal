@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, X, Play, Video } from 'lucide-react';
 import { toast } from '@/utils/toast';
@@ -17,71 +17,48 @@ interface MediaUploadProps {
   maxFiles?: number;
 }
 
-export function MediaUpload({ 
-  media, 
-  onMediaUpload, 
+export function MediaUpload({
+  media,
+  onMediaUpload,
   onMediaRemove,
   disabled = false,
   maxFiles = 5
 }: MediaUploadProps) {
-  const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const dropAreaRef = useRef<HTMLDivElement>(null);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (media.length >= maxFiles) {
-        toast.error(`Maximum ${maxFiles} files allowed`);
+    if (!file) return;
+
+    if (media.length >= maxFiles) {
+      toast.error(`Maximum ${maxFiles} files allowed`);
+      return;
+    }
+
+    const isVideoFile = file.type.startsWith('video/');
+    
+    // Check file size - different limits for images vs videos
+    if (isVideoFile) {
+      if (file.size > 20 * 1024 * 1024) {
+        toast.error("Video must be under 20MB");
         return;
       }
-      
-      // Check if file is video and warn about size
-      if (file.type.startsWith('video/') && file.size > 50 * 1024 * 1024) {
-        toast.warning('Video is larger than 50MB. This may cause performance issues.');
-      }
-      
-      setUploading(true);
-      try {
-        await onMediaUpload(file);
-        toast.success(`${file.type.startsWith('video/') ? 'Video' : 'Image'} uploaded successfully`);
-      } catch (error) {
-        console.error('Error uploading:', error);
-        toast.error('Failed to upload file');
-      } finally {
-        setUploading(false);
-        // Clear the input value so the same file can be uploaded again
-        if (event.target.value) event.target.value = '';
+    } else {
+      // For images
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image must be under 5MB");
+        return;
       }
     }
+
+    onMediaUpload(file);
+    
+    // Clear the input value so the same file can be uploaded again
+    if (event.target.value) event.target.value = '';
   };
 
-  // Improved drag event handlers
-  const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!disabled) {
-      setIsDragging(true);
-    }
-  }, [disabled]);
-
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!disabled) {
-      setIsDragging(true);
-      e.dataTransfer.dropEffect = 'copy';
-    }
-  }, [disabled]);
-
-  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -94,117 +71,102 @@ export function MediaUpload({
     }
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const files = Array.from(e.dataTransfer.files);
-      const mediaFile = files[0];
+      const file = e.dataTransfer.files[0];
       
-      if (mediaFile && (mediaFile.type.startsWith('image/') || mediaFile.type.startsWith('video/'))) {
-        // Check if file is video and warn about size
-        if (mediaFile.type.startsWith('video/') && mediaFile.size > 50 * 1024 * 1024) {
-          toast.warning('Video is larger than 50MB. This may cause performance issues.');
-        }
-        
-        setUploading(true);
-        try {
-          await onMediaUpload(mediaFile);
-          toast.success(`${mediaFile.type.startsWith('video/') ? 'Video' : 'Image'} uploaded successfully`);
-        } catch (error) {
-          console.error('Error uploading:', error);
-          toast.error('Failed to upload file');
-        } finally {
-          setUploading(false);
+      const isVideoFile = file.type.startsWith('video/');
+      
+      // Check file size - different limits for images vs videos
+      if (isVideoFile) {
+        if (file.size > 20 * 1024 * 1024) {
+          toast.error("Video must be under 20MB");
+          return;
         }
       } else {
-        toast.error('Unsupported file type. Please upload an image or video.');
+        // For images
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error("Image must be under 5MB");
+          return;
+        }
       }
+      
+      onMediaUpload(file);
     }
-  }, [disabled, media.length, maxFiles, onMediaUpload]);
-
-  const handleUploadBtnClick = () => {
-    fileInputRef.current?.click();
   };
-  
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!disabled) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {media.map((item, index) => (
-          <div key={index} className="relative w-24 h-24 border rounded overflow-hidden">
-            {item.type === 'image' ? (
-              <img 
-                src={item.url}
-                alt={`Media ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="relative w-full h-full bg-black/5 flex items-center justify-center">
-                {item.url.startsWith('data:') ? (
-                  <video 
-                    className="max-h-full max-w-full" 
-                    muted
-                    loop
-                    preload="metadata"
-                  >
-                    <source src={item.url} />
-                    Your browser does not support the video tag.
-                  </video>
-                ) : (
-                  <div className="flex items-center justify-center h-full w-full">
-                    <Video className="h-8 w-8 text-primary/60" />
+      {media.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {media.map((file, index) => (
+            <div key={index} className="relative w-24 h-24 bg-gray-100 border rounded overflow-hidden">
+              {file.type === 'video' ? (
+                <div className="flex items-center justify-center h-full">
+                  <Video className="h-8 w-8 text-primary/60" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Play className="h-8 w-8 text-white bg-black/30 p-1.5 rounded-full" />
                   </div>
-                )}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="w-8 h-8 bg-black/40 rounded-full flex items-center justify-center">
-                    <Play className="h-4 w-4 text-white" />
-                  </span>
                 </div>
-              </div>
-            )}
-            {!disabled && (
-              <Button
-                type="button"
-                onClick={() => onMediaRemove(index)}
-                size="icon"
-                variant="destructive"
-                className="absolute top-1 right-1 h-6 w-6"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        ))}
-      </div>
-      
-      {!disabled && (
-        <div
-          ref={dropAreaRef}
-          className={`w-full h-32 flex flex-col items-center justify-center border-2 border-dashed rounded cursor-pointer transition-colors ${
-            isDragging 
-              ? 'border-primary bg-primary/10' 
-              : 'border-gray-300 hover:border-primary hover:bg-gray-50'
-          }`}
-          onClick={handleUploadBtnClick}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-        >
-          <Upload className="h-8 w-8 mb-2 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            {uploading ? 'Uploading...' : 'Drop image or video here or click to upload'}
-          </span>
-          <span className="text-xs text-muted-foreground mt-1">
-            Supported: JPEG, PNG, GIF, MP4, WebM (max 200MB)
-          </span>
+              ) : (
+                <img
+                  src={file.url}
+                  alt={`Media ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              )}
+              {!disabled && (
+                <Button
+                  type="button"
+                  onClick={() => onMediaRemove(index)}
+                  size="icon"
+                  variant="destructive"
+                  className="absolute top-1 right-1 h-6 w-6"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ))}
         </div>
       )}
-      
-      <input
-        type="file"
-        accept="image/*,video/*"
-        onChange={handleFileChange}
-        ref={fileInputRef}
-        className="hidden"
-        disabled={disabled || media.length >= maxFiles}
-      />
+
+      {!disabled && (
+        <>
+          <div
+            className={`border-2 border-dashed rounded-lg p-8 text-center ${
+              isDragging ? 'border-primary bg-primary/10' : 'border-gray-300'
+            } transition-colors cursor-pointer`}
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Drop image or video here or click to upload
+            </p>
+          </div>
+          <input
+            type="file"
+            className="hidden"
+            onChange={handleFileChange}
+            accept="image/*,video/*"
+            ref={fileInputRef}
+            disabled={disabled || media.length >= maxFiles}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -1,19 +1,26 @@
+
 import { Strategy } from '@/types';
 import { getTradesSync } from '@/utils/storage/storageCore';
 
-const STRATEGIES_KEY = 'tradeStrategies';
+const STRATEGIES_KEY = 'trading-journal-strategies';
 
 export const getStrategies = (): Strategy[] => {
   const strategiesJson = localStorage.getItem(STRATEGIES_KEY);
   if (!strategiesJson) {
-    return getDefaultStrategies();
+    // If no strategies found, create and save defaults
+    const defaults = getDefaultStrategies();
+    saveStrategies(defaults);
+    return defaults;
   }
   
   try {
     return JSON.parse(strategiesJson);
   } catch (error) {
     console.error('Error parsing strategies:', error);
-    return getDefaultStrategies();
+    
+    // If there's a parsing error, log but don't replace data
+    console.warn('Preserving original strategy data despite parse error');
+    return [];
   }
 };
 
@@ -25,6 +32,7 @@ export const saveStrategies = (strategies: Strategy[]): void => {
   localStorage.setItem(STRATEGIES_KEY, JSON.stringify(strategies));
   // Dispatch storage event to notify other components
   window.dispatchEvent(new Event('storage'));
+  window.dispatchEvent(new Event('strategies-updated'));
 };
 
 export const addStrategy = (strategy: Strategy): void => {
