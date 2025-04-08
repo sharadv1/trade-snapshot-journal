@@ -125,7 +125,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                       )}
                     </div>
                     <span className={stats.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
-                      {formatCurrency(stats.pnL)}
+                      {formatCurrency(stats.pnl)}
                     </span>
                   </CardTitle>
                 </CardHeader>
