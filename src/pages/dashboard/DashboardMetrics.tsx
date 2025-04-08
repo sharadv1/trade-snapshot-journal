@@ -16,6 +16,10 @@ import {
   calculateParetoIndex,
   calculateExpectedValue
 } from '@/utils/calculations/advancedMetrics';
+import { useMemo } from 'react';
+import { getCurrentMaxLoss } from '@/utils/maxLossStorage';
+import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DashboardMetricsProps {
   trades: TradeWithMetrics[];
@@ -39,6 +43,46 @@ export function DashboardMetrics({ trades }: DashboardMetricsProps) {
     paretoIndex: calculateParetoIndex(trades) || 0,
     expectedValue: calculateExpectedValue(trades) || 0
   };
+
+  // Calculate weekly P&L and open risk
+  const weeklyData = useMemo(() => {
+    // Get current week's date range
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)); // Monday as first day
+    weekStart.setHours(0, 0, 0, 0);
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    
+    // Filter trades for current week
+    const thisWeekTrades = trades.filter(trade => {
+      const tradeDate = new Date(trade.entryDate);
+      return tradeDate >= weekStart && tradeDate <= weekEnd;
+    });
+    
+    // Calculate PnL for the week
+    const pnl = thisWeekTrades.reduce((total, trade) => {
+      return total + (trade.metrics?.profitLoss || 0);
+    }, 0);
+    
+    // Calculate open risk (sum of risked amount for open trades)
+    const openPositionsRisk = trades
+      .filter(trade => trade.status === 'open' && trade.metrics?.riskedAmount)
+      .reduce((total, trade) => total + (trade.metrics.riskedAmount || 0), 0);
+    
+    // Check if loss exceeds max loss
+    const currentMaxLoss = getCurrentMaxLoss();
+    const isExceedingMaxLoss = currentMaxLoss !== null && pnl < 0 && Math.abs(pnl) >= Math.abs(currentMaxLoss);
+    
+    return {
+      weeklyPnL: pnl,
+      isOverMaxLoss: isExceedingMaxLoss,
+      maxLoss: currentMaxLoss,
+      openRisk: openPositionsRisk
+    };
+  }, [trades]);
 
   return (
     <div className="grid grid-cols-1 gap-4">
@@ -82,7 +126,31 @@ export function DashboardMetrics({ trades }: DashboardMetricsProps) {
           ]}
         />
 
-        {/* Leave the second half of the grid empty for balance */}
+        {/* Risk and Weekly P&L information */}
+        <div className="space-y-4">
+          <MetricCard 
+            title="Open Risk" 
+            value={formatCurrency(weeklyData.openRisk)}
+            tooltip="Total risked amount in currently open trades"
+          />
+          
+          <MetricCard 
+            title="This Week's P&L" 
+            value={formatCurrency(weeklyData.weeklyPnL)}
+            className={weeklyData.weeklyPnL >= 0 ? "text-profit" : "text-loss"}
+            subValue={weeklyData.maxLoss !== null ? `Max Loss: ${formatCurrency(weeklyData.maxLoss)}` : undefined}
+            tooltip="Total profit or loss for trades closed this week"
+          >
+            {weeklyData.isOverMaxLoss && (
+              <Alert variant="destructive" className="mt-2 bg-destructive/10 border-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="ml-2">
+                  Warning: You've exceeded your weekly maximum loss threshold.
+                </AlertDescription>
+              </Alert>
+            )}
+          </MetricCard>
+        </div>
       </div>
 
       {/* Advanced Metrics */}

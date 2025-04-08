@@ -19,6 +19,7 @@ export interface MetricCardProps {
   twoColumnLayout?: boolean;
   columnOneStats?: Stat[];
   columnTwoStats?: Stat[];
+  children?: React.ReactNode;
 }
 
 export function MetricCard({ 
@@ -30,7 +31,8 @@ export function MetricCard({
   tooltip,
   twoColumnLayout = false,
   columnOneStats = [],
-  columnTwoStats = []
+  columnTwoStats = [],
+  children
 }: MetricCardProps) {
   return (
     <Card className="shadow-sm h-full">
@@ -116,6 +118,8 @@ export function MetricCard({
             </div>
           </div>
         )}
+        
+        {children}
       </CardContent>
     </Card>
   );

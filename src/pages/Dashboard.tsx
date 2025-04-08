@@ -8,7 +8,6 @@ import { restoreServerConnection } from '@/utils/storage/serverSync';
 import { TradeList } from '@/components/trade-list/TradeList';
 import { TradePnLCalendar } from '@/components/TradePnLCalendar';
 import { Card, CardContent } from '@/components/ui/card';
-import { WeeklyPnLSummary } from '@/components/WeeklyPnLSummary';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { 
   calculateProfitFactor, 
@@ -61,11 +60,6 @@ export default function Dashboard() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <DashboardHeader onImportComplete={handleImportComplete} />
-      
-      {/* Weekly Risk Summary */}
-      <div className="mt-4">
-        <WeeklyPnLSummary trades={trades} />
-      </div>
       
       {/* Key Metrics */}
       <div className="mt-6">
