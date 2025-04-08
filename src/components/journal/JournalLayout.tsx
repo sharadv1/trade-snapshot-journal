@@ -25,10 +25,16 @@ export function JournalLayout() {
       
       if (totalRemoved > 0) {
         toast.success(`Removed ${totalRemoved} duplicate reflections (${weeklyRemoved} weekly, ${monthlyRemoved} monthly)`);
-        // Force refresh UI components
+        
+        // Force a full refresh of all components that might display journal data
         window.dispatchEvent(new Event('storage'));
         window.dispatchEvent(new CustomEvent('journal-updated'));
         window.dispatchEvent(new CustomEvent('journalUpdated'));
+        
+        // Force redraw components to ensure they reflect the latest data
+        setTimeout(() => {
+          window.dispatchEvent(new Event('storage'));
+        }, 100);
       } else {
         toast.info('No duplicate reflections found');
       }
@@ -38,13 +44,27 @@ export function JournalLayout() {
     } finally {
       setTimeout(() => {
         setIsRemoving(false);
-      }, 500);
+      }, 800); // Give more time for the operation to complete visually
     }
   };
   
   useEffect(() => {
     // Force refresh on component mount to ensure latest data
     window.dispatchEvent(new Event('storage'));
+    
+    // Set up event listeners for journal updates
+    const handleJournalUpdate = () => {
+      console.log('Journal updated event received');
+      window.dispatchEvent(new Event('storage'));
+    };
+    
+    window.addEventListener('journal-updated', handleJournalUpdate);
+    window.addEventListener('journalUpdated', handleJournalUpdate);
+    
+    return () => {
+      window.removeEventListener('journal-updated', handleJournalUpdate);
+      window.removeEventListener('journalUpdated', handleJournalUpdate);
+    };
   }, []);
   
   return (
