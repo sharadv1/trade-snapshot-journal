@@ -100,7 +100,7 @@ export const getTradeMetrics = (trade: Trade) => {
   }
 
   // Calculate risked amount per share based on entry and stop loss
-  const riskedAmountPerShare = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString()));
+  let riskedAmountPerShare = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString()));
   
   // Check if risked amount is too small (for example, 0.0001 or less)
   if (riskedAmountPerShare < 0.0001) {
