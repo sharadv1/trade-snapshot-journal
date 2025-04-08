@@ -9,6 +9,7 @@ import { deleteLesson } from '@/utils/lessonStorage';
 import { toast } from '@/utils/toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { LessonMedia } from './LessonMedia';
+import { ContentRenderer } from '@/components/journal/ContentRenderer';
 
 interface LessonCardProps {
   lesson: Lesson;
@@ -44,11 +45,11 @@ export function LessonCard({ lesson, onEdit, onUpdate }: LessonCardProps) {
       <CardContent className="p-0">
         <div className="flex flex-col md:flex-row">
           {/* Left side: Title and text */}
-          <div className="flex-1 p-6">
+          <div className={`p-6 ${hasMedia ? 'md:w-1/2' : 'w-full'}`}>
             <h3 className="text-xl font-semibold mb-4">{lesson.title}</h3>
             
             <div className="mb-4">
-              <p className="text-gray-700 whitespace-pre-line">{lesson.description}</p>
+              <ContentRenderer content={lesson.description} />
             </div>
             
             {lesson.types && lesson.types.length > 0 && (
@@ -68,7 +69,7 @@ export function LessonCard({ lesson, onEdit, onUpdate }: LessonCardProps) {
 
           {/* Right side: Media */}
           {hasMedia && (
-            <div className="bg-gray-50 p-4 md:w-1/3 flex items-center justify-center">
+            <div className="bg-gray-50 p-4 md:w-1/2 flex items-center justify-center">
               <LessonMedia media={lesson.media} />
             </div>
           )}

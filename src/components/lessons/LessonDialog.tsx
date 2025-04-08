@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { 
   Dialog, 
@@ -17,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { X, Plus } from 'lucide-react';
 import { MediaUpload } from '@/components/MediaUpload';
 import { generateUUID } from '@/utils/generateUUID';
+import { RichTextEditor } from '@/components/journal/RichTextEditor';
 
 interface LessonDialogProps {
   open: boolean;
@@ -239,14 +241,15 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
             <Label htmlFor="description" className="text-right pt-2">
               Description
             </Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="col-span-3"
-              placeholder="Lesson description"
-              rows={5}
-            />
+            <div className="col-span-3">
+              <RichTextEditor
+                id="description"
+                content={description}
+                onChange={setDescription}
+                placeholder="Lesson description"
+                className="min-h-[150px]"
+              />
+            </div>
           </div>
           
           <div className="grid grid-cols-4 items-start gap-4">
