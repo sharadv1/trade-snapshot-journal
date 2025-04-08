@@ -1,4 +1,3 @@
-
 import { Trade } from '@/types';
 
 export const getTradeMetrics = (trade: Trade) => {
@@ -101,20 +100,8 @@ export const getTradeMetrics = (trade: Trade) => {
 
   // Calculate risk per share based on entry and stop loss
   let riskedAmountPerShare = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString()));
-  let originalRiskedAmountPerShare = riskedAmountPerShare;
   
-  // Set a minimum risk threshold to avoid unrealistic R-multiples
-  // Minimum risk is set to approximately 0.5% of entry price as a reasonable default
-  const minRiskPercentage = 0.005; // 0.5%
-  const minRiskValue = parseFloat(trade.entryPrice.toString()) * minRiskPercentage;
-  
-  if (riskedAmountPerShare < minRiskValue) {
-    calculationExplanation += `Warning: Very small stop loss distance detected (${riskedAmountPerShare.toFixed(5)}). `;
-    calculationExplanation += `Using minimum risk value of ${minRiskValue.toFixed(5)} to calculate R-multiple. `;
-    riskedAmountPerShare = minRiskValue;
-  }
-  
-  // Calculate risked amount total
+  // Calculate actual risked amount (per share * quantity)
   riskedAmount = riskedAmountPerShare * parseFloat(trade.quantity.toString());
 
   if (trade.takeProfit) {
@@ -124,12 +111,11 @@ export const getTradeMetrics = (trade: Trade) => {
   if (riskedAmount !== 0) {
     rMultiple = profitLoss / riskedAmount;
 
-    // Cap the R-multiple to a reasonable range to prevent extreme values
+    // Only cap extremely high R-multiples (likely calculation errors)
     if (Math.abs(rMultiple) > 20) {
       const oldRMultiple = rMultiple;
       rMultiple = Math.sign(rMultiple) * 20;
       calculationExplanation += `Extremely high R-multiple (${oldRMultiple.toFixed(2)}) was capped to ${rMultiple.toFixed(2)}. `;
-      calculationExplanation += `Original stop distance: ${originalRiskedAmountPerShare.toFixed(5)}, adjusted for calculation: ${riskedAmountPerShare.toFixed(5)}. `;
     }
 
     if (maxPotentialGain) {
@@ -148,6 +134,13 @@ export const getTradeMetrics = (trade: Trade) => {
     profitLossPercentage = (profitLoss / (parseFloat(trade.entryPrice.toString()) * parseFloat(trade.quantity.toString()))) * 100;
   } else {
     calculationExplanation += 'Entry price is zero. Cannot calculate profit/loss percentage. ';
+  }
+
+  // Always include calculation details for clarity
+  if (calculationExplanation === '') {
+    // If no issues found, add basic calculation info
+    calculationExplanation = `Entry: ${trade.entryPrice}, Exit: ${weightedExitPrice?.toFixed(4) || trade.exitPrice}, Stop: ${trade.stopLoss}. `;
+    calculationExplanation += `P&L: $${profitLoss.toFixed(2)}, Risk: $${riskedAmount.toFixed(2)}, R-Multiple: ${rMultiple.toFixed(4)}`;
   }
 
   return {
