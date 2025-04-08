@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { TradeWithMetrics } from '@/types';
-import { getTradesWithMetrics } from '@/utils/tradeStorage';
+import { getTradesWithMetrics, getAccounts } from '@/utils/tradeStorage';
 import { DailyPnL } from './types';
 
 export function useTradePnLCalendar() {
@@ -10,6 +10,7 @@ export function useTradePnLCalendar() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [strategyFilter, setStrategyFilter] = useState<string>('all');
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
+  const [accountFilter, setAccountFilter] = useState<string>('all');
   const [refreshKey, setRefreshKey] = useState(0);
   const [lastNavigatedDate, setLastNavigatedDate] = useState<string | null>(null);
 
@@ -46,6 +47,10 @@ export function useTradePnLCalendar() {
       result = result.filter(trade => trade.strategy === strategyFilter);
     }
     
+    if (accountFilter !== 'all') {
+      result = result.filter(trade => trade.account === accountFilter);
+    }
+    
     if (resultFilter !== 'all') {
       result = result.filter(trade => {
         if (resultFilter === 'win') {
@@ -57,7 +62,7 @@ export function useTradePnLCalendar() {
     }
     
     return result;
-  }, [trades, strategyFilter, resultFilter, refreshKey]);
+  }, [trades, strategyFilter, accountFilter, resultFilter, refreshKey]);
 
   const dailyPnL = useMemo(() => {
     const pnlByDay: DailyPnL = {};
@@ -100,6 +105,11 @@ export function useTradePnLCalendar() {
     return Array.from(strategies).sort();
   }, [trades]);
   
+  const availableAccounts = useMemo(() => {
+    const accounts = getAccounts();
+    return accounts || [];
+  }, [trades]);
+  
   // Function to handle calendar navigation with persistance
   const handleMonthChange = (newMonth: Date) => {
     setCurrentMonth(newMonth);
@@ -122,8 +132,11 @@ export function useTradePnLCalendar() {
     setStrategyFilter,
     resultFilter,
     setResultFilter,
+    accountFilter,
+    setAccountFilter,
     dailyPnL,
     availableStrategies,
+    availableAccounts,
     refreshKey,
     loadTrades,
     lastNavigatedDate,

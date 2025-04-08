@@ -29,6 +29,7 @@ export function useTradeList({
   const [sortField, setSortField] = useState<string>('entryDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [strategyFilter, setStrategyFilter] = useState<string>('all');
+  const [accountFilter, setAccountFilter] = useState<string>('all');
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
   const [tradeStatus, setTradeStatus] = useState<'open' | 'closed' | 'all'>(statusFilter);
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>({
@@ -113,6 +114,17 @@ export function useTradeList({
     });
     return Array.from(strategies).sort();
   }, [trades]);
+
+  // Get available accounts from trades
+  const availableAccounts = useMemo(() => {
+    const accounts = new Set<string>();
+    trades.forEach(trade => {
+      if (trade.account) {
+        accounts.add(trade.account);
+      }
+    });
+    return Array.from(accounts).sort();
+  }, [trades]);
   
   // Calculate total open risk
   const totalOpenRisk = useMemo(() => {
@@ -127,7 +139,7 @@ export function useTradeList({
   
   // Apply filters and sorting
   const filteredTrades = useMemo(() => {
-    console.log(`Filtering ${trades.length} trades with status: ${tradeStatus}, strategy: ${strategyFilter}, result: ${resultFilter}`);
+    console.log(`Filtering ${trades.length} trades with status: ${tradeStatus}, strategy: ${strategyFilter}, account: ${accountFilter}, result: ${resultFilter}`);
     
     let filteredResults = [...trades];
     
@@ -182,6 +194,11 @@ export function useTradeList({
     if (strategyFilter !== 'all') {
       filteredResults = filteredResults.filter(trade => trade.strategy === strategyFilter);
     }
+
+    // Filter by account
+    if (accountFilter !== 'all') {
+      filteredResults = filteredResults.filter(trade => trade.account === accountFilter);
+    }
     
     // Filter by result (win/loss)
     if (resultFilter !== 'all') {
@@ -232,7 +249,7 @@ export function useTradeList({
     
     console.log(`Filtered to ${filteredResults.length} trades`);
     return filteredResults;
-  }, [trades, sortField, sortDirection, strategyFilter, resultFilter, dateParam, tradeStatus, dateRangeFilter]);
+  }, [trades, sortField, sortDirection, strategyFilter, accountFilter, resultFilter, dateParam, tradeStatus, dateRangeFilter]);
   
   // Apply limit to filtered trades if specified
   const limitedTrades = useMemo(() => {
@@ -254,6 +271,7 @@ export function useTradeList({
   
   // Check if any filters are applied
   const hasFilters = strategyFilter !== 'all' || 
+    accountFilter !== 'all' ||
     resultFilter !== 'all' || 
     dateParam !== null ||
     dateRangeFilter.type !== 'none';
@@ -261,6 +279,7 @@ export function useTradeList({
   // Reset filters
   const resetFilters = () => {
     setStrategyFilter('all');
+    setAccountFilter('all');
     setResultFilter('all');
     clearDateFilter();
   };
@@ -276,6 +295,8 @@ export function useTradeList({
     setTradeStatus,
     strategyFilter,
     setStrategyFilter,
+    accountFilter,
+    setAccountFilter,
     resultFilter,
     setResultFilter,
     dateRangeFilter,
@@ -285,6 +306,7 @@ export function useTradeList({
     filterByDateRange,
     clearDateFilter,
     availableStrategies,
+    availableAccounts,
     totalOpenRisk,
     hasFilters,
     resetFilters

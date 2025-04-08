@@ -9,6 +9,7 @@ import { TradeMetrics } from '@/components/TradeMetrics';
 import { MonthlyPerformanceTable } from '@/components/MonthlyPerformanceTable';
 import { DataTransferControls } from '@/components/DataTransferControls';
 import { DayOfWeekPerformance } from '@/components/DayOfWeekPerformance';
+import { AccountPerformanceChart } from '@/components/AccountPerformanceChart';
 
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -78,6 +79,10 @@ export default function Analytics() {
             <div className="h-[500px]">
               <CumulativePnLChart trades={trades} key={refreshKey} />
             </div>
+          </div>
+          
+          <div className="w-full">
+            <AccountPerformanceChart trades={trades} key={`accounts-${refreshKey}`} />
           </div>
           
           <div className="w-full">

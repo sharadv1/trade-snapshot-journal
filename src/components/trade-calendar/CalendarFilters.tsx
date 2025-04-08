@@ -1,5 +1,5 @@
 
-import { Filter, Trophy, X as XIcon } from 'lucide-react';
+import { Filter, Trophy, X as XIcon, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -16,6 +16,9 @@ interface CalendarFiltersProps {
   setStrategyFilter: (value: string) => void;
   resultFilter: 'all' | 'win' | 'loss';
   setResultFilter: (value: 'all' | 'win' | 'loss') => void;
+  accounts: string[];
+  accountFilter: string;
+  setAccountFilter: (value: string) => void;
   onRefresh: () => void;
 }
 
@@ -25,6 +28,9 @@ export function CalendarFilters({
   setStrategyFilter,
   resultFilter,
   setResultFilter,
+  accounts,
+  accountFilter,
+  setAccountFilter,
   onRefresh
 }: CalendarFiltersProps) {
   return (
@@ -56,6 +62,28 @@ export function CalendarFilters({
               </SelectContent>
             </Select>
           </div>
+          
+          {accounts.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="font-medium">Account</h4>
+              <Select 
+                value={accountFilter} 
+                onValueChange={setAccountFilter}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Accounts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Accounts</SelectItem>
+                  {accounts.map((account) => (
+                    <SelectItem key={account} value={account}>
+                      {account}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           
           <div className="space-y-2">
             <h4 className="font-medium">Result</h4>

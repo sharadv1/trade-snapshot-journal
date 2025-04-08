@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -73,6 +74,8 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     setTradeStatus,
     strategyFilter,
     setStrategyFilter,
+    accountFilter,
+    setAccountFilter,
     resultFilter,
     setResultFilter,
     dateRangeFilter,
@@ -82,6 +85,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     filterByDateRange,
     clearDateFilter,
     availableStrategies,
+    availableAccounts,
     totalOpenRisk,
     hasFilters,
     resetFilters
@@ -110,6 +114,9 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
           availableStrategies={availableStrategies}
           strategyFilter={strategyFilter}
           setStrategyFilter={setStrategyFilter}
+          availableAccounts={availableAccounts}
+          accountFilter={accountFilter}
+          setAccountFilter={setAccountFilter}
           resultFilter={resultFilter}
           setResultFilter={setResultFilter}
           dateRangeFilter={dateRangeFilter}

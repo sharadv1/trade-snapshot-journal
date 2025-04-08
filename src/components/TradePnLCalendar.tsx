@@ -15,8 +15,11 @@ export function TradePnLCalendar() {
     setStrategyFilter,
     resultFilter,
     setResultFilter,
+    accountFilter,
+    setAccountFilter,
     dailyPnL,
     availableStrategies,
+    availableAccounts,
     loadTrades,
     recordNavigatedDate
   } = useTradePnLCalendar();
@@ -59,6 +62,9 @@ export function TradePnLCalendar() {
           setStrategyFilter={setStrategyFilter}
           resultFilter={resultFilter}
           setResultFilter={setResultFilter}
+          availableAccounts={availableAccounts}
+          accountFilter={accountFilter}
+          setAccountFilter={setAccountFilter}
           onNextMonth={nextMonth}
           onPrevMonth={prevMonth}
           onToday={goToToday}
