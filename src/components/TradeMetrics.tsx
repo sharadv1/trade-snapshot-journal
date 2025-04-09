@@ -212,4 +212,3 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
     </div>
   );
 }
-

@@ -29,9 +29,8 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
               return;
             }
             
-            // If the pattern above didn't match, prevent the default update by creating a new 
-            // event with the previous value
-            e.target.value = props.value?.toString() || '';
+            // Prevent the change if the value doesn't match our pattern
+            e.preventDefault();
             return;
           }
           

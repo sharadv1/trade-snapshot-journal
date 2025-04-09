@@ -28,32 +28,34 @@ export function FullExitForm({
   setNotes
 }: FullExitFormProps) {
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow input to start with "0." or "."
     const value = e.target.value;
-    if (value === '' || value === '.' || value === '0.') {
-      // Keep the input as is to allow typing
-      setExitPrice(value as any);
-    } else if (value === '') {
-      setExitPrice(undefined);
-    } else {
-      // Convert to number if it's a valid number
-      const numValue = parseFloat(value);
-      setExitPrice(isNaN(numValue) ? undefined : numValue);
+    if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
+      if (value === '' || value === '.' || value === '0.') {
+        // Keep the input as is to allow typing
+        setExitPrice(value as any);
+      } else if (value === '') {
+        setExitPrice(undefined);
+      } else {
+        // Convert to number if it's a valid number
+        const numValue = parseFloat(value);
+        setExitPrice(isNaN(numValue) ? undefined : numValue);
+      }
     }
   };
 
   const handleFeesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow input to start with "0." or "."
     const value = e.target.value;
-    if (value === '' || value === '.' || value === '0.') {
-      // Keep the input as is to allow typing
-      setFees(value as any);
-    } else if (value === '') {
-      setFees(undefined);
-    } else {
-      // Convert to number if it's a valid number
-      const numValue = parseFloat(value);
-      setFees(isNaN(numValue) ? undefined : numValue);
+    if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
+      if (value === '' || value === '.' || value === '0.') {
+        // Keep the input as is to allow typing
+        setFees(value as any);
+      } else if (value === '') {
+        setFees(undefined);
+      } else {
+        // Convert to number if it's a valid number
+        const numValue = parseFloat(value);
+        setFees(isNaN(numValue) ? undefined : numValue);
+      }
     }
   };
 
