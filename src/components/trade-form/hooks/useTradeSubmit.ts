@@ -4,6 +4,7 @@ import { addTrade, updateTrade } from '@/utils/tradeStorage';
 import { markIdeaAsTaken } from '@/utils/ideaStorage';
 import { toast } from '@/utils/toast';
 import { generateUUID } from '@/utils/generateUUID';
+import { getContractPointValue } from '@/utils/calculations/contractUtils';
 
 export function useTradeSubmit(
   trade: Partial<Trade>,
@@ -51,13 +52,37 @@ export function useTradeSubmit(
         toast.warning("Some media files were too large and won't be saved to prevent storage issues");
       }
       
+      // If this is a futures trade, make sure we have proper contract details including point value
+      let futuresContractDetails = trade.type === 'futures' ? contractDetails : undefined;
+      
+      // For futures trades, ensure we have a point value saved in contract details
+      if (trade.type === 'futures') {
+        // Create a temporary trade object to calculate point value if needed
+        const tempTrade = { ...trade, id: initialTrade?.id || 'temp' } as Trade;
+        
+        // If contract details doesn't have tickValue (point value), add it
+        if (!futuresContractDetails?.tickValue) {
+          const pointValue = getContractPointValue(tempTrade);
+          console.log(`Saving trade with calculated point value: ${pointValue} for ${trade.symbol}`);
+          
+          futuresContractDetails = {
+            ...futuresContractDetails,
+            tickValue: pointValue,
+            // Add minimal required contract details
+            exchange: futuresContractDetails?.exchange || 'DEFAULT',
+            contractSize: futuresContractDetails?.contractSize || 1,
+            tickSize: futuresContractDetails?.tickSize || 0.01
+          };
+        }
+      }
+      
       const tradeToSave = {
         ...trade,
         strategy: finalStrategy,
         images: filteredImages,
         mistakes: trade.mistakes || [],
         ssmtQuarters: trade.ssmtQuarters || '', // Include SSMT Quarters in saved trade
-        contractDetails: trade.type === 'futures' ? contractDetails : undefined
+        contractDetails: futuresContractDetails
       };
       
       console.log('Processing trade data before save:', tradeToSave);

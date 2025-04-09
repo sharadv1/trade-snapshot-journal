@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +24,18 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
   // Get contract point value when trade type or symbol changes
   useEffect(() => {
     if (trade.type === 'futures' && trade.symbol) {
+      // If there are contract details with a tickValue, use that directly
+      if (trade.contractDetails?.tickValue) {
+        const tickValue = Number(trade.contractDetails.tickValue);
+        if (tickValue > 0) {
+          console.log(`RiskParametersForm: Using contract details tick value: ${tickValue}`);
+          setPointValue(tickValue);
+          setContractDescription('Based on saved contract details');
+          return;
+        }
+      }
+
+      // Otherwise calculate the point value
       const value = getContractPointValue(trade as Trade);
       console.log(`RiskParametersForm: Got point value for ${trade.symbol}: ${value}`);
       setPointValue(value);
@@ -57,6 +68,9 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
           
           if (matchedContract) {
             setContractDescription(matchedContract.description || '');
+          } else if (trade.symbol?.toUpperCase().includes('SIL') || trade.symbol?.toUpperCase().includes('SI')) {
+            // Special handling for SIL contracts
+            setContractDescription('Silver futures contract');
           } else {
             setContractDescription('');
           }

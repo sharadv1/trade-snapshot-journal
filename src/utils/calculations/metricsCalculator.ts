@@ -44,6 +44,7 @@ export const getTradeMetrics = (trade: Trade) => {
   }
 
   // Get point value for futures contract - do this early to ensure consistent usage
+  // For silver contracts, ensure we detect the symbol correctly and use correct point value
   const pointValue = trade.type === 'futures' ? getContractPointValue(trade) : 1;
   console.log(`Metrics calculation for ${trade.symbol}: using point value ${pointValue}`);
 
@@ -169,7 +170,7 @@ export const getTradeMetrics = (trade: Trade) => {
     
     calculationExplanation += `Risk: $${riskedAmount.toFixed(2)}`;
     
-    if (trade.type === 'futures' && trade.contractDetails) {
+    if (trade.type === 'futures' && pointValue !== 1) {
       calculationExplanation += `, Contract Value: $${pointValue.toLocaleString()}`;
     }
     

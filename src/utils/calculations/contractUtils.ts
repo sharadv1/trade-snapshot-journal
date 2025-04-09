@@ -28,6 +28,14 @@ export function getContractPointValue(trade: Trade): number {
   // Normalize the symbol for comparison (handle case variations and common prefixes/suffixes)
   const normalizedSymbol = trade.symbol?.toUpperCase().trim();
   
+  // Special direct check for silver-related symbols
+  if (normalizedSymbol === 'SI' || normalizedSymbol === 'SIL' || 
+      normalizedSymbol?.includes('SILVER') || 
+      (normalizedSymbol?.includes('SI') && !normalizedSymbol?.includes('MSFT'))) {
+    console.log(`SILVER CONTRACT DETECTED: ${trade.symbol} - Using $5000 point value`);
+    return 5000; // Default value for Silver futures
+  }
+  
   // Check for stored custom contracts first
   try {
     const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
