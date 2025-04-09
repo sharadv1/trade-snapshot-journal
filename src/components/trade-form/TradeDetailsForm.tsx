@@ -9,6 +9,7 @@ import { FuturesContractDetails } from '@/components/FuturesContractDetails';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getStrategies } from '@/utils/strategyStorage';
+import { AccountField } from '@/components/trade-form/AccountField'; // Add this import
 
 // Define props interface
 interface TradeDetailsFormProps {
@@ -176,6 +177,15 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
           disabled={disableEdits}
         />
         <p className="text-xs text-muted-foreground">Supports small values (e.g. 0.000033432)</p>
+      </div>
+
+      {/* Add Account Field here */}
+      <div className="space-y-2">
+        <Label htmlFor="account">Account</Label>
+        <AccountField 
+          value={trade.account} 
+          onChange={(value) => onTradeChange('account', value)}
+        />
       </div>
 
       <div className="space-y-2">
