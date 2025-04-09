@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { TradeWithMetrics } from '@/types';
 import { formatCurrency } from '@/utils/tradeCalculations';
+import { useState } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { getStrategies } from '@/utils/strategyStorage';
 
 interface DayOfWeekPerformanceTableProps {
   trades: TradeWithMetrics[];
@@ -17,6 +20,9 @@ interface DayPerformance {
 }
 
 export function DayOfWeekPerformanceTable({ trades, timeframes = ['15m', '1h'] }: DayOfWeekPerformanceTableProps) {
+  const strategies = getStrategies();
+  const [selectedStrategies, setSelectedStrategies] = useState<string[]>([]);
+  
   // Filter trades by timeframe if specified
   const filteredTrades = timeframes 
     ? trades.filter(trade => {
@@ -52,8 +58,13 @@ export function DayOfWeekPerformanceTable({ trades, timeframes = ['15m', '1h'] }
       })
     : trades;
   
+  // Filter trades by selected strategies
+  const strategyFilteredTrades = selectedStrategies.length > 0
+    ? filteredTrades.filter(trade => selectedStrategies.includes(trade.strategy || ''))
+    : filteredTrades;
+  
   // Get only closed trades
-  const closedTrades = filteredTrades.filter(trade => trade.status === 'closed');
+  const closedTrades = strategyFilteredTrades.filter(trade => trade.status === 'closed');
   
   // Initialize data for each day of week
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -86,6 +97,14 @@ export function DayOfWeekPerformanceTable({ trades, timeframes = ['15m', '1h'] }
       dayPnL[day].winRate = (dayPnL[day].winCount / dayPnL[day].count) * 100;
     }
   });
+
+  const handleStrategyChange = (strategyId: string) => {
+    setSelectedStrategies(prev => 
+      prev.includes(strategyId) 
+        ? prev.filter(id => id !== strategyId)
+        : [...prev, strategyId]
+    );
+  };
   
   return (
     <Card className="shadow-subtle border mb-8">
@@ -95,6 +114,28 @@ export function DayOfWeekPerformanceTable({ trades, timeframes = ['15m', '1h'] }
         </CardTitle>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 flex flex-wrap gap-4">
+          <div className="text-sm font-medium">Filter by strategy:</div>
+          <div className="flex flex-wrap gap-3">
+            {strategies.map(strategy => (
+              <div key={strategy.id} className="flex items-center space-x-2">
+                <Checkbox 
+                  id={`strategy-${strategy.id}`}
+                  checked={selectedStrategies.includes(strategy.id)}
+                  onCheckedChange={() => handleStrategyChange(strategy.id)}
+                />
+                <label 
+                  htmlFor={`strategy-${strategy.id}`}
+                  className="text-sm cursor-pointer"
+                  style={{ color: strategy.color }}
+                >
+                  {strategy.name}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+        
         <Table>
           <TableHeader>
             <TableRow>

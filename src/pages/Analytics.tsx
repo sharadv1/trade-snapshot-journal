@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { addDummyTrades } from '@/utils/tradeStorage';
 import { toast } from '@/utils/toast';
 import { TradeMetrics } from '@/components/TradeMetrics';
-import { MonthlyPerformanceTable } from '@/components/MonthlyPerformanceTable';
 import { DataTransferControls } from '@/components/DataTransferControls';
 import { DayOfWeekPerformanceTable } from '@/components/DayOfWeekPerformanceTable';
 import { AccountPerformanceTable } from '@/components/AccountPerformanceTable';
+import { StrategyPerformanceTable } from '@/components/StrategyPerformanceTable';
 
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -90,6 +90,13 @@ export default function Analytics() {
           
           <div className="w-full">
             <h2 className="text-2xl font-bold tracking-tight mb-4">
+              Strategy Performance
+            </h2>
+            <StrategyPerformanceTable trades={trades} key={`strategy-${refreshKey}`} />
+          </div>
+          
+          <div className="w-full">
+            <h2 className="text-2xl font-bold tracking-tight mb-4">
               Day of Week Performance (15m & 1h Timeframes)
               {(!has15mTrades && !has1hTrades) && (
                 <span className="block text-sm font-normal text-muted-foreground mt-1">
@@ -102,13 +109,6 @@ export default function Analytics() {
               timeframes={['15m', '1h', 'm15', 'h1', 'M15', 'H1']} 
               key={`day-${refreshKey}`} 
             />
-          </div>
-          
-          <div className="w-full">
-            <h2 className="text-2xl font-bold tracking-tight mb-4">
-              Monthly Performance by Strategy & Instrument
-            </h2>
-            <MonthlyPerformanceTable trades={trades} key={refreshKey} />
           </div>
         </div>
       ) : (
