@@ -26,6 +26,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
   useEffect(() => {
     if (trade.type === 'futures') {
       const value = getContractPointValue(trade as Trade);
+      console.log(`RiskParametersForm: Got point value for ${trade.symbol}: ${value}`);
       setPointValue(value);
       
       // Try to get contract description
@@ -33,10 +34,26 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
         const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
         if (storedContractsJson) {
           const storedContracts = JSON.parse(storedContractsJson);
-          const matchedContract = storedContracts.find((c: any) => 
-            c.symbol === trade.symbol ||
-            (trade.symbol && c.symbol && trade.symbol.includes(c.symbol))
+          
+          // Try exact match first
+          let matchedContract = storedContracts.find((c: any) => 
+            c.symbol === trade.symbol
           );
+          
+          // If no exact match, try looser matching
+          if (!matchedContract) {
+            const normalizedSymbol = trade.symbol?.toUpperCase().trim();
+            matchedContract = storedContracts.find((c: any) => {
+              const contractSymbol = c.symbol?.toUpperCase().trim();
+              return (
+                normalizedSymbol === contractSymbol ||
+                (normalizedSymbol && contractSymbol && (
+                  normalizedSymbol.includes(contractSymbol) ||
+                  contractSymbol.includes(normalizedSymbol)
+                ))
+              );
+            });
+          }
           
           if (matchedContract) {
             setContractDescription(matchedContract.description || '');
@@ -113,7 +130,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
             value={trade.stopLoss || ''}
             onChange={(e) => {
               const value = e.target.value;
-              if (value === '' || value === '.' || value === '0.') {
+              if (value === '' || value === '.' || value === '0.' || value.match(/^0\.\d*$/) || value.match(/^\.\d*$/)) {
                 handleChange('stopLoss', value);
               } else {
                 const numValue = parseFloat(value);
@@ -137,7 +154,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
             value={trade.takeProfit || ''}
             onChange={(e) => {
               const value = e.target.value;
-              if (value === '' || value === '.' || value === '0.') {
+              if (value === '' || value === '.' || value === '0.' || value.match(/^0\.\d*$/) || value.match(/^\.\d*$/)) {
                 handleChange('takeProfit', value);
               } else {
                 const numValue = parseFloat(value);

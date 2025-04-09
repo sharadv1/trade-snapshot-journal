@@ -43,6 +43,10 @@ export const getTradeMetrics = (trade: Trade) => {
     };
   }
 
+  // Get point value for futures contract - do this early to ensure consistent usage
+  const pointValue = trade.type === 'futures' ? getContractPointValue(trade) : 1;
+  console.log(`Metrics calculation for ${trade.symbol}: using point value ${pointValue}`);
+
   const calculatePartialExits = () => {
     if (!trade.partialExits || trade.partialExits.length === 0) {
       return;
@@ -63,7 +67,6 @@ export const getTradeMetrics = (trade: Trade) => {
         // Calculate P&L with point value for futures
         let exitProfitLoss = (exitPrice - entryPrice) * quantity * tradeDirectionMultiplier;
         if (trade.type === 'futures') {
-          const pointValue = getContractPointValue(trade);
           exitProfitLoss = exitProfitLoss * pointValue;
         }
 
@@ -92,7 +95,6 @@ export const getTradeMetrics = (trade: Trade) => {
     // Calculate P&L with point value for futures
     let exitProfitLoss = (exitPrice - entryPrice) * quantity * tradeDirectionMultiplier;
     if (trade.type === 'futures') {
-      const pointValue = getContractPointValue(trade);
       exitProfitLoss = exitProfitLoss * pointValue;
     }
     
@@ -106,7 +108,6 @@ export const getTradeMetrics = (trade: Trade) => {
   
   // Apply contract multiplier for futures
   if (trade.type === 'futures') {
-    const pointValue = getContractPointValue(trade);
     riskedAmountPerUnit = riskedAmountPerUnit * pointValue;
     calculationExplanation += `Futures contract with point value: $${pointValue}. `;
   }
@@ -122,7 +123,6 @@ export const getTradeMetrics = (trade: Trade) => {
     
     // Apply contract multiplier for futures
     if (trade.type === 'futures') {
-      const pointValue = getContractPointValue(trade);
       maxGainPerUnit = maxGainPerUnit * pointValue;
     }
     
@@ -170,7 +170,7 @@ export const getTradeMetrics = (trade: Trade) => {
     calculationExplanation += `Risk: $${riskedAmount.toFixed(2)}`;
     
     if (trade.type === 'futures' && trade.contractDetails) {
-      calculationExplanation += `, Contract Value: $${getContractPointValue(trade).toLocaleString()}`;
+      calculationExplanation += `, Contract Value: $${pointValue.toLocaleString()}`;
     }
     
     if (maxPotentialGain > 0) {

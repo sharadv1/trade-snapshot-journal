@@ -32,7 +32,7 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
         
         // Add new custom contracts that don't exist in defaults
         storedContracts.forEach((contract: any) => {
-          const existingIndex = combinedContracts.findIndex(c => c.symbol === contract.symbol);
+          const existingIndex = combinedContracts.findIndex(c => c.symbol.toUpperCase() === contract.symbol.toUpperCase());
           if (existingIndex >= 0) {
             // Replace existing contract
             combinedContracts[existingIndex] = {
