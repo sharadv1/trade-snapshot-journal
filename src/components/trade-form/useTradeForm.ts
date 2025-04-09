@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Trade, PartialExit } from '@/types';
 import { useTradeSubmit } from './hooks/useTradeSubmit';
@@ -5,7 +6,6 @@ import { useTradeState } from './hooks/useTradeState';
 import { useTradeImages } from './hooks/useTradeImages';
 import { toast } from '@/utils/toast';
 import { getIdeaById } from '@/utils/ideaStorage';
-import { formatDate } from '@/utils/calculations/formatters';
 import { getContractPointValue } from '@/utils/calculations/contractUtils';
 
 export const useTradeForm = (
@@ -57,7 +57,7 @@ export const useTradeForm = (
     isEditing
   );
   
-  const { images, handleImageUpload, handleRemoveImage } = useTradeImages(
+  const { images, setImages, handleImageUpload, handleRemoveImage } = useTradeImages(
     initialTrade?.images || []
   );
   
@@ -96,7 +96,7 @@ export const useTradeForm = (
         }
       }
     }
-  }, [ideaId, isEditing]);
+  }, [ideaId, isEditing, setTrade, setImages]);
   
   // When stopLoss changes and initialStopLoss is not set, update initialStopLoss too
   useEffect(() => {
@@ -106,7 +106,7 @@ export const useTradeForm = (
         initialStopLoss: trade.stopLoss
       }));
     }
-  }, [trade.stopLoss]);
+  }, [trade.stopLoss, isEditing, setTrade]);
   
   // Calculate and update the point value when needed
   useEffect(() => {
@@ -127,7 +127,7 @@ export const useTradeForm = (
     trade,
     setTrade,
     images,
-    setImages: (value: string[]) => setImages(value),
+    setImages,
     handleChange,
     handleTypeChange,
     handleImageUpload,
