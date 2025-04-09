@@ -21,25 +21,24 @@ export function JournalLayout() {
     
     try {
       console.log('Starting duplicate removal process...');
-      const { weeklyRemoved, monthlyRemoved } = removeDuplicateReflections();
-      const totalRemoved = weeklyRemoved + monthlyRemoved;
+      const result = await removeDuplicateReflections();
       
-      if (totalRemoved > 0) {
-        toast.success(`Removed ${totalRemoved} duplicate reflections (${weeklyRemoved} weekly, ${monthlyRemoved} monthly)`);
+      if (result.weeklyRemoved > 0 || result.monthlyRemoved > 0) {
+        toast.success(`Removed ${result.weeklyRemoved + result.monthlyRemoved} duplicate reflections (${result.weeklyRemoved} weekly, ${result.monthlyRemoved} monthly)`);
         
-        // Force a full refresh of all components that might display journal data
+        // Dispatch events to trigger UI updates
         window.dispatchEvent(new Event('storage'));
         window.dispatchEvent(new CustomEvent('journal-updated'));
-        window.dispatchEvent(new CustomEvent('journalUpdated'));
         
-        // Force a complete refresh by reloading the current route
-        const currentPath = location.pathname;
-        const tempPath = isWeekly ? '/journal/monthly' : '/journal/weekly';
-        
-        navigate(tempPath, { replace: true });
-        setTimeout(() => {
-          navigate(currentPath, { replace: true });
-        }, 100);
+        // Force a page refresh to ensure clean state
+        if (location.pathname.includes('/journal')) {
+          // Refresh the page by navigating to a different route and back
+          const currentPath = location.pathname;
+          navigate('/journal', { replace: true });
+          setTimeout(() => {
+            navigate(currentPath, { replace: true });
+          }, 100);
+        }
       } else {
         toast.info('No duplicate reflections found');
       }
@@ -54,13 +53,9 @@ export function JournalLayout() {
   };
   
   useEffect(() => {
-    // Force refresh on component mount to ensure latest data
-    window.dispatchEvent(new Event('storage'));
-    
     // Set up event listeners for journal updates
     const handleJournalUpdate = () => {
       console.log('Journal updated event received in JournalLayout');
-      window.dispatchEvent(new Event('storage'));
     };
     
     window.addEventListener('journal-updated', handleJournalUpdate);

@@ -91,7 +91,7 @@ export const monthlyReflectionExists = (monthId: string): boolean => {
 };
 
 export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRemoved: number } => {
-  console.log('=== REMOVING DUPLICATE REFLECTIONS ===');
+  console.log('=== STARTING ENHANCED DUPLICATE REMOVAL PROCESS ===');
   let weeklyRemoved = 0;
   let monthlyRemoved = 0;
   
@@ -119,113 +119,187 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
       return { weeklyRemoved, monthlyRemoved };
     }
     
-    // Create a map to store unique reflections by weekId
-    const uniqueWeeklyReflections = new Map<string, WeeklyReflection>();
-    // Create a set to track duplicate keys
-    const duplicateKeys = new Set<string>();
+    // Map to store unique reflections by normalized date range
+    const uniqueReflectionsByRange = new Map<string, { key: string, reflection: WeeklyReflection }>();
+    // Array to track which keys to keep
+    const keysToKeep: string[] = [];
+    // Array to track which keys to remove
+    const keysToRemove: string[] = [];
     
-    // First pass: Identify all unique weekIds and potential duplicates
+    // First pass: Identify duplicates by date range rather than by ID
     Object.entries(allWeeklyReflections).forEach(([key, value]) => {
       if (!value || typeof value !== 'object') {
-        console.log(`Skipping invalid entry with key ${key}:`, value);
+        console.log(`Skipping invalid entry with key ${key}`);
         return;
       }
       
-      // Check if we have a valid weekId property (primary identifier for duplicates)
-      const weekId = value.weekId || value.id;
-      if (!weekId) {
-        console.log(`Entry with key ${key} has no weekId or id:`, value);
+      // Add ID if missing
+      if (!value.id && key) {
+        value.id = key;
+      }
+      
+      // Add weekId if missing but we have id
+      if (!value.weekId && value.id) {
+        value.weekId = value.id;
+      }
+      
+      // Skip entries without any proper identifier
+      if (!value.weekId && !value.id) {
+        console.log(`Skipping entry without weekId or id, key: ${key}`);
+        keysToRemove.push(key);
         return;
       }
       
-      // Check if we've already seen this weekId
-      if (uniqueWeeklyReflections.has(weekId)) {
-        console.log(`DUPLICATE DETECTED: WeekId ${weekId} appears multiple times`);
-        duplicateKeys.add(key);
+      // Determine the date range for this reflection
+      let normalizedDateRange = '';
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+      
+      if (value.weekStart && value.weekEnd) {
+        // If we have explicit start/end dates, use those
+        try {
+          startDate = new Date(value.weekStart);
+          endDate = new Date(value.weekEnd);
+          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            throw new Error('Invalid date');
+          }
+        } catch (e) {
+          console.log(`Invalid date format in reflection ${key}:`, e);
+        }
+      }
+      
+      if (!startDate || !endDate) {
+        // Try to parse the weekId as a date
+        try {
+          const weekDate = new Date(value.weekId);
+          if (!isNaN(weekDate.getTime())) {
+            const weekStart = startOfWeek(weekDate, { weekStartsOn: 1 });
+            const weekEnd = endOfWeek(weekDate, { weekStartsOn: 1 });
+            startDate = weekStart;
+            endDate = weekEnd;
+          }
+        } catch (e) {
+          console.log(`Failed to parse weekId as date for ${key}:`, e);
+        }
+      }
+      
+      // If we still don't have valid dates, try id as a last resort
+      if ((!startDate || !endDate) && value.id && value.id !== value.weekId) {
+        try {
+          const idDate = new Date(value.id);
+          if (!isNaN(idDate.getTime())) {
+            const weekStart = startOfWeek(idDate, { weekStartsOn: 1 });
+            const weekEnd = endOfWeek(idDate, { weekStartsOn: 1 });
+            startDate = weekStart;
+            endDate = weekEnd;
+          }
+        } catch (e) {
+          console.log(`Failed to parse id as date for ${key}:`, e);
+        }
+      }
+      
+      // If we still don't have valid dates, use the key as is
+      if (!startDate || !endDate) {
+        normalizedDateRange = value.weekId || value.id || key;
+        console.log(`Using key as date range for ${key}: ${normalizedDateRange}`);
       } else {
-        uniqueWeeklyReflections.set(weekId, value);
+        normalizedDateRange = `${format(startDate, 'yyyy-MM-dd')}_${format(endDate, 'yyyy-MM-dd')}`;
+      }
+      
+      console.log(`Reflection ${key} has date range: ${normalizedDateRange}`);
+      
+      // Check if we've already seen a reflection for this date range
+      if (uniqueReflectionsByRange.has(normalizedDateRange)) {
+        const existing = uniqueReflectionsByRange.get(normalizedDateRange)!;
+        const existingReflection = existing.reflection;
+        
+        // Determine which reflection to keep - prefer:
+        // 1. Non-placeholders over placeholders
+        // 2. Reflections with content over empty ones
+        // 3. More recent updates if both have content
+        const existingHasContent = !!(existingReflection.reflection || existingReflection.weeklyPlan);
+        const newHasContent = !!(value.reflection || value.weeklyPlan);
+        const existingIsPlaceholder = existingReflection.isPlaceholder === true;
+        const newIsPlaceholder = value.isPlaceholder === true;
+        
+        // Log what we found
+        console.log(`Found duplicate for range ${normalizedDateRange}:`);
+        console.log(`  Existing (${existing.key}): hasContent=${existingHasContent}, isPlaceholder=${existingIsPlaceholder}`);
+        console.log(`  New (${key}): hasContent=${newHasContent}, isPlaceholder=${newIsPlaceholder}`);
+        
+        // Logic to decide which to keep
+        let keepNew = false;
+        
+        if (!existingIsPlaceholder && newIsPlaceholder) {
+          // Keep the non-placeholder
+          keepNew = false;
+        } else if (existingIsPlaceholder && !newIsPlaceholder) {
+          // Keep the non-placeholder
+          keepNew = true;
+        } else if (existingHasContent && !newHasContent) {
+          // Keep the one with content
+          keepNew = false;
+        } else if (!existingHasContent && newHasContent) {
+          // Keep the one with content
+          keepNew = true;
+        } else {
+          // Both are placeholders or both have content (or both are empty),
+          // so keep the one with the most recent update
+          const existingDate = existingReflection.lastUpdated ? new Date(existingReflection.lastUpdated) : null;
+          const newDate = value.lastUpdated ? new Date(value.lastUpdated) : null;
+          
+          if (existingDate && newDate) {
+            keepNew = newDate > existingDate;
+          } else if (!existingDate && newDate) {
+            keepNew = true;
+          } else {
+            keepNew = false; // Default to keeping the first one we found
+          }
+        }
+        
+        if (keepNew) {
+          console.log(`  Keeping new entry (${key}) and removing existing (${existing.key})`);
+          // Remove the existing and add the new one
+          keysToRemove.push(existing.key);
+          keysToKeep.push(key);
+          uniqueReflectionsByRange.set(normalizedDateRange, { key, reflection: value });
+          weeklyRemoved++;
+        } else {
+          console.log(`  Keeping existing entry (${existing.key}) and removing new (${key})`);
+          // Keep the existing and remove the new one
+          keysToRemove.push(key);
+          if (!keysToKeep.includes(existing.key)) {
+            keysToKeep.push(existing.key);
+          }
+          weeklyRemoved++;
+        }
+      } else {
+        // First time seeing this date range
+        console.log(`First entry for date range ${normalizedDateRange}: ${key}`);
+        uniqueReflectionsByRange.set(normalizedDateRange, { key, reflection: value });
+        keysToKeep.push(key);
       }
     });
     
-    console.log(`Found ${duplicateKeys.size} duplicate weekly reflection keys`);
+    console.log(`Found ${keysToRemove.length} duplicate weekly reflection keys to remove`);
+    console.log(`Keeping ${keysToKeep.length} unique weekly reflections`);
     
-    if (duplicateKeys.size > 0) {
-      // If we found duplicates, create a new object with only unique entries
+    if (keysToRemove.length > 0) {
+      // Create a new object with only the keys to keep
       const cleanedReflections: Record<string, WeeklyReflection> = {};
       
-      Object.entries(allWeeklyReflections).forEach(([key, value]) => {
-        if (!duplicateKeys.has(key)) {
-          cleanedReflections[key] = value;
-        } else {
-          console.log(`Removing duplicate entry with key ${key}`);
+      keysToKeep.forEach(key => {
+        if (allWeeklyReflections[key]) {
+          cleanedReflections[key] = allWeeklyReflections[key];
         }
       });
       
-      weeklyRemoved = duplicateKeys.size;
+      weeklyRemoved = keysToRemove.length;
       console.log(`Removing ${weeklyRemoved} duplicate weekly reflections`);
       localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(cleanedReflections));
-      
-      // Additional phase - check for multiple entries with the same weekId but different keys
-      const uniqueByWeekId = new Map<string, WeeklyReflection>();
-      const duplicateWeekIds = new Set<string>();
-      
-      Object.values(cleanedReflections).forEach((value) => {
-        const weekId = value.weekId;
-        if (!weekId) return;
-        
-        if (uniqueByWeekId.has(weekId)) {
-          duplicateWeekIds.add(weekId);
-        } else {
-          uniqueByWeekId.set(weekId, value);
-        }
-      });
-      
-      console.log(`Found ${duplicateWeekIds.size} weekIds with multiple entries after first cleanup`);
-      
-      if (duplicateWeekIds.size > 0) {
-        // If we found weekIds with multiple entries, keep only the most recently updated one
-        const finalCleanedReflections: Record<string, WeeklyReflection> = {};
-        const processedWeekIds = new Set<string>();
-        
-        // Sort entries by weekId and lastUpdated (newest first)
-        const sortedEntries = Object.entries(cleanedReflections).sort(([, valueA], [, valueB]) => {
-          // First sort by weekId
-          const weekIdA = valueA.weekId || '';
-          const weekIdB = valueB.weekId || '';
-          const weekIdCompare = weekIdA.localeCompare(weekIdB);
-          
-          if (weekIdCompare !== 0) return weekIdCompare;
-          
-          // If same weekId, sort by lastUpdated (newest first)
-          const dateA = valueA.lastUpdated ? new Date(valueA.lastUpdated).getTime() : 0;
-          const dateB = valueB.lastUpdated ? new Date(valueB.lastUpdated).getTime() : 0;
-          return dateB - dateA;
-        });
-        
-        sortedEntries.forEach(([key, value]) => {
-          const weekId = value.weekId;
-          if (!weekId) {
-            finalCleanedReflections[key] = value;
-            return;
-          }
-          
-          // Only add the first (most recent) entry for each weekId
-          if (!processedWeekIds.has(weekId)) {
-            finalCleanedReflections[key] = value;
-            processedWeekIds.add(weekId);
-            console.log(`Keeping entry for weekId ${weekId} with key ${key}`);
-          } else {
-            console.log(`Discarding duplicate entry for weekId ${weekId} with key ${key}`);
-            weeklyRemoved++;
-          }
-        });
-        
-        localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(finalCleanedReflections));
-      }
-      
       dispatchStorageEvent(WEEKLY_REFLECTIONS_KEY);
     } else {
-      console.log('No duplicate weekly reflections found');
+      console.log('No duplicate weekly reflections found that need removing');
     }
   } catch (error) {
     console.error('Error processing weekly reflections:', error);
@@ -255,113 +329,183 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
       return { weeklyRemoved, monthlyRemoved };
     }
     
-    // Create a map to store unique reflections by monthId
-    const uniqueMonthlyReflections = new Map<string, MonthlyReflection>();
-    // Create a set to track duplicate keys
-    const duplicateKeys = new Set<string>();
+    // Map to store unique reflections by normalized month
+    const uniqueReflectionsByMonth = new Map<string, { key: string, reflection: MonthlyReflection }>();
+    // Arrays to track which keys to keep and remove
+    const keysToKeep: string[] = [];
+    const keysToRemove: string[] = [];
     
-    // First pass: Identify all unique monthIds and potential duplicates
+    // First pass: Identify duplicates by month
     Object.entries(allMonthlyReflections).forEach(([key, value]) => {
       if (!value || typeof value !== 'object') {
-        console.log(`Skipping invalid entry with key ${key}:`, value);
+        console.log(`Skipping invalid monthly entry with key ${key}`);
         return;
       }
       
-      // Check if we have a valid monthId property (primary identifier for duplicates)
-      const monthId = value.monthId || value.id;
-      if (!monthId) {
-        console.log(`Entry with key ${key} has no monthId or id:`, value);
+      // Add ID if missing
+      if (!value.id && key) {
+        value.id = key;
+      }
+      
+      // Add monthId if missing but we have id
+      if (!value.monthId && value.id) {
+        value.monthId = value.id;
+      }
+      
+      // Skip entries without any proper identifier
+      if (!value.monthId && !value.id) {
+        console.log(`Skipping monthly entry without monthId or id, key: ${key}`);
+        keysToRemove.push(key);
         return;
       }
       
-      // Check if we've already seen this monthId
-      if (uniqueMonthlyReflections.has(monthId)) {
-        console.log(`DUPLICATE DETECTED: MonthId ${monthId} appears multiple times`);
-        duplicateKeys.add(key);
+      // Determine the normalized month for this reflection
+      let normalizedMonth = '';
+      
+      if (value.monthStart) {
+        try {
+          const startDate = new Date(value.monthStart);
+          if (!isNaN(startDate.getTime())) {
+            normalizedMonth = format(startDate, 'yyyy-MM');
+          }
+        } catch (e) {
+          console.log(`Invalid date format in monthly reflection ${key}:`, e);
+        }
+      }
+      
+      if (!normalizedMonth && value.monthId) {
+        // If monthId is already in yyyy-MM format, use it directly
+        if (value.monthId.match(/^\d{4}-\d{2}$/)) {
+          normalizedMonth = value.monthId;
+        } else {
+          // Try to parse the monthId as a date
+          try {
+            const monthDate = new Date(value.monthId);
+            if (!isNaN(monthDate.getTime())) {
+              normalizedMonth = format(monthDate, 'yyyy-MM');
+            }
+          } catch (e) {
+            console.log(`Failed to parse monthId as date for ${key}:`, e);
+          }
+        }
+      }
+      
+      // If we still don't have a valid month, try id as a last resort
+      if (!normalizedMonth && value.id && value.id !== value.monthId) {
+        if (value.id.match(/^\d{4}-\d{2}$/)) {
+          normalizedMonth = value.id;
+        } else {
+          try {
+            const idDate = new Date(value.id);
+            if (!isNaN(idDate.getTime())) {
+              normalizedMonth = format(idDate, 'yyyy-MM');
+            }
+          } catch (e) {
+            console.log(`Failed to parse id as date for monthly ${key}:`, e);
+          }
+        }
+      }
+      
+      // If we still don't have a valid month, use the key as is
+      if (!normalizedMonth) {
+        normalizedMonth = value.monthId || value.id || key;
+        console.log(`Using key as month for ${key}: ${normalizedMonth}`);
+      }
+      
+      console.log(`Monthly reflection ${key} has normalized month: ${normalizedMonth}`);
+      
+      // Check if we've already seen a reflection for this month
+      if (uniqueReflectionsByMonth.has(normalizedMonth)) {
+        const existing = uniqueReflectionsByMonth.get(normalizedMonth)!;
+        const existingReflection = existing.reflection;
+        
+        // Determine which reflection to keep - prefer:
+        // 1. Non-placeholders over placeholders
+        // 2. Reflections with content over empty ones
+        // 3. More recent updates if both have content
+        const existingHasContent = !!existingReflection.reflection;
+        const newHasContent = !!value.reflection;
+        const existingIsPlaceholder = existingReflection.isPlaceholder === true;
+        const newIsPlaceholder = value.isPlaceholder === true;
+        
+        // Log what we found
+        console.log(`Found duplicate for month ${normalizedMonth}:`);
+        console.log(`  Existing (${existing.key}): hasContent=${existingHasContent}, isPlaceholder=${existingIsPlaceholder}`);
+        console.log(`  New (${key}): hasContent=${newHasContent}, isPlaceholder=${newIsPlaceholder}`);
+        
+        // Logic to decide which to keep
+        let keepNew = false;
+        
+        if (!existingIsPlaceholder && newIsPlaceholder) {
+          // Keep the non-placeholder
+          keepNew = false;
+        } else if (existingIsPlaceholder && !newIsPlaceholder) {
+          // Keep the non-placeholder
+          keepNew = true;
+        } else if (existingHasContent && !newHasContent) {
+          // Keep the one with content
+          keepNew = false;
+        } else if (!existingHasContent && newHasContent) {
+          // Keep the one with content
+          keepNew = true;
+        } else {
+          // Both are placeholders or both have content (or both are empty),
+          // so keep the one with the most recent update
+          const existingDate = existingReflection.lastUpdated ? new Date(existingReflection.lastUpdated) : null;
+          const newDate = value.lastUpdated ? new Date(value.lastUpdated) : null;
+          
+          if (existingDate && newDate) {
+            keepNew = newDate > existingDate;
+          } else if (!existingDate && newDate) {
+            keepNew = true;
+          } else {
+            keepNew = false; // Default to keeping the first one we found
+          }
+        }
+        
+        if (keepNew) {
+          console.log(`  Keeping new entry (${key}) and removing existing (${existing.key})`);
+          // Remove the existing and add the new one
+          keysToRemove.push(existing.key);
+          keysToKeep.push(key);
+          uniqueReflectionsByMonth.set(normalizedMonth, { key, reflection: value });
+          monthlyRemoved++;
+        } else {
+          console.log(`  Keeping existing entry (${existing.key}) and removing new (${key})`);
+          // Keep the existing and remove the new one
+          keysToRemove.push(key);
+          if (!keysToKeep.includes(existing.key)) {
+            keysToKeep.push(existing.key);
+          }
+          monthlyRemoved++;
+        }
       } else {
-        uniqueMonthlyReflections.set(monthId, value);
+        // First time seeing this month
+        console.log(`First entry for month ${normalizedMonth}: ${key}`);
+        uniqueReflectionsByMonth.set(normalizedMonth, { key, reflection: value });
+        keysToKeep.push(key);
       }
     });
     
-    console.log(`Found ${duplicateKeys.size} duplicate monthly reflection keys`);
+    console.log(`Found ${keysToRemove.length} duplicate monthly reflection keys to remove`);
+    console.log(`Keeping ${keysToKeep.length} unique monthly reflections`);
     
-    if (duplicateKeys.size > 0) {
-      // If we found duplicates, create a new object with only unique entries
+    if (keysToRemove.length > 0) {
+      // Create a new object with only the keys to keep
       const cleanedReflections: Record<string, MonthlyReflection> = {};
       
-      Object.entries(allMonthlyReflections).forEach(([key, value]) => {
-        if (!duplicateKeys.has(key)) {
-          cleanedReflections[key] = value;
-        } else {
-          console.log(`Removing duplicate entry with key ${key}`);
+      keysToKeep.forEach(key => {
+        if (allMonthlyReflections[key]) {
+          cleanedReflections[key] = allMonthlyReflections[key];
         }
       });
       
-      monthlyRemoved = duplicateKeys.size;
+      monthlyRemoved = keysToRemove.length;
       console.log(`Removing ${monthlyRemoved} duplicate monthly reflections`);
       localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(cleanedReflections));
-      
-      // Additional phase - check for multiple entries with the same monthId but different keys
-      const uniqueByMonthId = new Map<string, MonthlyReflection>();
-      const duplicateMonthIds = new Set<string>();
-      
-      Object.values(cleanedReflections).forEach((value) => {
-        const monthId = value.monthId;
-        if (!monthId) return;
-        
-        if (uniqueByMonthId.has(monthId)) {
-          duplicateMonthIds.add(monthId);
-        } else {
-          uniqueByMonthId.set(monthId, value);
-        }
-      });
-      
-      console.log(`Found ${duplicateMonthIds.size} monthIds with multiple entries after first cleanup`);
-      
-      if (duplicateMonthIds.size > 0) {
-        // If we found monthIds with multiple entries, keep only the most recently updated one
-        const finalCleanedReflections: Record<string, MonthlyReflection> = {};
-        const processedMonthIds = new Set<string>();
-        
-        // Sort entries by monthId and lastUpdated (newest first)
-        const sortedEntries = Object.entries(cleanedReflections).sort(([, valueA], [, valueB]) => {
-          // First sort by monthId
-          const monthIdA = valueA.monthId || '';
-          const monthIdB = valueB.monthId || '';
-          const monthIdCompare = monthIdA.localeCompare(monthIdB);
-          
-          if (monthIdCompare !== 0) return monthIdCompare;
-          
-          // If same monthId, sort by lastUpdated (newest first)
-          const dateA = valueA.lastUpdated ? new Date(valueA.lastUpdated).getTime() : 0;
-          const dateB = valueB.lastUpdated ? new Date(valueB.lastUpdated).getTime() : 0;
-          return dateB - dateA;
-        });
-        
-        sortedEntries.forEach(([key, value]) => {
-          const monthId = value.monthId;
-          if (!monthId) {
-            finalCleanedReflections[key] = value;
-            return;
-          }
-          
-          // Only add the first (most recent) entry for each monthId
-          if (!processedMonthIds.has(monthId)) {
-            finalCleanedReflections[key] = value;
-            processedMonthIds.add(monthId);
-            console.log(`Keeping entry for monthId ${monthId} with key ${key}`);
-          } else {
-            console.log(`Discarding duplicate entry for monthId ${monthId} with key ${key}`);
-            monthlyRemoved++;
-          }
-        });
-        
-        localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(finalCleanedReflections));
-      }
-      
       dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
     } else {
-      console.log('No duplicate monthly reflections found');
+      console.log('No duplicate monthly reflections found that need removing');
     }
   } catch (error) {
     console.error('Error processing monthly reflections:', error);
