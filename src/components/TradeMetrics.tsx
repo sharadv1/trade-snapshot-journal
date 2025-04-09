@@ -95,16 +95,19 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
         
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">R-Multiple</p>
-          <p className={`text-lg font-medium ${
-            isBigWin ? 'text-green-600' : 
-            isBigLoss ? 'text-red-600' : 
-            isProfit ? 'text-green-500' : 
-            isLoss ? 'text-red-500' : ''
-          }`}>
-            {rMultipleDisplay}
+          <div className="flex items-center">
+            <p className={`text-lg font-medium ${
+              isBigWin ? 'text-green-600' : 
+              isBigLoss ? 'text-red-600' : 
+              isProfit ? 'text-green-500' : 
+              isLoss ? 'text-red-500' : ''
+            }`}>
+              {rMultipleDisplay}
+            </p>
             {isBigWin && <Badge className="ml-2 bg-green-600 hover:bg-green-700">Big Win</Badge>}
             {isBigLoss && <Badge className="ml-2 bg-red-600 hover:bg-red-700">Big Loss</Badge>}
-          </p>
+          </div>
+          <p className="text-xs text-muted-foreground">Based on initial stop loss</p>
         </div>
       </div>
       
@@ -124,18 +127,16 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
                 </p>
               </div>
               
-              {initialRiskedAmount !== undefined && initialRiskedAmount !== riskedAmount && (
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground flex items-center">
-                    <AlertTriangle className="h-3.5 w-3.5 mr-1 text-amber-500" />
-                    Initial Risk
-                  </p>
-                  <p className="text-base">
-                    {initialRiskedAmount ? `$${initialRiskedAmount.toFixed(2)}` : 'N/A'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Used for R-multiple calculation</p>
-                </div>
-              )}
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground flex items-center">
+                  <AlertTriangle className="h-3.5 w-3.5 mr-1 text-amber-500" />
+                  Initial Risk
+                </p>
+                <p className="text-base font-medium">
+                  {initialRiskedAmount ? `$${initialRiskedAmount.toFixed(2)}` : 'N/A'}
+                </p>
+                <p className="text-xs text-muted-foreground">Used for R-multiple calculation</p>
+              </div>
               
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground flex items-center">
@@ -155,7 +156,7 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
                 <p className="text-base">
                   {riskRewardRatio ? `${riskRewardRatio.toFixed(2)}:1` : 'N/A'}
                 </p>
-                <p className="text-xs text-muted-foreground">Based on initial stop loss</p>
+                <p className="text-xs text-muted-foreground font-medium">Based on initial stop loss</p>
               </div>
             </div>
 
@@ -211,3 +212,4 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
     </div>
   );
 }
+

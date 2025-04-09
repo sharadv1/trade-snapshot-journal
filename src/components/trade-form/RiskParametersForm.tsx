@@ -1,11 +1,11 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Trade } from '@/types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { ArrowUpCircle, Info } from 'lucide-react';
+import { ArrowUpCircle, Info, Calculator } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface RiskParametersFormProps {
@@ -19,12 +19,63 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
   handleChange,
   disableEdits = false,
 }) => {
+  const [calculatedRR, setCalculatedRR] = useState<string>('');
+
   // Handle copying current stopLoss to initialStopLoss
   const handleInitializeStop = () => {
     if (trade.stopLoss) {
       handleChange('initialStopLoss', trade.stopLoss);
     }
   };
+
+  // Calculate risk/reward ratio when stop loss and take profit change
+  useEffect(() => {
+    if (trade.initialStopLoss && trade.takeProfit && trade.entryPrice) {
+      const entryPrice = Number(trade.entryPrice);
+      const initialStopLoss = Number(trade.initialStopLoss);
+      const takeProfit = Number(trade.takeProfit);
+      
+      // Ensure all values are valid numbers
+      if (!isNaN(entryPrice) && !isNaN(initialStopLoss) && !isNaN(takeProfit) && 
+          initialStopLoss !== entryPrice) {
+        
+        const isLong = trade.direction !== 'short';
+        
+        // Calculate based on direction
+        if (isLong) {
+          // Long position: risk is entry - stop, reward is target - entry
+          const risk = entryPrice - initialStopLoss;
+          const reward = takeProfit - entryPrice;
+          
+          if (risk > 0 && reward > 0) {
+            const ratio = (reward / risk).toFixed(2);
+            setCalculatedRR(`${ratio}:1`);
+            // Update the trade object with the calculated ratio
+            handleChange('riskRewardRatio', parseFloat(ratio));
+          } else {
+            setCalculatedRR('Invalid');
+          }
+        } else {
+          // Short position: risk is stop - entry, reward is entry - target
+          const risk = initialStopLoss - entryPrice;
+          const reward = entryPrice - takeProfit;
+          
+          if (risk > 0 && reward > 0) {
+            const ratio = (reward / risk).toFixed(2);
+            setCalculatedRR(`${ratio}:1`);
+            // Update the trade object with the calculated ratio
+            handleChange('riskRewardRatio', parseFloat(ratio));
+          } else {
+            setCalculatedRR('Invalid');
+          }
+        }
+      } else {
+        setCalculatedRR('');
+      }
+    } else {
+      setCalculatedRR('');
+    }
+  }, [trade.initialStopLoss, trade.takeProfit, trade.entryPrice, trade.direction, handleChange]);
 
   return (
     <div className="space-y-6">
@@ -34,27 +85,6 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="stopLoss">Current Stop Loss</Label>
-          <Input
-            id="stopLoss"
-            type="text"
-            inputMode="decimal"
-            step="any"
-            placeholder="Stop loss price"
-            value={trade.stopLoss || ''}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
-                const parsedValue = value ? parseFloat(value) : '';
-                handleChange('stopLoss', parsedValue);
-              }
-            }}
-            disabled={disableEdits}
-          />
-          <p className="text-xs text-muted-foreground">Current stop level (adjustable)</p>
-        </div>
-
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
@@ -67,7 +97,7 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
                     </span>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    <p>This is the initial stop loss at trade entry. It's used to calculate your R-multiple and won't change even if you adjust your current stop.</p>
+                    <p>This is your initial stop loss at trade entry. It's used to calculate your R-multiple and risk/reward ratio.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -101,8 +131,30 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
               }
             }}
             disabled={disableEdits}
+            className="border-primary/50"
           />
-          <p className="text-xs text-muted-foreground font-medium">Used for R calculation and initial risk assessment</p>
+          <p className="text-xs font-medium text-primary">Used for R calculation and risk/reward ratio</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="stopLoss">Current Stop Loss</Label>
+          <Input
+            id="stopLoss"
+            type="text"
+            inputMode="decimal"
+            step="any"
+            placeholder="Stop loss price"
+            value={trade.stopLoss || ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
+                const parsedValue = value ? parseFloat(value) : '';
+                handleChange('stopLoss', parsedValue);
+              }
+            }}
+            disabled={disableEdits}
+          />
+          <p className="text-xs text-muted-foreground">Current stop level (adjustable)</p>
         </div>
       </div>
 
@@ -128,15 +180,29 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="riskRewardRatio">Risk/Reward Ratio</Label>
+          <div className="flex items-center">
+            <Label htmlFor="riskRewardRatio">Risk/Reward Ratio</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="ml-1.5 inline-flex items-center">
+                    <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p>Calculated using your initial stop loss and take profit target.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <Input
             id="riskRewardRatio"
             type="text"
             placeholder="Risk/reward ratio"
-            value={trade.riskRewardRatio || ''}
+            value={calculatedRR || (trade.riskRewardRatio ? `${trade.riskRewardRatio}:1` : '')}
             readOnly
             disabled
-            className="bg-muted"
+            className={`bg-muted ${calculatedRR ? 'text-foreground font-medium' : ''}`}
           />
           <p className="text-xs text-muted-foreground">Based on initial stop loss and take profit</p>
         </div>
