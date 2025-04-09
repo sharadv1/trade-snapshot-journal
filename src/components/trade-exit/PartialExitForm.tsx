@@ -1,3 +1,4 @@
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,47 +38,67 @@ export function PartialExitForm({
   isClosedTradeConversion = false,
 }: PartialExitFormProps) {
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow input to start with "0." or "."
     const value = e.target.value;
-    if (value === '' || value === '.' || value === '0.') {
-      // Keep the input as is to allow typing
-      setPartialQuantity(value as any);
-    } else {
-      // Convert to number if it's a valid number
-      const numValue = parseFloat(value);
-      if (!isNaN(numValue)) {
-        // Ensure the value doesn't exceed remainingQuantity
-        setPartialQuantity(Math.min(numValue, remainingQuantity));
+    
+    if (value === '') {
+      setPartialQuantity(0);
+      return;
+    }
+    
+    // Allow decimal input including intermediate states
+    if (/^[0-9]*\.?[0-9]*$/.test(value)) {
+      // Handle special cases like "." or "0."
+      if (value === '.' || value === '0.' || value.endsWith('.')) {
+        setPartialQuantity(value as any);
+      } else {
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+          // Ensure the value doesn't exceed remainingQuantity
+          setPartialQuantity(Math.min(numValue, remainingQuantity));
+        }
       }
     }
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow input to start with "0." or "."
     const value = e.target.value;
-    if (value === '' || value === '.' || value === '0.') {
-      // Keep the input as is to allow typing
-      setPartialExitPrice(value as any);
-    } else {
-      // Convert to number if it's a valid number
-      const numValue = parseFloat(value);
-      if (!isNaN(numValue)) {
-        setPartialExitPrice(numValue);
+    
+    if (value === '') {
+      setPartialExitPrice(0);
+      return;
+    }
+    
+    // Allow decimal input including intermediate states
+    if (/^[0-9]*\.?[0-9]*$/.test(value)) {
+      // Handle special cases like "." or "0."
+      if (value === '.' || value === '0.' || value.endsWith('.')) {
+        setPartialExitPrice(value as any);
+      } else {
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+          setPartialExitPrice(numValue);
+        }
       }
     }
   };
 
   const handleFeesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value === '' || value === '.' || value === '0.') {
-      // Keep the input as is to allow typing
-      setPartialFees(value as any);
-    } else if (value === '') {
+    
+    if (value === '') {
       setPartialFees(undefined);
-    } else {
-      // Convert to number if it's a valid number
-      const numValue = parseFloat(value);
-      setPartialFees(isNaN(numValue) ? undefined : numValue);
+      return;
+    }
+    
+    // Allow decimal input including intermediate states
+    if (/^[0-9]*\.?[0-9]*$/.test(value)) {
+      // Handle special cases like "." or "0."
+      if (value === '.' || value === '0.' || value.endsWith('.')) {
+        setPartialFees(value as any);
+      } else {
+        const numValue = parseFloat(value);
+        setPartialFees(isNaN(numValue) ? undefined : numValue);
+      }
     }
   };
 

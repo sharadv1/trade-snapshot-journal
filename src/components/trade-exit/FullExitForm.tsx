@@ -36,9 +36,10 @@ export function FullExitForm({
       return;
     }
     
-    // Allow decimal input like "0.", "." or valid numbers
-    if (value === '.' || value === '0.' || /^\d*\.?\d*$/.test(value)) {
-      if (value === '.' || value === '0.') {
+    // Allow decimal input including intermediate states
+    if (/^[0-9]*\.?[0-9]*$/.test(value)) {
+      // Handle special cases like "." or "0."
+      if (value === '.' || value === '0.' || value.endsWith('.')) {
         setExitPrice(value as any);
       } else {
         const numValue = parseFloat(value);
@@ -55,9 +56,10 @@ export function FullExitForm({
       return;
     }
     
-    // Allow decimal input like "0.", "." or valid numbers
-    if (value === '.' || value === '0.' || /^\d*\.?\d*$/.test(value)) {
-      if (value === '.' || value === '0.') {
+    // Allow decimal input including intermediate states
+    if (/^[0-9]*\.?[0-9]*$/.test(value)) {
+      // Handle special cases like "." or "0."
+      if (value === '.' || value === '0.' || value.endsWith('.')) {
         setFees(value as any);
       } else {
         const numValue = parseFloat(value);
@@ -77,7 +79,6 @@ export function FullExitForm({
           id="exitPrice" 
           type="text"
           inputMode="decimal"
-          min="0"
           value={exitPrice || ''}
           onChange={handlePriceChange}
           required
@@ -106,7 +107,6 @@ export function FullExitForm({
           id="fees" 
           type="text"
           inputMode="decimal"
-          min="0"
           value={fees || ''}
           onChange={handleFeesChange}
         />

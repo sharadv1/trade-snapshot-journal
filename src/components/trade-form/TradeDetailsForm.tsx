@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Trade, TRADE_TYPES, TradeType } from '@/types';
 import { Label } from '@/components/ui/label';
@@ -43,9 +44,10 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
       return;
     }
     
-    // Allow decimal inputs like ".", "0." or valid numbers
-    if (value === '.' || value === '0.' || /^\d*\.?\d*$/.test(value)) {
-      if (value === '.' || value === '0.') {
+    // Allow decimal input including intermediate states
+    if (/^[0-9]*\.?[0-9]*$/.test(value)) {
+      // Handle special cases like "." or "0."
+      if (value === '.' || value === '0.' || value.endsWith('.')) {
         onTradeChange(field, value);
       } else {
         const numValue = parseFloat(value);

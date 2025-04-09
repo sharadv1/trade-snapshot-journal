@@ -20,6 +20,12 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
   disableEdits = false,
 }) => {
   const [calculatedRR, setCalculatedRR] = useState<string>('');
+  const [lastCalculatedValues, setLastCalculatedValues] = useState({
+    entryPrice: undefined as number | undefined,
+    initialStopLoss: undefined as number | undefined,
+    takeProfit: undefined as number | undefined,
+    direction: undefined as string | undefined
+  });
 
   // Handle copying current stopLoss to initialStopLoss
   const handleInitializeStop = () => {
@@ -35,9 +41,10 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
       return;
     }
     
-    // Allow decimal inputs like ".", "0." or valid numbers
-    if (value === '.' || value === '0.' || /^\d*\.?\d*$/.test(value)) {
-      if (value === '.' || value === '0.') {
+    // Allow decimal input including intermediate states
+    if (/^[0-9]*\.?[0-9]*$/.test(value)) {
+      // Handle special cases like "." or "0."
+      if (value === '.' || value === '0.' || value.endsWith('.')) {
         handleChange(field, value);
       } else {
         const numValue = parseFloat(value);
@@ -48,21 +55,47 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
 
   // Calculate risk/reward ratio when stop loss and take profit change
   useEffect(() => {
-    if (!trade.initialStopLoss || !trade.takeProfit || !trade.entryPrice) {
+    // Skip calculation if the values are the same as last time to prevent console spam
+    const currentValues = {
+      entryPrice: typeof trade.entryPrice === 'number' ? trade.entryPrice : undefined,
+      initialStopLoss: typeof trade.initialStopLoss === 'number' ? trade.initialStopLoss : undefined,
+      takeProfit: typeof trade.takeProfit === 'number' ? trade.takeProfit : undefined,
+      direction: trade.direction
+    };
+    
+    const valuesEqual = 
+      currentValues.entryPrice === lastCalculatedValues.entryPrice &&
+      currentValues.initialStopLoss === lastCalculatedValues.initialStopLoss &&
+      currentValues.takeProfit === lastCalculatedValues.takeProfit &&
+      currentValues.direction === lastCalculatedValues.direction;
+      
+    if (valuesEqual) {
+      return; // Skip calculation if values haven't changed
+    }
+
+    // Only proceed if all values are actual numbers
+    if (
+      typeof trade.initialStopLoss !== 'number' || 
+      typeof trade.takeProfit !== 'number' || 
+      typeof trade.entryPrice !== 'number'
+    ) {
       setCalculatedRR('');
       return;
     }
 
-    const entryPrice = Number(trade.entryPrice);
-    const initialStopLoss = Number(trade.initialStopLoss);
-    const takeProfit = Number(trade.takeProfit);
+    const entryPrice = trade.entryPrice;
+    const initialStopLoss = trade.initialStopLoss;
+    const takeProfit = trade.takeProfit;
     
-    // Ensure all values are valid numbers
+    // Ensure all values are valid numbers and not intermediate states (like "." or "0.")
     if (isNaN(entryPrice) || isNaN(initialStopLoss) || isNaN(takeProfit) || 
         initialStopLoss === entryPrice) {
       setCalculatedRR('');
       return;
     }
+    
+    // Save the values we're calculating with to prevent recalculation of the same values
+    setLastCalculatedValues(currentValues);
     
     const isLong = trade.direction !== 'short';
     let risk, reward, ratio;
@@ -81,11 +114,11 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
     if (risk > 0 && reward > 0) {
       ratio = reward / risk;
       setCalculatedRR(`${ratio.toFixed(2)}:1`);
-      // Don't update the trade object on every render to avoid the loop
-      // Only update when the ratio has actually changed
-      if (trade.riskRewardRatio !== parseFloat(ratio.toFixed(2))) {
-        console.log('Updating riskRewardRatio to:', parseFloat(ratio.toFixed(2)));
-        handleChange('riskRewardRatio', parseFloat(ratio.toFixed(2)));
+      
+      // Only update the trade object if the ratio has actually changed
+      const newRatio = parseFloat(ratio.toFixed(2));
+      if (trade.riskRewardRatio !== newRatio) {
+        handleChange('riskRewardRatio', newRatio);
       }
     } else {
       setCalculatedRR('Invalid');
@@ -94,7 +127,12 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
         handleChange('riskRewardRatio', undefined);
       }
     }
-  }, [trade.initialStopLoss, trade.takeProfit, trade.entryPrice, trade.direction]);
+  }, [
+    typeof trade.entryPrice === 'number' ? trade.entryPrice : null,
+    typeof trade.initialStopLoss === 'number' ? trade.initialStopLoss : null,
+    typeof trade.takeProfit === 'number' ? trade.takeProfit : null,
+    trade.direction
+  ]);
 
   return (
     <div className="space-y-6">
