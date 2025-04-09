@@ -11,10 +11,14 @@ export const getTradeMetrics = (trade: Trade) => {
   let rMultiple = 0;
   let profitLossPercentage = 0;
   let riskedAmount = 0;
+  let initialRiskedAmount = 0;
   let maxPotentialGain = 0;
   let calculationExplanation = '';
   let weightedExitPrice: number | undefined = undefined;
   let latestExitDate: string | undefined = undefined;
+  let maxFavorableExcursion = 0; // How much the trade went in your favor
+  let maxAdverseExcursion = 0; // How much heat the trade took
+  let capturedProfitPercent = 0; // What percentage of the max move you captured
 
   if (!trade.entryPrice) {
     calculationExplanation += 'Entry price is missing. ';
@@ -24,10 +28,14 @@ export const getTradeMetrics = (trade: Trade) => {
       rMultiple,
       profitLossPercentage,
       riskedAmount,
+      initialRiskedAmount,
       maxPotentialGain,
       calculationExplanation,
       weightedExitPrice,
-      latestExitDate
+      latestExitDate,
+      maxFavorableExcursion,
+      maxAdverseExcursion,
+      capturedProfitPercent
     };
   }
 
@@ -39,10 +47,14 @@ export const getTradeMetrics = (trade: Trade) => {
       rMultiple,
       profitLossPercentage,
       riskedAmount,
+      initialRiskedAmount,
       maxPotentialGain,
       calculationExplanation,
       weightedExitPrice,
-      latestExitDate
+      latestExitDate,
+      maxFavorableExcursion,
+      maxAdverseExcursion,
+      capturedProfitPercent
     };
   }
 
@@ -142,12 +154,22 @@ export const getTradeMetrics = (trade: Trade) => {
     latestExitDate = trade.exitDate;
   }
 
-  // Calculate risk per share/contract based on entry and stop loss
+  // Calculate CURRENT risk per share/contract based on entry and stop loss
   let riskedAmountPerUnit = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString()));
+  
+  // Calculate INITIAL risk per share/contract if available
+  let initialRiskedAmountPerUnit = 0;
+  if (trade.initialStopLoss) {
+    initialRiskedAmountPerUnit = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.initialStopLoss.toString()));
+  } else {
+    // If initialStopLoss is not available, use current stopLoss
+    initialRiskedAmountPerUnit = riskedAmountPerUnit;
+  }
   
   // Apply contract multiplier for futures
   if (trade.type === 'futures') {
     riskedAmountPerUnit = riskedAmountPerUnit * pointValue;
+    initialRiskedAmountPerUnit = initialRiskedAmountPerUnit * pointValue;
     
     if (customContract) {
       calculationExplanation += `Using custom contract settings: $${pointValue} point value. `;
@@ -159,6 +181,7 @@ export const getTradeMetrics = (trade: Trade) => {
   // Calculate actual risked amount (per unit * quantity)
   const quantity = parseFloat(trade.quantity.toString());
   riskedAmount = riskedAmountPerUnit * quantity;
+  initialRiskedAmount = initialRiskedAmountPerUnit * quantity;
 
   if (trade.takeProfit) {
     const takeProfitValue = parseFloat(trade.takeProfit.toString());
@@ -172,28 +195,70 @@ export const getTradeMetrics = (trade: Trade) => {
     
     maxPotentialGain = maxGainPerUnit * quantity;
     
-    if (riskedAmount > 0 && maxPotentialGain > 0) {
-      riskRewardRatio = maxPotentialGain / riskedAmount;
+    // Use initial risked amount for R:R calculations 
+    if (initialRiskedAmount > 0 && maxPotentialGain > 0) {
+      riskRewardRatio = maxPotentialGain / initialRiskedAmount;
     }
+  }
+
+  // Calculate the maximum favorable and adverse excursions if they exist
+  if (trade.maxFavorablePrice && trade.entryPrice) {
+    const entryPrice = parseFloat(trade.entryPrice.toString());
+    const maxFavPrice = parseFloat(trade.maxFavorablePrice.toString());
+    const direction = trade.direction === 'long' ? 1 : -1;
+    
+    // Calculate how much the price moved in your favor at its best point
+    let favorableMove = (maxFavPrice - entryPrice) * direction;
+    
+    // Apply contract multiplier for futures
+    if (trade.type === 'futures') {
+      favorableMove = favorableMove * pointValue;
+    }
+    
+    maxFavorableExcursion = favorableMove * quantity;
+    
+    // Calculate the percentage of max move captured if trade is closed
+    if (trade.status === 'closed' && weightedExitPrice && maxFavorableExcursion > 0) {
+      const actualMove = (parseFloat(weightedExitPrice.toString()) - entryPrice) * direction;
+      const actualPL = actualMove * (trade.type === 'futures' ? pointValue : 1) * quantity;
+      capturedProfitPercent = (actualPL / maxFavorableExcursion) * 100;
+    }
+  }
+  
+  if (trade.maxAdversePrice && trade.entryPrice) {
+    const entryPrice = parseFloat(trade.entryPrice.toString());
+    const maxAdvPrice = parseFloat(trade.maxAdversePrice.toString());
+    const direction = trade.direction === 'long' ? -1 : 1; // Reverse direction for adverse move
+    
+    // Calculate how much the price moved against you at its worst point
+    let adverseMove = (maxAdvPrice - entryPrice) * direction;
+    
+    // Apply contract multiplier for futures
+    if (trade.type === 'futures') {
+      adverseMove = adverseMove * pointValue;
+    }
+    
+    maxAdverseExcursion = Math.max(0, adverseMove * quantity); // Ensure it's not negative
   }
 
   // For open trades, calculate the rMultiple based on current price or last close
   if (trade.status === 'open') {
     // If we have partial exits, we can calculate a partial r-multiple
-    if (profitLoss !== 0 && riskedAmount > 0) {
-      rMultiple = profitLoss / riskedAmount;
+    if (profitLoss !== 0 && initialRiskedAmount > 0) {
+      rMultiple = profitLoss / initialRiskedAmount;
     }
     
     calculationExplanation += 'Trade is still open. ';
-  } else if (riskedAmount > 0) {
-    rMultiple = profitLoss / riskedAmount;
+  } else if (initialRiskedAmount > 0) {
+    // For closed trades, use initial risk for R-multiple calculation
+    rMultiple = profitLoss / initialRiskedAmount;
   }
 
   // Calculate percentage based on initial investment for stocks
   // For futures, use the risked amount as the baseline
   if (trade.type === 'futures') {
-    if (riskedAmount > 0) {
-      profitLossPercentage = (profitLoss / riskedAmount) * 100;
+    if (initialRiskedAmount > 0) {
+      profitLossPercentage = (profitLoss / initialRiskedAmount) * 100;
     } else {
       calculationExplanation += 'Cannot calculate percentage: risked amount is zero. ';
     }
@@ -211,7 +276,15 @@ export const getTradeMetrics = (trade: Trade) => {
       `StopLoss: ${trade.stopLoss}, TakeProfit: ${trade.takeProfit || 'Not Set'}. ` :
       `Exit: ${weightedExitPrice?.toFixed(5) || trade.exitPrice}, Stop: ${trade.stopLoss}. `;
     
-    calculationExplanation += `Risk: $${riskedAmount.toFixed(2)}`;
+    if (trade.initialStopLoss && trade.initialStopLoss !== trade.stopLoss) {
+      calculationExplanation += `Initial Stop: ${trade.initialStopLoss}, `;
+    }
+    
+    calculationExplanation += `Current Risk: $${riskedAmount.toFixed(2)}`;
+    
+    if (initialRiskedAmount !== riskedAmount) {
+      calculationExplanation += `, Initial Risk: $${initialRiskedAmount.toFixed(2)}`;
+    }
     
     if (trade.type === 'futures' && pointValue !== 1) {
       if (customContract) {
@@ -235,6 +308,18 @@ export const getTradeMetrics = (trade: Trade) => {
         calculationExplanation += `, R-Multiple: ${rMultiple.toFixed(2)}`;
       }
     }
+    
+    if (maxFavorableExcursion > 0) {
+      calculationExplanation += `, Max Favorable: $${maxFavorableExcursion.toFixed(2)}`;
+      
+      if (capturedProfitPercent > 0) {
+        calculationExplanation += `, Captured: ${capturedProfitPercent.toFixed(0)}%`;
+      }
+    }
+    
+    if (maxAdverseExcursion > 0) {
+      calculationExplanation += `, Max Heat: $${maxAdverseExcursion.toFixed(2)}`;
+    }
   }
 
   return {
@@ -243,10 +328,14 @@ export const getTradeMetrics = (trade: Trade) => {
     rMultiple,
     profitLossPercentage,
     riskedAmount,
+    initialRiskedAmount,
     maxPotentialGain,
     calculationExplanation,
     weightedExitPrice,
-    latestExitDate
+    latestExitDate,
+    maxFavorableExcursion,
+    maxAdverseExcursion,
+    capturedProfitPercent
   };
 };
 

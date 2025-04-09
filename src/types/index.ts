@@ -1,3 +1,4 @@
+
 export interface Trade {
   id: string;
   symbol: string;
@@ -19,6 +20,10 @@ export interface Trade {
   images?: string[];
   riskRewardRatio?: number;
   stopLoss?: number;
+  // New fields for tracking initial risk and price extremes
+  initialStopLoss?: number; // Stop loss at trade entry
+  maxFavorablePrice?: number; // Best price reached during the trade
+  maxAdversePrice?: number; // Worst price reached during the trade
   takeProfit?: number;
   partialExits?: PartialExit[];
   ideaId?: string;
@@ -38,11 +43,15 @@ export interface TradeWithMetrics extends Trade {
     riskRewardRatio: number;
     rMultiple: number;
     riskedAmount?: number;
+    initialRiskedAmount?: number; // Initial risk amount based on initial stop
     maxPotentialGain?: number;
     profitLossPercentage?: number;
     calculationExplanation?: string;
     latestExitDate?: string;
     weightedExitPrice?: number;
+    maxFavorableExcursion?: number; // How much the trade went in your favor
+    maxAdverseExcursion?: number; // How much heat the trade took
+    capturedProfitPercent?: number; // What percentage of the max move you captured
   };
 }
 

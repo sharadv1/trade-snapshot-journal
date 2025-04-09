@@ -1,87 +1,143 @@
-
-import { useState, useEffect, useCallback } from 'react';
-import { Trade } from '@/types';
+import { useState, useEffect } from 'react';
+import { Trade, PartialExit } from '@/types';
+import { useTradeSubmit } from './hooks/useTradeSubmit';
 import { useTradeState } from './hooks/useTradeState';
 import { useTradeImages } from './hooks/useTradeImages';
-import { useTradeSubmit } from './hooks/useTradeSubmit';
-import { generateUUID } from '@/utils/generateUUID';
 import { toast } from '@/utils/toast';
+import { getIdeaById } from '@/utils/ideaStorage';
+import { formatDate } from '@/utils/calculations/formatters';
+import { getContractPointValue } from '@/utils/calculations/contractUtils';
 
-export function useTradeForm(initialTrade?: Trade, isEditing = false, ideaId: string | null = null) {
-  // Initialize trade state with proper defaults
-  const {
+export const useTradeForm = (
+  initialTrade?: Trade,
+  isEditing = false,
+  ideaId?: string | null
+) => {
+  // Get current date/time in ISO format, truncated to minutes
+  const now = new Date();
+  const isoDateTime = now.toISOString().slice(0, 16);
+  
+  const defaultTrade: Partial<Trade> = {
+    id: '',
+    symbol: '',
+    direction: 'long',
+    entryDate: isoDateTime,
+    entryPrice: 0,
+    positionSize: 0,
+    quantity: 1,
+    status: 'open',
+    type: 'stock',
+    strategy: '',
+    stopLoss: 0,
+    initialStopLoss: 0, // Initialize both stop loss fields to the same value
+    takeProfit: 0,
+    fees: 0,
+    notes: '',
+    images: [],
+    riskRewardRatio: 0,
+    account: '',
+    grade: '',
+    mistakes: [],
+    timeframe: '',
+    pspTime: '',
+    ssmtQuarters: '',
+    tags: [],
+    maxFavorablePrice: 0,
+    maxAdversePrice: 0
+  };
+  
+  const [contractDetails, setContractDetails] = useState<Record<string, any>>({});
+  const [activeTab, setActiveTab] = useState('details');
+  const [pointValue, setPointValue] = useState<number | undefined>(1);
+  const [ideaDetails, setIdeaDetails] = useState<any>(null);
+  
+  // Use custom hooks
+  const { trade, setTrade, handleChange, handleTypeChange } = useTradeState(
+    initialTrade || defaultTrade,
+    isEditing
+  );
+  
+  const { images, handleImageUpload, handleRemoveImage } = useTradeImages(
+    initialTrade?.images || []
+  );
+  
+  const { handleSubmit } = useTradeSubmit(
     trade,
-    setTrade,
-    handleChange,
-    handleTypeChange,
-    contractDetails,
-    handleContractDetailsChange,
-    pointValue,
-  } = useTradeState(initialTrade, isEditing, ideaId);
-
-  // Initialize images state
-  const {
     images,
-    setImages,
-    isUploading,
-    handleImageUpload: handleUploadImage,
-    handleRemoveImage: handleRemoveImageFromState
-  } = useTradeImages(initialTrade?.images || []);
-
-  // Initialize submit logic
-  const { handleSubmit } = useTradeSubmit(trade, images, contractDetails, isEditing, initialTrade);
-
-  // Track active tab
-  const [activeTab, setActiveTab] = useState<string>('details');
-
-  // Handle image upload with proper error handling and logging
-  const handleImageUpload = useCallback(async (file: File) => {
-    console.log('useTradeForm: Handling image upload for file:', file.name);
-    
-    try {
-      return await handleUploadImage(file);
-    } catch (error) {
-      console.error('Error in handleImageUpload:', error);
-      toast.error('Failed to upload image');
-      return images;
-    }
-  }, [handleUploadImage, images]);
-
-  // Handle image removal with proper error handling
-  const handleRemoveImage = useCallback((index: number) => {
-    console.log('useTradeForm: Removing image at index:', index);
-    
-    try {
-      return handleRemoveImageFromState(index);
-    } catch (error) {
-      console.error('Error in handleRemoveImage:', error);
-      toast.error('Failed to remove image');
-      return images;
-    }
-  }, [handleRemoveImageFromState, images]);
-
-  // Set initial images from trade on mount
+    contractDetails,
+    isEditing,
+    initialTrade
+  );
+  
+  // Initialize from idea if ideaId is provided
   useEffect(() => {
-    if (initialTrade?.images && initialTrade.images.length > 0) {
-      setImages(initialTrade.images);
+    if (ideaId && !isEditing) {
+      const idea = getIdeaById(ideaId);
+      if (idea) {
+        setIdeaDetails(idea);
+        
+        setTrade(prev => ({
+          ...prev,
+          symbol: idea.symbol || '',
+          direction: idea.direction === 'long' || idea.direction === 'short' 
+            ? idea.direction 
+            : 'long',
+          ideaId: idea.id,
+          entryPrice: idea.entryPrice || prev.entryPrice || 0,
+          stopLoss: idea.stopLoss || prev.stopLoss || 0,
+          initialStopLoss: idea.stopLoss || prev.stopLoss || 0, // Initialize initial stop loss too
+          takeProfit: idea.takeProfit || prev.takeProfit || 0,
+          images: idea.images || [],
+          notes: idea.description || ''
+        }));
+        
+        if (idea.images) {
+          setImages(idea.images);
+        }
+      }
     }
-  }, [initialTrade, setImages]);
-
-  // Return all the state and handlers
+  }, [ideaId, isEditing]);
+  
+  // When stopLoss changes and initialStopLoss is not set, update initialStopLoss too
+  useEffect(() => {
+    if (trade.stopLoss && !trade.initialStopLoss && !isEditing) {
+      setTrade(prev => ({
+        ...prev,
+        initialStopLoss: trade.stopLoss
+      }));
+    }
+  }, [trade.stopLoss]);
+  
+  // Calculate and update the point value when needed
+  useEffect(() => {
+    if (trade.type === 'futures' && trade.symbol) {
+      const pv = getContractPointValue(trade as Trade);
+      setPointValue(pv);
+    } else {
+      setPointValue(1);
+    }
+  }, [trade.type, trade.symbol, contractDetails]);
+  
+  // Handle contract details change
+  const handleContractDetailsChange = (details: Record<string, any>) => {
+    setContractDetails(details);
+  };
+  
   return {
     trade,
     setTrade,
-    activeTab,
-    setActiveTab,
+    images,
+    setImages: (value: string[]) => setImages(value),
     handleChange,
     handleTypeChange,
-    contractDetails,
-    handleContractDetailsChange,
-    images,
-    isUploading,
     handleImageUpload,
     handleRemoveImage,
     handleSubmit,
+    activeTab,
+    setActiveTab,
+    contractDetails,
+    handleContractDetailsChange,
     pointValue,
+    ideaDetails
   };
-}
+};

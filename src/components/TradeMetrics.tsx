@@ -1,301 +1,211 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TradeWithMetrics } from '@/types';
+import { Trade, TradeWithMetrics } from '@/types';
+import { calculateTradeMetrics } from '@/utils/calculations';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { 
-  calculateTradeMetrics, 
-  formatCurrency, 
-  formatPercentage 
-} from '@/utils/calculations';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from 'recharts';
-import { TradePnLCalendar } from './TradePnLCalendar';
-import { 
-  calculateProfitFactor, 
-  calculateCalmarRatio, 
-  calculateParetoIndex, 
-  calculateExpectedValue 
-} from '@/utils/calculations/advancedMetrics';
+  TrendingUp, TrendingDown, Target, AlertTriangle, 
+  ChevronRight, ChevronDown, BarChart2, Thermometer
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface TradeMetricsProps {
-  trades: TradeWithMetrics[];
-  showOnlyKeyMetrics?: boolean;
+  trade: Trade;
+  extended?: boolean; // Show all metrics
 }
 
-// Helper function to calculate performance metrics from trade data
-const calculatePerformanceMetrics = (trades: TradeWithMetrics[]) => {
-  const closedTrades = trades.filter(trade => trade.status === 'closed');
-  const winningTrades = closedTrades.filter(trade => trade.metrics.profitLoss > 0);
-  const losingTrades = closedTrades.filter(trade => trade.metrics.profitLoss <= 0);
+export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
+  const [metrics, setMetrics] = useState<any>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   
-  const totalTrades = closedTrades.length;
-  const winRate = totalTrades > 0 ? (winningTrades.length / totalTrades) * 100 : 0;
-  
-  const totalProfit = winningTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0);
-  const totalLoss = Math.abs(losingTrades.reduce((sum, trade) => sum + trade.metrics.profitLoss, 0));
-  
-  const profitFactor = calculateProfitFactor(trades);
-  const calmarRatio = calculateCalmarRatio(trades);
-  const paretoIndex = calculateParetoIndex(trades);
-  const expectedValue = calculateExpectedValue(trades);
-  
-  const averageWin = winningTrades.length > 0 
-    ? totalProfit / winningTrades.length 
-    : 0;
-    
-  const averageLoss = losingTrades.length > 0 
-    ? -totalLoss / losingTrades.length 
-    : 0;
-  
-  // Calculate total R value - using rMultiple instead of riskRewardRatio
-  let totalR = 0;
-  closedTrades.forEach(trade => {
-    if (trade.metrics.rMultiple !== undefined) {
-      totalR += trade.metrics.rMultiple;
+  useEffect(() => {
+    if (trade) {
+      const calculatedMetrics = calculateTradeMetrics(trade);
+      setMetrics(calculatedMetrics);
     }
-  });
+  }, [trade]);
   
-  // Updated Expectancy calculation
-  let expectancy;
-  // Get trades with valid risk values
-  const tradesWithRisk = closedTrades.filter(trade => 
-    trade.metrics.riskedAmount && trade.metrics.riskedAmount > 0
-  );
+  if (!metrics) return null;
   
-  if (tradesWithRisk.length === 0) {
-    expectancy = (winRate / 100) * averageWin - (1 - winRate / 100) * Math.abs(averageLoss);
-  } else {
-    // Calculate using R multiples
-    let totalRMultiple = 0;
-    for (const trade of tradesWithRisk) {
-      const rMultiple = trade.metrics.profitLoss / trade.metrics.riskedAmount;
-      totalRMultiple += rMultiple;
-    }
-    expectancy = tradesWithRisk.length > 0 ? totalRMultiple / tradesWithRisk.length : 0;
-  }
+  const {
+    profitLoss,
+    riskRewardRatio,
+    rMultiple,
+    riskedAmount,
+    initialRiskedAmount,
+    maxPotentialGain,
+    calculationExplanation,
+    maxFavorableExcursion,
+    maxAdverseExcursion,
+    capturedProfitPercent
+  } = metrics;
   
-  return {
-    totalTrades,
-    winRate,
-    profitFactor,
-    netProfit: totalProfit - totalLoss,
-    averageWin,
-    averageLoss,
-    expectancy,
-    calmarRatio,
-    paretoIndex,
-    expectedValue,
-    totalR
+  // If rMultiple is NaN, zero or undefined, display 'N/A'
+  const rMultipleDisplay = rMultiple && !isNaN(rMultiple) ? rMultiple.toFixed(2) : 'N/A';
+  
+  // Format the profit/loss amount
+  const formattedProfitLoss = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(profitLoss);
+  
+  // Determine if this trade was successful
+  const isProfit = profitLoss > 0;
+  const isLoss = profitLoss < 0;
+  const isBigWin = rMultiple && rMultiple >= 2;
+  const isBigLoss = rMultiple && rMultiple <= -1;
+  
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded);
   };
-};
-
-export function TradeMetrics({ trades, showOnlyKeyMetrics = false }: TradeMetricsProps) {
-  const metrics = calculatePerformanceMetrics(trades);
   
-  // Prepare data for PnL by trade type
-  const pnlByType = trades.reduce((acc, trade) => {
-    if (trade.status !== 'closed') return acc;
-    
-    const type = trade.type;
-    if (!acc[type]) acc[type] = 0;
-    acc[type] += trade.metrics.profitLoss;
-    return acc;
-  }, {} as Record<string, number>);
+  // Always show expanded view if extended is true
+  const showExtended = extended || isExpanded;
   
-  const pnlByTypeData = Object.entries(pnlByType).map(([type, value]) => ({
-    name: type.charAt(0).toUpperCase() + type.slice(1),
-    value,
-    color: value >= 0 ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 60%)'
-  }));
-
-  // Prepare data for P&L by strategy
-  const pnlByStrategy = trades.reduce((acc, trade) => {
-    if (trade.status !== 'closed' || !trade.strategy) return acc;
-    
-    const strategy = trade.strategy;
-    if (!acc[strategy]) acc[strategy] = { pnl: 0, count: 0 };
-    acc[strategy].pnl += trade.metrics.profitLoss;
-    acc[strategy].count += 1;
-    return acc;
-  }, {} as Record<string, { pnl: number, count: number }>);
-  
-  const pnlByStrategyData = Object.entries(pnlByStrategy)
-    .map(([strategy, data]) => ({
-      name: strategy,
-      value: data.pnl,
-      count: data.count,
-      color: data.pnl >= 0 ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 60%)'
-    }))
-    .sort((a, b) => Math.abs(b.value) - Math.abs(a.value)); // Sort by absolute P&L value
-
-  // Render only the key metrics cards if showOnlyKeyMetrics is true
-  if (showOnlyKeyMetrics) {
-    return (
-      <div className="space-y-6">
-        {/* Key Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricCard title="Win Rate" value={`${metrics.winRate.toFixed(1)}%`} />
-          <MetricCard 
-            title="Net Profit/Loss" 
-            value={formatCurrency(metrics.netProfit)} 
-            className={metrics.netProfit >= 0 ? "text-profit" : "text-loss"}
-          />
-          <MetricCard 
-            title="Expectancy" 
-            value={metrics.expectancy > 0 ? `${metrics.expectancy.toFixed(2)}R` : metrics.expectancy.toFixed(2)} 
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Key Metrics Cards - First Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <MetricCard title="Win Rate" value={`${metrics.winRate.toFixed(1)}%`} />
-        <MetricCard 
-          title="Net Profit/Loss" 
-          value={formatCurrency(metrics.netProfit)} 
-          className={metrics.netProfit >= 0 ? "text-profit" : "text-loss"}
-        />
-        <MetricCard 
-          title="Expectancy" 
-          value={metrics.expectancy > 0 ? `${metrics.expectancy.toFixed(2)}R` : metrics.expectancy.toFixed(2)} 
-        />
+    <div className="p-4 bg-background border rounded-lg shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-base font-semibold flex items-center">
+          <BarChart2 className="h-4 w-4 mr-1.5" />
+          Trade Metrics
+        </h3>
+        {!extended && (
+          <button 
+            onClick={toggleExpand} 
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-5 w-5" />
+            ) : (
+              <ChevronRight className="h-5 w-5" />
+            )}
+          </button>
+        )}
       </div>
       
-      {/* Advanced Metrics Cards - New Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <MetricCard 
-          title="Profit Factor" 
-          value={isFinite(metrics.profitFactor) ? metrics.profitFactor.toFixed(2) : "∞"} 
-        />
-        <MetricCard 
-          title="Calmar Ratio" 
-          value={metrics.calmarRatio.toFixed(2)}
-        />
-        <MetricCard 
-          title="Pareto Index" 
-          value={`${metrics.paretoIndex.toFixed(1)}%`}
-          tooltip="% of profits from top 20% of trades"
-        />
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="shadow-subtle border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">P&L by Instrument Type</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={pnlByTypeData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis tickFormatter={(value) => formatCurrency(value).replace('$', '')} />
-                  <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), 'P&L']}
-                    labelFormatter={(label) => `Type: ${label}`}
-                  />
-                  <Bar dataKey="value">
-                    {pnlByTypeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground">Profit/Loss</p>
+          <p className={`text-lg font-medium ${isProfit ? 'text-green-600' : isLoss ? 'text-red-600' : ''}`}>
+            {formattedProfitLoss}
+          </p>
+        </div>
         
-        <Card className="shadow-subtle border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">P&L by Strategy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={pnlByStrategyData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis tickFormatter={(value) => formatCurrency(value).replace('$', '')} />
-                  <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), 'P&L']}
-                    labelFormatter={(label) => `Strategy: ${label}`}
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload;
-                        return (
-                          <div className="bg-background p-2 border rounded shadow text-sm">
-                            <div className="font-medium">{label}</div>
-                            <div className="flex justify-between gap-4">
-                              <span>P&L:</span>
-                              <span className={data.value >= 0 ? 'text-profit' : 'text-loss'}>
-                                {formatCurrency(data.value)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between gap-4">
-                              <span>Trades:</span>
-                              <span>{data.count}</span>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="value">
-                    {pnlByStrategyData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <TradePnLCalendar />
-      
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <MetricCard title="Total Trades" value={metrics.totalTrades.toString()} />
-        <MetricCard title="Average Win" value={formatCurrency(metrics.averageWin)} />
-        <MetricCard title="Average Loss" value={formatCurrency(Math.abs(metrics.averageLoss))} />
-        <MetricCard title="Profit Factor" value={isFinite(metrics.profitFactor) ? metrics.profitFactor.toFixed(2) : "∞"} />
-      </div>
-    </div>
-  );
-}
-
-interface MetricCardProps {
-  title: string;
-  value: string;
-  className?: string;
-  tooltip?: string;
-}
-
-function MetricCard({ title, value, className, tooltip }: MetricCardProps) {
-  return (
-    <Card className="shadow-subtle border">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-medium text-muted-foreground">{title}</div>
-          {tooltip && (
-            <div className="text-xs text-muted-foreground hover:text-foreground cursor-help"
-                 title={tooltip}>ⓘ</div>
-          )}
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground">R-Multiple</p>
+          <p className={`text-lg font-medium ${
+            isBigWin ? 'text-green-600' : 
+            isBigLoss ? 'text-red-600' : 
+            isProfit ? 'text-green-500' : 
+            isLoss ? 'text-red-500' : ''
+          }`}>
+            {rMultipleDisplay}
+            {isBigWin && <Badge className="ml-2 bg-green-600 hover:bg-green-700">Big Win</Badge>}
+            {isBigLoss && <Badge className="ml-2 bg-red-600 hover:bg-red-700">Big Loss</Badge>}
+          </p>
         </div>
-        <div className={`text-xl font-bold mt-1 ${className}`}>{value}</div>
-      </CardContent>
-    </Card>
+      </div>
+      
+      {showExtended && (
+        <>
+          <Separator className="my-4" />
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground flex items-center">
+                  <AlertTriangle className="h-3.5 w-3.5 mr-1 text-amber-500" />
+                  Current Risk
+                </p>
+                <p className="text-base">
+                  {riskedAmount ? `$${riskedAmount.toFixed(2)}` : 'N/A'}
+                </p>
+              </div>
+              
+              {initialRiskedAmount !== riskedAmount && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground flex items-center">
+                    <AlertTriangle className="h-3.5 w-3.5 mr-1 text-amber-500" />
+                    Initial Risk
+                  </p>
+                  <p className="text-base">
+                    {initialRiskedAmount ? `$${initialRiskedAmount.toFixed(2)}` : 'N/A'}
+                  </p>
+                </div>
+              )}
+              
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground flex items-center">
+                  <Target className="h-3.5 w-3.5 mr-1 text-blue-500" />
+                  Potential Gain
+                </p>
+                <p className="text-base">
+                  {maxPotentialGain ? `$${maxPotentialGain.toFixed(2)}` : 'N/A'}
+                </p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground flex items-center">
+                  <TrendingUp className="h-3.5 w-3.5 mr-1 text-indigo-500" />
+                  R:R Ratio
+                </p>
+                <p className="text-base">
+                  {riskRewardRatio ? `${riskRewardRatio.toFixed(2)}:1` : 'N/A'}
+                </p>
+              </div>
+            </div>
+
+            {(maxFavorableExcursion > 0 || maxAdverseExcursion > 0) && (
+              <>
+                <Separator className="my-4" />
+                <h4 className="text-sm font-medium mb-3">Price Excursion</h4>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {maxFavorableExcursion > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground flex items-center">
+                        <TrendingUp className="h-3.5 w-3.5 mr-1 text-green-500" />
+                        Max Favorable
+                      </p>
+                      <p className="text-base">
+                        ${maxFavorableExcursion.toFixed(2)}
+                      </p>
+                      {capturedProfitPercent > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Captured {capturedProfitPercent.toFixed(0)}% of max move
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {maxAdverseExcursion > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground flex items-center">
+                        <Thermometer className="h-3.5 w-3.5 mr-1 text-red-500" />
+                        Max Adverse ("Heat")
+                      </p>
+                      <p className="text-base">
+                        ${maxAdverseExcursion.toFixed(2)}
+                      </p>
+                      {initialRiskedAmount > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {((maxAdverseExcursion / initialRiskedAmount) * 100).toFixed(0)}% of risk used
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+            
+            <div className="mt-2 text-xs text-muted-foreground">
+              <p>{calculationExplanation}</p>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
