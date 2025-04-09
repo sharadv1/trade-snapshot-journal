@@ -114,41 +114,61 @@ export interface LessonMedia {
   caption?: string;
 }
 
-export const COMMON_FUTURES_CONTRACTS = [
+export interface CommonFuturesContract {
+  symbol: string;
+  name: string;
+  exchange: string;
+  tickSize: number;
+  pointValue: number;
+  contractSize?: number;
+  description?: string;
+}
+
+export const COMMON_FUTURES_CONTRACTS: CommonFuturesContract[] = [
   {
     symbol: 'ES',
     name: 'E-mini S&P 500',
     exchange: 'CME',
     tickSize: 0.25,
-    pointValue: 50
+    pointValue: 50,
+    contractSize: 1,
+    description: 'E-mini S&P 500 Futures'
   },
   {
     symbol: 'NQ',
     name: 'E-mini NASDAQ-100',
     exchange: 'CME',
     tickSize: 0.25,
-    pointValue: 20
+    pointValue: 20,
+    contractSize: 1,
+    description: 'E-mini NASDAQ-100 Futures'
   },
   {
     symbol: 'CL',
     name: 'Crude Oil',
     exchange: 'NYMEX',
     tickSize: 0.01,
-    pointValue: 1000
+    pointValue: 1000,
+    contractSize: 1,
+    description: 'Crude Oil Futures'
   },
   {
     symbol: 'GC',
     name: 'Gold',
     exchange: 'COMEX',
     tickSize: 0.10,
-    pointValue: 100
+    pointValue: 100,
+    contractSize: 1,
+    description: 'Gold Futures'
   },
   {
     symbol: 'ZB',
     name: '30-Year U.S. Treasury Bond',
     exchange: 'CBOT',
     tickSize: 1/32,
-    pointValue: 1000
+    pointValue: 1000,
+    contractSize: 1,
+    description: '30-Year U.S. Treasury Bond Futures'
   }
 ];
 

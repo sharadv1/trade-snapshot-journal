@@ -8,7 +8,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Info, Edit, Trash, Plus, Landmark } from 'lucide-react';
-import { COMMON_FUTURES_CONTRACTS } from '@/types';
+import { COMMON_FUTURES_CONTRACTS, CommonFuturesContract } from '@/types';
 import { toast } from '@/utils/toast';
 
 // Custom storage function for futures contracts
