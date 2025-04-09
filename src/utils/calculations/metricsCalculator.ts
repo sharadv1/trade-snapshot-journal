@@ -43,10 +43,25 @@ export const getTradeMetrics = (trade: Trade) => {
     };
   }
 
+  // Check for Silver contracts directly to ensure we always use $5000
+  const isSilverContract = trade.symbol?.toUpperCase().includes('SIL') || 
+                           trade.symbol?.toUpperCase() === 'SI' ||
+                           (trade.symbol?.toUpperCase().includes('SI') && !trade.symbol?.toUpperCase().includes('MSFT'));
+  
   // Get point value for futures contract - do this early to ensure consistent usage
-  // For silver contracts, ensure we detect the symbol correctly and use correct point value
-  const pointValue = trade.type === 'futures' ? getContractPointValue(trade) : 1;
-  console.log(`Metrics calculation for ${trade.symbol}: using point value ${pointValue}`);
+  let pointValue = 1;
+  if (trade.type === 'futures') {
+    if (isSilverContract) {
+      pointValue = 5000; // Always override to $5000 for Silver contracts
+      console.log(`Metrics calculation for ${trade.symbol}: using Silver point value override ${pointValue}`);
+    } else if (trade.contractDetails?.tickValue && Number(trade.contractDetails.tickValue) > 0) {
+      pointValue = Number(trade.contractDetails.tickValue);
+      console.log(`Metrics calculation for ${trade.symbol}: using stored point value ${pointValue}`);
+    } else {
+      pointValue = getContractPointValue(trade);
+      console.log(`Metrics calculation for ${trade.symbol}: using calculated point value ${pointValue}`);
+    }
+  }
 
   const calculatePartialExits = () => {
     if (!trade.partialExits || trade.partialExits.length === 0) {

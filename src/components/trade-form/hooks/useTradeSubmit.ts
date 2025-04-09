@@ -60,20 +60,32 @@ export function useTradeSubmit(
         // Create a temporary trade object to calculate point value if needed
         const tempTrade = { ...trade, id: initialTrade?.id || 'temp' } as Trade;
         
-        // If contract details doesn't have tickValue (point value), add it
-        if (!futuresContractDetails?.tickValue) {
-          const pointValue = getContractPointValue(tempTrade);
+        // Special handling for Silver futures (SIL)
+        const isSilverContract = tempTrade.symbol?.toUpperCase().includes('SIL') || 
+                                 tempTrade.symbol?.toUpperCase() === 'SI' ||
+                                 tempTrade.symbol?.includes('SILVER');
+        
+        // Calculate the point value based on the contract type
+        let pointValue = 0;
+        
+        if (isSilverContract) {
+          console.log(`SIL/Silver contract detected: ${tempTrade.symbol} - Using fixed point value: 5000`);
+          pointValue = 5000; // Fixed point value for Silver
+        } else {
+          pointValue = getContractPointValue(tempTrade);
           console.log(`Saving trade with calculated point value: ${pointValue} for ${trade.symbol}`);
-          
-          futuresContractDetails = {
-            ...futuresContractDetails,
-            tickValue: pointValue,
-            // Add minimal required contract details
-            exchange: futuresContractDetails?.exchange || 'DEFAULT',
-            contractSize: futuresContractDetails?.contractSize || 1,
-            tickSize: futuresContractDetails?.tickSize || 0.01
-          };
         }
+        
+        // Ensure we have valid contract details with proper point value
+        futuresContractDetails = {
+          ...futuresContractDetails,
+          exchange: futuresContractDetails?.exchange || 'DEFAULT',
+          contractSize: futuresContractDetails?.contractSize || 1,
+          tickSize: futuresContractDetails?.tickSize || 0.01,
+          tickValue: pointValue // This is the critical line - set the tickValue to the point value
+        };
+        
+        console.log(`Final contract details for ${tempTrade.symbol}:`, futuresContractDetails);
       }
       
       const tradeToSave = {

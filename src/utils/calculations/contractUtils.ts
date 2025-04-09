@@ -21,6 +21,14 @@ export function getContractPointValue(trade: Trade): number {
     const tickValue = Number(trade.contractDetails.tickValue);
     if (tickValue > 0) {
       console.log(`Using contract details tick value for ${trade.symbol}: ${tickValue}`);
+      
+      // Special override for Silver contracts that might have incorrect tickValue stored
+      const normalizedSymbol = trade.symbol?.toUpperCase().trim();
+      if (isSilverContract(normalizedSymbol)) {
+        console.log(`SIL CONTRACT OVERRIDE: ${trade.symbol} has incorrect stored value ${tickValue}, using $5000 instead`);
+        return 5000; // Always use $5000 for Silver contracts regardless of stored value
+      }
+      
       return tickValue;
     }
   }
@@ -29,14 +37,12 @@ export function getContractPointValue(trade: Trade): number {
   const normalizedSymbol = trade.symbol?.toUpperCase().trim();
   
   // Special direct check for silver-related symbols
-  if (normalizedSymbol === 'SI' || normalizedSymbol === 'SIL' || 
-      normalizedSymbol?.includes('SILVER') || 
-      (normalizedSymbol?.includes('SI') && !normalizedSymbol?.includes('MSFT'))) {
+  if (isSilverContract(normalizedSymbol)) {
     console.log(`SILVER CONTRACT DETECTED: ${trade.symbol} - Using $5000 point value`);
     return 5000; // Default value for Silver futures
   }
   
-  // Check for stored custom contracts first
+  // Check for stored custom contracts
   try {
     const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
     if (storedContractsJson) {
@@ -71,12 +77,6 @@ export function getContractPointValue(trade: Trade): number {
     }
   } catch (error) {
     console.warn('Error reading stored contracts:', error);
-  }
-  
-  // Special handling for SIL/Silver contracts with improved detection
-  if (isSilverContract(normalizedSymbol)) {
-    console.log('Using standard point value for Silver futures:', trade.symbol, '$5000');
-    return 5000; // Default value for Silver futures
   }
   
   // Check common futures contracts for this symbol - improved matching
@@ -137,6 +137,7 @@ export function getContractPointValue(trade: Trade): number {
 function isSilverContract(symbol?: string): boolean {
   if (!symbol) return false;
   
+  // Silver standard symbols and variants
   const silverPatterns = ['SI', 'SIL', 'SILVER'];
   
   // Check for exact matches first
