@@ -2,6 +2,9 @@
 import { Trade } from '@/types';
 import { getContractPointValue } from './contractUtils';
 
+// Constants
+const FUTURES_CONTRACTS_KEY = 'futures_contracts';
+
 export const getTradeMetrics = (trade: Trade) => {
   let profitLoss = 0;
   let riskRewardRatio = 0;
@@ -43,33 +46,41 @@ export const getTradeMetrics = (trade: Trade) => {
     };
   }
 
+  // Get custom contract details if available
+  const getCustomContractDetails = () => {
+    if (!trade.symbol || trade.type !== 'futures') return null;
+    
+    try {
+      const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
+      if (storedContractsJson) {
+        const storedContracts = JSON.parse(storedContractsJson);
+        return storedContracts.find((c: any) => 
+          c.symbol.toUpperCase() === trade.symbol.toUpperCase()
+        );
+      }
+    } catch (error) {
+      console.error('Error reading stored contracts:', error);
+    }
+    return null;
+  };
+
   // Get point value for futures contract - do this early to ensure consistent usage
   let pointValue = 1;
+  const customContract = getCustomContractDetails();
   
   if (trade.type === 'futures') {
-    const normalizedSymbol = trade.symbol?.toUpperCase().trim();
-    
-    // Detect full-sized Silver (SI) vs micro Silver (SIL) contracts
-    const isFullSilver = normalizedSymbol === 'SI' || 
-                         (normalizedSymbol?.includes('SI') && 
-                          !normalizedSymbol?.includes('SIL') && 
-                          !normalizedSymbol?.includes('MSFT'));
-                          
-    const isMicroSilver = normalizedSymbol === 'SIL' || 
-                          normalizedSymbol?.includes('SIL');
-    
-    if (isFullSilver) {
-      // Full-sized Silver
-      pointValue = 5000;
-      console.log(`Metrics calculation for ${trade.symbol}: using full-sized Silver point value $${pointValue}`);
-    } else if (isMicroSilver) {
-      // Micro Silver
-      pointValue = 1000;
-      console.log(`Metrics calculation for ${trade.symbol}: using micro Silver point value $${pointValue}`);
-    } else if (trade.contractDetails?.tickValue && Number(trade.contractDetails.tickValue) > 0) {
+    // First priority: custom contract configurations
+    if (customContract && customContract.pointValue) {
+      pointValue = Number(customContract.pointValue);
+      console.log(`Metrics calculation for ${trade.symbol}: using custom configured point value $${pointValue}`);
+    }
+    // Second priority: contract details saved with the trade
+    else if (trade.contractDetails?.tickValue && Number(trade.contractDetails.tickValue) > 0) {
       pointValue = Number(trade.contractDetails.tickValue);
       console.log(`Metrics calculation for ${trade.symbol}: using stored point value ${pointValue}`);
-    } else {
+    }
+    // Third priority: calculate from utility function
+    else {
       pointValue = getContractPointValue(trade);
       console.log(`Metrics calculation for ${trade.symbol}: using calculated point value ${pointValue}`);
     }
@@ -138,14 +149,10 @@ export const getTradeMetrics = (trade: Trade) => {
   if (trade.type === 'futures') {
     riskedAmountPerUnit = riskedAmountPerUnit * pointValue;
     
-    if (trade.symbol?.toUpperCase().includes('SI')) {
-      if (trade.symbol?.toUpperCase().includes('SIL')) {
-        calculationExplanation += `Micro Silver futures (SIL) with point value: $${pointValue}. `;
-      } else {
-        calculationExplanation += `Silver futures (SI) with point value: $${pointValue}. `;
-      }
-    } else {
-      calculationExplanation += `Futures contract with point value: $${pointValue}. `;
+    if (customContract) {
+      calculationExplanation += `Using custom contract settings: $${pointValue} point value. `;
+    } else if (trade.contractDetails?.tickValue) {
+      calculationExplanation += `Using contract details with point value: $${pointValue}. `;
     }
   }
   
@@ -207,7 +214,11 @@ export const getTradeMetrics = (trade: Trade) => {
     calculationExplanation += `Risk: $${riskedAmount.toFixed(2)}`;
     
     if (trade.type === 'futures' && pointValue !== 1) {
-      calculationExplanation += `, Contract Value: $${pointValue.toLocaleString()}`;
+      if (customContract) {
+        calculationExplanation += `, Custom Contract Value: $${pointValue.toLocaleString()}`;
+      } else {
+        calculationExplanation += `, Contract Value: $${pointValue.toLocaleString()}`;
+      }
     }
     
     if (maxPotentialGain > 0) {

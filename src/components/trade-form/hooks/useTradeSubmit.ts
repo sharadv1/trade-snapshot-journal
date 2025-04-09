@@ -6,6 +6,9 @@ import { toast } from '@/utils/toast';
 import { generateUUID } from '@/utils/generateUUID';
 import { getContractPointValue } from '@/utils/calculations/contractUtils';
 
+// Constants
+const FUTURES_CONTRACTS_KEY = 'futures_contracts';
+
 export function useTradeSubmit(
   trade: Partial<Trade>,
   images: string[],
@@ -13,6 +16,31 @@ export function useTradeSubmit(
   isEditing: boolean,
   initialTrade?: Trade
 ) {
+  const getCustomContractDetails = (symbol: string) => {
+    try {
+      const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
+      if (storedContractsJson) {
+        const storedContracts = JSON.parse(storedContractsJson);
+        const matchedContract = storedContracts.find((c: any) => 
+          c.symbol.toUpperCase() === symbol.toUpperCase()
+        );
+        
+        if (matchedContract) {
+          console.log(`Found custom contract for ${symbol}:`, matchedContract);
+          return {
+            exchange: matchedContract.exchange || 'DEFAULT',
+            contractSize: matchedContract.contractSize || 1,
+            tickSize: Number(matchedContract.tickSize),
+            tickValue: Number(matchedContract.pointValue) // Use pointValue from custom configuration
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error reading stored contracts:', error);
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent, onSuccess?: (tradeId: string) => void): Promise<boolean> => {
     e.preventDefault();
     console.log('Trade form submitted with data:', trade);
@@ -56,38 +84,34 @@ export function useTradeSubmit(
       let futuresContractDetails = trade.type === 'futures' ? contractDetails : undefined;
       
       // For futures trades, ensure we have a point value saved in contract details
-      if (trade.type === 'futures') {
-        // Create a temporary trade object to calculate point value if needed
-        const tempTrade = { ...trade, id: initialTrade?.id || 'temp' } as Trade;
+      if (trade.type === 'futures' && trade.symbol) {
+        // First check for custom contract details from user configurations
+        const customDetails = getCustomContractDetails(trade.symbol);
         
-        // Special handling for full-sized Silver futures (SI) vs micro (SIL)
-        const normalizedSymbol = tempTrade.symbol?.toUpperCase().trim();
-        let pointValue = 0;
-        
-        if (normalizedSymbol === 'SI' || (normalizedSymbol?.includes('SI') && !normalizedSymbol?.includes('SIL') && 
-            !normalizedSymbol?.includes('MSFT'))) {
-          console.log(`SI (full-sized Silver) contract detected: ${tempTrade.symbol} - Using fixed point value: 5000`);
-          pointValue = 5000; // Fixed point value for full-sized Silver
-        } 
-        else if (normalizedSymbol === 'SIL' || normalizedSymbol?.includes('SIL')) {
-          console.log(`SIL (micro Silver) contract detected: ${tempTrade.symbol} - Using fixed point value: 1000`);
-          pointValue = 1000; // Fixed point value for micro Silver
+        if (customDetails) {
+          console.log(`Using custom contract details for ${trade.symbol}:`, customDetails);
+          futuresContractDetails = {
+            ...customDetails
+          };
+        } else {
+          // Create a temporary trade object to calculate point value if needed
+          const tempTrade = { ...trade, id: initialTrade?.id || 'temp' } as Trade;
+          
+          // Get point value from the appropriate source
+          let pointValue = getContractPointValue(tempTrade);
+          console.log(`Calculated point value for ${trade.symbol}: ${pointValue}`);
+          
+          // Ensure we have valid contract details with proper point value
+          futuresContractDetails = {
+            ...futuresContractDetails,
+            exchange: futuresContractDetails?.exchange || 'DEFAULT',
+            contractSize: futuresContractDetails?.contractSize || 1,
+            tickSize: futuresContractDetails?.tickSize || 0.01,
+            tickValue: pointValue // This is the critical line - set the tickValue to the point value
+          };
         }
-        else {
-          pointValue = getContractPointValue(tempTrade);
-          console.log(`Saving trade with calculated point value: ${pointValue} for ${trade.symbol}`);
-        }
         
-        // Ensure we have valid contract details with proper point value
-        futuresContractDetails = {
-          ...futuresContractDetails,
-          exchange: futuresContractDetails?.exchange || 'DEFAULT',
-          contractSize: futuresContractDetails?.contractSize || 1,
-          tickSize: futuresContractDetails?.tickSize || 0.01,
-          tickValue: pointValue // This is the critical line - set the tickValue to the point value
-        };
-        
-        console.log(`Final contract details for ${tempTrade.symbol}:`, futuresContractDetails);
+        console.log(`Final contract details for ${trade.symbol}:`, futuresContractDetails);
       }
       
       const tradeToSave = {

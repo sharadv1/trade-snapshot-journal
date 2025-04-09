@@ -1,6 +1,9 @@
 
 import { FuturesContractDetailsProps } from './types/futuresTypes';
 
+// Constants
+const FUTURES_CONTRACTS_KEY = 'futures_contracts';
+
 export function FuturesContractDetails({ 
   details, 
   value,
@@ -24,27 +27,33 @@ export function FuturesContractDetails({
     }
   };
   
-  // Check if this is a full-sized Silver contract (SI) vs micro (SIL)
-  const normalizedSymbol = symbol?.toUpperCase().trim();
+  // Get custom contract details if available
+  const getCustomContractDetails = () => {
+    if (!symbol) return null;
+    
+    try {
+      const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
+      if (storedContractsJson) {
+        const storedContracts = JSON.parse(storedContractsJson);
+        return storedContracts.find((c: any) => 
+          c.symbol.toUpperCase() === symbol.toUpperCase()
+        );
+      }
+    } catch (error) {
+      console.error('Error reading stored contracts:', error);
+    }
+    return null;
+  };
   
-  // Detect full-sized Silver (SI) contracts
-  const isFullSilver = normalizedSymbol === 'SI' || 
-                       (normalizedSymbol?.includes('SI') && 
-                        !normalizedSymbol?.includes('SIL') && 
-                        !normalizedSymbol?.includes('MSFT'));
+  const customContract = getCustomContractDetails();
   
-  // Detect micro Silver (SIL) contracts
-  const isMicroSilver = normalizedSymbol === 'SIL' || 
-                        normalizedSymbol?.includes('SIL');
-  
-  // For Silver contracts, override the displayed value
+  // Use custom point value if available, otherwise use contract details
   let displayTickValue = actualDetails.tickValue;
   
-  // Override to proper values for SI and SIL
-  if (isFullSilver) {
-    displayTickValue = 5000; // Full-sized Silver
-  } else if (isMicroSilver) {
-    displayTickValue = 1000; // Micro Silver
+  // If we have custom contract settings for this symbol, use them with priority
+  if (customContract) {
+    displayTickValue = Number(customContract.pointValue);
+    console.log(`Using custom contract point value for ${symbol}: ${displayTickValue}`);
   }
   
   // Format the tick value for display with commas for large numbers
@@ -57,13 +66,13 @@ export function FuturesContractDetails({
   return (
     <dl className="grid grid-cols-2 gap-x-4 gap-y-2 p-3 border rounded-md bg-muted/20">
       <dt className="text-muted-foreground">Exchange:</dt>
-      <dd>{actualDetails.exchange || 'DEFAULT'}</dd>
+      <dd>{actualDetails.exchange || (customContract?.exchange || 'DEFAULT')}</dd>
       
       <dt className="text-muted-foreground">Tick Size:</dt>
-      <dd>{actualDetails.tickSize ? Number(actualDetails.tickSize).toFixed(5) : '0.01'}</dd>
+      <dd>{actualDetails.tickSize ? Number(actualDetails.tickSize).toFixed(5) : (customContract?.tickSize || '0.01')}</dd>
       
       <dt className="text-muted-foreground">Contract Size:</dt>
-      <dd>{actualDetails.contractSize || 1}</dd>
+      <dd>{actualDetails.contractSize || (customContract?.contractSize || 1)}</dd>
       
       <dt className="text-muted-foreground font-medium">Point Value:</dt>
       <dd className="font-medium">${formattedTickValue}</dd>
@@ -77,14 +86,9 @@ export function FuturesContractDetails({
       
       <dt className="text-xs text-muted-foreground col-span-2 mt-2 border-t pt-2">
         Risk calculation uses point value to determine dollar risk based on price movement.
-        {isFullSilver && (
-          <span className="block mt-1 text-amber-600 font-medium">
-            Silver futures (SI) have a standard point value of $5,000 per full point.
-          </span>
-        )}
-        {isMicroSilver && (
-          <span className="block mt-1 text-amber-600 font-medium">
-            Micro Silver futures (SIL) have a standard point value of $1,000 per full point.
+        {customContract && (
+          <span className="block mt-1 text-green-600 font-medium">
+            Using custom contract settings for {symbol}.
           </span>
         )}
       </dt>

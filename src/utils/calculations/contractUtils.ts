@@ -8,90 +8,45 @@ import { Trade, COMMON_FUTURES_CONTRACTS } from '@/types';
 const FUTURES_CONTRACTS_KEY = 'futures_contracts';
 
 /**
- * Get the point value for a futures contract
+ * Get the point value for a futures contract with priority for custom configurations
  */
 export function getContractPointValue(trade: Trade): number {
   if (trade.type !== 'futures') {
     return 1;
   }
   
-  // If contract details has tickValue directly, use it as the point value
-  if (trade.contractDetails?.tickValue) {
-    // Ensure the tickValue is properly parsed as a number and has a reasonable value
-    const tickValue = Number(trade.contractDetails.tickValue);
-    if (tickValue > 0) {
-      console.log(`Using contract details tick value for ${trade.symbol}: ${tickValue}`);
-      
-      // Special override for Silver contracts that might have incorrect tickValue stored
-      const normalizedSymbol = trade.symbol?.toUpperCase().trim();
-      
-      // Full-sized SI contracts should always be $5000, regardless of stored value
-      if (isSilverFullContract(normalizedSymbol)) {
-        console.log(`SI CONTRACT OVERRIDE: ${trade.symbol} should use $5000 point value`);
-        return 5000; // Always use $5000 for full-sized Silver contracts
-      }
-      
-      // Micro SIL contracts should be $1000
-      if (isMicroSilverContract(normalizedSymbol)) {
-        console.log(`SIL CONTRACT OVERRIDE: ${trade.symbol} should use $1000 point value`);
-        return 1000; // Always use $1000 for micro Silver contracts
-      }
-      
-      return tickValue;
-    }
-  }
-  
-  // Normalize the symbol for comparison (handle case variations and common prefixes/suffixes)
-  const normalizedSymbol = trade.symbol?.toUpperCase().trim();
-  
-  // Special direct check for silver-related symbols - full-sized
-  if (isSilverFullContract(normalizedSymbol)) {
-    console.log(`FULL-SIZED SILVER CONTRACT DETECTED: ${trade.symbol} - Using $5000 point value`);
-    return 5000; // Fixed value for full-sized Silver futures
-  }
-  
-  // Special direct check for micro silver contracts
-  if (isMicroSilverContract(normalizedSymbol)) {
-    console.log(`MICRO SILVER CONTRACT DETECTED: ${trade.symbol} - Using $1000 point value`);
-    return 1000; // Fixed value for micro Silver futures
-  }
-  
-  // Check for stored custom contracts
+  // First priority: Check for custom contract configurations
   try {
     const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
-    if (storedContractsJson) {
+    if (storedContractsJson && trade.symbol) {
       const storedContracts = JSON.parse(storedContractsJson);
       
       // First try exact match
       const exactMatch = storedContracts.find((c: any) => 
-        c.symbol === trade.symbol
+        c.symbol.toUpperCase() === trade.symbol.toUpperCase()
       );
       
-      if (exactMatch) {
-        console.log(`Using stored contract (exact match) for ${trade.symbol}: point value $${exactMatch.pointValue}`);
+      if (exactMatch && exactMatch.pointValue) {
+        console.log(`Using custom contract configuration for ${trade.symbol}: point value $${exactMatch.pointValue}`);
         return Number(exactMatch.pointValue);
-      }
-      
-      // Then try looser matches
-      const matchedContract = storedContracts.find((c: any) => {
-        const contractSymbol = c.symbol?.toUpperCase().trim();
-        return (
-          normalizedSymbol === contractSymbol ||
-          (normalizedSymbol && contractSymbol && (
-            normalizedSymbol.includes(contractSymbol) ||
-            contractSymbol.includes(normalizedSymbol)
-          ))
-        );
-      });
-      
-      if (matchedContract) {
-        console.log(`Using stored contract for ${trade.symbol}: point value $${matchedContract.pointValue}`);
-        return Number(matchedContract.pointValue);
       }
     }
   } catch (error) {
     console.warn('Error reading stored contracts:', error);
   }
+  
+  // Second priority: If contract details has tickValue directly, use it as the point value
+  if (trade.contractDetails?.tickValue) {
+    // Ensure the tickValue is properly parsed as a number and has a reasonable value
+    const tickValue = Number(trade.contractDetails.tickValue);
+    if (tickValue > 0) {
+      console.log(`Using contract details tick value for ${trade.symbol}: ${tickValue}`);
+      return tickValue;
+    }
+  }
+  
+  // Third priority: Handle built-in special case contracts
+  const normalizedSymbol = trade.symbol?.toUpperCase().trim();
   
   // Check common futures contracts for this symbol - improved matching
   const contractInfo = COMMON_FUTURES_CONTRACTS.find(c => {
@@ -110,7 +65,7 @@ export function getContractPointValue(trade: Trade): number {
     return contractInfo.pointValue;
   }
   
-  // Default fallbacks based on common contracts
+  // Fourth priority: Default fallbacks based on common contracts
   if (normalizedSymbol?.includes('ES') || normalizedSymbol === 'SP') {
     return 50; // E-mini S&P 500
   } else if (normalizedSymbol?.includes('NQ')) {

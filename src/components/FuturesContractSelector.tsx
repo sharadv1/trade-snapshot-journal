@@ -41,6 +41,9 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
             combinedContracts[existingIndex] = {
               ...contract,
               name: contract.description || contract.symbol,
+              // Ensure pointValue is correctly set
+              pointValue: Number(contract.pointValue),
+              tickSize: Number(contract.tickSize)
             };
           } else {
             // Add new contract
@@ -48,8 +51,8 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
               symbol: contract.symbol,
               name: contract.description || contract.symbol,
               exchange: contract.exchange,
-              tickSize: contract.tickSize,
-              pointValue: contract.pointValue,
+              tickSize: Number(contract.tickSize),
+              pointValue: Number(contract.pointValue),
               contractSize: contract.contractSize || 1,
               description: contract.description
             });
@@ -78,7 +81,7 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
           exchange: contract.exchange,
           contractSize: contract.contractSize || 1,
           tickSize: contract.tickSize,
-          tickValue: contract.pointValue,
+          tickValue: contract.pointValue, // Store the pointValue as tickValue
         });
       }
       
