@@ -15,13 +15,13 @@ export function getContractPointValue(trade: Trade): number {
     return 1;
   }
   
-  // First priority: Check for custom contract configurations
+  // First priority: Check for custom contract configurations from the contract manager
   try {
     const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
     if (storedContractsJson && trade.symbol) {
       const storedContracts = JSON.parse(storedContractsJson);
       
-      // First try exact match
+      // Find exact match for the symbol
       const exactMatch = storedContracts.find((c: any) => 
         c.symbol.toUpperCase() === trade.symbol.toUpperCase()
       );
@@ -51,13 +51,7 @@ export function getContractPointValue(trade: Trade): number {
   // Check common futures contracts for this symbol - improved matching
   const contractInfo = COMMON_FUTURES_CONTRACTS.find(c => {
     const standardSymbol = c.symbol.toUpperCase().trim();
-    return (
-      standardSymbol === normalizedSymbol || 
-      (normalizedSymbol && standardSymbol && (
-        normalizedSymbol.includes(standardSymbol) ||
-        standardSymbol.includes(normalizedSymbol)
-      ))
-    );
+    return standardSymbol === normalizedSymbol;
   });
   
   if (contractInfo) {
@@ -66,7 +60,11 @@ export function getContractPointValue(trade: Trade): number {
   }
   
   // Fourth priority: Default fallbacks based on common contracts
-  if (normalizedSymbol?.includes('ES') || normalizedSymbol === 'SP') {
+  if (normalizedSymbol === 'SI') {
+    return 5000; // Standard Silver futures
+  } else if (normalizedSymbol === 'SIL' || normalizedSymbol === 'MSI') {
+    return 1000; // Micro Silver futures
+  } else if (normalizedSymbol?.includes('ES') || normalizedSymbol === 'SP') {
     return 50; // E-mini S&P 500
   } else if (normalizedSymbol?.includes('NQ')) {
     return 20; // E-mini Nasdaq 100
@@ -101,56 +99,6 @@ export function getContractPointValue(trade: Trade): number {
 }
 
 /**
- * Helper function to identify full-sized Silver contracts (SI)
- */
-function isSilverFullContract(symbol?: string): boolean {
-  if (!symbol) return false;
-  
-  // Full-sized silver standard symbols and variants (SI)
-  return (
-    symbol === 'SI' || 
-    symbol.startsWith('SI.') || 
-    symbol.startsWith('SI/') || 
-    symbol.endsWith('.SI') || 
-    symbol.endsWith('/SI') ||
-    // Match SI but not SIL
-    (symbol.includes('SI') && 
-     !symbol.includes('SIL') && 
-     !symbol.includes('MSFT') && 
-     !symbol.includes('CSCO') && 
-     !symbol.includes('TECH'))
-  );
-}
-
-/**
- * Helper function to identify Micro Silver contracts (SIL)
- */
-function isMicroSilverContract(symbol?: string): boolean {
-  if (!symbol) return false;
-  
-  // Micro silver standard symbols and variants (SIL)
-  return (
-    symbol === 'SIL' || 
-    symbol.startsWith('SIL.') || 
-    symbol.startsWith('SIL/') || 
-    symbol.endsWith('.SIL') || 
-    symbol.endsWith('/SIL') ||
-    symbol.includes('MICRO SI') ||
-    (symbol.includes('SIL') && 
-     !symbol.includes('MSFT') && 
-     !symbol.includes('CSCO') && 
-     !symbol.includes('TECH'))
-  );
-}
-
-/**
- * Helper function to identify any Silver contract (kept for compatibility)
- */
-function isSilverContract(symbol?: string): boolean {
-  return isSilverFullContract(symbol) || isMicroSilverContract(symbol);
-}
-
-/**
  * Calculate the tick value for a futures contract
  */
 export function getContractTickValue(trade: Trade): number {
@@ -158,6 +106,26 @@ export function getContractTickValue(trade: Trade): number {
     return 0;
   }
   
+  // First check for custom contract configuration
+  try {
+    const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
+    if (storedContractsJson && trade.symbol) {
+      const storedContracts = JSON.parse(storedContractsJson);
+      const customContract = storedContracts.find((c: any) => 
+        c.symbol.toUpperCase() === trade.symbol.toUpperCase()
+      );
+      
+      if (customContract && customContract.tickSize && customContract.pointValue) {
+        const tickSize = Number(customContract.tickSize);
+        const pointValue = Number(customContract.pointValue);
+        return tickSize * pointValue;
+      }
+    }
+  } catch (error) {
+    console.warn('Error reading stored contracts:', error);
+  }
+  
+  // Fallback to contract details
   if (trade.contractDetails.tickValue && trade.contractDetails.tickSize) {
     return Number(trade.contractDetails.tickValue) * Number(trade.contractDetails.tickSize);
   }

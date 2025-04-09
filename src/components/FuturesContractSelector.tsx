@@ -37,7 +37,7 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
           );
           
           if (existingIndex >= 0) {
-            // Replace existing contract
+            // Replace existing contract with custom values
             combinedContracts[existingIndex] = {
               ...contract,
               name: contract.description || contract.symbol,
@@ -92,9 +92,15 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
   };
 
   // Group contracts by type for better organization
-  const standardContracts = allContracts.filter(c => !c.symbol.startsWith('M'));
-  const microContracts = allContracts.filter(c => c.symbol.startsWith('M'));
   const customContracts = allContracts.filter(c => !COMMON_FUTURES_CONTRACTS.some(presetContract => presetContract.symbol === c.symbol));
+  const microContracts = allContracts.filter(c => 
+    c.symbol.startsWith('M') && 
+    !customContracts.some(cc => cc.symbol === c.symbol)
+  );
+  const standardContracts = allContracts.filter(c => 
+    !c.symbol.startsWith('M') && 
+    !customContracts.some(cc => cc.symbol === c.symbol)
+  );
 
   return (
     <Select value={currentValue} onValueChange={handleSelect}>
@@ -115,24 +121,20 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
         
         <SelectGroup>
           <SelectLabel>Standard Contracts</SelectLabel>
-          {standardContracts
-            .filter(c => !c.symbol.startsWith('M') && !customContracts.some(cc => cc.symbol === c.symbol))
-            .map((contract) => (
-              <SelectItem key={contract.symbol} value={contract.symbol}>
-                {contract.symbol} - {contract.name}
-              </SelectItem>
-            ))}
+          {standardContracts.map((contract) => (
+            <SelectItem key={contract.symbol} value={contract.symbol}>
+              {contract.symbol} - {contract.name}
+            </SelectItem>
+          ))}
         </SelectGroup>
         
         <SelectGroup>
           <SelectLabel>Micro Contracts</SelectLabel>
-          {microContracts
-            .filter(c => !customContracts.some(cc => cc.symbol === c.symbol))
-            .map((contract) => (
-              <SelectItem key={contract.symbol} value={contract.symbol}>
-                {contract.symbol} - {contract.name}
-              </SelectItem>
-            ))}
+          {microContracts.map((contract) => (
+            <SelectItem key={contract.symbol} value={contract.symbol}>
+              {contract.symbol} - {contract.name}
+            </SelectItem>
+          ))}
         </SelectGroup>
       </SelectContent>
     </Select>

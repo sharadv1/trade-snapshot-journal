@@ -47,40 +47,57 @@ export function FuturesContractDetails({
   
   const customContract = getCustomContractDetails();
   
-  // Use custom point value if available, otherwise use contract details
-  let displayTickValue = actualDetails.tickValue;
+  // Determine which point value to display, with custom contract taking priority
+  let displayPointValue = actualDetails.tickValue;
+  let displayTickSize = actualDetails.tickSize;
+  let displayExchange = actualDetails.exchange;
+  let displayContractSize = actualDetails.contractSize || 1;
   
   // If we have custom contract settings for this symbol, use them with priority
   if (customContract) {
-    displayTickValue = Number(customContract.pointValue);
-    console.log(`Using custom contract point value for ${symbol}: ${displayTickValue}`);
+    displayPointValue = Number(customContract.pointValue);
+    displayTickSize = Number(customContract.tickSize);
+    displayExchange = customContract.exchange;
+    displayContractSize = customContract.contractSize || 1;
+    console.log(`Using custom contract values for ${symbol}:`, customContract);
   }
   
-  // Format the tick value for display with commas for large numbers
-  const formattedTickValue = displayTickValue ? 
-    Number(displayTickValue).toLocaleString(undefined, {
+  // Calculate tick value based on tick size and point value
+  const tickValue = displayTickSize && displayPointValue ? 
+    (Number(displayTickSize) * Number(displayPointValue)) : 0;
+  
+  // Format the point value for display with commas for large numbers
+  const formattedPointValue = displayPointValue ? 
+    Number(displayPointValue).toLocaleString(undefined, {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
+    }) : '';
+  
+  // Format the tick value for display
+  const formattedTickValue = tickValue ? 
+    tickValue.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 5
     }) : '';
   
   return (
     <dl className="grid grid-cols-2 gap-x-4 gap-y-2 p-3 border rounded-md bg-muted/20">
       <dt className="text-muted-foreground">Exchange:</dt>
-      <dd>{actualDetails.exchange || (customContract?.exchange || 'DEFAULT')}</dd>
+      <dd>{displayExchange || 'DEFAULT'}</dd>
       
       <dt className="text-muted-foreground">Tick Size:</dt>
-      <dd>{actualDetails.tickSize ? Number(actualDetails.tickSize).toFixed(5) : (customContract?.tickSize || '0.01')}</dd>
+      <dd>{displayTickSize ? Number(displayTickSize).toFixed(5) : '0.01'}</dd>
       
       <dt className="text-muted-foreground">Contract Size:</dt>
-      <dd>{actualDetails.contractSize || (customContract?.contractSize || 1)}</dd>
+      <dd>{displayContractSize || 1}</dd>
       
       <dt className="text-muted-foreground font-medium">Point Value:</dt>
-      <dd className="font-medium">${formattedTickValue}</dd>
+      <dd className="font-medium">${formattedPointValue}</dd>
       
-      {actualDetails.tickSize && displayTickValue && (
+      {displayTickSize && displayPointValue && (
         <>
           <dt className="text-muted-foreground font-medium">Tick Value:</dt>
-          <dd className="font-medium">${(Number(actualDetails.tickSize) * Number(displayTickValue)).toFixed(5)}</dd>
+          <dd className="font-medium">${formattedTickValue}</dd>
         </>
       )}
       

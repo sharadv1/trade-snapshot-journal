@@ -29,7 +29,7 @@ export function SymbolSelector({
   onTypeChange
 }: SymbolSelectorProps) {
   const [open, setOpen] = useState(false);
-  const [inputValue, setInputValue] = useState(value || '');
+  const [inputValue, setInputValue] = useState('');
   const [symbols, setSymbols] = useState<SymbolDetails[]>([]);
   const [availableTypes, setAvailableTypes] = useState<Set<string>>(new Set());
   
@@ -47,11 +47,11 @@ export function SymbolSelector({
     });
     setAvailableTypes(types);
     
-    // Reset input value when value changes externally
-    if (value) {
-      setInputValue(value);
+    // Reset input value when dropdown opens again
+    if (open) {
+      setInputValue('');
     }
-  }, [value, tradeType]);
+  }, [tradeType, open]);
 
   // Filter symbols based on trade type - ensure we always have an array even if filtering returns nothing
   const filteredSymbols = useMemo(() => {
@@ -82,7 +82,7 @@ export function SymbolSelector({
   const handleCreateOption = () => {
     if (inputValue && !symbols.some(s => s.symbol === inputValue)) {
       // Add to storage and update local state
-      const newSymbols = addCustomSymbol({
+      addCustomSymbol({
         symbol: inputValue,
         type: tradeType as SymbolDetails['type']
       });
@@ -92,6 +92,7 @@ export function SymbolSelector({
     }
   };
 
+  // Filter symbols based on input value
   const filteredSymbolsByInput = useMemo(() => {
     if (!inputValue.trim()) {
       return filteredSymbols;

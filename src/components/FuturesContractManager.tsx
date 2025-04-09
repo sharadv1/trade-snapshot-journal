@@ -81,23 +81,15 @@ export function FuturesContractManager() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // Special handling for numeric fields to allow "0." and "." inputs
+    // Special handling for numeric fields to allow decimal values
     if (name === 'tickSize' || name === 'tickValue' || name === 'pointValue' || name === 'contractSize') {
-      // Allow input to start with "0." or "."
-      if (value === '' || value === '.' || value === '0.') {
+      // Accept any valid decimal input, including '.' and '0.' for progressive typing
+      // Matches: empty string, decimal point only, or valid numbers (including in-progress decimals)
+      if (value === '' || value === '.' || value === '0.' || /^-?\d*\.?\d*$/.test(value)) {
         setFormData({
           ...formData,
           [name]: value
         });
-      } else {
-        // Convert to number if it's a valid number
-        const numValue = parseFloat(value);
-        if (!isNaN(numValue)) {
-          setFormData({
-            ...formData,
-            [name]: numValue
-          });
-        }
       }
     } else {
       // Handle non-numeric fields
@@ -116,35 +108,74 @@ export function FuturesContractManager() {
   };
 
   const handleAddContract = () => {
-    if (!formData.symbol || !formData.exchange || !formData.tickSize || !formData.pointValue) {
+    if (!formData.symbol || !formData.exchange) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    // Check if symbol already exists
+    // Handle special numeric string values
+    let tickSize: number;
+    let pointValue: number;
+    let contractSize: number;
+    
+    // Properly parse tickSize
+    if (typeof formData.tickSize === 'string') {
+      if (formData.tickSize === '' || formData.tickSize === '.') {
+        tickSize = 0;
+      } else {
+        tickSize = parseFloat(formData.tickSize);
+        if (isNaN(tickSize)) tickSize = 0;
+      }
+    } else {
+      tickSize = formData.tickSize || 0;
+    }
+    
+    // Properly parse pointValue
+    if (typeof formData.pointValue === 'string') {
+      if (formData.pointValue === '' || formData.pointValue === '.') {
+        pointValue = 0;
+      } else {
+        pointValue = parseFloat(formData.pointValue);
+        if (isNaN(pointValue)) pointValue = 0;
+      }
+    } else {
+      pointValue = formData.pointValue || 0;
+    }
+    
+    // Properly parse contractSize
+    if (typeof formData.contractSize === 'string') {
+      if (formData.contractSize === '' || formData.contractSize === '.') {
+        contractSize = 1;
+      } else {
+        contractSize = parseFloat(formData.contractSize);
+        if (isNaN(contractSize)) contractSize = 1;
+      }
+    } else {
+      contractSize = formData.contractSize || 1;
+    }
+
+    // Check if numeric values are valid
+    if (tickSize <= 0) {
+      toast.error('Tick size must be greater than zero');
+      return;
+    }
+
+    if (pointValue <= 0) {
+      toast.error('Point value must be greater than zero');
+      return;
+    }
+
+    // Check if symbol already exists when adding new contract
     if (!editingContract && contracts.some(c => c.symbol === formData.symbol)) {
       toast.error(`Contract with symbol ${formData.symbol} already exists`);
       return;
     }
 
-    // Handle special numeric string values
-    const tickSize = typeof formData.tickSize === 'string' ? 
-      (formData.tickSize === '.' ? 0 : parseFloat(formData.tickSize)) : 
-      formData.tickSize!;
-    
-    const pointValue = typeof formData.pointValue === 'string' ? 
-      (formData.pointValue === '.' ? 0 : parseFloat(formData.pointValue)) : 
-      formData.pointValue!;
-
-    const contractSize = typeof formData.contractSize === 'string' ? 
-      (formData.contractSize === '.' ? 0 : parseFloat(formData.contractSize)) : 
-      formData.contractSize || 1;
-
     const newContract: FuturesContract = {
       symbol: formData.symbol!,
       exchange: formData.exchange!,
       tickSize: tickSize,
-      tickValue: pointValue / (1/tickSize), // Calculate tick value based on point value and tick size
+      tickValue: pointValue * tickSize, // Calculate tick value based on point value and tick size
       pointValue: pointValue,
       contractSize: contractSize,
       description: formData.description || ''

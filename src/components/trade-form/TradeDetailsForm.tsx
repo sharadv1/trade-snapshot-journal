@@ -39,13 +39,15 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Allow input to start with "0." or "."
     const value = e.target.value;
-    if (value === '' || value === '.' || value === '0.') {
-      // Keep the input as is to allow typing
-      onTradeChange('quantity', value);
-    } else {
-      // Convert to number if it's a valid number
-      const numValue = parseFloat(value);
-      onTradeChange('quantity', isNaN(numValue) ? '' : numValue);
+    if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
+      if (value === '' || value === '.' || value === '0.') {
+        // Keep the input as is to allow typing
+        onTradeChange('quantity', value);
+      } else {
+        // Convert to number if it's a valid number
+        const numValue = parseFloat(value);
+        onTradeChange('quantity', isNaN(numValue) ? '' : numValue);
+      }
     }
   };
 
@@ -148,11 +150,21 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
         <Label htmlFor="entryPrice">Entry Price</Label>
         <Input
           id="entryPrice"
-          type="number"
+          type="text"
+          inputMode="decimal"
           step="any"
           placeholder="Entry price"
           value={trade.entryPrice || ''}
-          onChange={(e) => onTradeChange('entryPrice', parseFloat(e.target.value) || '')}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
+              if (value === '' || value === '.' || value === '0.') {
+                onTradeChange('entryPrice', value);
+              } else {
+                onTradeChange('entryPrice', parseFloat(value) || '');
+              }
+            }
+          }}
           disabled={disableEdits}
         />
       </div>

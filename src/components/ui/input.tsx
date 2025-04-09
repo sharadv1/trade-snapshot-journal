@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
@@ -6,6 +5,22 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
     // For number inputs, set the step to allow 5 decimal places
     const stepValue = type === "number" ? "0.00001" : undefined;
+    
+    // Special handling for numeric inputs to better support decimal values
+    const handleDecimalInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (type === "number" || props.inputMode === "decimal") {
+        const value = e.target.value;
+        
+        // Allow empty string, decimal point, or "0." for progressive typing
+        if (value === "" || value === "." || value === "0." || /^-?\d*\.?\d*$/.test(value)) {
+          // Let the input event proceed
+          return;
+        }
+        
+        // Otherwise prevent the change
+        e.preventDefault();
+      }
+    };
     
     return (
       <input
@@ -16,6 +31,12 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
+        onChange={(e) => {
+          handleDecimalInput(e);
+          if (props.onChange) {
+            props.onChange(e);
+          }
+        }}
         {...props}
       />
     )
