@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { ArrowUpCircle } from 'lucide-react';
+import { ArrowUpCircle, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface RiskParametersFormProps {
   trade: Partial<Trade>;
@@ -56,7 +57,22 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
 
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label htmlFor="initialStopLoss">Initial Stop Loss</Label>
+            <div className="flex items-center">
+              <Label htmlFor="initialStopLoss">Initial Stop Loss</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="ml-1.5 inline-flex items-center">
+                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>This is the initial stop loss at trade entry. It's used to calculate your R-multiple and won't change even if you adjust your current stop.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
             {!trade.initialStopLoss && trade.stopLoss && (
               <Button 
                 variant="outline" 
@@ -86,7 +102,7 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
             }}
             disabled={disableEdits}
           />
-          <p className="text-xs text-muted-foreground">Original stop (for R calculation)</p>
+          <p className="text-xs text-muted-foreground font-medium">Used for R calculation and initial risk assessment</p>
         </div>
       </div>
 
@@ -122,6 +138,7 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
             disabled
             className="bg-muted"
           />
+          <p className="text-xs text-muted-foreground">Based on initial stop loss and take profit</p>
         </div>
       </div>
 

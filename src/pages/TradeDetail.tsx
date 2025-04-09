@@ -313,8 +313,16 @@ export default function TradeDetail() {
             <div className="grid grid-cols-2 gap-y-4 mb-6">
               {trade.stopLoss && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Stop Loss</p>
+                  <p className="text-sm text-muted-foreground">Current Stop Loss</p>
                   <p className="font-medium">{trade.stopLoss}</p>
+                </div>
+              )}
+              
+              {trade.initialStopLoss && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Initial Stop Loss</p>
+                  <p className="font-medium">{trade.initialStopLoss}</p>
+                  <p className="text-xs text-muted-foreground">Used for R calculation</p>
                 </div>
               )}
               
@@ -334,8 +342,17 @@ export default function TradeDetail() {
               
               {metrics && metrics.riskedAmount !== undefined && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Risked Amount</p>
+                  <p className="text-sm text-muted-foreground">Current Risked Amount</p>
                   <p className="font-medium">${metrics.riskedAmount.toFixed(2)}</p>
+                </div>
+              )}
+              
+              {metrics && metrics.initialRiskedAmount !== undefined && 
+               metrics.initialRiskedAmount !== metrics.riskedAmount && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Initial Risked Amount</p>
+                  <p className="font-medium">${metrics.initialRiskedAmount.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">Based on initial stop</p>
                 </div>
               )}
               
@@ -352,6 +369,7 @@ export default function TradeDetail() {
                   <div>
                     <span className="font-medium">Risk-Reward Ratio: </span>
                     <span className="font-mono">{metrics.riskRewardRatio.toFixed(2)}:1</span>
+                    <p className="text-xs text-muted-foreground mt-1">Calculated using initial stop loss</p>
                   </div>
                 </div>
               )}

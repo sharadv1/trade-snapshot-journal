@@ -124,7 +124,7 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
                 </p>
               </div>
               
-              {initialRiskedAmount !== riskedAmount && (
+              {initialRiskedAmount !== undefined && initialRiskedAmount !== riskedAmount && (
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground flex items-center">
                     <AlertTriangle className="h-3.5 w-3.5 mr-1 text-amber-500" />
@@ -133,6 +133,7 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
                   <p className="text-base">
                     {initialRiskedAmount ? `$${initialRiskedAmount.toFixed(2)}` : 'N/A'}
                   </p>
+                  <p className="text-xs text-muted-foreground">Used for R-multiple calculation</p>
                 </div>
               )}
               
@@ -154,6 +155,7 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
                 <p className="text-base">
                   {riskRewardRatio ? `${riskRewardRatio.toFixed(2)}:1` : 'N/A'}
                 </p>
+                <p className="text-xs text-muted-foreground">Based on initial stop loss</p>
               </div>
             </div>
 
