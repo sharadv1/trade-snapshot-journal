@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TradeIdea } from '@/types';
 import { getIdeas, deleteIdea } from '@/utils/ideaStorage';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
@@ -12,16 +12,19 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [ideaToDelete, setIdeaToDelete] = useState<string | null>(null);
   
-  const loadIdeas = () => {
+  const loadIdeas = useCallback(() => {
+    console.log('Loading ideas from storage');
     const loadedIdeas = getIdeas();
+    console.log(`Loaded ${loadedIdeas.length} ideas from storage`);
     setIdeas(loadedIdeas);
-  };
+  }, []);
   
   useEffect(() => {
     loadIdeas();
     
     // Listen for storage events to refresh the list
     const handleStorageChange = () => {
+      console.log('Storage change detected, reloading ideas');
       loadIdeas();
     };
     
@@ -33,7 +36,12 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('ideas-updated', handleStorageChange);
     };
-  }, []);
+  }, [loadIdeas]);
+  
+  // Refresh ideas when statusFilter or sortBy changes
+  useEffect(() => {
+    loadIdeas();
+  }, [statusFilter, sortBy, loadIdeas]);
   
   const handleEditClick = (idea: TradeIdea) => {
     setEditingIdea(idea);

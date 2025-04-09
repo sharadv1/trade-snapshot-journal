@@ -43,11 +43,16 @@ export default function Dashboard() {
     loadTrades();
     
     // Setup event listener for trade updates
-    window.addEventListener('trades-updated', loadTrades);
+    const handleTradesUpdated = () => {
+      console.log("Dashboard: Trades updated event received");
+      loadTrades();
+    };
+    
+    window.addEventListener('trades-updated', handleTradesUpdated);
     
     // Cleanup
     return () => {
-      window.removeEventListener('trades-updated', loadTrades);
+      window.removeEventListener('trades-updated', handleTradesUpdated);
     };
   }, []);
   

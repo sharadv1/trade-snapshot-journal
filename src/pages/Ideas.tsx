@@ -4,12 +4,26 @@ import { Button } from '@/components/ui/button';
 import { IdeaList } from '@/components/idea/IdeaList';
 import { IdeaDialog } from '@/components/idea/IdeaDialog';
 import { IdeaFilters } from '@/components/idea/IdeaFilters';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { syncIdeasWithServer } from '@/utils/ideaStorage';
 
 export default function Ideas() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date');
+  const location = useLocation();
+  
+  // Force reload ideas when navigating back to this page
+  useEffect(() => {
+    console.log('Ideas page mounted or path changed');
+    setRefreshKey(prev => prev + 1);
+    
+    // Attempt to sync with server if applicable
+    syncIdeasWithServer().catch(error => {
+      console.error('Failed to sync ideas with server:', error);
+    });
+  }, [location.pathname]);
   
   const handleIdeaAdded = () => {
     setRefreshKey(prev => prev + 1);
