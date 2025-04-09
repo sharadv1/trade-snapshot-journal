@@ -24,7 +24,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
 
   // Get contract point value when trade type or symbol changes
   useEffect(() => {
-    if (trade.type === 'futures') {
+    if (trade.type === 'futures' && trade.symbol) {
       const value = getContractPointValue(trade as Trade);
       console.log(`RiskParametersForm: Got point value for ${trade.symbol}: ${value}`);
       setPointValue(value);
@@ -113,7 +113,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
       setRiskedAmount(null);
       setPotentialReward(null);
     }
-  }, [trade.stopLoss, trade.takeProfit, trade.entryPrice, trade.quantity, trade.type, trade.contractDetails, pointValue]);
+  }, [trade.stopLoss, trade.takeProfit, trade.entryPrice, trade.quantity, trade.type, pointValue]);
 
   return (
     <div className="space-y-4">

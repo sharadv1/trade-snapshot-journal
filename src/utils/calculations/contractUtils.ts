@@ -20,6 +20,7 @@ export function getContractPointValue(trade: Trade): number {
     // Ensure the tickValue is properly parsed as a number and has a reasonable value
     const tickValue = Number(trade.contractDetails.tickValue);
     if (tickValue > 0) {
+      console.log(`Using contract details tick value for ${trade.symbol}: ${tickValue}`);
       return tickValue;
     }
   }
@@ -64,21 +65,8 @@ export function getContractPointValue(trade: Trade): number {
     console.warn('Error reading stored contracts:', error);
   }
   
-  // Specific check for Silver (SIL) - improved detection
-  const silverPatterns = ['SI', 'SIL', 'SILVER'];
-  const isSilver = silverPatterns.some(pattern => 
-    normalizedSymbol === pattern || 
-    normalizedSymbol?.startsWith(pattern + '.') ||
-    normalizedSymbol?.startsWith(pattern + '/') ||
-    normalizedSymbol?.endsWith('.' + pattern) ||
-    normalizedSymbol?.endsWith('/' + pattern)
-  );
-  
-  const isNotTech = !normalizedSymbol?.includes('MSFT') && 
-                    !normalizedSymbol?.includes('CSCO') &&
-                    !normalizedSymbol?.includes('TECH');
-    
-  if (isSilver && isNotTech) {
+  // Special handling for SIL/Silver contracts with improved detection
+  if (isSilverContract(normalizedSymbol)) {
     console.log('Using standard point value for Silver futures:', trade.symbol, '$5000');
     return 5000; // Default value for Silver futures
   }
@@ -133,6 +121,46 @@ export function getContractPointValue(trade: Trade): number {
   
   console.warn(`No point value found for futures contract ${trade.symbol}, using default of 1000`);
   return 1000; // More reasonable default fallback for unknown contracts
+}
+
+/**
+ * Helper function to identify Silver contracts
+ */
+function isSilverContract(symbol?: string): boolean {
+  if (!symbol) return false;
+  
+  const silverPatterns = ['SI', 'SIL', 'SILVER'];
+  
+  // Check for exact matches first
+  for (const pattern of silverPatterns) {
+    if (symbol === pattern) {
+      return true;
+    }
+  }
+  
+  // Check for patterns with separators (dots, slashes)
+  for (const pattern of silverPatterns) {
+    if (
+      symbol.startsWith(pattern + '.') ||
+      symbol.startsWith(pattern + '/') ||
+      symbol.endsWith('.' + pattern) ||
+      symbol.endsWith('/' + pattern)
+    ) {
+      return true;
+    }
+  }
+  
+  // Check for contains, but exclude tech symbols
+  if (
+    (symbol.includes('SI') || symbol.includes('SIL')) &&
+    !symbol.includes('MSFT') && 
+    !symbol.includes('CSCO') &&
+    !symbol.includes('TECH')
+  ) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**

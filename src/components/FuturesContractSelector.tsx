@@ -32,7 +32,10 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
         
         // Add new custom contracts that don't exist in defaults
         storedContracts.forEach((contract: any) => {
-          const existingIndex = combinedContracts.findIndex(c => c.symbol.toUpperCase() === contract.symbol.toUpperCase());
+          const existingIndex = combinedContracts.findIndex(c => 
+            c.symbol.toUpperCase() === contract.symbol.toUpperCase()
+          );
+          
           if (existingIndex >= 0) {
             // Replace existing contract
             combinedContracts[existingIndex] = {
@@ -53,6 +56,7 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
           }
         });
         
+        console.log('FuturesContractSelector loaded', combinedContracts.length, 'contracts');
         setAllContracts(combinedContracts);
       }
     } catch (error) {
@@ -61,8 +65,13 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
   }, []);
   
   const handleSelect = (value: string) => {
+    // Log the selection to help with debugging
+    console.log('FuturesContractSelector selected:', value);
+    
     const contract = allContracts.find(c => c.symbol === value);
     if (contract) {
+      console.log('Selected contract details:', contract);
+      
       // Call the appropriate callback based on which was provided
       if (onSelect) {
         onSelect({
