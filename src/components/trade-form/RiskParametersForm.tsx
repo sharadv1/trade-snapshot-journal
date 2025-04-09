@@ -75,7 +75,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
             id="stopLoss" 
             type="number" 
             min="0" 
-            step="0.01"
+            step="0.00001"
             value={trade.stopLoss || ''}
             onChange={(e) => handleChange('stopLoss', parseFloat(e.target.value))}
           />
@@ -90,7 +90,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
             id="takeProfit" 
             type="number" 
             min="0" 
-            step="0.01"
+            step="0.00001"
             value={trade.takeProfit || ''}
             onChange={(e) => handleChange('takeProfit', parseFloat(e.target.value))}
           />

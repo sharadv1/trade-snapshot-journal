@@ -30,7 +30,7 @@ export function FuturesContractDetails({
       <dd>{actualDetails.exchange}</dd>
       
       <dt className="text-muted-foreground">Tick Size:</dt>
-      <dd>{actualDetails.tickSize}</dd>
+      <dd>{parseFloat(actualDetails.tickSize).toFixed(5)}</dd>
       
       <dt className="text-muted-foreground">Contract Size:</dt>
       <dd>{actualDetails.contractSize || 1}</dd>
@@ -41,7 +41,7 @@ export function FuturesContractDetails({
       {actualDetails.tickSize && actualDetails.tickValue && (
         <>
           <dt className="text-muted-foreground font-medium">Tick Value:</dt>
-          <dd className="font-medium">${(actualDetails.tickSize * actualDetails.tickValue).toFixed(2)}</dd>
+          <dd className="font-medium">${(actualDetails.tickSize * actualDetails.tickValue).toFixed(5)}</dd>
         </>
       )}
       

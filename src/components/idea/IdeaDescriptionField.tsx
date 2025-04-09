@@ -42,6 +42,9 @@ export function IdeaDescriptionField({ value, onChange, isReadOnly }: IdeaDescri
           className="min-h-[120px]"
         />
       </div>
+      <p className="text-xs text-muted-foreground">
+        Supports Markdown: **bold**, *italic*, lists, and more
+      </p>
     </div>
   );
 }

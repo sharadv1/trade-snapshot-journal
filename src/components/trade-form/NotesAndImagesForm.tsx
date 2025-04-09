@@ -1,9 +1,9 @@
 
 import { Trade } from '@/types';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { MediaUpload } from '@/components/MediaUpload';
 import { useEffect, useState } from 'react';
+import { RichTextEditor } from '@/components/journal/RichTextEditor';
 
 interface NotesAndImagesFormProps {
   trade: Trade;
@@ -75,13 +75,16 @@ export function NotesAndImagesForm({
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="notes">Trade Notes</Label>
-        <Textarea
+        <RichTextEditor
           id="notes"
-          value={trade.notes || ''}
-          onChange={(e) => handleChange('notes', e.target.value)}
-          placeholder="Enter your notes about this trade"
+          content={trade.notes || ''}
+          onChange={(content) => handleChange('notes', content)}
+          placeholder="Enter your notes about this trade..."
           className="min-h-[150px]"
         />
+        <p className="text-xs text-muted-foreground">
+          Supports Markdown: **bold**, *italic*, lists, and more
+        </p>
       </div>
       
       <div className="space-y-2">
