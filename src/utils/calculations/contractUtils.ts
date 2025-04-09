@@ -4,6 +4,9 @@
  */
 import { Trade, COMMON_FUTURES_CONTRACTS } from '@/types';
 
+// Constants
+const FUTURES_CONTRACTS_KEY = 'futures_contracts';
+
 /**
  * Get the point value for a futures contract
  */
@@ -21,14 +24,43 @@ export function getContractPointValue(trade: Trade): number {
     }
   }
   
+  // Check for stored custom contracts first
+  try {
+    const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
+    if (storedContractsJson) {
+      const storedContracts = JSON.parse(storedContractsJson);
+      const matchedContract = storedContracts.find((c: any) => 
+        c.symbol === trade.symbol ||
+        (trade.symbol && c.symbol && trade.symbol.includes(c.symbol))
+      );
+      
+      if (matchedContract) {
+        console.log(`Using stored contract for ${trade.symbol}: point value $${matchedContract.pointValue}`);
+        return matchedContract.pointValue;
+      }
+    }
+  } catch (error) {
+    console.warn('Error reading stored contracts:', error);
+  }
+  
   // Check for Silver specifically (common symbols: SI, SIL, SILVER)
-  if (trade.symbol?.includes('SI') && !trade.symbol?.includes('MSFT') && !trade.symbol?.includes('CSCO')) {
+  const isCommonSilverSymbol = 
+    trade.symbol?.toUpperCase() === 'SI' || 
+    trade.symbol?.toUpperCase() === 'SIL' || 
+    trade.symbol?.toUpperCase() === 'SILVER' ||
+    trade.symbol?.toUpperCase().startsWith('SI.');
+    
+  if (isCommonSilverSymbol && !trade.symbol?.includes('MSFT') && !trade.symbol?.includes('CSCO')) {
     console.log('Using standard point value for Silver futures: $5000');
     return 5000; // Default value for Silver futures
   }
   
   // Check common futures contracts for this symbol
-  const contractInfo = COMMON_FUTURES_CONTRACTS.find(c => c.symbol === trade.symbol);
+  const contractInfo = COMMON_FUTURES_CONTRACTS.find(c => 
+    c.symbol === trade.symbol || 
+    (trade.symbol && c.symbol && trade.symbol.includes(c.symbol))
+  );
+  
   if (contractInfo) {
     console.log(`Using standard point value for ${trade.symbol}: $${contractInfo.pointValue}`);
     return contractInfo.pointValue;

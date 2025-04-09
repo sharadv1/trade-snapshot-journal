@@ -7,6 +7,9 @@ import { TrendingDown, TrendingUp, Ratio, Target } from 'lucide-react';
 import { AccountField } from './AccountField';
 import { getContractPointValue } from '@/utils/calculations/contractUtils';
 
+// Constants
+const FUTURES_CONTRACTS_KEY = 'futures_contracts';
+
 interface RiskParametersFormProps {
   trade: Partial<Trade>;
   handleChange: (field: keyof Trade, value: any) => void;
@@ -17,14 +20,37 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
   const [riskedAmount, setRiskedAmount] = useState<number | null>(null);
   const [potentialReward, setPotentialReward] = useState<number | null>(null);
   const [pointValue, setPointValue] = useState<number>(1);
+  const [contractDescription, setContractDescription] = useState<string>('');
 
   // Get contract point value when trade type or symbol changes
   useEffect(() => {
     if (trade.type === 'futures') {
       const value = getContractPointValue(trade as Trade);
       setPointValue(value);
+      
+      // Try to get contract description
+      try {
+        const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
+        if (storedContractsJson) {
+          const storedContracts = JSON.parse(storedContractsJson);
+          const matchedContract = storedContracts.find((c: any) => 
+            c.symbol === trade.symbol ||
+            (trade.symbol && c.symbol && trade.symbol.includes(c.symbol))
+          );
+          
+          if (matchedContract) {
+            setContractDescription(matchedContract.description || '');
+          } else {
+            setContractDescription('');
+          }
+        }
+      } catch (error) {
+        console.warn('Error reading stored contracts:', error);
+        setContractDescription('');
+      }
     } else {
       setPointValue(1);
+      setContractDescription('');
     }
   }, [trade.type, trade.symbol, trade.contractDetails]);
 
@@ -82,11 +108,20 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
           </Label>
           <Input 
             id="stopLoss" 
-            type="number" 
-            min="0" 
-            step="0.00001"
+            type="text" 
+            inputMode="decimal"
             value={trade.stopLoss || ''}
-            onChange={(e) => handleChange('stopLoss', parseFloat(e.target.value))}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === '' || value === '.' || value === '0.') {
+                handleChange('stopLoss', value);
+              } else {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue)) {
+                  handleChange('stopLoss', numValue);
+                }
+              }
+            }}
           />
         </div>
         
@@ -97,11 +132,20 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
           </Label>
           <Input 
             id="takeProfit" 
-            type="number" 
-            min="0" 
-            step="0.00001"
+            type="text" 
+            inputMode="decimal"
             value={trade.takeProfit || ''}
-            onChange={(e) => handleChange('takeProfit', parseFloat(e.target.value))}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === '' || value === '.' || value === '0.') {
+                handleChange('takeProfit', value);
+              } else {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue)) {
+                  handleChange('takeProfit', numValue);
+                }
+              }
+            }}
           />
         </div>
         
@@ -155,7 +199,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
             This trade uses a point value of ${pointValue.toLocaleString()} per contract point.
             {trade.contractDetails?.tickValue ? 
               ` Based on contract specifications.` : 
-              ` Using standard value for ${trade.symbol}.`}
+              ` Using ${contractDescription ? contractDescription + ' ' : ''}value for ${trade.symbol}.`}
           </p>
         </div>
       )}
