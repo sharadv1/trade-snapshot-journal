@@ -26,6 +26,7 @@ export function useIdeaForm({
   });
   const [images, setImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastUploadedImage, setLastUploadedImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialIdea) {
@@ -53,14 +54,29 @@ export function useIdeaForm({
       return;
     }
     
+    // Prevent duplicate uploads (basic prevention by comparing the first 100 chars)
+    if (lastUploadedImage && 
+        base64Image.substring(0, 100) === lastUploadedImage.substring(0, 100)) {
+      console.log('Preventing duplicate image upload in useIdeaForm');
+      return;
+    }
+    
     // Check size for videos to avoid storage issues
     if (isVideo(base64Image) && base64Image.length > 5 * 1024 * 1024) {
       toast.warning("Video is very large and may cause storage issues");
     }
     
+    // Record this upload to prevent duplicates
+    setLastUploadedImage(base64Image);
+    
     const newImages = [...images, base64Image];
     setImages(newImages);
     handleChange('images', newImages);
+    
+    // Reset lastUploadedImage after a delay to allow future uploads of the same image
+    setTimeout(() => {
+      setLastUploadedImage(null);
+    }, 3000);
   };
 
   const handleRemoveImage = (index: number) => {

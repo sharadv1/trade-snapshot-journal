@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, X, Play, Video } from 'lucide-react';
@@ -38,6 +39,7 @@ export function MediaUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Track last file uploaded to prevent duplicates
   const [lastUploadedFile, setLastUploadedFile] = useState<{ name: string, time: number } | null>(null);
+  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
 
   // Backwards compatibility - support both media and images props
   const mediaItems: MediaFile[] = media || 
@@ -56,11 +58,16 @@ export function MediaUpload({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Prevent duplicate uploads (same file within 2 seconds)
+    // Prevent duplicate uploads and processing multiple uploads simultaneously
+    if (isProcessingUpload) {
+      console.log('Already processing an upload, ignoring duplicate request');
+      return;
+    }
+
     if (lastUploadedFile && 
         lastUploadedFile.name === file.name && 
         (Date.now() - lastUploadedFile.time) < 2000) {
-      console.log('Prevented duplicate file upload:', file.name);
+      console.log('Prevented duplicate file upload (same file within 2 seconds):', file.name);
       return;
     }
 
@@ -91,12 +98,22 @@ export function MediaUpload({
       }
     }
 
+    // Set processing state to prevent multiple simultaneous uploads
+    setIsProcessingUpload(true);
+    
     // Record this upload to prevent duplicates
     setLastUploadedFile({ name: file.name, time: Date.now() });
+    
+    // Process the file
     handleFileUpload(file);
     
     // Clear the input value so the same file can be uploaded again (but not immediately)
     if (event.target.value) event.target.value = '';
+    
+    // Reset processing state after a delay
+    setTimeout(() => {
+      setIsProcessingUpload(false);
+    }, 1000);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -104,7 +121,7 @@ export function MediaUpload({
     e.stopPropagation();
     setIsDragging(false);
     
-    if (disabled) return;
+    if (disabled || isProcessingUpload) return;
     
     if (mediaItems.length >= maxItemsCount) {
       toast.error(`Maximum ${maxItemsCount} files allowed`);
@@ -145,19 +162,28 @@ export function MediaUpload({
         }
       }
       
+      // Set processing state to prevent multiple simultaneous uploads
+      setIsProcessingUpload(true);
+      
       // Record this upload to prevent duplicates
       setLastUploadedFile({ name: file.name, time: Date.now() });
+      
+      // Process the file
       handleFileUpload(file);
       console.log('File dropped and being processed:', file.name);
+      
+      // Reset processing state after a delay
+      setTimeout(() => {
+        setIsProcessingUpload(false);
+      }, 1000);
     }
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!disabled) {
+    if (!disabled && !isProcessingUpload) {
       setIsDragging(true);
-      console.log('Drag over event detected in MediaUpload');
     }
   };
 
@@ -235,7 +261,7 @@ export function MediaUpload({
             onChange={handleFileChange}
             accept={acceptVideos ? "image/*,video/*" : "image/*"}
             ref={fileInputRef}
-            disabled={disabled || mediaItems.length >= maxItemsCount}
+            disabled={disabled || isProcessingUpload || mediaItems.length >= maxItemsCount}
           />
         </>
       )}

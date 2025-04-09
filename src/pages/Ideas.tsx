@@ -16,7 +16,7 @@ export default function Ideas() {
   };
   
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-8 pb-10 max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-1 flex items-center">
