@@ -8,7 +8,7 @@ import { SimpleSidebar } from './SimpleSidebar';
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-background text-foreground">
         <Header />
         <div className="flex flex-1 h-[calc(100vh-64px)]">
           <div className="h-full">

@@ -107,15 +107,18 @@ export function useCumulativePnLData(trades: TradeWithMetrics[]) {
     const chartData = Array.from(dataByDate.values())
       .sort((a, b) => a.timestamp - b.timestamp);
     
-    // Define strategy colors
+    // Define strategy colors - enhanced for better dark mode visibility
     const strategyColors = [
-      '#2563eb', // Blue
-      '#059669', // Green
-      '#d946ef', // Purple
+      '#3b82f6', // Blue
+      '#10b981', // Green
+      '#8b5cf6', // Purple
       '#f59e0b', // Amber
-      '#dc2626', // Red
+      '#ef4444', // Red
       '#6366f1', // Indigo
-      '#0891b2', // Cyan
+      '#06b6d4', // Cyan
+      '#ec4899', // Pink
+      '#14b8a6', // Teal
+      '#f97316', // Orange
     ];
     
     // Determine chart colors for the total line

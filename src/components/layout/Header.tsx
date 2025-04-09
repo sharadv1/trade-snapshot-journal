@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, BarChart } from "lucide-react";
@@ -15,13 +16,14 @@ import {
   Book,
   Tags
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 // Define the app version - increment this before pushing changes to git
 // Format: MAJOR.MINOR.PATCH
 // MAJOR: Breaking changes
 // MINOR: New features, no breaking changes
 // PATCH: Bug fixes and minor updates
-export const APP_VERSION = "1.1.5";
+export const APP_VERSION = "1.1.6";
 
 export function Header() {
   const isMobile = useIsMobile();
@@ -29,8 +31,8 @@ export function Header() {
   
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <div className="mr-4 flex">
+      <div className="container flex h-14 items-center justify-between">
+        <div className="flex items-center">
           <Link to="/" className="mr-6 flex items-center space-x-2">
             <BarChart className="h-6 w-6" />
             <span className="hidden font-bold sm:inline-block">
@@ -39,20 +41,24 @@ export function Header() {
           </Link>
         </div>
         
-        {isMobile ? (
-          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="ml-auto md:hidden">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-4">
-              <div className="pt-10">
-                <MobileNavItems onItemClick={() => setIsMenuOpen(false)} />
-              </div>
-            </SheetContent>
-          </Sheet>
-        ) : null}
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          
+          {isMobile ? (
+            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-4">
+                <div className="pt-10">
+                  <MobileNavItems onItemClick={() => setIsMenuOpen(false)} />
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : null}
+        </div>
       </div>
     </header>
   );

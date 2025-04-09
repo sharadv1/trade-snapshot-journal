@@ -18,6 +18,8 @@ import { MonthlyReflectionsPage } from '@/components/journal/MonthlyReflectionsP
 import Configs from '@/pages/Configs';
 import Lessons from '@/pages/Lessons';
 import { format } from 'date-fns';
+import { ThemeProvider } from '@/components/ui/theme-provider';
+import { Toaster } from '@/components/ui/toaster';
 
 // Helper component to handle legacy route redirects
 const LegacyWeekRedirect = () => {
@@ -40,49 +42,52 @@ const CurrentMonthRedirect = () => {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/trade/new" element={<TradeEntry />} />
-          <Route path="/trade/:id" element={<TradeDetail />} />
-          {/* Supporting both URL patterns for edit: */}
-          <Route path="/trade/:id/edit" element={<TradeEdit />} />
-          <Route path="/trade/edit/:id" element={<TradeEdit />} />
-          <Route path="/ideas" element={<Ideas />} />
-          <Route path="/strategies" element={<StrategyManagement />} />
-          <Route path="/symbols" element={<SymbolManagement />} />
-          <Route path="/configs" element={<Configs />} />
-          <Route path="/lessons" element={<Lessons />} />
-          
-          {/* Journal routes with nested structure */}
-          <Route path="/journal" element={<JournalLayout />}>
-            {/* Default route redirects to weekly */}
-            <Route index element={<Navigate to="/journal/weekly" replace />} />
+    <ThemeProvider defaultTheme="system">
+      <BrowserRouter>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/trade/new" element={<TradeEntry />} />
+            <Route path="/trade/:id" element={<TradeDetail />} />
+            {/* Supporting both URL patterns for edit: */}
+            <Route path="/trade/:id/edit" element={<TradeEdit />} />
+            <Route path="/trade/edit/:id" element={<TradeEdit />} />
+            <Route path="/ideas" element={<Ideas />} />
+            <Route path="/strategies" element={<StrategyManagement />} />
+            <Route path="/symbols" element={<SymbolManagement />} />
+            <Route path="/configs" element={<Configs />} />
+            <Route path="/lessons" element={<Lessons />} />
             
-            {/* Explicit weekly and monthly list views */}
-            <Route path="weekly" element={<WeeklyReflectionsPage />} />
-            <Route path="monthly" element={<MonthlyReflectionsPage />} />
+            {/* Journal routes with nested structure */}
+            <Route path="/journal" element={<JournalLayout />}>
+              {/* Default route redirects to weekly */}
+              <Route index element={<Navigate to="/journal/weekly" replace />} />
+              
+              {/* Explicit weekly and monthly list views */}
+              <Route path="weekly" element={<WeeklyReflectionsPage />} />
+              <Route path="monthly" element={<MonthlyReflectionsPage />} />
+              
+              {/* Handle "new-week" and "new-month" routes */}
+              <Route path="weekly/new-week" element={<CurrentWeekRedirect />} />
+              <Route path="monthly/new-month" element={<CurrentMonthRedirect />} />
+              
+              {/* Weekly detail view */}
+              <Route path="weekly/:weekId" element={<WeeklyJournal />} />
+              
+              {/* Monthly detail view */}
+              <Route path="monthly/:monthId" element={<WeeklyJournal />} />
+              
+              {/* Legacy route for backward compatibility */}
+              <Route path=":weekId" element={<LegacyWeekRedirect />} />
+            </Route>
             
-            {/* Handle "new-week" and "new-month" routes */}
-            <Route path="weekly/new-week" element={<CurrentWeekRedirect />} />
-            <Route path="monthly/new-month" element={<CurrentMonthRedirect />} />
-            
-            {/* Weekly detail view */}
-            <Route path="weekly/:weekId" element={<WeeklyJournal />} />
-            
-            {/* Monthly detail view */}
-            <Route path="monthly/:monthId" element={<WeeklyJournal />} />
-            
-            {/* Legacy route for backward compatibility */}
-            <Route path=":weekId" element={<LegacyWeekRedirect />} />
-          </Route>
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Layout>
-    </BrowserRouter>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Layout>
+        <Toaster />
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
