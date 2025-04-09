@@ -15,6 +15,9 @@ export function getContractPointValue(trade: Trade): number {
     return 1;
   }
   
+  const normalizedSymbol = trade.symbol?.toUpperCase().trim();
+  console.log(`Getting point value for ${normalizedSymbol}`);
+  
   // First priority: Check for custom contract configurations from the contract manager
   try {
     const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
@@ -23,7 +26,7 @@ export function getContractPointValue(trade: Trade): number {
       
       // Find exact match for the symbol
       const exactMatch = storedContracts.find((c: any) => 
-        c.symbol.toUpperCase() === trade.symbol.toUpperCase()
+        c.symbol.toUpperCase() === normalizedSymbol
       );
       
       if (exactMatch && exactMatch.pointValue) {
@@ -45,10 +48,7 @@ export function getContractPointValue(trade: Trade): number {
     }
   }
   
-  // Third priority: Handle built-in special case contracts
-  const normalizedSymbol = trade.symbol?.toUpperCase().trim();
-  
-  // Check common futures contracts for this symbol - improved matching
+  // Third priority: Check common futures contracts for this symbol - improved matching
   const contractInfo = COMMON_FUTURES_CONTRACTS.find(c => {
     const standardSymbol = c.symbol.toUpperCase().trim();
     return standardSymbol === normalizedSymbol;
@@ -61,8 +61,10 @@ export function getContractPointValue(trade: Trade): number {
   
   // Fourth priority: Default fallbacks based on common contracts
   if (normalizedSymbol === 'SI') {
+    console.log('SILVER CONTRACT DETECTED: SI - Using $5000 point value');
     return 5000; // Standard Silver futures
   } else if (normalizedSymbol === 'SIL' || normalizedSymbol === 'MSI') {
+    console.log('MICRO SILVER CONTRACT DETECTED: SIL - Using $1000 point value');
     return 1000; // Micro Silver futures
   } else if (normalizedSymbol?.includes('ES') || normalizedSymbol === 'SP') {
     return 50; // E-mini S&P 500

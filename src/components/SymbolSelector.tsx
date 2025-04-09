@@ -46,12 +46,14 @@ export function SymbolSelector({
       }
     });
     setAvailableTypes(types);
-    
-    // Reset input value when dropdown opens again
+  }, [tradeType]);
+
+  // Reset input value when dropdown opens
+  useEffect(() => {
     if (open) {
       setInputValue('');
     }
-  }, [tradeType, open]);
+  }, [open]);
 
   // Filter symbols based on trade type - ensure we always have an array even if filtering returns nothing
   const filteredSymbols = useMemo(() => {

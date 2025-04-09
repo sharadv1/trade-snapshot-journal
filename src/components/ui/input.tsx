@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
@@ -5,22 +6,6 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
     // For number inputs, set the step to allow 5 decimal places
     const stepValue = type === "number" ? "0.00001" : undefined;
-    
-    // Special handling for numeric inputs to better support decimal values
-    const handleDecimalInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (type === "number" || props.inputMode === "decimal") {
-        const value = e.target.value;
-        
-        // Allow empty string, decimal point, or "0." for progressive typing
-        if (value === "" || value === "." || value === "0." || /^-?\d*\.?\d*$/.test(value)) {
-          // Let the input event proceed
-          return;
-        }
-        
-        // Otherwise prevent the change
-        e.preventDefault();
-      }
-    };
     
     return (
       <input
@@ -32,7 +17,25 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         )}
         ref={ref}
         onChange={(e) => {
-          handleDecimalInput(e);
+          // Special handling for numeric-type inputs
+          if (type === "number" || props.inputMode === "decimal") {
+            const value = e.target.value;
+            
+            // Allow empty, "." at the start, or "0." to support progressive typing of decimals
+            if (value === "" || value === "." || value === "0." || /^-?(\d*\.?\d*)?$/.test(value)) {
+              if (props.onChange) {
+                props.onChange(e);
+              }
+              return;
+            }
+            
+            // If the pattern above didn't match, prevent the default update by creating a new 
+            // event with the previous value
+            e.target.value = props.value?.toString() || '';
+            return;
+          }
+          
+          // Handle normal input change
           if (props.onChange) {
             props.onChange(e);
           }

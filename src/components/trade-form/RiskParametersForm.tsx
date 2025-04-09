@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,7 +25,27 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
   // Get contract point value when trade type or symbol changes
   useEffect(() => {
     if (trade.type === 'futures' && trade.symbol) {
-      // If there are contract details with a tickValue, use that directly
+      // First priority: Check for custom contract settings
+      try {
+        const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
+        if (storedContractsJson) {
+          const storedContracts = JSON.parse(storedContractsJson);
+          const customContract = storedContracts.find((c: any) => 
+            c.symbol.toUpperCase() === trade.symbol?.toUpperCase()
+          );
+          
+          if (customContract && customContract.pointValue) {
+            console.log(`RiskParametersForm: Using custom contract point value: ${customContract.pointValue}`);
+            setPointValue(Number(customContract.pointValue));
+            setContractDescription(`Custom settings for ${trade.symbol}`);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error reading custom contracts:', error);
+      }
+      
+      // Second priority: If there are contract details with a tickValue, use that
       if (trade.contractDetails?.tickValue) {
         const tickValue = Number(trade.contractDetails.tickValue);
         if (tickValue > 0) {
@@ -35,49 +56,18 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
         }
       }
 
-      // Otherwise calculate the point value
+      // Third priority: Calculate the point value
       const value = getContractPointValue(trade as Trade);
       console.log(`RiskParametersForm: Got point value for ${trade.symbol}: ${value}`);
       setPointValue(value);
       
-      // Try to get contract description
-      try {
-        const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
-        if (storedContractsJson) {
-          const storedContracts = JSON.parse(storedContractsJson);
-          
-          // Try exact match first
-          let matchedContract = storedContracts.find((c: any) => 
-            c.symbol === trade.symbol
-          );
-          
-          // If no exact match, try looser matching
-          if (!matchedContract) {
-            const normalizedSymbol = trade.symbol?.toUpperCase().trim();
-            matchedContract = storedContracts.find((c: any) => {
-              const contractSymbol = c.symbol?.toUpperCase().trim();
-              return (
-                normalizedSymbol === contractSymbol ||
-                (normalizedSymbol && contractSymbol && (
-                  normalizedSymbol.includes(contractSymbol) ||
-                  contractSymbol.includes(normalizedSymbol)
-                ))
-              );
-            });
-          }
-          
-          if (matchedContract) {
-            setContractDescription(matchedContract.description || '');
-          } else if (trade.symbol?.toUpperCase().includes('SIL') || trade.symbol?.toUpperCase().includes('SI')) {
-            // Special handling for SIL contracts
-            setContractDescription('Silver futures contract');
-          } else {
-            setContractDescription('');
-          }
-        }
-      } catch (error) {
-        console.warn('Error reading stored contracts:', error);
-        setContractDescription('');
+      // Set appropriate description based on symbol
+      if (trade.symbol === 'SI') {
+        setContractDescription('Standard Silver futures contract');
+      } else if (trade.symbol === 'SIL' || trade.symbol === 'MSI') {
+        setContractDescription('Micro Silver futures contract');
+      } else {
+        setContractDescription(`${trade.symbol} futures contract`);
       }
     } else {
       setPointValue(1);
@@ -228,9 +218,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             This trade uses a point value of ${pointValue.toLocaleString()} per contract point.
-            {trade.contractDetails?.tickValue ? 
-              ` Based on contract specifications.` : 
-              ` Using ${contractDescription ? contractDescription + ' ' : ''}value for ${trade.symbol}.`}
+            {contractDescription ? ` ${contractDescription}.` : ''}
           </p>
         </div>
       )}

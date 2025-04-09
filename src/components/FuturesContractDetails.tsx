@@ -16,7 +16,7 @@ export function FuturesContractDetails({
   const actualDetails = contractDetails || details;
   const actualValue = pointValue || value;
   
-  if (!actualDetails?.exchange && !actualDetails?.tickSize && !actualDetails?.tickValue) return null;
+  if (!actualDetails?.exchange && !actualDetails?.tickSize && !actualDetails?.tickValue && !symbol) return null;
   
   const handleChange = (field: string, value: any) => {
     if (onChange) {
@@ -48,10 +48,10 @@ export function FuturesContractDetails({
   const customContract = getCustomContractDetails();
   
   // Determine which point value to display, with custom contract taking priority
-  let displayPointValue = actualDetails.tickValue;
-  let displayTickSize = actualDetails.tickSize;
-  let displayExchange = actualDetails.exchange;
-  let displayContractSize = actualDetails.contractSize || 1;
+  let displayPointValue = actualDetails?.tickValue;
+  let displayTickSize = actualDetails?.tickSize;
+  let displayExchange = actualDetails?.exchange;
+  let displayContractSize = actualDetails?.contractSize || 1;
   
   // If we have custom contract settings for this symbol, use them with priority
   if (customContract) {

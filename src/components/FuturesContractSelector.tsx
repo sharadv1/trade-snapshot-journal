@@ -39,6 +39,7 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
           if (existingIndex >= 0) {
             // Replace existing contract with custom values
             combinedContracts[existingIndex] = {
+              ...combinedContracts[existingIndex],
               ...contract,
               name: contract.description || contract.symbol,
               // Ensure pointValue is correctly set
@@ -81,7 +82,7 @@ export function FuturesContractSelector({ selectedValue, value, onSelect, onChan
           exchange: contract.exchange,
           contractSize: contract.contractSize || 1,
           tickSize: contract.tickSize,
-          tickValue: contract.pointValue, // Store the pointValue as tickValue
+          tickValue: contract.pointValue, // Use pointValue from contract
         });
       }
       
