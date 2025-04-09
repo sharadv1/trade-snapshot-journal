@@ -16,6 +16,17 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
   const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null);
   const [riskedAmount, setRiskedAmount] = useState<number | null>(null);
   const [potentialReward, setPotentialReward] = useState<number | null>(null);
+  const [pointValue, setPointValue] = useState<number>(1);
+
+  // Get contract point value when trade type or symbol changes
+  useEffect(() => {
+    if (trade.type === 'futures') {
+      const value = getContractPointValue(trade as Trade);
+      setPointValue(value);
+    } else {
+      setPointValue(1);
+    }
+  }, [trade.type, trade.symbol, trade.contractDetails]);
 
   // Calculate risk-reward ratio when stopLoss or takeProfit changes
   useEffect(() => {
@@ -25,7 +36,6 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
       
       // Apply contract multiplier for futures
       if (trade.type === 'futures') {
-        const pointValue = getContractPointValue(trade as Trade);
         riskPerUnit = riskPerUnit * pointValue;
       }
       
@@ -39,7 +49,6 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
         
         // Apply contract multiplier for futures
         if (trade.type === 'futures') {
-          const pointValue = getContractPointValue(trade as Trade);
           rewardPerUnit = rewardPerUnit * pointValue;
         }
         
@@ -61,7 +70,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
       setRiskedAmount(null);
       setPotentialReward(null);
     }
-  }, [trade.stopLoss, trade.takeProfit, trade.entryPrice, trade.quantity, trade.type, trade.contractDetails]);
+  }, [trade.stopLoss, trade.takeProfit, trade.entryPrice, trade.quantity, trade.type, trade.contractDetails, pointValue]);
 
   return (
     <div className="space-y-4">
@@ -106,7 +115,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
               ${riskedAmount.toFixed(2)}
               {trade.type === 'futures' && (
                 <span className="text-xs text-muted-foreground ml-2">
-                  with point value: ${getContractPointValue(trade as Trade)}
+                  using point value: ${pointValue.toLocaleString()}
                 </span>
               )}
             </div>
@@ -135,6 +144,21 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
           </div>
         )}
       </div>
+      
+      {trade.type === 'futures' && (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md p-3">
+          <p className="text-sm font-medium flex items-center">
+            <Target className="h-4 w-4 mr-2 text-amber-600" />
+            Futures Contract Risk
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            This trade uses a point value of ${pointValue.toLocaleString()} per contract point.
+            {trade.contractDetails?.tickValue ? 
+              ` Based on contract specifications.` : 
+              ` Using standard value for ${trade.symbol}.`}
+          </p>
+        </div>
+      )}
       
       <div className="space-y-2">
         <Label htmlFor="account">Account</Label>

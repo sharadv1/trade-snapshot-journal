@@ -24,6 +24,13 @@ export function FuturesContractDetails({
     }
   };
   
+  // Format the ticket value for display with commas for large numbers
+  const formattedTickValue = actualDetails.tickValue ? 
+    Number(actualDetails.tickValue).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }) : '';
+  
   return (
     <dl className="grid grid-cols-2 gap-x-4 gap-y-2 p-3 border rounded-md bg-muted/20">
       <dt className="text-muted-foreground">Exchange:</dt>
@@ -36,7 +43,7 @@ export function FuturesContractDetails({
       <dd>{actualDetails.contractSize || 1}</dd>
       
       <dt className="text-muted-foreground font-medium">Point Value:</dt>
-      <dd className="font-medium">${actualDetails.tickValue}</dd>
+      <dd className="font-medium">${formattedTickValue}</dd>
       
       {actualDetails.tickSize && actualDetails.tickValue && (
         <>
@@ -47,6 +54,11 @@ export function FuturesContractDetails({
       
       <dt className="text-xs text-muted-foreground col-span-2 mt-2 border-t pt-2">
         Risk calculation uses point value to determine dollar risk based on price movement.
+        {symbol && symbol.includes('SI') && (
+          <span className="block mt-1 text-amber-600">
+            Silver futures typically have a point value of $5,000 per full point.
+          </span>
+        )}
       </dt>
     </dl>
   );

@@ -98,7 +98,8 @@ export const getTradeMetrics = (trade: Trade) => {
   }
   
   // Calculate actual risked amount (per unit * quantity)
-  riskedAmount = riskedAmountPerUnit * parseFloat(trade.quantity.toString());
+  const quantity = parseFloat(trade.quantity.toString());
+  riskedAmount = riskedAmountPerUnit * quantity;
 
   if (trade.takeProfit) {
     const takeProfitValue = parseFloat(trade.takeProfit.toString());
@@ -111,7 +112,7 @@ export const getTradeMetrics = (trade: Trade) => {
       maxGainPerUnit = maxGainPerUnit * pointValue;
     }
     
-    maxPotentialGain = maxGainPerUnit * parseFloat(trade.quantity.toString());
+    maxPotentialGain = maxGainPerUnit * quantity;
     
     if (riskedAmount > 0 && maxPotentialGain > 0) {
       riskRewardRatio = maxPotentialGain / riskedAmount;
@@ -131,7 +132,7 @@ export const getTradeMetrics = (trade: Trade) => {
   }
 
   if (trade.entryPrice !== 0) {
-    profitLossPercentage = (profitLoss / (parseFloat(trade.entryPrice.toString()) * parseFloat(trade.quantity.toString()))) * 100;
+    profitLossPercentage = (profitLoss / (parseFloat(trade.entryPrice.toString()) * quantity)) * 100;
   } else {
     calculationExplanation += 'Entry price is zero. Cannot calculate profit/loss percentage. ';
   }
