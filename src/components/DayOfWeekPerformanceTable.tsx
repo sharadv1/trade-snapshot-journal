@@ -9,6 +9,13 @@ interface DayOfWeekPerformanceTableProps {
   timeframes?: string[];
 }
 
+interface DayPerformance {
+  pnl: number;
+  count: number;
+  winCount: number;
+  winRate?: number; // Add winRate as an optional property
+}
+
 export function DayOfWeekPerformanceTable({ trades, timeframes = ['15m', '1h'] }: DayOfWeekPerformanceTableProps) {
   // Filter trades by timeframe if specified
   const filteredTrades = timeframes 
@@ -50,7 +57,7 @@ export function DayOfWeekPerformanceTable({ trades, timeframes = ['15m', '1h'] }
   
   // Initialize data for each day of week
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayPnL: Record<string, { pnl: number, count: number, winCount: number }> = {};
+  const dayPnL: Record<string, DayPerformance> = {}; // Use the DayPerformance interface
   
   daysOfWeek.forEach(day => {
     dayPnL[day] = { pnl: 0, count: 0, winCount: 0 };
@@ -104,7 +111,7 @@ export function DayOfWeekPerformanceTable({ trades, timeframes = ['15m', '1h'] }
                 <TableCell className="font-medium">{day}</TableCell>
                 <TableCell className="text-right">{dayPnL[day].count}</TableCell>
                 <TableCell className="text-right">
-                  {dayPnL[day].count > 0 ? `${dayPnL[day].winRate.toFixed(1)}%` : '-'}
+                  {dayPnL[day].count > 0 ? `${dayPnL[day].winRate?.toFixed(1)}%` : '-'}
                 </TableCell>
                 <TableCell className="text-right">
                   {dayPnL[day].count > 0 ? (
