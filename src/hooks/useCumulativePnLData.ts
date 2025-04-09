@@ -1,7 +1,9 @@
+
 import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { TradeWithMetrics } from '@/types';
 import { formatCurrency } from '@/utils/calculations/formatters';
+import { getStrategyById } from '@/utils/strategyStorage';
 
 interface ChartDataPoint {
   date: string;
@@ -23,8 +25,8 @@ export function useCumulativePnLData(trades: TradeWithMetrics[]) {
         return dateA - dateB;
       });
     
-    // Get unique strategies
-    const uniqueStrategies = Array.from(
+    // Get unique strategies and map them to display names
+    const uniqueStrategyIds = Array.from(
       new Set(
         closedTrades
           .filter(trade => trade.strategy)
@@ -32,13 +34,25 @@ export function useCumulativePnLData(trades: TradeWithMetrics[]) {
       )
     );
     
+    // Create a mapping of strategy IDs to display names
+    const strategyNameMap: Record<string, string> = {};
+    const uniqueStrategies: string[] = [];
+    
+    uniqueStrategyIds.forEach(strategyId => {
+      const strategy = getStrategyById(strategyId);
+      const displayName = strategy ? strategy.name : strategyId;
+      strategyNameMap[strategyId] = displayName;
+      uniqueStrategies.push(displayName);
+    });
+    
     // Prepare data points by date
     const dataByDate = new Map<string, ChartDataPoint>();
     
     // Initialize strategy cumulative values
     const strategyCumulatives: Record<string, number> = {};
-    uniqueStrategies.forEach(strategy => {
-      strategyCumulatives[strategy] = 0;
+    uniqueStrategyIds.forEach(strategyId => {
+      const displayName = strategyNameMap[strategyId];
+      strategyCumulatives[displayName] = 0;
     });
     
     let totalCumulative = 0;
@@ -57,8 +71,9 @@ export function useCumulativePnLData(trades: TradeWithMetrics[]) {
       
       // Update strategy-specific cumulative P&L
       if (trade.strategy) {
-        strategyCumulatives[trade.strategy] = 
-          (strategyCumulatives[trade.strategy] || 0) + trade.metrics.profitLoss;
+        const displayName = strategyNameMap[trade.strategy];
+        strategyCumulatives[displayName] = 
+          (strategyCumulatives[displayName] || 0) + trade.metrics.profitLoss;
       }
       
       // Create or update data point
@@ -71,8 +86,8 @@ export function useCumulativePnLData(trades: TradeWithMetrics[]) {
         };
         
         // Add strategy-specific values
-        uniqueStrategies.forEach(strategy => {
-          dataPoint[strategy] = strategyCumulatives[strategy];
+        uniqueStrategies.forEach(strategyName => {
+          dataPoint[strategyName] = strategyCumulatives[strategyName];
         });
         
         dataByDate.set(dateKey, dataPoint);
@@ -82,8 +97,8 @@ export function useCumulativePnLData(trades: TradeWithMetrics[]) {
         dataPoint.total = totalCumulative;
         
         // Update strategy values
-        uniqueStrategies.forEach(strategy => {
-          dataPoint[strategy] = strategyCumulatives[strategy];
+        uniqueStrategies.forEach(strategyName => {
+          dataPoint[strategyName] = strategyCumulatives[strategyName];
         });
       }
     });

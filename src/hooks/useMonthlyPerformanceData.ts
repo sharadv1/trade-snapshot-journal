@@ -2,6 +2,7 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { TradeWithMetrics } from '@/types';
+import { getStrategyById } from '@/utils/strategyStorage';
 
 interface CategoryData {
   totalDollarValue: number;
@@ -69,16 +70,21 @@ export function useMonthlyPerformanceData(trades: TradeWithMetrics[]): MonthlyPe
         }
       }));
     
-    // Create categories for both strategies and instruments
-    const strategyCategories = Array.from(uniqueStrategies).map(strategy => ({
-      id: `strategy-${strategy}`,
-      name: strategy,
-      type: 'strategy' as const
-    }));
+    // Create categories for both strategies and instruments with proper display names
+    const strategyCategories = Array.from(uniqueStrategies).map(strategyId => {
+      const strategy = getStrategyById(strategyId);
+      return {
+        id: `strategy-${strategyId}`,
+        name: strategy ? strategy.name : strategyId,
+        originalId: strategyId,
+        type: 'strategy' as const
+      };
+    });
     
     const instrumentCategories = Array.from(uniqueInstruments).map(instrument => ({
       id: `instrument-${instrument}`,
       name: instrument,
+      originalId: instrument,
       type: 'instrument' as const
     }));
     
@@ -112,13 +118,13 @@ export function useMonthlyPerformanceData(trades: TradeWithMetrics[]): MonthlyPe
           tradesInCategory = trades.filter(trade => {
             const tradeDate = new Date(trade.entryDate);
             const isInMonth = tradeDate >= monthStart && tradeDate <= monthEnd;
-            return isInMonth && trade.strategy === category.name;
+            return isInMonth && trade.strategy === category.originalId;
           });
         } else {
           tradesInCategory = trades.filter(trade => {
             const tradeDate = new Date(trade.entryDate);
             const isInMonth = tradeDate >= monthStart && tradeDate <= monthEnd;
-            return isInMonth && trade.type === category.name;
+            return isInMonth && trade.type === category.originalId;
           });
         }
         
@@ -194,14 +200,21 @@ export function useMonthlyPerformanceData(trades: TradeWithMetrics[]): MonthlyPe
     
     console.log('Monthly Performance - Direct total R from all trades:', directTotalR);
     
+    // Return clean category objects for the UI
+    const cleanCategories = allCategories.map(({ id, name, type }) => ({
+      id,
+      name,
+      type
+    }));
+    
     // Filter out empty categories (no trades for any month)
-    const activeCategories = allCategories.filter(category => 
+    const activeCategories = cleanCategories.filter(category => 
       monthlyPerformance.some(month => month[category.id]?.count > 0)
     );
     
     return {
       monthlyData: monthlyPerformance,
-      categories: allCategories,
+      categories: cleanCategories,
       activeCategories: activeCategories,
       totals: {
         totalDollarValue: calculateTotalDollarValue(trades),

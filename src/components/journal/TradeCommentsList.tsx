@@ -7,6 +7,7 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { TradeWithMetrics } from '@/types';
 import { useNavigate } from 'react-router-dom';
+import { getStrategyById } from '@/utils/strategyStorage';
 
 interface TradeCommentsListProps {
   trades: TradeWithMetrics[];
@@ -27,11 +28,14 @@ export function TradeCommentsList({
     const groups: Record<string, TradeWithMetrics[]> = {};
     
     trades.forEach(trade => {
-      const strategy = trade.strategy || 'No Strategy';
-      if (!groups[strategy]) {
-        groups[strategy] = [];
+      const strategyId = trade.strategy || 'No Strategy';
+      // Get the strategy name from the ID
+      const strategyName = trade.strategy ? getStrategyById(trade.strategy)?.name || strategyId : 'No Strategy';
+      
+      if (!groups[strategyName]) {
+        groups[strategyName] = [];
       }
-      groups[strategy].push(trade);
+      groups[strategyName].push(trade);
     });
     
     // Sort strategies alphabetically
@@ -42,6 +46,12 @@ export function TradeCommentsList({
         return acc;
       }, {} as Record<string, TradeWithMetrics[]>);
   }, [trades, groupByStrategy]);
+  
+  const getStrategyName = (strategyId: string | undefined): string => {
+    if (!strategyId) return 'No Strategy';
+    const strategy = getStrategyById(strategyId);
+    return strategy ? strategy.name : strategyId;
+  };
   
   const handleTradeClick = (tradeId: string) => {
     // Store the current journal tab in session storage before navigating
@@ -108,7 +118,7 @@ export function TradeCommentsList({
                           </h3>
                           {!groupByStrategy && (
                             <Badge variant="outline">
-                              {trade.strategy || 'No Strategy'}
+                              {getStrategyName(trade.strategy)}
                             </Badge>
                           )}
                         </div>
