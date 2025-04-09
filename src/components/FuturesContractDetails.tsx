@@ -25,7 +25,7 @@ export function FuturesContractDetails({
   };
   
   return (
-    <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 p-3 border rounded-md bg-muted/20">
       <dt className="text-muted-foreground">Exchange:</dt>
       <dd>{actualDetails.exchange}</dd>
       
@@ -35,15 +35,19 @@ export function FuturesContractDetails({
       <dt className="text-muted-foreground">Contract Size:</dt>
       <dd>{actualDetails.contractSize || 1}</dd>
       
-      <dt className="text-muted-foreground">Point Value:</dt>
-      <dd>${actualDetails.tickValue}</dd>
+      <dt className="text-muted-foreground font-medium">Point Value:</dt>
+      <dd className="font-medium">${actualDetails.tickValue}</dd>
       
-      {actualValue !== undefined && (
+      {actualDetails.tickSize && actualDetails.tickValue && (
         <>
           <dt className="text-muted-foreground font-medium">Tick Value:</dt>
-          <dd className="font-medium">${(actualDetails.tickSize || 0) * (actualDetails.tickValue || 0)}</dd>
+          <dd className="font-medium">${(actualDetails.tickSize * actualDetails.tickValue).toFixed(2)}</dd>
         </>
       )}
+      
+      <dt className="text-xs text-muted-foreground col-span-2 mt-2 border-t pt-2">
+        Risk calculation uses point value to determine dollar risk based on price movement.
+      </dt>
     </dl>
   );
 }

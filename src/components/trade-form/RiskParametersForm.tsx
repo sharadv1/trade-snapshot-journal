@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Trade } from '@/types';
 import { TrendingDown, TrendingUp, Ratio, Target } from 'lucide-react';
 import { AccountField } from './AccountField';
+import { getContractPointValue } from '@/utils/calculations/contractUtils';
 
 interface RiskParametersFormProps {
   trade: Partial<Trade>;
@@ -18,22 +19,41 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
 
   // Calculate risk-reward ratio when stopLoss or takeProfit changes
   useEffect(() => {
-    if (trade.stopLoss && trade.takeProfit && trade.entryPrice && trade.quantity) {
+    if (trade.stopLoss && trade.entryPrice && trade.quantity) {
       const quantity = parseFloat(trade.quantity.toString());
-      const riskPerUnit = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString()));
-      const rewardPerUnit = Math.abs(parseFloat(trade.takeProfit.toString()) - parseFloat(trade.entryPrice.toString()));
+      let riskPerUnit = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString()));
       
-      // Calculate total risk and reward
+      // Apply contract multiplier for futures
+      if (trade.type === 'futures') {
+        const pointValue = getContractPointValue(trade as Trade);
+        riskPerUnit = riskPerUnit * pointValue;
+      }
+      
+      // Calculate total risk
       const totalRisk = riskPerUnit * quantity;
-      const totalReward = rewardPerUnit * quantity;
-      
       setRiskedAmount(totalRisk);
-      setPotentialReward(totalReward);
       
-      if (riskPerUnit > 0) {
-        const ratio = rewardPerUnit / riskPerUnit;
-        setRiskRewardRatio(ratio);
+      // Calculate reward if take profit is set
+      if (trade.takeProfit) {
+        let rewardPerUnit = Math.abs(parseFloat(trade.takeProfit.toString()) - parseFloat(trade.entryPrice.toString()));
+        
+        // Apply contract multiplier for futures
+        if (trade.type === 'futures') {
+          const pointValue = getContractPointValue(trade as Trade);
+          rewardPerUnit = rewardPerUnit * pointValue;
+        }
+        
+        const totalReward = rewardPerUnit * quantity;
+        setPotentialReward(totalReward);
+        
+        if (riskPerUnit > 0) {
+          const ratio = rewardPerUnit / riskPerUnit;
+          setRiskRewardRatio(ratio);
+        } else {
+          setRiskRewardRatio(null);
+        }
       } else {
+        setPotentialReward(null);
         setRiskRewardRatio(null);
       }
     } else {
@@ -41,7 +61,7 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
       setRiskedAmount(null);
       setPotentialReward(null);
     }
-  }, [trade.stopLoss, trade.takeProfit, trade.entryPrice, trade.quantity]);
+  }, [trade.stopLoss, trade.takeProfit, trade.entryPrice, trade.quantity, trade.type, trade.contractDetails]);
 
   return (
     <div className="space-y-4">
@@ -84,6 +104,11 @@ export function RiskParametersForm({ trade, handleChange }: RiskParametersFormPr
             </Label>
             <div className="p-2 border rounded bg-background">
               ${riskedAmount.toFixed(2)}
+              {trade.type === 'futures' && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  with point value: ${getContractPointValue(trade as Trade)}
+                </span>
+              )}
             </div>
           </div>
         )}

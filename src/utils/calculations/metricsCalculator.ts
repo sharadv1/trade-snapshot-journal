@@ -1,5 +1,6 @@
 
 import { Trade } from '@/types';
+import { getContractPointValue } from './contractUtils';
 
 export const getTradeMetrics = (trade: Trade) => {
   let profitLoss = 0;
@@ -86,16 +87,31 @@ export const getTradeMetrics = (trade: Trade) => {
     latestExitDate = trade.exitDate;
   }
 
-  // Calculate risk per share based on entry and stop loss
-  let riskedAmountPerShare = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString()));
+  // Calculate risk per share/contract based on entry and stop loss
+  let riskedAmountPerUnit = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString()));
   
-  // Calculate actual risked amount (per share * quantity)
-  riskedAmount = riskedAmountPerShare * parseFloat(trade.quantity.toString());
+  // Apply contract multiplier for futures
+  if (trade.type === 'futures') {
+    const pointValue = getContractPointValue(trade);
+    riskedAmountPerUnit = riskedAmountPerUnit * pointValue;
+    calculationExplanation += `Futures contract with point value: $${pointValue}. `;
+  }
+  
+  // Calculate actual risked amount (per unit * quantity)
+  riskedAmount = riskedAmountPerUnit * parseFloat(trade.quantity.toString());
 
   if (trade.takeProfit) {
     const takeProfitValue = parseFloat(trade.takeProfit.toString());
     const entryPrice = parseFloat(trade.entryPrice.toString());
-    maxPotentialGain = Math.abs(takeProfitValue - entryPrice) * parseFloat(trade.quantity.toString());
+    let maxGainPerUnit = Math.abs(takeProfitValue - entryPrice);
+    
+    // Apply contract multiplier for futures
+    if (trade.type === 'futures') {
+      const pointValue = getContractPointValue(trade);
+      maxGainPerUnit = maxGainPerUnit * pointValue;
+    }
+    
+    maxPotentialGain = maxGainPerUnit * parseFloat(trade.quantity.toString());
     
     if (riskedAmount > 0 && maxPotentialGain > 0) {
       riskRewardRatio = maxPotentialGain / riskedAmount;
@@ -129,6 +145,10 @@ export const getTradeMetrics = (trade: Trade) => {
       `Exit: ${weightedExitPrice?.toFixed(8) || trade.exitPrice}, Stop: ${trade.stopLoss}. `;
     
     calculationExplanation += `Risk: $${riskedAmount.toFixed(2)}`;
+    
+    if (trade.type === 'futures' && trade.contractDetails) {
+      calculationExplanation += `, Contract Value: $${getContractPointValue(trade)}`;
+    }
     
     if (maxPotentialGain > 0) {
       calculationExplanation += `, Potential Gain: $${maxPotentialGain.toFixed(2)}`;
