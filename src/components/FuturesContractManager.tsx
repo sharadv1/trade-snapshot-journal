@@ -80,12 +80,32 @@ export function FuturesContractManager() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'symbol' ? value.toUpperCase() : 
-              (name === 'description' || name === 'exchange') ? value : 
-              parseFloat(value)
-    });
+    
+    // Special handling for numeric fields to allow "0." and "." inputs
+    if (name === 'tickSize' || name === 'tickValue' || name === 'pointValue' || name === 'contractSize') {
+      // Allow input to start with "0." or "."
+      if (value === '' || value === '.' || value === '0.') {
+        setFormData({
+          ...formData,
+          [name]: value
+        });
+      } else {
+        // Convert to number if it's a valid number
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+          setFormData({
+            ...formData,
+            [name]: numValue
+          });
+        }
+      }
+    } else {
+      // Handle non-numeric fields
+      setFormData({
+        ...formData,
+        [name]: name === 'symbol' ? value.toUpperCase() : value
+      });
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -107,13 +127,26 @@ export function FuturesContractManager() {
       return;
     }
 
+    // Handle special numeric string values
+    const tickSize = typeof formData.tickSize === 'string' ? 
+      (formData.tickSize === '.' ? 0 : parseFloat(formData.tickSize)) : 
+      formData.tickSize!;
+    
+    const pointValue = typeof formData.pointValue === 'string' ? 
+      (formData.pointValue === '.' ? 0 : parseFloat(formData.pointValue)) : 
+      formData.pointValue!;
+
+    const contractSize = typeof formData.contractSize === 'string' ? 
+      (formData.contractSize === '.' ? 0 : parseFloat(formData.contractSize)) : 
+      formData.contractSize || 1;
+
     const newContract: FuturesContract = {
       symbol: formData.symbol!,
       exchange: formData.exchange!,
-      tickSize: formData.tickSize!,
-      tickValue: formData.pointValue! / (1/formData.tickSize!), // Calculate tick value based on point value and tick size
-      pointValue: formData.pointValue!,
-      contractSize: formData.contractSize || 1,
+      tickSize: tickSize,
+      tickValue: pointValue / (1/tickSize), // Calculate tick value based on point value and tick size
+      pointValue: pointValue,
+      contractSize: contractSize,
       description: formData.description || ''
     };
 
@@ -313,12 +346,15 @@ export function FuturesContractManager() {
                 <Input
                   id="tickSize"
                   name="tickSize"
-                  type="number"
-                  step="0.00001"
+                  type="text"
+                  inputMode="decimal"
                   value={formData.tickSize || ''}
                   onChange={handleInputChange}
                   placeholder="0.25"
                 />
+                <p className="text-xs text-muted-foreground">
+                  e.g. 0.25, 0.01, 0.0001
+                </p>
               </div>
               
               <div className="space-y-2">
@@ -326,7 +362,8 @@ export function FuturesContractManager() {
                 <Input
                   id="pointValue"
                   name="pointValue"
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={formData.pointValue || ''}
                   onChange={handleInputChange}
                   placeholder="50"
@@ -342,7 +379,8 @@ export function FuturesContractManager() {
               <Input
                 id="contractSize"
                 name="contractSize"
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={formData.contractSize || ''}
                 onChange={handleInputChange}
                 placeholder="1"
@@ -357,6 +395,7 @@ export function FuturesContractManager() {
                 value={formData.description || ''}
                 onChange={handleInputChange}
                 placeholder="E-mini S&P 500, Silver, etc."
+                className="w-full"
               />
             </div>
           </div>

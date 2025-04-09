@@ -38,14 +38,25 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
     
     const hasExit = exitDate && exitPrice;
     
+    // Handle special cases for numeric inputs 
+    let parsedEntryPrice = parseFloat(entryPrice);
+    let parsedQuantity = parseFloat(quantity);
+    let parsedExitPrice = hasExit ? parseFloat(exitPrice) : undefined;
+    
+    // If any of these are NaN, show an error
+    if (isNaN(parsedEntryPrice) || isNaN(parsedQuantity) || (hasExit && isNaN(parsedExitPrice!))) {
+      toast.error('Please enter valid numbers for price and quantity fields');
+      return;
+    }
+    
     const newTrade: Partial<Trade> = {
       symbol: symbol.toUpperCase(),
       direction,
       type: tradeType,
       status: hasExit ? 'closed' : 'open',
       entryDate: formatISO(new Date(entryDate)),
-      entryPrice: parseFloat(entryPrice),
-      quantity: parseFloat(quantity),
+      entryPrice: parsedEntryPrice,
+      quantity: parsedQuantity,
       strategy,
       tags: [],
       images: [],
@@ -54,7 +65,7 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
     
     if (hasExit) {
       newTrade.exitDate = formatISO(new Date(exitDate));
-      newTrade.exitPrice = parseFloat(exitPrice);
+      newTrade.exitPrice = parsedExitPrice;
     }
     
     try {
@@ -97,6 +108,12 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
     // Allow input to start with "0." or "."
     const value = e.target.value;
     setQuantity(value);
+  };
+  
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>) => {
+    // Allow input to start with "0." or "."
+    const value = e.target.value;
+    setter(value);
   };
   
   return (
@@ -175,11 +192,11 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
                   <Label htmlFor="entry-price" className="text-xs text-muted-foreground">Price</Label>
                   <Input 
                     id="entry-price" 
-                    type="number"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
                     placeholder="0.00"
                     value={entryPrice}
-                    onChange={(e) => setEntryPrice(e.target.value)}
+                    onChange={(e) => handlePriceChange(e, setEntryPrice)}
                   />
                 </div>
               </div>
@@ -230,11 +247,11 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
                     <Label htmlFor="exit-price" className="text-xs text-muted-foreground">Price</Label>
                     <Input 
                       id="exit-price" 
-                      type="number"
-                      step="any"
+                      type="text"
+                      inputMode="decimal"
                       placeholder="0.00"
                       value={exitPrice}
-                      onChange={(e) => setExitPrice(e.target.value)}
+                      onChange={(e) => handlePriceChange(e, setExitPrice)}
                     />
                   </div>
                 </div>

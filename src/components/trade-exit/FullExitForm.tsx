@@ -1,9 +1,8 @@
-
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CircleDollarSign, Calendar } from 'lucide-react';
+import { CircleDollarSign, Calendar, DollarSign } from 'lucide-react';
 import { Trade } from '@/types';
 
 interface FullExitFormProps {
@@ -28,6 +27,36 @@ export function FullExitForm({
   notes,
   setNotes
 }: FullExitFormProps) {
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Allow input to start with "0." or "."
+    const value = e.target.value;
+    if (value === '' || value === '.' || value === '0.') {
+      // Keep the input as is to allow typing
+      setExitPrice(value as any);
+    } else if (value === '') {
+      setExitPrice(undefined);
+    } else {
+      // Convert to number if it's a valid number
+      const numValue = parseFloat(value);
+      setExitPrice(isNaN(numValue) ? undefined : numValue);
+    }
+  };
+
+  const handleFeesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Allow input to start with "0." or "."
+    const value = e.target.value;
+    if (value === '' || value === '.' || value === '0.') {
+      // Keep the input as is to allow typing
+      setFees(value as any);
+    } else if (value === '') {
+      setFees(undefined);
+    } else {
+      // Convert to number if it's a valid number
+      const numValue = parseFloat(value);
+      setFees(isNaN(numValue) ? undefined : numValue);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -37,11 +66,11 @@ export function FullExitForm({
         </Label>
         <Input 
           id="exitPrice" 
-          type="number"
+          type="text"
+          inputMode="decimal"
           min="0"
-          step="0.01"
           value={exitPrice || ''}
-          onChange={(e) => setExitPrice(parseFloat(e.target.value))}
+          onChange={handlePriceChange}
           required
         />
       </div>
@@ -60,14 +89,17 @@ export function FullExitForm({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="fees">Fees & Commissions</Label>
+        <Label htmlFor="fees" className="flex items-center gap-1">
+          <DollarSign className="h-4 w-4" />
+          Fees & Commissions
+        </Label>
         <Input 
           id="fees" 
-          type="number"
+          type="text"
+          inputMode="decimal"
           min="0"
-          step="0.01"
           value={fees || ''}
-          onChange={(e) => setFees(parseFloat(e.target.value))}
+          onChange={handleFeesChange}
         />
       </div>
       
