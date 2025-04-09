@@ -24,13 +24,28 @@ export function FuturesContractDetails({
     }
   };
   
-  // Check if this is a Silver contract
-  const isSilver = symbol?.toUpperCase().includes('SIL') || 
-                   symbol?.toUpperCase() === 'SI' ||
-                   (symbol?.includes('SI') && !symbol?.includes('MSFT'));
+  // Check if this is a full-sized Silver contract (SI) vs micro (SIL)
+  const normalizedSymbol = symbol?.toUpperCase().trim();
   
-  // For Silver contracts, override the displayed value to show $5000
-  const displayTickValue = isSilver ? 5000 : actualDetails.tickValue;
+  // Detect full-sized Silver (SI) contracts
+  const isFullSilver = normalizedSymbol === 'SI' || 
+                       (normalizedSymbol?.includes('SI') && 
+                        !normalizedSymbol?.includes('SIL') && 
+                        !normalizedSymbol?.includes('MSFT'));
+  
+  // Detect micro Silver (SIL) contracts
+  const isMicroSilver = normalizedSymbol === 'SIL' || 
+                        normalizedSymbol?.includes('SIL');
+  
+  // For Silver contracts, override the displayed value
+  let displayTickValue = actualDetails.tickValue;
+  
+  // Override to proper values for SI and SIL
+  if (isFullSilver) {
+    displayTickValue = 5000; // Full-sized Silver
+  } else if (isMicroSilver) {
+    displayTickValue = 1000; // Micro Silver
+  }
   
   // Format the tick value for display with commas for large numbers
   const formattedTickValue = displayTickValue ? 
@@ -62,9 +77,14 @@ export function FuturesContractDetails({
       
       <dt className="text-xs text-muted-foreground col-span-2 mt-2 border-t pt-2">
         Risk calculation uses point value to determine dollar risk based on price movement.
-        {isSilver && (
+        {isFullSilver && (
           <span className="block mt-1 text-amber-600 font-medium">
-            Silver futures have a standard point value of $5,000 per full point.
+            Silver futures (SI) have a standard point value of $5,000 per full point.
+          </span>
+        )}
+        {isMicroSilver && (
+          <span className="block mt-1 text-amber-600 font-medium">
+            Micro Silver futures (SIL) have a standard point value of $1,000 per full point.
           </span>
         )}
       </dt>

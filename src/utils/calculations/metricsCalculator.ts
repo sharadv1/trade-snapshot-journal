@@ -43,17 +43,29 @@ export const getTradeMetrics = (trade: Trade) => {
     };
   }
 
-  // Check for Silver contracts directly to ensure we always use $5000
-  const isSilverContract = trade.symbol?.toUpperCase().includes('SIL') || 
-                           trade.symbol?.toUpperCase() === 'SI' ||
-                           (trade.symbol?.toUpperCase().includes('SI') && !trade.symbol?.toUpperCase().includes('MSFT'));
-  
   // Get point value for futures contract - do this early to ensure consistent usage
   let pointValue = 1;
+  
   if (trade.type === 'futures') {
-    if (isSilverContract) {
-      pointValue = 5000; // Always override to $5000 for Silver contracts
-      console.log(`Metrics calculation for ${trade.symbol}: using Silver point value override ${pointValue}`);
+    const normalizedSymbol = trade.symbol?.toUpperCase().trim();
+    
+    // Detect full-sized Silver (SI) vs micro Silver (SIL) contracts
+    const isFullSilver = normalizedSymbol === 'SI' || 
+                         (normalizedSymbol?.includes('SI') && 
+                          !normalizedSymbol?.includes('SIL') && 
+                          !normalizedSymbol?.includes('MSFT'));
+                          
+    const isMicroSilver = normalizedSymbol === 'SIL' || 
+                          normalizedSymbol?.includes('SIL');
+    
+    if (isFullSilver) {
+      // Full-sized Silver
+      pointValue = 5000;
+      console.log(`Metrics calculation for ${trade.symbol}: using full-sized Silver point value $${pointValue}`);
+    } else if (isMicroSilver) {
+      // Micro Silver
+      pointValue = 1000;
+      console.log(`Metrics calculation for ${trade.symbol}: using micro Silver point value $${pointValue}`);
     } else if (trade.contractDetails?.tickValue && Number(trade.contractDetails.tickValue) > 0) {
       pointValue = Number(trade.contractDetails.tickValue);
       console.log(`Metrics calculation for ${trade.symbol}: using stored point value ${pointValue}`);
@@ -125,7 +137,16 @@ export const getTradeMetrics = (trade: Trade) => {
   // Apply contract multiplier for futures
   if (trade.type === 'futures') {
     riskedAmountPerUnit = riskedAmountPerUnit * pointValue;
-    calculationExplanation += `Futures contract with point value: $${pointValue}. `;
+    
+    if (trade.symbol?.toUpperCase().includes('SI')) {
+      if (trade.symbol?.toUpperCase().includes('SIL')) {
+        calculationExplanation += `Micro Silver futures (SIL) with point value: $${pointValue}. `;
+      } else {
+        calculationExplanation += `Silver futures (SI) with point value: $${pointValue}. `;
+      }
+    } else {
+      calculationExplanation += `Futures contract with point value: $${pointValue}. `;
+    }
   }
   
   // Calculate actual risked amount (per unit * quantity)

@@ -24,9 +24,17 @@ export function getContractPointValue(trade: Trade): number {
       
       // Special override for Silver contracts that might have incorrect tickValue stored
       const normalizedSymbol = trade.symbol?.toUpperCase().trim();
-      if (isSilverContract(normalizedSymbol)) {
-        console.log(`SIL CONTRACT OVERRIDE: ${trade.symbol} has incorrect stored value ${tickValue}, using $5000 instead`);
-        return 5000; // Always use $5000 for Silver contracts regardless of stored value
+      
+      // Full-sized SI contracts should always be $5000, regardless of stored value
+      if (isSilverFullContract(normalizedSymbol)) {
+        console.log(`SI CONTRACT OVERRIDE: ${trade.symbol} should use $5000 point value`);
+        return 5000; // Always use $5000 for full-sized Silver contracts
+      }
+      
+      // Micro SIL contracts should be $1000
+      if (isMicroSilverContract(normalizedSymbol)) {
+        console.log(`SIL CONTRACT OVERRIDE: ${trade.symbol} should use $1000 point value`);
+        return 1000; // Always use $1000 for micro Silver contracts
       }
       
       return tickValue;
@@ -36,10 +44,16 @@ export function getContractPointValue(trade: Trade): number {
   // Normalize the symbol for comparison (handle case variations and common prefixes/suffixes)
   const normalizedSymbol = trade.symbol?.toUpperCase().trim();
   
-  // Special direct check for silver-related symbols
-  if (isSilverContract(normalizedSymbol)) {
-    console.log(`SILVER CONTRACT DETECTED: ${trade.symbol} - Using $5000 point value`);
-    return 5000; // Default value for Silver futures
+  // Special direct check for silver-related symbols - full-sized
+  if (isSilverFullContract(normalizedSymbol)) {
+    console.log(`FULL-SIZED SILVER CONTRACT DETECTED: ${trade.symbol} - Using $5000 point value`);
+    return 5000; // Fixed value for full-sized Silver futures
+  }
+  
+  // Special direct check for micro silver contracts
+  if (isMicroSilverContract(normalizedSymbol)) {
+    console.log(`MICRO SILVER CONTRACT DETECTED: ${trade.symbol} - Using $1000 point value`);
+    return 1000; // Fixed value for micro Silver futures
   }
   
   // Check for stored custom contracts
@@ -132,44 +146,53 @@ export function getContractPointValue(trade: Trade): number {
 }
 
 /**
- * Helper function to identify Silver contracts
+ * Helper function to identify full-sized Silver contracts (SI)
  */
-function isSilverContract(symbol?: string): boolean {
+function isSilverFullContract(symbol?: string): boolean {
   if (!symbol) return false;
   
-  // Silver standard symbols and variants
-  const silverPatterns = ['SI', 'SIL', 'SILVER'];
+  // Full-sized silver standard symbols and variants (SI)
+  return (
+    symbol === 'SI' || 
+    symbol.startsWith('SI.') || 
+    symbol.startsWith('SI/') || 
+    symbol.endsWith('.SI') || 
+    symbol.endsWith('/SI') ||
+    // Match SI but not SIL
+    (symbol.includes('SI') && 
+     !symbol.includes('SIL') && 
+     !symbol.includes('MSFT') && 
+     !symbol.includes('CSCO') && 
+     !symbol.includes('TECH'))
+  );
+}
+
+/**
+ * Helper function to identify Micro Silver contracts (SIL)
+ */
+function isMicroSilverContract(symbol?: string): boolean {
+  if (!symbol) return false;
   
-  // Check for exact matches first
-  for (const pattern of silverPatterns) {
-    if (symbol === pattern) {
-      return true;
-    }
-  }
-  
-  // Check for patterns with separators (dots, slashes)
-  for (const pattern of silverPatterns) {
-    if (
-      symbol.startsWith(pattern + '.') ||
-      symbol.startsWith(pattern + '/') ||
-      symbol.endsWith('.' + pattern) ||
-      symbol.endsWith('/' + pattern)
-    ) {
-      return true;
-    }
-  }
-  
-  // Check for contains, but exclude tech symbols
-  if (
-    (symbol.includes('SI') || symbol.includes('SIL')) &&
-    !symbol.includes('MSFT') && 
-    !symbol.includes('CSCO') &&
-    !symbol.includes('TECH')
-  ) {
-    return true;
-  }
-  
-  return false;
+  // Micro silver standard symbols and variants (SIL)
+  return (
+    symbol === 'SIL' || 
+    symbol.startsWith('SIL.') || 
+    symbol.startsWith('SIL/') || 
+    symbol.endsWith('.SIL') || 
+    symbol.endsWith('/SIL') ||
+    symbol.includes('MICRO SI') ||
+    (symbol.includes('SIL') && 
+     !symbol.includes('MSFT') && 
+     !symbol.includes('CSCO') && 
+     !symbol.includes('TECH'))
+  );
+}
+
+/**
+ * Helper function to identify any Silver contract (kept for compatibility)
+ */
+function isSilverContract(symbol?: string): boolean {
+  return isSilverFullContract(symbol) || isMicroSilverContract(symbol);
 }
 
 /**

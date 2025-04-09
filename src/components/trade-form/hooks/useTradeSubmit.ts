@@ -60,18 +60,20 @@ export function useTradeSubmit(
         // Create a temporary trade object to calculate point value if needed
         const tempTrade = { ...trade, id: initialTrade?.id || 'temp' } as Trade;
         
-        // Special handling for Silver futures (SIL)
-        const isSilverContract = tempTrade.symbol?.toUpperCase().includes('SIL') || 
-                                 tempTrade.symbol?.toUpperCase() === 'SI' ||
-                                 tempTrade.symbol?.includes('SILVER');
-        
-        // Calculate the point value based on the contract type
+        // Special handling for full-sized Silver futures (SI) vs micro (SIL)
+        const normalizedSymbol = tempTrade.symbol?.toUpperCase().trim();
         let pointValue = 0;
         
-        if (isSilverContract) {
-          console.log(`SIL/Silver contract detected: ${tempTrade.symbol} - Using fixed point value: 5000`);
-          pointValue = 5000; // Fixed point value for Silver
-        } else {
+        if (normalizedSymbol === 'SI' || (normalizedSymbol?.includes('SI') && !normalizedSymbol?.includes('SIL') && 
+            !normalizedSymbol?.includes('MSFT'))) {
+          console.log(`SI (full-sized Silver) contract detected: ${tempTrade.symbol} - Using fixed point value: 5000`);
+          pointValue = 5000; // Fixed point value for full-sized Silver
+        } 
+        else if (normalizedSymbol === 'SIL' || normalizedSymbol?.includes('SIL')) {
+          console.log(`SIL (micro Silver) contract detected: ${tempTrade.symbol} - Using fixed point value: 1000`);
+          pointValue = 1000; // Fixed point value for micro Silver
+        }
+        else {
           pointValue = getContractPointValue(tempTrade);
           console.log(`Saving trade with calculated point value: ${pointValue} for ${trade.symbol}`);
         }
