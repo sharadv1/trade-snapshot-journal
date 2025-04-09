@@ -16,29 +16,6 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
-        onChange={(e) => {
-          // Special handling for numeric-type inputs
-          if (type === "number" || props.inputMode === "decimal") {
-            const value = e.target.value;
-            
-            // Allow empty, "." at the start, or "0." to support progressive typing of decimals
-            if (value === "" || value === "." || value === "0." || /^-?(\d*\.?\d*)?$/.test(value)) {
-              if (props.onChange) {
-                props.onChange(e);
-              }
-              return;
-            }
-            
-            // Prevent the change if the value doesn't match our pattern
-            e.preventDefault();
-            return;
-          }
-          
-          // Handle normal input change
-          if (props.onChange) {
-            props.onChange(e);
-          }
-        }}
         {...props}
       />
     )

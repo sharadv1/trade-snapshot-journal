@@ -36,17 +36,20 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
     onTradeChange('symbol', value);
   };
 
-  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow input to start with "0." or "."
-    const value = e.target.value;
-    if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
-      if (value === '' || value === '.' || value === '0.') {
-        // Keep the input as is to allow typing
-        onTradeChange('quantity', value);
+  // Handle numeric inputs with decimal points
+  const handleNumericInput = (field: keyof Trade, value: string) => {
+    if (value === '') {
+      onTradeChange(field, undefined);
+      return;
+    }
+    
+    // Allow decimal inputs like ".", "0." or valid numbers
+    if (value === '.' || value === '0.' || /^\d*\.?\d*$/.test(value)) {
+      if (value === '.' || value === '0.') {
+        onTradeChange(field, value);
       } else {
-        // Convert to number if it's a valid number
         const numValue = parseFloat(value);
-        onTradeChange('quantity', isNaN(numValue) ? '' : numValue);
+        onTradeChange(field, isNaN(numValue) ? undefined : numValue);
       }
     }
   };
@@ -152,19 +155,9 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
           id="entryPrice"
           type="text"
           inputMode="decimal"
-          step="any"
           placeholder="Entry price"
           value={trade.entryPrice || ''}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
-              if (value === '' || value === '.' || value === '0.') {
-                onTradeChange('entryPrice', value);
-              } else {
-                onTradeChange('entryPrice', parseFloat(value) || '');
-              }
-            }
-          }}
+          onChange={(e) => handleNumericInput('entryPrice', e.target.value)}
           disabled={disableEdits}
         />
       </div>
@@ -175,10 +168,9 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
           id="quantity"
           type="text"
           inputMode="decimal"
-          min="0.000000001"
           placeholder="Quantity"
           value={trade.quantity || ''}
-          onChange={handleQuantityChange}
+          onChange={(e) => handleNumericInput('quantity', e.target.value)}
           disabled={disableEdits}
         />
         <p className="text-xs text-muted-foreground">Supports small values (e.g. 0.000033432)</p>

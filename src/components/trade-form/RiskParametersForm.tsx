@@ -28,54 +28,73 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
     }
   };
 
+  // Handle numeric inputs with decimal points
+  const handleNumericInput = (field: keyof Trade, value: string) => {
+    if (value === '') {
+      handleChange(field, undefined);
+      return;
+    }
+    
+    // Allow decimal inputs like ".", "0." or valid numbers
+    if (value === '.' || value === '0.' || /^\d*\.?\d*$/.test(value)) {
+      if (value === '.' || value === '0.') {
+        handleChange(field, value);
+      } else {
+        const numValue = parseFloat(value);
+        handleChange(field, isNaN(numValue) ? undefined : numValue);
+      }
+    }
+  };
+
   // Calculate risk/reward ratio when stop loss and take profit change
   useEffect(() => {
-    if (trade.initialStopLoss && trade.takeProfit && trade.entryPrice) {
-      const entryPrice = Number(trade.entryPrice);
-      const initialStopLoss = Number(trade.initialStopLoss);
-      const takeProfit = Number(trade.takeProfit);
-      
-      // Ensure all values are valid numbers
-      if (!isNaN(entryPrice) && !isNaN(initialStopLoss) && !isNaN(takeProfit) && 
-          initialStopLoss !== entryPrice) {
-        
-        const isLong = trade.direction !== 'short';
-        
-        // Calculate based on direction
-        if (isLong) {
-          // Long position: risk is entry - stop, reward is target - entry
-          const risk = entryPrice - initialStopLoss;
-          const reward = takeProfit - entryPrice;
-          
-          if (risk > 0 && reward > 0) {
-            const ratio = (reward / risk).toFixed(2);
-            setCalculatedRR(`${ratio}:1`);
-            // Update the trade object with the calculated ratio
-            handleChange('riskRewardRatio', parseFloat(ratio));
-          } else {
-            setCalculatedRR('Invalid');
-          }
-        } else {
-          // Short position: risk is stop - entry, reward is entry - target
-          const risk = initialStopLoss - entryPrice;
-          const reward = entryPrice - takeProfit;
-          
-          if (risk > 0 && reward > 0) {
-            const ratio = (reward / risk).toFixed(2);
-            setCalculatedRR(`${ratio}:1`);
-            // Update the trade object with the calculated ratio
-            handleChange('riskRewardRatio', parseFloat(ratio));
-          } else {
-            setCalculatedRR('Invalid');
-          }
-        }
-      } else {
-        setCalculatedRR('');
+    if (!trade.initialStopLoss || !trade.takeProfit || !trade.entryPrice) {
+      setCalculatedRR('');
+      return;
+    }
+
+    const entryPrice = Number(trade.entryPrice);
+    const initialStopLoss = Number(trade.initialStopLoss);
+    const takeProfit = Number(trade.takeProfit);
+    
+    // Ensure all values are valid numbers
+    if (isNaN(entryPrice) || isNaN(initialStopLoss) || isNaN(takeProfit) || 
+        initialStopLoss === entryPrice) {
+      setCalculatedRR('');
+      return;
+    }
+    
+    const isLong = trade.direction !== 'short';
+    let risk, reward, ratio;
+    
+    // Calculate based on direction
+    if (isLong) {
+      // Long position: risk is entry - stop, reward is target - entry
+      risk = entryPrice - initialStopLoss;
+      reward = takeProfit - entryPrice;
+    } else {
+      // Short position: risk is stop - entry, reward is entry - target
+      risk = initialStopLoss - entryPrice;
+      reward = entryPrice - takeProfit;
+    }
+    
+    if (risk > 0 && reward > 0) {
+      ratio = reward / risk;
+      setCalculatedRR(`${ratio.toFixed(2)}:1`);
+      // Don't update the trade object on every render to avoid the loop
+      // Only update when the ratio has actually changed
+      if (trade.riskRewardRatio !== parseFloat(ratio.toFixed(2))) {
+        console.log('Updating riskRewardRatio to:', parseFloat(ratio.toFixed(2)));
+        handleChange('riskRewardRatio', parseFloat(ratio.toFixed(2)));
       }
     } else {
-      setCalculatedRR('');
+      setCalculatedRR('Invalid');
+      // Clear the risk reward ratio if it's invalid
+      if (trade.riskRewardRatio) {
+        handleChange('riskRewardRatio', undefined);
+      }
     }
-  }, [trade.initialStopLoss, trade.takeProfit, trade.entryPrice, trade.direction, handleChange]);
+  }, [trade.initialStopLoss, trade.takeProfit, trade.entryPrice, trade.direction]);
 
   return (
     <div className="space-y-6">
@@ -120,16 +139,9 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
             id="initialStopLoss"
             type="text"
             inputMode="decimal"
-            step="any"
             placeholder="Initial stop loss price"
             value={trade.initialStopLoss || ''}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
-                const parsedValue = value ? parseFloat(value) : '';
-                handleChange('initialStopLoss', parsedValue);
-              }
-            }}
+            onChange={(e) => handleNumericInput('initialStopLoss', e.target.value)}
             disabled={disableEdits}
             className="border-primary/50"
           />
@@ -142,16 +154,9 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
             id="stopLoss"
             type="text"
             inputMode="decimal"
-            step="any"
             placeholder="Stop loss price"
             value={trade.stopLoss || ''}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
-                const parsedValue = value ? parseFloat(value) : '';
-                handleChange('stopLoss', parsedValue);
-              }
-            }}
+            onChange={(e) => handleNumericInput('stopLoss', e.target.value)}
             disabled={disableEdits}
           />
           <p className="text-xs text-muted-foreground">Current stop level (adjustable)</p>
@@ -165,16 +170,9 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
             id="takeProfit"
             type="text"
             inputMode="decimal"
-            step="any"
             placeholder="Take profit price"
             value={trade.takeProfit || ''}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
-                const parsedValue = value ? parseFloat(value) : '';
-                handleChange('takeProfit', parsedValue);
-              }
-            }}
+            onChange={(e) => handleNumericInput('takeProfit', e.target.value)}
             disabled={disableEdits}
           />
         </div>
@@ -225,16 +223,9 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
             id="maxFavorablePrice"
             type="text"
             inputMode="decimal"
-            step="any"
             placeholder={trade.direction === 'long' ? 'Highest price during trade' : 'Lowest price during trade'}
             value={trade.maxFavorablePrice || ''}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
-                const parsedValue = value ? parseFloat(value) : '';
-                handleChange('maxFavorablePrice', parsedValue);
-              }
-            }}
+            onChange={(e) => handleNumericInput('maxFavorablePrice', e.target.value)}
             disabled={disableEdits}
           />
           <p className="text-xs text-muted-foreground">
@@ -250,16 +241,9 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
             id="maxAdversePrice"
             type="text"
             inputMode="decimal"
-            step="any"
             placeholder={trade.direction === 'long' ? 'Lowest price during trade' : 'Highest price during trade'}
             value={trade.maxAdversePrice || ''}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
-                const parsedValue = value ? parseFloat(value) : '';
-                handleChange('maxAdversePrice', parsedValue);
-              }
-            }}
+            onChange={(e) => handleNumericInput('maxAdversePrice', e.target.value)}
             disabled={disableEdits}
           />
           <p className="text-xs text-muted-foreground">

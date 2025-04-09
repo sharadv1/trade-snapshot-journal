@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,14 +30,17 @@ export function FullExitForm({
 }: FullExitFormProps) {
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
-      if (value === '' || value === '.' || value === '0.') {
-        // Keep the input as is to allow typing
+    
+    if (value === '') {
+      setExitPrice(undefined);
+      return;
+    }
+    
+    // Allow decimal input like "0.", "." or valid numbers
+    if (value === '.' || value === '0.' || /^\d*\.?\d*$/.test(value)) {
+      if (value === '.' || value === '0.') {
         setExitPrice(value as any);
-      } else if (value === '') {
-        setExitPrice(undefined);
       } else {
-        // Convert to number if it's a valid number
         const numValue = parseFloat(value);
         setExitPrice(isNaN(numValue) ? undefined : numValue);
       }
@@ -45,14 +49,17 @@ export function FullExitForm({
 
   const handleFeesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value === '' || value === '.' || value === '0.' || /^[0-9]*\.?[0-9]*$/.test(value)) {
-      if (value === '' || value === '.' || value === '0.') {
-        // Keep the input as is to allow typing
+    
+    if (value === '') {
+      setFees(undefined);
+      return;
+    }
+    
+    // Allow decimal input like "0.", "." or valid numbers
+    if (value === '.' || value === '0.' || /^\d*\.?\d*$/.test(value)) {
+      if (value === '.' || value === '0.') {
         setFees(value as any);
-      } else if (value === '') {
-        setFees(undefined);
       } else {
-        // Convert to number if it's a valid number
         const numValue = parseFloat(value);
         setFees(isNaN(numValue) ? undefined : numValue);
       }
