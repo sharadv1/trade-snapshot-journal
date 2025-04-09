@@ -53,7 +53,7 @@ export const useTradeForm = (
   
   // Use custom hooks
   const { trade, setTrade, handleChange, handleTypeChange } = useTradeState(
-    initialTrade || defaultTrade,
+    initialTrade || defaultTrade as Trade, // Type assertion here
     isEditing
   );
   
