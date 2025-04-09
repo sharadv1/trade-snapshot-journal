@@ -56,6 +56,12 @@ export function JournalLayout() {
     // Set up event listeners for journal updates
     const handleJournalUpdate = () => {
       console.log('Journal updated event received in JournalLayout');
+      
+      // Refresh component state to reflect deleted entries
+      if (location.pathname.includes('/journal') && !location.pathname.includes('/weekly/') && !location.pathname.includes('/monthly/')) {
+        // Don't refresh if we're on a specific reflection page
+        navigate(location.pathname, { replace: true });
+      }
     };
     
     window.addEventListener('journal-updated', handleJournalUpdate);
@@ -65,7 +71,7 @@ export function JournalLayout() {
       window.removeEventListener('journal-updated', handleJournalUpdate);
       window.removeEventListener('journalUpdated', handleJournalUpdate);
     };
-  }, []);
+  }, [location.pathname, navigate]);
   
   return (
     <div className="w-full py-6 space-y-6 container mx-auto max-w-screen-xl">

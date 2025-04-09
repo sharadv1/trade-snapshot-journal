@@ -2,12 +2,25 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO, startOfWeek } from 'date-fns';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from '@/utils/toast';
+import { deleteWeeklyReflection, deleteMonthlyReflection } from '@/utils/journalStorage';
 
 export interface ReflectionsListProps {
   reflections: WeeklyReflection[] | MonthlyReflection[];
@@ -91,6 +104,39 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
     }
   };
 
+  // Function to count words in a string, handling HTML content
+  const countWords = (htmlString: string = ''): number => {
+    if (!htmlString) return 0;
+    
+    // Remove HTML tags
+    const text = htmlString.replace(/<[^>]*>/g, ' ');
+    
+    // Remove extra spaces and split by spaces
+    const words = text.trim().replace(/\s+/g, ' ').split(' ');
+    
+    // Filter out empty strings
+    return words.filter(word => word.length > 0).length;
+  };
+  
+  // Function to handle reflection deletion
+  const handleDelete = (reflectionId: string) => {
+    if (type === 'weekly') {
+      deleteWeeklyReflection(reflectionId);
+    } else {
+      deleteMonthlyReflection(reflectionId);
+    }
+    toast.success(`${type === 'weekly' ? 'Weekly' : 'Monthly'} reflection deleted successfully`);
+    
+    // Trigger UI updates
+    window.dispatchEvent(new CustomEvent('journal-updated'));
+  };
+  
+  // Function to determine if a reflection is deletable (no associated trades)
+  const isDeletable = (reflection: WeeklyReflection | MonthlyReflection): boolean => {
+    const stats = getStats(reflection);
+    return stats.tradeCount === 0;
+  };
+
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
@@ -160,6 +206,22 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
 
             // Check if this is explicitly marked as a placeholder
             const isPlaceholder = 'isPlaceholder' in reflection && reflection.isPlaceholder === true;
+            
+            // Calculate word counts
+            let reflectionWordCount = 0;
+            let planWordCount = 0;
+            
+            if (type === 'weekly') {
+              const weeklyReflection = reflection as WeeklyReflection;
+              reflectionWordCount = countWords(weeklyReflection.reflection);
+              planWordCount = countWords(weeklyReflection.weeklyPlan);
+            } else {
+              const monthlyReflection = reflection as MonthlyReflection;
+              reflectionWordCount = countWords(monthlyReflection.reflection);
+            }
+            
+            // Determine if reflection can be deleted
+            const canDelete = isDeletable(reflection);
 
             return (
               <Card 
@@ -186,28 +248,69 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                     <div className="text-sm text-muted-foreground">
                       <div>Trades: {stats.tradeCount}</div>
                       <div>R-Value: {stats.rValue > 0 ? '+' : ''}{stats.rValue.toFixed(2)}R</div>
-                    </div>
-                    
-                    <Button 
-                      asChild
-                      variant={reflectionHasContent ? "outline" : "default"}
-                      size="sm"
-                      className={reflectionHasContent ? "border-blue-400 hover:bg-blue-50 hover:text-blue-600" : "bg-green-600 hover:bg-green-700"}
-                    >
-                      <Link to={`/journal/${type}/${id}`}>
-                        {reflectionHasContent ? (
+                      
+                      {/* Word count information */}
+                      <div className="mt-2 text-xs">
+                        {type === 'weekly' ? (
                           <>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit Reflection
+                            <span>Reflection: {reflectionWordCount} words</span>
+                            <span className="ml-2">Plan: {planWordCount} words</span>
                           </>
                         ) : (
-                          <>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Create Reflection
-                          </>
+                          <span>Reflection: {reflectionWordCount} words</span>
                         )}
-                      </Link>
-                    </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      {canDelete && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="text-red-500 border-red-300 hover:bg-red-50">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Reflection</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this {type} reflection? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                className="bg-red-500 hover:bg-red-600" 
+                                onClick={() => handleDelete(id)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                      
+                      <Button 
+                        asChild
+                        variant={reflectionHasContent ? "outline" : "default"}
+                        size="sm"
+                        className={reflectionHasContent ? "border-blue-400 hover:bg-blue-50 hover:text-blue-600" : "bg-green-600 hover:bg-green-700"}
+                      >
+                        <Link to={`/journal/${type}/${id}`}>
+                          {reflectionHasContent ? (
+                            <>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit Reflection
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Create Reflection
+                            </>
+                          )}
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
