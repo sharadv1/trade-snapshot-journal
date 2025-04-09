@@ -8,8 +8,8 @@ import { toast } from '@/utils/toast';
 import { TradeMetrics } from '@/components/TradeMetrics';
 import { MonthlyPerformanceTable } from '@/components/MonthlyPerformanceTable';
 import { DataTransferControls } from '@/components/DataTransferControls';
-import { DayOfWeekPerformance } from '@/components/DayOfWeekPerformance';
-import { AccountPerformanceChart } from '@/components/AccountPerformanceChart';
+import { DayOfWeekPerformanceTable } from '@/components/DayOfWeekPerformanceTable';
+import { AccountPerformanceTable } from '@/components/AccountPerformanceTable';
 
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -82,7 +82,10 @@ export default function Analytics() {
           </div>
           
           <div className="w-full">
-            <AccountPerformanceChart trades={trades} key={`accounts-${refreshKey}`} />
+            <h2 className="text-2xl font-bold tracking-tight mb-4">
+              Account Performance
+            </h2>
+            <AccountPerformanceTable trades={trades} key={`accounts-${refreshKey}`} />
           </div>
           
           <div className="w-full">
@@ -94,7 +97,7 @@ export default function Analytics() {
                 </span>
               )}
             </h2>
-            <DayOfWeekPerformance 
+            <DayOfWeekPerformanceTable 
               trades={trades} 
               timeframes={['15m', '1h', 'm15', 'h1', 'M15', 'H1']} 
               key={`day-${refreshKey}`} 

@@ -6,23 +6,18 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  Legend
+  ResponsiveContainer
 } from 'recharts';
 import { formatCurrency } from '@/utils/tradeCalculations';
 import { PnLChartTooltip } from './PnLChartTooltip';
 
 interface CumulativePnLChartContentProps {
   chartData: any[];
-  strategies: string[];
-  strategyColors: string[];
   totalLineColor: string;
 }
 
 export function CumulativePnLChartContent({ 
   chartData, 
-  strategies, 
-  strategyColors, 
   totalLineColor 
 }: CumulativePnLChartContentProps) {
   return (
@@ -50,36 +45,17 @@ export function CumulativePnLChartContent({
           width={60}
         />
         <Tooltip content={<PnLChartTooltip />} />
-        <Legend 
-          verticalAlign="bottom"
-          height={36}
-          formatter={(value) => value === 'total' ? 'Overall P&L' : value}
-        />
         
-        {/* Line for overall P&L */}
+        {/* Line for overall P&L only */}
         <Line 
           type="monotone" 
           dataKey="total" 
-          name="total"
+          name="Overall P&L"
           stroke={totalLineColor} 
           strokeWidth={2}
           dot={{ r: 3, strokeWidth: 1 }}
           activeDot={{ r: 5, strokeWidth: 1 }}
         />
-        
-        {/* Lines for each strategy */}
-        {strategies.map((strategy, index) => (
-          <Line 
-            key={strategy}
-            type="monotone" 
-            dataKey={strategy} 
-            name={strategy}
-            stroke={strategyColors[index % strategyColors.length]} 
-            strokeWidth={1.5}
-            dot={{ r: 2 }}
-            activeDot={{ r: 4 }}
-          />
-        ))}
       </LineChart>
     </ResponsiveContainer>
   );

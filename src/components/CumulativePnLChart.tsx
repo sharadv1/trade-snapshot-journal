@@ -10,7 +10,7 @@ interface CumulativePnLChartProps {
 }
 
 export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
-  const { chartData, strategies, strategyColors, totalLineColor, hasData } = useCumulativePnLData(trades);
+  const { chartData, totalLineColor, hasData } = useCumulativePnLData(trades);
 
   if (!hasData) {
     return <EmptyChartState title="Cumulative Profit & Loss" />;
@@ -25,8 +25,6 @@ export function CumulativePnLChart({ trades }: CumulativePnLChartProps) {
         <div className="h-[400px] w-full">
           <CumulativePnLChartContent 
             chartData={chartData}
-            strategies={strategies}
-            strategyColors={strategyColors}
             totalLineColor={totalLineColor}
           />
         </div>
