@@ -59,7 +59,13 @@ export const getTradeMetrics = (trade: Trade) => {
         const entryPrice = parseFloat(trade.entryPrice!.toString());
 
         const tradeDirectionMultiplier = trade.direction === 'long' ? 1 : -1;
-        const exitProfitLoss = (exitPrice - entryPrice) * quantity * tradeDirectionMultiplier;
+        
+        // Calculate P&L with point value for futures
+        let exitProfitLoss = (exitPrice - entryPrice) * quantity * tradeDirectionMultiplier;
+        if (trade.type === 'futures') {
+          const pointValue = getContractPointValue(trade);
+          exitProfitLoss = exitProfitLoss * pointValue;
+        }
 
         runningProfitLoss += exitProfitLoss;
         weightedSum += exitPrice * quantity;
@@ -82,7 +88,15 @@ export const getTradeMetrics = (trade: Trade) => {
     const exitPrice = parseFloat(trade.exitPrice.toString());
 
     const tradeDirectionMultiplier = trade.direction === 'long' ? 1 : -1;
-    profitLoss = (exitPrice - entryPrice) * quantity * tradeDirectionMultiplier;
+    
+    // Calculate P&L with point value for futures
+    let exitProfitLoss = (exitPrice - entryPrice) * quantity * tradeDirectionMultiplier;
+    if (trade.type === 'futures') {
+      const pointValue = getContractPointValue(trade);
+      exitProfitLoss = exitProfitLoss * pointValue;
+    }
+    
+    profitLoss = exitProfitLoss;
     weightedExitPrice = exitPrice;
     latestExitDate = trade.exitDate;
   }
@@ -131,7 +145,15 @@ export const getTradeMetrics = (trade: Trade) => {
     rMultiple = profitLoss / riskedAmount;
   }
 
-  if (trade.entryPrice !== 0) {
+  // Calculate percentage based on initial investment for stocks
+  // For futures, use the risked amount as the baseline
+  if (trade.type === 'futures') {
+    if (riskedAmount > 0) {
+      profitLossPercentage = (profitLoss / riskedAmount) * 100;
+    } else {
+      calculationExplanation += 'Cannot calculate percentage: risked amount is zero. ';
+    }
+  } else if (trade.entryPrice !== 0) {
     profitLossPercentage = (profitLoss / (parseFloat(trade.entryPrice.toString()) * quantity)) * 100;
   } else {
     calculationExplanation += 'Entry price is zero. Cannot calculate profit/loss percentage. ';
@@ -143,12 +165,12 @@ export const getTradeMetrics = (trade: Trade) => {
     calculationExplanation = `Entry: ${trade.entryPrice}, `;
     calculationExplanation += trade.status === 'open' ? 
       `StopLoss: ${trade.stopLoss}, TakeProfit: ${trade.takeProfit || 'Not Set'}. ` :
-      `Exit: ${weightedExitPrice?.toFixed(8) || trade.exitPrice}, Stop: ${trade.stopLoss}. `;
+      `Exit: ${weightedExitPrice?.toFixed(5) || trade.exitPrice}, Stop: ${trade.stopLoss}. `;
     
     calculationExplanation += `Risk: $${riskedAmount.toFixed(2)}`;
     
     if (trade.type === 'futures' && trade.contractDetails) {
-      calculationExplanation += `, Contract Value: $${getContractPointValue(trade)}`;
+      calculationExplanation += `, Contract Value: $${getContractPointValue(trade).toLocaleString()}`;
     }
     
     if (maxPotentialGain > 0) {

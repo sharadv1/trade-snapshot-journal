@@ -21,8 +21,8 @@ export function getContractPointValue(trade: Trade): number {
     }
   }
   
-  // Check for SIL specifically as a common issue
-  if (trade.symbol === 'SIL' || trade.symbol === 'SI' || trade.symbol.includes('SILVER')) {
+  // Check for Silver specifically (common symbols: SI, SIL, SILVER)
+  if (trade.symbol?.includes('SI') && !trade.symbol?.includes('MSFT') && !trade.symbol?.includes('CSCO')) {
     console.log('Using standard point value for Silver futures: $5000');
     return 5000; // Default value for Silver futures
   }
@@ -47,6 +47,22 @@ export function getContractPointValue(trade: Trade): number {
     return 100; // Gold futures
   } else if (trade.symbol?.includes('CL') || trade.symbol?.includes('OIL')) {
     return 1000; // Crude Oil futures
+  } else if (trade.symbol?.includes('ZC') || trade.symbol?.includes('CORN')) {
+    return 50; // Corn futures
+  } else if (trade.symbol?.includes('ZW') || trade.symbol?.includes('WHEAT')) {
+    return 50; // Wheat futures
+  } else if (trade.symbol?.includes('ZS') || trade.symbol?.includes('SOYBEAN')) {
+    return 50; // Soybeans futures
+  } else if (trade.symbol?.includes('6E') || trade.symbol?.includes('EUR')) {
+    return 125000; // Euro FX futures
+  } else if (trade.symbol?.includes('6J') || trade.symbol?.includes('JPY')) {
+    return 12500000; // Japanese Yen futures
+  } else if (trade.symbol?.includes('6B') || trade.symbol?.includes('GBP')) {
+    return 62500; // British Pound futures
+  } else if (trade.symbol?.includes('KC') || trade.symbol?.includes('COFFEE')) {
+    return 37500; // Coffee futures
+  } else if (trade.symbol?.includes('CT') || trade.symbol?.includes('COTTON')) {
+    return 50000; // Cotton futures
   }
   
   console.warn(`No point value found for futures contract ${trade.symbol}, using default of 1000`);

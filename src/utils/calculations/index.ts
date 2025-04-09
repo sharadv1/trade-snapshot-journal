@@ -30,3 +30,13 @@ export const formatPercentage = (value: number): string => {
     maximumFractionDigits: 1
   }).format(value / 100);
 };
+
+// Format tick value or point value (for futures contracts)
+export const formatPointValue = (value: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(value);
+};
