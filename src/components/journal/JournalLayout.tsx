@@ -32,24 +32,14 @@ export function JournalLayout() {
         window.dispatchEvent(new CustomEvent('journal-updated'));
         window.dispatchEvent(new CustomEvent('journalUpdated'));
         
-        // Force a reload to ensure everything is updated
+        // Force a complete refresh by reloading the current route
+        const currentPath = location.pathname;
+        const tempPath = isWeekly ? '/journal/monthly' : '/journal/weekly';
+        
+        navigate(tempPath, { replace: true });
         setTimeout(() => {
-          // Re-navigate to current route to force a full component refresh
-          const currentPath = location.pathname;
-          
-          // For a more complete refresh
-          if (isWeekly) {
-            navigate('/journal/monthly', { replace: true });
-            setTimeout(() => {
-              navigate(currentPath, { replace: true });
-            }, 100);
-          } else {
-            navigate('/journal/weekly', { replace: true });
-            setTimeout(() => {
-              navigate(currentPath, { replace: true });
-            }, 100);
-          }
-        }, 300);
+          navigate(currentPath, { replace: true });
+        }, 100);
       } else {
         toast.info('No duplicate reflections found');
       }
@@ -59,7 +49,7 @@ export function JournalLayout() {
     } finally {
       setTimeout(() => {
         setIsRemoving(false);
-      }, 1000); // Give more time for the operation to complete visually
+      }, 800);
     }
   };
   

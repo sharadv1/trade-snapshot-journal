@@ -95,22 +95,7 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
   let weeklyRemoved = 0;
   let monthlyRemoved = 0;
   
-  const isValidWeeklyReflection = (obj: any): obj is WeeklyReflection => {
-    return obj && 
-           typeof obj === 'object' && 
-           'weekId' in obj && 
-           typeof obj.weekId === 'string' &&
-           obj.weekId.trim() !== '';
-  };
-  
-  const isValidMonthlyReflection = (obj: any): obj is MonthlyReflection => {
-    return obj && 
-           typeof obj === 'object' && 
-           'monthId' in obj && 
-           typeof obj.monthId === 'string' &&
-           obj.monthId.trim() !== '';
-  };
-  
+  // === WEEKLY REFLECTIONS ===
   try {
     console.log('Processing weekly reflections...');
     const weeklyReflectionsRaw = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
@@ -119,90 +104,134 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
       return { weeklyRemoved, monthlyRemoved };
     }
     
-    let weeklyReflections: Record<string, any>;
+    let allWeeklyReflections: Record<string, any>;
     try {
-      weeklyReflections = JSON.parse(weeklyReflectionsRaw);
-      console.log(`Parsed ${Object.keys(weeklyReflections).length} weekly reflections`);
-      
-      Object.entries(weeklyReflections).forEach(([key, value]) => {
-        if (isValidWeeklyReflection(value)) {
-          console.log(`Weekly entry - key: ${key}, weekId: ${value.weekId}`);
-        } else {
-          console.log(`Invalid weekly entry - key: ${key}, value:`, value);
-        }
-      });
+      allWeeklyReflections = JSON.parse(weeklyReflectionsRaw);
+      const allKeys = Object.keys(allWeeklyReflections);
+      console.log(`Parsed ${allKeys.length} weekly reflections with keys: ${allKeys.join(', ')}`);
     } catch (e) {
       console.error('Failed to parse weekly reflections JSON:', e);
       return { weeklyRemoved, monthlyRemoved };
     }
     
-    if (typeof weeklyReflections !== 'object' || weeklyReflections === null) {
-      console.error('Weekly reflections is not an object:', weeklyReflections);
+    if (typeof allWeeklyReflections !== 'object' || allWeeklyReflections === null) {
+      console.error('Weekly reflections is not an object:', allWeeklyReflections);
       return { weeklyRemoved, monthlyRemoved };
     }
     
-    const weekIdCount = new Map<string, number>();
-    Object.values(weeklyReflections).forEach((value) => {
-      if (isValidWeeklyReflection(value)) {
-        const count = weekIdCount.get(value.weekId) || 0;
-        weekIdCount.set(value.weekId, count + 1);
-      }
-    });
-    
-    let duplicateWeekIds = 0;
-    weekIdCount.forEach((count, weekId) => {
-      if (count > 1) {
-        console.log(`Weekly ID ${weekId} appears ${count} times - DUPLICATE DETECTED`);
-        duplicateWeekIds++;
-      }
-    });
-    console.log(`Found ${duplicateWeekIds} unique weekly IDs with duplicates`);
-    
+    // Create a map to store unique reflections by weekId
     const uniqueWeeklyReflections = new Map<string, WeeklyReflection>();
+    // Create a set to track duplicate keys
+    const duplicateKeys = new Set<string>();
     
-    const sortedEntries = Object.entries(weeklyReflections).sort(([keyA], [keyB]) => {
-      return keyA.localeCompare(keyB);
-    });
-    
-    sortedEntries.forEach(([key, value]) => {
-      if (!isValidWeeklyReflection(value)) {
-        console.log(`🚨 Skipping invalid weekly reflection with key ${key}:`, value);
+    // First pass: Identify all unique weekIds and potential duplicates
+    Object.entries(allWeeklyReflections).forEach(([key, value]) => {
+      if (!value || typeof value !== 'object') {
+        console.log(`Skipping invalid entry with key ${key}:`, value);
         return;
       }
       
-      const existingReflection = uniqueWeeklyReflections.get(value.weekId);
+      // Check if we have a valid weekId property (primary identifier for duplicates)
+      const weekId = value.weekId || value.id;
+      if (!weekId) {
+        console.log(`Entry with key ${key} has no weekId or id:`, value);
+        return;
+      }
       
-      if (!existingReflection) {
-        uniqueWeeklyReflections.set(value.weekId, value);
-        console.log(`📥 Added first reflection for week ${value.weekId} with key ${key}`);
-      } else if (value.lastUpdated && existingReflection.lastUpdated &&
-                new Date(value.lastUpdated) > new Date(existingReflection.lastUpdated)) {
-        uniqueWeeklyReflections.set(value.weekId, value);
-        console.log(`🔄 Replaced reflection for week ${value.weekId} with newer version (key ${key})`);
+      // Check if we've already seen this weekId
+      if (uniqueWeeklyReflections.has(weekId)) {
+        console.log(`DUPLICATE DETECTED: WeekId ${weekId} appears multiple times`);
+        duplicateKeys.add(key);
       } else {
-        console.log(`❌ Discarded duplicate for week ${value.weekId} with key ${key} - keeping existing version`);
+        uniqueWeeklyReflections.set(weekId, value);
       }
     });
     
-    weeklyRemoved = Object.keys(weeklyReflections).length - uniqueWeeklyReflections.size;
-    console.log(`Found ${weeklyRemoved} duplicate weekly reflections (${uniqueWeeklyReflections.size} unique vs ${Object.keys(weeklyReflections).length} total)`);
+    console.log(`Found ${duplicateKeys.size} duplicate weekly reflection keys`);
     
-    if (weeklyRemoved > 0) {
-      const uniqueWeeklyReflectionsObj: Record<string, WeeklyReflection> = {};
+    if (duplicateKeys.size > 0) {
+      // If we found duplicates, create a new object with only unique entries
+      const cleanedReflections: Record<string, WeeklyReflection> = {};
       
-      uniqueWeeklyReflections.forEach((reflection) => {
-        uniqueWeeklyReflectionsObj[reflection.weekId] = reflection;
+      Object.entries(allWeeklyReflections).forEach(([key, value]) => {
+        if (!duplicateKeys.has(key)) {
+          cleanedReflections[key] = value;
+        } else {
+          console.log(`Removing duplicate entry with key ${key}`);
+        }
       });
       
-      console.log(`Writing ${uniqueWeeklyReflections.size} unique weekly reflections to localStorage`);
-      localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(uniqueWeeklyReflectionsObj));
+      weeklyRemoved = duplicateKeys.size;
+      console.log(`Removing ${weeklyRemoved} duplicate weekly reflections`);
+      localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(cleanedReflections));
+      
+      // Additional phase - check for multiple entries with the same weekId but different keys
+      const uniqueByWeekId = new Map<string, WeeklyReflection>();
+      const duplicateWeekIds = new Set<string>();
+      
+      Object.values(cleanedReflections).forEach((value) => {
+        const weekId = value.weekId;
+        if (!weekId) return;
+        
+        if (uniqueByWeekId.has(weekId)) {
+          duplicateWeekIds.add(weekId);
+        } else {
+          uniqueByWeekId.set(weekId, value);
+        }
+      });
+      
+      console.log(`Found ${duplicateWeekIds.size} weekIds with multiple entries after first cleanup`);
+      
+      if (duplicateWeekIds.size > 0) {
+        // If we found weekIds with multiple entries, keep only the most recently updated one
+        const finalCleanedReflections: Record<string, WeeklyReflection> = {};
+        const processedWeekIds = new Set<string>();
+        
+        // Sort entries by weekId and lastUpdated (newest first)
+        const sortedEntries = Object.entries(cleanedReflections).sort(([, valueA], [, valueB]) => {
+          // First sort by weekId
+          const weekIdA = valueA.weekId || '';
+          const weekIdB = valueB.weekId || '';
+          const weekIdCompare = weekIdA.localeCompare(weekIdB);
+          
+          if (weekIdCompare !== 0) return weekIdCompare;
+          
+          // If same weekId, sort by lastUpdated (newest first)
+          const dateA = valueA.lastUpdated ? new Date(valueA.lastUpdated).getTime() : 0;
+          const dateB = valueB.lastUpdated ? new Date(valueB.lastUpdated).getTime() : 0;
+          return dateB - dateA;
+        });
+        
+        sortedEntries.forEach(([key, value]) => {
+          const weekId = value.weekId;
+          if (!weekId) {
+            finalCleanedReflections[key] = value;
+            return;
+          }
+          
+          // Only add the first (most recent) entry for each weekId
+          if (!processedWeekIds.has(weekId)) {
+            finalCleanedReflections[key] = value;
+            processedWeekIds.add(weekId);
+            console.log(`Keeping entry for weekId ${weekId} with key ${key}`);
+          } else {
+            console.log(`Discarding duplicate entry for weekId ${weekId} with key ${key}`);
+            weeklyRemoved++;
+          }
+        });
+        
+        localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(finalCleanedReflections));
+      }
       
       dispatchStorageEvent(WEEKLY_REFLECTIONS_KEY);
+    } else {
+      console.log('No duplicate weekly reflections found');
     }
   } catch (error) {
     console.error('Error processing weekly reflections:', error);
   }
   
+  // === MONTHLY REFLECTIONS ===
   try {
     console.log('Processing monthly reflections...');
     const monthlyReflectionsRaw = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
@@ -211,85 +240,128 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
       return { weeklyRemoved, monthlyRemoved };
     }
     
-    let monthlyReflections: Record<string, any>;
+    let allMonthlyReflections: Record<string, any>;
     try {
-      monthlyReflections = JSON.parse(monthlyReflectionsRaw);
-      console.log(`Parsed ${Object.keys(monthlyReflections).length} monthly reflections`);
-      
-      Object.entries(monthlyReflections).forEach(([key, value]) => {
-        if (isValidMonthlyReflection(value)) {
-          console.log(`Monthly entry - key: ${key}, monthId: ${value.monthId}`);
-        } else {
-          console.log(`Invalid monthly entry - key: ${key}, value:`, value);
-        }
-      });
+      allMonthlyReflections = JSON.parse(monthlyReflectionsRaw);
+      const allKeys = Object.keys(allMonthlyReflections);
+      console.log(`Parsed ${allKeys.length} monthly reflections with keys: ${allKeys.join(', ')}`);
     } catch (e) {
       console.error('Failed to parse monthly reflections JSON:', e);
       return { weeklyRemoved, monthlyRemoved };
     }
     
-    if (typeof monthlyReflections !== 'object' || monthlyReflections === null) {
-      console.error('Monthly reflections is not an object:', monthlyReflections);
+    if (typeof allMonthlyReflections !== 'object' || allMonthlyReflections === null) {
+      console.error('Monthly reflections is not an object:', allMonthlyReflections);
       return { weeklyRemoved, monthlyRemoved };
     }
     
-    const monthIdCount = new Map<string, number>();
-    Object.values(monthlyReflections).forEach((value) => {
-      if (isValidMonthlyReflection(value)) {
-        const count = monthIdCount.get(value.monthId) || 0;
-        monthIdCount.set(value.monthId, count + 1);
-      }
-    });
-    
-    let duplicateMonthIds = 0;
-    monthIdCount.forEach((count, monthId) => {
-      if (count > 1) {
-        console.log(`Monthly ID ${monthId} appears ${count} times - DUPLICATE DETECTED`);
-        duplicateMonthIds++;
-      }
-    });
-    console.log(`Found ${duplicateMonthIds} unique monthly IDs with duplicates`);
-    
+    // Create a map to store unique reflections by monthId
     const uniqueMonthlyReflections = new Map<string, MonthlyReflection>();
+    // Create a set to track duplicate keys
+    const duplicateKeys = new Set<string>();
     
-    const sortedEntries = Object.entries(monthlyReflections).sort(([keyA], [keyB]) => {
-      return keyA.localeCompare(keyB);
-    });
-    
-    sortedEntries.forEach(([key, value]) => {
-      if (!isValidMonthlyReflection(value)) {
-        console.log(`🚨 Skipping invalid monthly reflection with key ${key}:`, value);
+    // First pass: Identify all unique monthIds and potential duplicates
+    Object.entries(allMonthlyReflections).forEach(([key, value]) => {
+      if (!value || typeof value !== 'object') {
+        console.log(`Skipping invalid entry with key ${key}:`, value);
         return;
       }
       
-      const existingReflection = uniqueMonthlyReflections.get(value.monthId);
+      // Check if we have a valid monthId property (primary identifier for duplicates)
+      const monthId = value.monthId || value.id;
+      if (!monthId) {
+        console.log(`Entry with key ${key} has no monthId or id:`, value);
+        return;
+      }
       
-      if (!existingReflection) {
-        uniqueMonthlyReflections.set(value.monthId, value);
-        console.log(`📥 Added first reflection for month ${value.monthId} with key ${key}`);
-      } else if (value.lastUpdated && existingReflection.lastUpdated &&
-                new Date(value.lastUpdated) > new Date(existingReflection.lastUpdated)) {
-        uniqueMonthlyReflections.set(value.monthId, value);
-        console.log(`🔄 Replaced reflection for month ${value.monthId} with newer version (key ${key})`);
+      // Check if we've already seen this monthId
+      if (uniqueMonthlyReflections.has(monthId)) {
+        console.log(`DUPLICATE DETECTED: MonthId ${monthId} appears multiple times`);
+        duplicateKeys.add(key);
       } else {
-        console.log(`❌ Discarded duplicate for month ${value.monthId} with key ${key} - keeping existing version`);
+        uniqueMonthlyReflections.set(monthId, value);
       }
     });
     
-    monthlyRemoved = Object.keys(monthlyReflections).length - uniqueMonthlyReflections.size;
-    console.log(`Found ${monthlyRemoved} duplicate monthly reflections (${uniqueMonthlyReflections.size} unique vs ${Object.keys(monthlyReflections).length} total)`);
+    console.log(`Found ${duplicateKeys.size} duplicate monthly reflection keys`);
     
-    if (monthlyRemoved > 0) {
-      const uniqueMonthlyReflectionsObj: Record<string, MonthlyReflection> = {};
+    if (duplicateKeys.size > 0) {
+      // If we found duplicates, create a new object with only unique entries
+      const cleanedReflections: Record<string, MonthlyReflection> = {};
       
-      uniqueMonthlyReflections.forEach((reflection) => {
-        uniqueMonthlyReflectionsObj[reflection.monthId] = reflection;
+      Object.entries(allMonthlyReflections).forEach(([key, value]) => {
+        if (!duplicateKeys.has(key)) {
+          cleanedReflections[key] = value;
+        } else {
+          console.log(`Removing duplicate entry with key ${key}`);
+        }
       });
       
-      console.log(`Writing ${uniqueMonthlyReflections.size} unique monthly reflections to localStorage`);
-      localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(uniqueMonthlyReflectionsObj));
+      monthlyRemoved = duplicateKeys.size;
+      console.log(`Removing ${monthlyRemoved} duplicate monthly reflections`);
+      localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(cleanedReflections));
+      
+      // Additional phase - check for multiple entries with the same monthId but different keys
+      const uniqueByMonthId = new Map<string, MonthlyReflection>();
+      const duplicateMonthIds = new Set<string>();
+      
+      Object.values(cleanedReflections).forEach((value) => {
+        const monthId = value.monthId;
+        if (!monthId) return;
+        
+        if (uniqueByMonthId.has(monthId)) {
+          duplicateMonthIds.add(monthId);
+        } else {
+          uniqueByMonthId.set(monthId, value);
+        }
+      });
+      
+      console.log(`Found ${duplicateMonthIds.size} monthIds with multiple entries after first cleanup`);
+      
+      if (duplicateMonthIds.size > 0) {
+        // If we found monthIds with multiple entries, keep only the most recently updated one
+        const finalCleanedReflections: Record<string, MonthlyReflection> = {};
+        const processedMonthIds = new Set<string>();
+        
+        // Sort entries by monthId and lastUpdated (newest first)
+        const sortedEntries = Object.entries(cleanedReflections).sort(([, valueA], [, valueB]) => {
+          // First sort by monthId
+          const monthIdA = valueA.monthId || '';
+          const monthIdB = valueB.monthId || '';
+          const monthIdCompare = monthIdA.localeCompare(monthIdB);
+          
+          if (monthIdCompare !== 0) return monthIdCompare;
+          
+          // If same monthId, sort by lastUpdated (newest first)
+          const dateA = valueA.lastUpdated ? new Date(valueA.lastUpdated).getTime() : 0;
+          const dateB = valueB.lastUpdated ? new Date(valueB.lastUpdated).getTime() : 0;
+          return dateB - dateA;
+        });
+        
+        sortedEntries.forEach(([key, value]) => {
+          const monthId = value.monthId;
+          if (!monthId) {
+            finalCleanedReflections[key] = value;
+            return;
+          }
+          
+          // Only add the first (most recent) entry for each monthId
+          if (!processedMonthIds.has(monthId)) {
+            finalCleanedReflections[key] = value;
+            processedMonthIds.add(monthId);
+            console.log(`Keeping entry for monthId ${monthId} with key ${key}`);
+          } else {
+            console.log(`Discarding duplicate entry for monthId ${monthId} with key ${key}`);
+            monthlyRemoved++;
+          }
+        });
+        
+        localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(finalCleanedReflections));
+      }
       
       dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
+    } else {
+      console.log('No duplicate monthly reflections found');
     }
   } catch (error) {
     console.error('Error processing monthly reflections:', error);
@@ -298,6 +370,7 @@ export const removeDuplicateReflections = (): { weeklyRemoved: number, monthlyRe
   if (weeklyRemoved > 0 || monthlyRemoved > 0) {
     console.log(`Total duplicates removed: ${weeklyRemoved + monthlyRemoved}`);
     
+    // Dispatch events to update UI
     window.dispatchEvent(new Event('storage'));
     
     setTimeout(() => {

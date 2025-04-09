@@ -41,13 +41,16 @@ export const generateMissingReflections = (trades: TradeWithMetrics[]) => {
         return false;
       });
       
-      // Generate a reflection for the week
-      const newReflection = generateWeeklyReflection(weekId, weekStart, weekEnd, weekTrades);
-      
-      // Save the new reflection
-      saveWeeklyReflection(weekId, newReflection.reflection, newReflection.grade, newReflection.weeklyPlan);
-      
-      console.log(`Generated and saved weekly reflection for ${weekId}`);
+      // Only generate a reflection if there are trades for this week
+      if (weekTrades.length > 0) {
+        // Generate a reflection for the week
+        const newReflection = generateWeeklyReflection(weekId, weekStart, weekEnd, weekTrades);
+        
+        // Save the new reflection
+        saveWeeklyReflection(weekId, newReflection.reflection, newReflection.grade, newReflection.weeklyPlan);
+        
+        console.log(`Generated and saved weekly reflection for ${weekId} with ${weekTrades.length} trades`);
+      }
     }
     
     currentDate = addWeeks(currentDate, 1);
@@ -74,13 +77,16 @@ export const generateMissingReflections = (trades: TradeWithMetrics[]) => {
         return false;
       });
       
-      // Generate a reflection for the month
-      const newReflection = generateMonthlyReflection(monthId, monthStart, monthEnd, monthTrades);
-      
-      // Save the new reflection
-      saveMonthlyReflection(monthId, newReflection.reflection, newReflection.grade);
-      
-      console.log(`Generated and saved monthly reflection for ${monthId}`);
+      // Only generate a reflection if there are trades for this month
+      if (monthTrades.length > 0) {
+        // Generate a reflection for the month
+        const newReflection = generateMonthlyReflection(monthId, monthStart, monthEnd, monthTrades);
+        
+        // Save the new reflection
+        saveMonthlyReflection(monthId, newReflection.reflection, newReflection.grade);
+        
+        console.log(`Generated and saved monthly reflection for ${monthId} with ${monthTrades.length} trades`);
+      }
     }
     
     currentDate = addMonths(currentDate, 1);

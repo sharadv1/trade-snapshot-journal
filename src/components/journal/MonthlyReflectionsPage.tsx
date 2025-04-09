@@ -19,6 +19,7 @@ export function MonthlyReflectionsPage() {
       const monthMap = new Map<string, MonthlyReflection>(); // Use a map to prevent duplicates
       const start = new Date(2025, 0, 1); // January 1, 2025
       const today = new Date();
+      const allTrades = getTradesWithMetrics();
       
       // First, collect all existing reflections from storage
       const existingReflections = getAllMonthlyReflections();
@@ -31,7 +32,7 @@ export function MonthlyReflectionsPage() {
           if (!reflectionObj.monthId) return;
           
           // Calculate metrics for this reflection
-          const monthTrades = getTradesWithMetrics().filter(trade => {
+          const monthTrades = allTrades.filter(trade => {
             if (trade.exitDate && reflectionObj.monthStart && reflectionObj.monthEnd) {
               const exitDate = new Date(trade.exitDate);
               const monthStart = new Date(reflectionObj.monthStart);
@@ -56,7 +57,7 @@ export function MonthlyReflectionsPage() {
         }
       });
       
-      // Then, generate placeholder reflections for months that don't exist yet
+      // Then, generate placeholder reflections ONLY for months with trades that don't have reflections yet
       let currentDate = startOfMonth(start);
       
       while (currentDate <= today) {
@@ -66,7 +67,7 @@ export function MonthlyReflectionsPage() {
         // Only add a placeholder if this month doesn't already exist in our map
         if (!monthMap.has(monthId)) {
           // Check if there are any trades for this month
-          const monthTrades = getTradesWithMetrics().filter(trade => {
+          const monthTrades = allTrades.filter(trade => {
             if (trade.exitDate) {
               const exitDate = new Date(trade.exitDate);
               return exitDate >= currentDate && exitDate <= monthEnd;
@@ -74,22 +75,25 @@ export function MonthlyReflectionsPage() {
             return false;
           });
           
-          const totalPnL = monthTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
-          const totalR = monthTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
-          
-          // Create a placeholder reflection with trade info
-          monthMap.set(monthId, {
-            id: monthId,
-            monthId: monthId,
-            monthStart: currentDate.toISOString(),
-            monthEnd: monthEnd.toISOString(),
-            reflection: '',
-            grade: '',
-            tradeIds: monthTrades.map(trade => trade.id),
-            isPlaceholder: true,
-            totalPnL,
-            totalR
-          });
+          // Only create a placeholder if there are trades for this month
+          if (monthTrades.length > 0) {
+            const totalPnL = monthTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
+            const totalR = monthTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
+            
+            // Create a placeholder reflection with trade info
+            monthMap.set(monthId, {
+              id: monthId,
+              monthId: monthId,
+              monthStart: currentDate.toISOString(),
+              monthEnd: monthEnd.toISOString(),
+              reflection: '',
+              grade: '',
+              tradeIds: monthTrades.map(trade => trade.id),
+              isPlaceholder: true,
+              totalPnL,
+              totalR
+            });
+          }
         }
         
         currentDate = addMonths(currentDate, 1);
