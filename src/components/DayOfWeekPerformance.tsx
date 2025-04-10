@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
+import { calculateExpectedValue } from '@/utils/calculations/advancedMetrics';
 
 interface DayOfWeekPerformanceProps {
   trades: TradeWithMetrics[];
@@ -72,10 +73,10 @@ export function DayOfWeekPerformance({ trades, timeframes = ['15m', '1h'] }: Day
   
   // Initialize data for each day of week
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayPnL: Record<string, { pnl: number, count: number }> = {};
+  const dayData: Record<string, { pnl: number, count: number, trades: TradeWithMetrics[] }> = {};
   
   daysOfWeek.forEach(day => {
-    dayPnL[day] = { pnl: 0, count: 0 };
+    dayData[day] = { pnl: 0, count: 0, trades: [] };
   });
   
   // Calculate P&L for each day of week
@@ -85,21 +86,28 @@ export function DayOfWeekPerformance({ trades, timeframes = ['15m', '1h'] }: Day
       const dayName = daysOfWeek[entryDate.getDay()];
       console.log(`Trade assigned to ${dayName}:`, trade.symbol, trade.timeframe);
       
-      dayPnL[dayName].pnl += trade.metrics.profitLoss;
-      dayPnL[dayName].count += 1;
+      dayData[dayName].pnl += trade.metrics.profitLoss;
+      dayData[dayName].count += 1;
+      dayData[dayName].trades.push(trade);
     }
   });
   
-  console.log('DayOfWeek - PnL data:', dayPnL);
+  console.log('DayOfWeek - PnL data:', dayData);
   
-  // Prepare data for chart
-  const chartData = Object.entries(dayPnL)
-    .map(([day, data]) => ({
-      name: day,
-      value: data.pnl,
-      count: data.count,
-      color: data.pnl >= 0 ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 60%)'
-    }));
+  // Prepare data for chart and calculate expected value for each day
+  const chartData = Object.entries(dayData)
+    .map(([day, data]) => {
+      // Calculate expected value for this day's trades
+      const expectedValue = data.count > 0 ? calculateExpectedValue(data.trades) : 0;
+      
+      return {
+        name: day,
+        value: data.pnl,
+        count: data.count,
+        expectedValue: expectedValue,
+        color: data.pnl >= 0 ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 60%)'
+      };
+    });
   
   return (
     <Card className="shadow-subtle border">
@@ -135,9 +143,9 @@ export function DayOfWeekPerformance({ trades, timeframes = ['15m', '1h'] }: Day
                         </div>
                         {data.count > 0 && (
                           <div className="flex justify-between gap-4">
-                            <span>Avg per Trade:</span>
-                            <span className={data.value >= 0 ? 'text-profit' : 'text-loss'}>
-                              {formatCurrency(data.value / data.count)}
+                            <span>Expected Value:</span>
+                            <span className={data.expectedValue >= 0 ? 'text-profit' : 'text-loss'}>
+                              {formatCurrency(data.expectedValue)}
                             </span>
                           </div>
                         )}

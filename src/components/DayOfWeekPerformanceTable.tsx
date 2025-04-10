@@ -6,6 +6,7 @@ import { formatCurrency } from '@/utils/tradeCalculations';
 import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getStrategies } from '@/utils/strategyStorage';
+import { calculateExpectedValue } from '@/utils/calculations/advancedMetrics';
 
 interface DayOfWeekPerformanceTableProps {
   trades: TradeWithMetrics[];
@@ -16,7 +17,8 @@ interface DayPerformance {
   pnl: number;
   count: number;
   winCount: number;
-  winRate?: number; // Add winRate as an optional property
+  winRate?: number;
+  trades: TradeWithMetrics[];
 }
 
 export function DayOfWeekPerformanceTable({ trades, timeframes = ['15m', '1h'] }: DayOfWeekPerformanceTableProps) {
@@ -68,10 +70,10 @@ export function DayOfWeekPerformanceTable({ trades, timeframes = ['15m', '1h'] }
   
   // Initialize data for each day of week
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayPnL: Record<string, DayPerformance> = {}; // Use the DayPerformance interface
+  const dayPnL: Record<string, DayPerformance> = {};
   
   daysOfWeek.forEach(day => {
-    dayPnL[day] = { pnl: 0, count: 0, winCount: 0 };
+    dayPnL[day] = { pnl: 0, count: 0, winCount: 0, trades: [] };
   });
   
   // Calculate P&L for each day of week
@@ -82,6 +84,7 @@ export function DayOfWeekPerformanceTable({ trades, timeframes = ['15m', '1h'] }
       
       dayPnL[dayName].pnl += trade.metrics.profitLoss;
       dayPnL[dayName].count += 1;
+      dayPnL[dayName].trades.push(trade);
       
       if (trade.metrics.profitLoss > 0) {
         dayPnL[dayName].winCount += 1;
@@ -142,32 +145,39 @@ export function DayOfWeekPerformanceTable({ trades, timeframes = ['15m', '1h'] }
               <TableHead>Day</TableHead>
               <TableHead className="text-right">Trades</TableHead>
               <TableHead className="text-right">Win Rate</TableHead>
-              <TableHead className="text-right">Avg per Trade</TableHead>
+              <TableHead className="text-right">Expected Value</TableHead>
               <TableHead className="text-right">P&L</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {daysOfWeek.map(day => (
-              <TableRow key={day}>
-                <TableCell className="font-medium">{day}</TableCell>
-                <TableCell className="text-right">{dayPnL[day].count}</TableCell>
-                <TableCell className="text-right">
-                  {dayPnL[day].count > 0 ? `${dayPnL[day].winRate?.toFixed(1)}%` : '-'}
-                </TableCell>
-                <TableCell className="text-right">
-                  {dayPnL[day].count > 0 ? (
-                    <span className={dayPnL[day].pnl / dayPnL[day].count >= 0 ? 'text-profit' : 'text-loss'}>
-                      {formatCurrency(dayPnL[day].pnl / dayPnL[day].count)}
-                    </span>
-                  ) : (
-                    '-'
-                  )}
-                </TableCell>
-                <TableCell className={`text-right font-medium ${dayPnL[day].pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
-                  {dayPnL[day].count > 0 ? formatCurrency(dayPnL[day].pnl) : '-'}
-                </TableCell>
-              </TableRow>
-            ))}
+            {daysOfWeek.map(day => {
+              // Calculate expected value for this day
+              const expectedValue = dayPnL[day].count > 0 
+                ? calculateExpectedValue(dayPnL[day].trades)
+                : 0;
+                
+              return (
+                <TableRow key={day}>
+                  <TableCell className="font-medium">{day}</TableCell>
+                  <TableCell className="text-right">{dayPnL[day].count}</TableCell>
+                  <TableCell className="text-right">
+                    {dayPnL[day].count > 0 ? `${dayPnL[day].winRate?.toFixed(1)}%` : '-'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {dayPnL[day].count > 0 ? (
+                      <span className={expectedValue >= 0 ? 'text-profit' : 'text-loss'}>
+                        {formatCurrency(expectedValue)}
+                      </span>
+                    ) : (
+                      '-'
+                    )}
+                  </TableCell>
+                  <TableCell className={`text-right font-medium ${dayPnL[day].pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
+                    {dayPnL[day].count > 0 ? formatCurrency(dayPnL[day].pnl) : '-'}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>

@@ -4,6 +4,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { TradeWithMetrics } from '@/types';
 import { formatCurrency } from '@/utils/tradeCalculations';
 import { getStrategyById } from '@/utils/strategyStorage';
+import { calculateExpectedValue } from '@/utils/calculations/advancedMetrics';
 
 interface StrategyPerformanceTableProps {
   trades: TradeWithMetrics[];
@@ -17,7 +18,7 @@ interface StrategyPerformance {
   count: number;
   winCount: number;
   winRate: number;
-  avgPerTrade: number;
+  expectedValue: number;
 }
 
 export function StrategyPerformanceTable({ trades }: StrategyPerformanceTableProps) {
@@ -40,7 +41,7 @@ export function StrategyPerformanceTable({ trades }: StrategyPerformanceTablePro
         count: 0,
         winCount: 0,
         winRate: 0,
-        avgPerTrade: 0
+        expectedValue: 0
       };
     }
     
@@ -52,10 +53,13 @@ export function StrategyPerformanceTable({ trades }: StrategyPerformanceTablePro
     }
   });
   
-  // Calculate win rates and averages
+  // Calculate win rates and expected values for each strategy
   Object.values(strategyData).forEach(strategy => {
     strategy.winRate = strategy.count > 0 ? (strategy.winCount / strategy.count) * 100 : 0;
-    strategy.avgPerTrade = strategy.count > 0 ? strategy.pnl / strategy.count : 0;
+    
+    // Calculate expected value for this strategy
+    const strategyTrades = closedTrades.filter(trade => trade.strategy === strategy.id);
+    strategy.expectedValue = calculateExpectedValue(strategyTrades);
   });
   
   // Convert to array and sort by P&L
@@ -88,7 +92,7 @@ export function StrategyPerformanceTable({ trades }: StrategyPerformanceTablePro
               <TableHead>Strategy</TableHead>
               <TableHead className="text-right">Trades</TableHead>
               <TableHead className="text-right">Win Rate</TableHead>
-              <TableHead className="text-right">Avg per Trade</TableHead>
+              <TableHead className="text-right">Expected Value</TableHead>
               <TableHead className="text-right">P&L</TableHead>
             </TableRow>
           </TableHeader>
@@ -101,8 +105,8 @@ export function StrategyPerformanceTable({ trades }: StrategyPerformanceTablePro
                 <TableCell className="text-right">{strategy.count}</TableCell>
                 <TableCell className="text-right">{strategy.winRate.toFixed(1)}%</TableCell>
                 <TableCell className="text-right">
-                  <span className={strategy.avgPerTrade >= 0 ? 'text-profit' : 'text-loss'}>
-                    {formatCurrency(strategy.avgPerTrade)}
+                  <span className={strategy.expectedValue >= 0 ? 'text-profit' : 'text-loss'}>
+                    {formatCurrency(strategy.expectedValue)}
                   </span>
                 </TableCell>
                 <TableCell className={`text-right font-medium ${strategy.pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
