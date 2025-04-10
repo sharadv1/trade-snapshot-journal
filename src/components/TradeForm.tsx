@@ -160,16 +160,20 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     }
   };
 
-  const handleImageUploadAdapter = (file: File) => {
+  const handleImageUploadAdapter = async (file: File): Promise<void> => {
     console.log('TradeForm: handleImageUploadAdapter called with file:', file.name);
-    return handleImageUpload(file);
+    await handleImageUpload(file);
   };
 
-  const handleRemoveImageAdapter = (url: string) => {
-    console.log('TradeForm: handleRemoveImageAdapter called for url');
-    const index = images.findIndex(img => img === url);
-    if (index !== -1) {
-      handleRemoveImage(index);
+  const handleRemoveImageAdapter = (url: string | number): void => {
+    console.log('TradeForm: handleRemoveImageAdapter called for url/index');
+    if (typeof url === 'string') {
+      const index = images.findIndex(img => img === url);
+      if (index !== -1) {
+        handleRemoveImage(index);
+      }
+    } else {
+      handleRemoveImage(url);
     }
   };
 

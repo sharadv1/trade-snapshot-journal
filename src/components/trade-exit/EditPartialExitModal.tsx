@@ -101,7 +101,7 @@ export function EditPartialExitModal({
           weightedSum += exit.exitPrice * exit.quantity;
         });
         
-        updatedTrade.exitPrice = Number((weightedSum / totalQuantity).toFixed(2));
+        updatedTrade.exitPrice = Number((weightedSum / totalExitedQuantity).toFixed(2));
         
         const sortedExits = [...updatedPartialExits].sort((a, b) => 
           new Date(b.exitDate).getTime() - new Date(a.exitDate).getTime()

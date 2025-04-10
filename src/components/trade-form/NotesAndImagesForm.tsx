@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React from 'react';
 import { Trade } from '@/types';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,7 +10,7 @@ interface NotesAndImagesFormProps {
   handleChange: (field: keyof Trade, value: any) => void;
   images: string[];
   onImageUpload: (file: File) => Promise<void>;
-  onImageRemove: (url: string) => void;
+  onImageRemove: (urlOrIndex: string | number) => void;
 }
 
 export function NotesAndImagesForm({
