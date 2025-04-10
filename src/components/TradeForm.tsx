@@ -112,7 +112,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     if (!trade.entryPrice) errors.push('Entry price is required');
     if (!trade.quantity) errors.push('Quantity is required');
     if (!trade.entryDate) errors.push('Entry date is required');
-    if (!trade.stopLoss) errors.push('Stop loss is required');
+    if (!trade.initialStopLoss) errors.push('Initial stop loss is required');
     
     setValidationErrors(errors);
     

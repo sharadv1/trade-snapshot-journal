@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Trade } from '@/types';
 import { Label } from '@/components/ui/label';
@@ -27,23 +26,19 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
     direction: undefined as string | undefined
   });
 
-  // Handle copying current stopLoss to initialStopLoss
   const handleInitializeStop = () => {
     if (trade.stopLoss) {
       handleChange('initialStopLoss', trade.stopLoss);
     }
   };
 
-  // Handle numeric inputs with decimal points
   const handleNumericInput = (field: keyof Trade, value: string) => {
     if (value === '') {
       handleChange(field, undefined);
       return;
     }
     
-    // Allow decimal input including intermediate states
     if (/^[0-9]*\.?[0-9]*$/.test(value)) {
-      // Handle special cases like "." or "0."
       if (value === '.' || value === '0.' || value.endsWith('.')) {
         handleChange(field, value);
       } else {
@@ -53,9 +48,7 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
     }
   };
 
-  // Calculate risk/reward ratio when stop loss and take profit change
   useEffect(() => {
-    // Skip calculation if the values are the same as last time to prevent console spam
     const currentValues = {
       entryPrice: typeof trade.entryPrice === 'number' ? trade.entryPrice : undefined,
       initialStopLoss: typeof trade.initialStopLoss === 'number' ? trade.initialStopLoss : undefined,
@@ -70,10 +63,9 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
       currentValues.direction === lastCalculatedValues.direction;
       
     if (valuesEqual) {
-      return; // Skip calculation if values haven't changed
+      return;
     }
 
-    // Only proceed if all values are actual numbers
     if (
       typeof trade.initialStopLoss !== 'number' || 
       typeof trade.takeProfit !== 'number' || 
@@ -87,26 +79,21 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
     const initialStopLoss = trade.initialStopLoss;
     const takeProfit = trade.takeProfit;
     
-    // Ensure all values are valid numbers and not intermediate states (like "." or "0.")
     if (isNaN(entryPrice) || isNaN(initialStopLoss) || isNaN(takeProfit) || 
         initialStopLoss === entryPrice) {
       setCalculatedRR('');
       return;
     }
     
-    // Save the values we're calculating with to prevent recalculation of the same values
     setLastCalculatedValues(currentValues);
     
     const isLong = trade.direction !== 'short';
     let risk, reward, ratio;
     
-    // Calculate based on direction
     if (isLong) {
-      // Long position: risk is entry - stop, reward is target - entry
       risk = entryPrice - initialStopLoss;
       reward = takeProfit - entryPrice;
     } else {
-      // Short position: risk is stop - entry, reward is entry - target
       risk = initialStopLoss - entryPrice;
       reward = entryPrice - takeProfit;
     }
@@ -115,14 +102,12 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
       ratio = reward / risk;
       setCalculatedRR(`${ratio.toFixed(2)}:1`);
       
-      // Only update the trade object if the ratio has actually changed
       const newRatio = parseFloat(ratio.toFixed(2));
       if (trade.riskRewardRatio !== newRatio) {
         handleChange('riskRewardRatio', newRatio);
       }
     } else {
       setCalculatedRR('Invalid');
-      // Clear the risk reward ratio if it's invalid
       if (trade.riskRewardRatio) {
         handleChange('riskRewardRatio', undefined);
       }
@@ -182,8 +167,9 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
             onChange={(e) => handleNumericInput('initialStopLoss', e.target.value)}
             disabled={disableEdits}
             className="border-primary/50"
+            required
           />
-          <p className="text-xs font-medium text-primary">Used for R calculation and risk/reward ratio</p>
+          <p className="text-xs font-medium text-primary">Required - Used for R calculation and risk/reward ratio</p>
         </div>
 
         <div className="space-y-2">
@@ -192,12 +178,12 @@ export const RiskParametersForm: React.FC<RiskParametersFormProps> = ({
             id="stopLoss"
             type="text"
             inputMode="decimal"
-            placeholder="Stop loss price"
+            placeholder="Stop loss price (optional)"
             value={trade.stopLoss || ''}
             onChange={(e) => handleNumericInput('stopLoss', e.target.value)}
             disabled={disableEdits}
           />
-          <p className="text-xs text-muted-foreground">Current stop level (adjustable)</p>
+          <p className="text-xs text-muted-foreground">Current stop level (optional, adjustable)</p>
         </div>
       </div>
 
