@@ -35,7 +35,13 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         )}
         ref={ref}
         onChange={handleChange}
-        style={{ overflowWrap: 'break-word', maxWidth: '100%', resize: 'vertical' }}
+        style={{ 
+          overflowWrap: 'break-word', 
+          maxWidth: '100%', 
+          resize: 'vertical',
+          wordBreak: 'break-word',
+          width: '100%' 
+        }}
         {...props}
       />
     )

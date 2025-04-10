@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Trade, PartialExit } from '@/types';
 import { useTradeSubmit } from './hooks/useTradeSubmit';
@@ -7,21 +6,22 @@ import { useTradeImages } from './hooks/useTradeImages';
 import { toast } from '@/utils/toast';
 import { getIdeaById } from '@/utils/ideaStorage';
 import { getContractPointValue } from '@/utils/calculations/contractUtils';
+import { formatInTimeZone } from 'date-fns-tz';
 
 export const useTradeForm = (
   initialTrade?: Trade,
   isEditing = false,
   ideaId?: string | null
 ) => {
-  // Get current date/time in ISO format, truncated to minutes
+  // Get current date/time in Central Time format
   const now = new Date();
-  const isoDateTime = now.toISOString().slice(0, 16);
+  const centralTimeISOString = formatInTimeZone(now, 'America/Chicago', "yyyy-MM-dd'T'HH:mm");
   
   const defaultTrade: Partial<Trade> = {
     id: '',
     symbol: '',
     direction: 'long',
-    entryDate: isoDateTime,
+    entryDate: centralTimeISOString,
     entryPrice: 0,
     positionSize: 0,
     quantity: 1,

@@ -16,6 +16,7 @@ import { CircleDollarSign, SplitSquareVertical, Calendar } from 'lucide-react';
 import { Trade, PartialExit } from '@/types';
 import { toast } from '@/utils/toast';
 import { getTradeById, updateTrade } from '@/utils/storage/tradeOperations';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface EditPartialExitModalProps {
   trade: Trade;
@@ -37,6 +38,16 @@ export function EditPartialExitModal({
   const [fees, setFees] = useState<number | undefined>(partialExit.fees);
   const [notes, setNotes] = useState(partialExit.notes || '');
 
+  const getCurrentCentralTime = () => {
+    return formatInTimeZone(new Date(), 'America/Chicago', "yyyy-MM-dd'T'HH:mm");
+  };
+
+  const handleExitDateFocus = () => {
+    if (!exitDate) {
+      setExitDate(getCurrentCentralTime());
+    }
+  };
+
   const handleSave = () => {
     if (quantity <= 0 || quantity > maxQuantity) {
       toast.error(`Quantity must be between 1 and ${maxQuantity}`);
@@ -49,88 +60,71 @@ export function EditPartialExitModal({
     }
 
     try {
-      // Fetch the latest trade data
       const latestTrade = getTradeById(trade.id);
       if (!latestTrade) {
         toast.error("Failed to retrieve latest trade data");
         return;
       }
       
-      // Round the exit price to 2 decimal places
       const roundedExitPrice = Number(exitPrice.toFixed(2));
       
-      // Find and update the partial exit
       const updatedPartialExits = latestTrade.partialExits?.map(exit => 
         exit.id === partialExit.id 
           ? {
               ...exit,
               quantity,
               exitPrice: roundedExitPrice,
-              price: roundedExitPrice, // Update both for compatibility
+              price: roundedExitPrice,
               exitDate,
-              date: exitDate, // Update both for compatibility
+              date: exitDate,
               fees,
               notes
             } 
           : exit
       ) || [];
       
-      // We keep the base trade properties intact
       const updatedTrade: Trade = {
         ...latestTrade,
         partialExits: updatedPartialExits
       };
       
-      // Calculate total exited quantity with the updated partial exit
       const totalExitedQuantity = updatedPartialExits.reduce(
         (total, exit) => total + exit.quantity, 0
       );
       
-      // Update trade status based on exited quantity
       if (totalExitedQuantity >= updatedTrade.quantity) {
-        // If fully exited through partials, update trade status to closed
         updatedTrade.status = 'closed';
         
-        // Calculate weighted average exit price for the main trade and round to 2 decimal places
-        const totalQuantity = updatedTrade.quantity;
         let weightedSum = 0;
         
         updatedPartialExits.forEach(exit => {
           weightedSum += exit.exitPrice * exit.quantity;
         });
         
-        // Set the trade's exit price to the weighted average, rounded to 2 decimal places
         updatedTrade.exitPrice = Number((weightedSum / totalQuantity).toFixed(2));
         
-        // Find the latest exit date among partial exits
         const sortedExits = [...updatedPartialExits].sort((a, b) => 
           new Date(b.exitDate).getTime() - new Date(a.exitDate).getTime()
         );
         
         if (sortedExits.length > 0) {
-          // Set the trade's exit date to the latest partial exit date
           updatedTrade.exitDate = sortedExits[0].exitDate;
         }
         
-        // Sum up all fees
         updatedTrade.fees = updatedPartialExits.reduce(
           (sum, exit) => sum + (exit.fees || 0), 0
         );
       } 
       else if (latestTrade.status === 'closed' && totalExitedQuantity < updatedTrade.quantity) {
-        // If we're updating an exit and the new total is less than the quantity,
-        // we need to reopen the trade since it's no longer fully exited
         updatedTrade.status = 'open';
         updatedTrade.exitDate = undefined;
         updatedTrade.exitPrice = undefined;
         updatedTrade.fees = undefined;
       }
       
-      // Update trade in storage
       console.log('Updating trade after partial exit edit:', updatedTrade);
       updateTrade(updatedTrade);
       
-      // Ensure all components are notified of the change
       document.dispatchEvent(new CustomEvent('trade-updated'));
       window.dispatchEvent(new StorageEvent('storage', {
         key: 'trade-journal-trades',
@@ -139,7 +133,6 @@ export function EditPartialExitModal({
       toast.success("Partial exit updated successfully");
       setOpen(false);
       
-      // Call the onSuccess callback to refresh the data
       onSuccess();
       
     } catch (error) {
@@ -203,8 +196,9 @@ export function EditPartialExitModal({
             <Input 
               id="editExitDate" 
               type="datetime-local"
-              value={exitDate && exitDate.length >= 16 ? exitDate.slice(0, 16) : new Date().toISOString().slice(0, 16)}
+              value={exitDate && exitDate.length >= 16 ? exitDate.slice(0, 16) : ''}
               onChange={(e) => setExitDate(e.target.value)}
+              onFocus={handleExitDateFocus}
             />
           </div>
           

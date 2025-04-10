@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Trade, TRADE_TYPES, TradeType } from '@/types';
 import { Label } from '@/components/ui/label';
@@ -9,9 +8,9 @@ import { FuturesContractDetails } from '@/components/FuturesContractDetails';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getStrategies } from '@/utils/strategyStorage';
-import { AccountField } from '@/components/trade-form/AccountField'; // Add this import
+import { AccountField } from '@/components/trade-form/AccountField';
+import { formatInTimeZone } from 'date-fns-tz';
 
-// Define props interface
 interface TradeDetailsFormProps {
   trade: Partial<Trade>;
   onTradeChange: (field: keyof Trade, value: any) => void;
@@ -33,27 +32,31 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
   maxRisk,
   disableEdits = false,
 }) => {
-  // Determine which types to show in the selector based on available symbols
   const handleSymbolChange = (value: string) => {
     onTradeChange('symbol', value);
   };
 
-  // Handle numeric inputs with decimal points
   const handleNumericInput = (field: keyof Trade, value: string) => {
     if (value === '') {
       onTradeChange(field, undefined);
       return;
     }
     
-    // Allow decimal input including intermediate states
     if (/^[0-9]*\.?[0-9]*$/.test(value)) {
-      // Handle special cases like "." or "0."
       if (value === '.' || value === '0.' || value.endsWith('.')) {
         onTradeChange(field, value);
       } else {
         const numValue = parseFloat(value);
         onTradeChange(field, isNaN(numValue) ? undefined : numValue);
       }
+    }
+  };
+
+  const handleEntryDateFocus = () => {
+    if (!trade.entryDate) {
+      const now = new Date();
+      const centralTimeValue = formatInTimeZone(now, 'America/Chicago', "yyyy-MM-dd'T'HH:mm");
+      onTradeChange('entryDate', centralTimeValue);
     }
   };
 
@@ -148,6 +151,7 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
           type="datetime-local"
           value={trade.entryDate || ''}
           onChange={(e) => onTradeChange('entryDate', e.target.value)}
+          onFocus={handleEntryDateFocus}
           disabled={disableEdits}
         />
       </div>
@@ -179,7 +183,6 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
         <p className="text-xs text-muted-foreground">Supports small values (e.g. 0.000033432)</p>
       </div>
 
-      {/* Add Account Field here */}
       <div className="space-y-2">
         <Label htmlFor="account">Account</Label>
         <AccountField 
@@ -212,7 +215,6 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
         </Select>
       </div>
 
-      {/* Timeframe and Analysis Section */}
       <div className="space-y-2 border-t pt-4">
         <Label className="text-base font-semibold">Trade Analysis</Label>
         
