@@ -1,4 +1,3 @@
-
 export interface Trade {
   id: string;
   symbol: string;
@@ -35,6 +34,7 @@ export interface Trade {
   pspTime?: string;
   ssmtQuarters?: string;
   tags?: string[];
+  targetReached?: boolean; // New field to track if price reached target
 }
 
 export interface TradeWithMetrics extends Trade {

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { 
   Dialog, 
@@ -91,6 +92,18 @@ export function EditPartialExitModal({
       const totalExitedQuantity = updatedPartialExits.reduce(
         (total, exit) => total + exit.quantity, 0
       );
+      
+      // Auto-detect if target was reached based on exit price
+      if (updatedTrade.takeProfit) {
+        const isLong = updatedTrade.direction === 'long';
+        const targetReached = isLong 
+          ? roundedExitPrice >= updatedTrade.takeProfit 
+          : roundedExitPrice <= updatedTrade.takeProfit;
+        
+        if (targetReached) {
+          updatedTrade.targetReached = true;
+        }
+      }
       
       if (totalExitedQuantity >= updatedTrade.quantity) {
         updatedTrade.status = 'closed';
