@@ -667,6 +667,7 @@ export default function TradeDetail() {
               </div>
             </CardContent>
           </Card>
+        )}
 
         <Card>
           <CardHeader>
