@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, ChevronDown, ChevronUp, Star, AlertTriangle, Ratio } from 'lucide-react';
+import { ArrowLeft, Edit, ChevronDown, ChevronUp, Star, AlertTriangle, Ratio, Target, CheckCircle2, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { getTradeById } from '@/utils/storage/tradeOperations';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { getStrategyById } from '@/utils/strategyStorage';
 import { getCurrentMaxRisk } from '@/utils/maxRiskStorage';
+import { TradeMetrics } from '@/components/TradeMetrics';
 
 const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
   if (!timeframe) return '';
@@ -330,6 +331,18 @@ export default function TradeDetail() {
                 <div>
                   <p className="text-sm text-muted-foreground">Take Profit</p>
                   <p className="font-medium">{trade.takeProfit}</p>
+                  {trade.status === 'closed' && trade.targetReached !== undefined && (
+                    <div className="flex items-center mt-1">
+                      {trade.targetReached ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-green-500" />
+                      ) : (
+                        <XCircle className="h-3.5 w-3.5 mr-1 text-orange-500" />
+                      )}
+                      <p className="text-xs">
+                        {trade.targetReached ? 'Target reached' : 'Target not reached'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -413,6 +426,61 @@ export default function TradeDetail() {
                         <p className={`font-medium ${metrics.rMultiple >= 0 ? "text-green-600" : "text-red-600"}`}>
                           {metrics.rMultiple > 0 ? `+${metrics.rMultiple.toFixed(2)}` : metrics.rMultiple.toFixed(2)}R
                         </p>
+                      </div>
+                    )}
+
+                    {trade.status === 'closed' && trade.takeProfit && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Target Status</p>
+                        <div className="flex items-center">
+                          {trade.targetReached ? (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 mr-1 text-green-500" />
+                              <p className="font-medium text-green-600">Target Reached</p>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="h-4 w-4 mr-1 text-orange-500" />
+                              <p className="font-medium text-orange-600">Target Not Reached</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 mb-4">
+                  <h3 className="font-medium mb-3 flex items-center">
+                    <Target className="h-4 w-4 mr-1.5 text-blue-500" />
+                    Price Excursions
+                  </h3>
+                  <div className="grid grid-cols-2 gap-y-4">
+                    {metrics.maxFavorableExcursion > 0 && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Max Favorable</p>
+                        <p className="font-medium text-green-600">
+                          ${metrics.maxFavorableExcursion.toFixed(2)}
+                        </p>
+                        {metrics.capturedProfitPercent > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Captured {metrics.capturedProfitPercent.toFixed(0)}% of max move
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {metrics.maxAdverseExcursion > 0 && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Max Adverse ("Heat")</p>
+                        <p className="font-medium text-red-600">
+                          ${metrics.maxAdverseExcursion.toFixed(2)}
+                        </p>
+                        {metrics.initialRiskedAmount > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {((metrics.maxAdverseExcursion / metrics.initialRiskedAmount) * 100).toFixed(0)}% of risk used
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -599,7 +667,16 @@ export default function TradeDetail() {
               </div>
             </CardContent>
           </Card>
-        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Trade Metrics</CardTitle>
+            <CardDescription>Performance and risk metrics at a glance</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TradeMetrics trade={trade} extended={true} />
+          </CardContent>
+        </Card>
       </div>
       
       {trade.partialExits && trade.partialExits.length > 0 && (

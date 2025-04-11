@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { 
   TrendingUp, TrendingDown, Target, AlertTriangle, 
-  ChevronRight, ChevronDown, BarChart2, Thermometer
+  ChevronRight, ChevronDown, BarChart2, Thermometer,
+  CheckCircle2, XCircle
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -158,6 +159,28 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
                 </p>
                 <p className="text-xs text-muted-foreground font-medium">Based on initial stop loss</p>
               </div>
+              
+              {trade.status === 'closed' && trade.takeProfit && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground flex items-center">
+                    <Target className="h-3.5 w-3.5 mr-1 text-green-500" />
+                    Target Status
+                  </p>
+                  <div className="flex items-center">
+                    {trade.targetReached ? (
+                      <>
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-green-500" />
+                        <p className="text-base text-green-600">Reached</p>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-3.5 w-3.5 mr-1 text-orange-500" />
+                        <p className="text-base text-orange-600">Not Reached</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {(maxFavorableExcursion > 0 || maxAdverseExcursion > 0) && (
