@@ -1,4 +1,3 @@
-
 import { Trade, TradeWithMetrics } from '@/types';
 import { calculateTradeMetrics } from '@/utils/calculations';
 import { Badge } from '@/components/ui/badge';
@@ -41,10 +40,8 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
     capturedProfitPercent
   } = metrics;
   
-  // If rMultiple is NaN, zero or undefined, display 'N/A'
   const rMultipleDisplay = rMultiple && !isNaN(rMultiple) ? rMultiple.toFixed(2) : 'N/A';
   
-  // Format the profit/loss amount
   const formattedProfitLoss = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -52,7 +49,6 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
     maximumFractionDigits: 2
   }).format(profitLoss);
   
-  // Determine if this trade was successful
   const isProfit = profitLoss > 0;
   const isLoss = profitLoss < 0;
   const isBigWin = rMultiple && rMultiple >= 2;
@@ -62,8 +58,57 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
     setIsExpanded(!isExpanded);
   };
   
-  // Always show expanded view if extended is true
   const showExtended = extended || isExpanded;
+  
+  const renderTargetStatus = () => {
+    if (!trade.status === 'closed' || !trade.takeProfit) {
+      return null;
+    }
+    
+    let missedValue = 0;
+    if (trade.exitPrice && trade.targetReached && !trade.targetReachedBeforeExit) {
+      const targetPrice = parseFloat(trade.takeProfit.toString());
+      const exitPrice = parseFloat(trade.exitPrice.toString());
+      const quantity = parseFloat(trade.quantity.toString());
+      const pointValue = trade.type === 'futures' && trade.contractDetails?.tickValue 
+        ? parseFloat(trade.contractDetails.tickValue.toString()) 
+        : 1;
+      const priceDiff = Math.abs(targetPrice - exitPrice);
+      missedValue = priceDiff * quantity * pointValue;
+    }
+    
+    if (trade.targetReached) {
+      if (trade.targetReachedBeforeExit) {
+        return (
+          <>
+            <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-green-500" />
+            <p className="text-base text-green-600">Reached before exit</p>
+          </>
+        );
+      } else {
+        return (
+          <div>
+            <div className="flex items-center">
+              <AlertTriangle className="h-3.5 w-3.5 mr-1 text-yellow-500" />
+              <p className="text-base text-yellow-600">Reached after exit</p>
+            </div>
+            {missedValue > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Missed: ${missedValue.toFixed(2)}
+              </p>
+            )}
+          </div>
+        );
+      }
+    } else {
+      return (
+        <>
+          <XCircle className="h-3.5 w-3.5 mr-1 text-orange-500" />
+          <p className="text-base text-orange-600">Not Reached</p>
+        </>
+      );
+    }
+  };
   
   return (
     <div className="p-4 bg-background border rounded-lg shadow-sm">
@@ -167,17 +212,7 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
                     Target Status
                   </p>
                   <div className="flex items-center">
-                    {trade.targetReached ? (
-                      <>
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-green-500" />
-                        <p className="text-base text-green-600">Reached</p>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="h-3.5 w-3.5 mr-1 text-orange-500" />
-                        <p className="text-base text-orange-600">Not Reached</p>
-                      </>
-                    )}
+                    {renderTargetStatus()}
                   </div>
                 </div>
               )}

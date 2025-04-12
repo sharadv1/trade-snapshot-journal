@@ -5,7 +5,7 @@ import { getTradeById } from '@/utils/tradeStorage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { ArrowUpRight, Target, Thermometer, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowUpRight, Target, Thermometer, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TradeMetrics } from '@/components/TradeMetrics';
 import { format } from 'date-fns';
@@ -54,6 +54,67 @@ export function TradeDetailModal({ tradeId, isOpen, onClose }: TradeDetailModalP
   }
 
   const metrics = calculateTradeMetrics(trade as TradeWithMetrics);
+
+  // Function to determine target status message
+  const getTargetStatusDisplay = () => {
+    if (!trade.status === 'closed' || !trade.takeProfit || metrics?.maxFavorableExcursion === undefined) {
+      return null;
+    }
+    
+    const targetPrice = parseFloat(trade.takeProfit.toString());
+    const entryPrice = parseFloat(trade.entryPrice.toString());
+    const exitPrice = trade.exitPrice ? parseFloat(trade.exitPrice.toString()) : null;
+    const direction = trade.direction === 'long' ? 1 : -1;
+    
+    // Calculate target value (in currency)
+    const quantity = parseFloat(trade.quantity.toString());
+    const pointValue = trade.type === 'futures' && trade.contractDetails?.tickValue 
+      ? parseFloat(trade.contractDetails.tickValue.toString()) 
+      : 1;
+    
+    // Calculate potential gain from exit to target
+    let missedValue = 0;
+    if (exitPrice && trade.targetReached && !trade.targetReachedBeforeExit) {
+      const priceDiff = Math.abs(targetPrice - exitPrice);
+      missedValue = priceDiff * quantity * pointValue;
+    }
+    
+    if (trade.targetReached) {
+      if (trade.targetReachedBeforeExit) {
+        return (
+          <div className="flex items-center mt-1">
+            <CheckCircle2 className="h-4 w-4 mr-1.5 text-green-500" />
+            <p className="font-medium text-green-600">Target price of {trade.takeProfit} was reached before exit</p>
+          </div>
+        );
+      } else {
+        return (
+          <div className="flex items-center mt-1">
+            <AlertTriangle className="h-4 w-4 mr-1.5 text-yellow-500" />
+            <div>
+              <p className="font-medium text-yellow-600">
+                Target price of {trade.takeProfit} was reached after exit
+              </p>
+              {missedValue > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Missed additional profit of ${missedValue.toFixed(2)}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      }
+    } else {
+      return (
+        <div className="flex items-center mt-1">
+          <XCircle className="h-4 w-4 mr-1.5 text-orange-500" />
+          <p className="font-medium text-orange-600">
+            Target price of {trade.takeProfit} was not reached
+          </p>
+        </div>
+      );
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
@@ -158,29 +219,10 @@ export function TradeDetailModal({ tradeId, isOpen, onClose }: TradeDetailModalP
                     </div>
                   )}
                   
-                  {trade.status === 'closed' && trade.takeProfit && trade.targetReached !== undefined && (
+                  {trade.status === 'closed' && trade.takeProfit && (
                     <div className="col-span-2">
                       <p className="text-sm text-muted-foreground">Target Status</p>
-                      <div className="flex items-center mt-1">
-                        {trade.targetReached ? (
-                          <>
-                            <CheckCircle2 className="h-4 w-4 mr-1.5 text-green-500" />
-                            <p className="font-medium text-green-600">Target price of {trade.takeProfit} was reached</p>
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="h-4 w-4 mr-1.5 text-orange-500" />
-                            <p className="font-medium text-orange-600">
-                              Target price of {trade.takeProfit} was not reached
-                              {metrics.maxFavorableExcursion > 0 && metrics.profitLoss > 0 && (
-                                <span className="block text-xs mt-1">
-                                  You missed additional profit by exiting before your target
-                                </span>
-                              )}
-                            </p>
-                          </>
-                        )}
-                      </div>
+                      {getTargetStatusDisplay()}
                     </div>
                   )}
                 </div>

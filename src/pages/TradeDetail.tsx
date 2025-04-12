@@ -41,7 +41,7 @@ const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
     'm1': 'Monthly (M1)'
   };
   
-  return timeframeDisplayMap[timeframe] || timeframe;
+  return timeframeDisplayValue[timeframe] || timeframe;
 };
 
 export default function TradeDetail() {
@@ -60,6 +60,60 @@ export default function TradeDetail() {
     
     const strategy = getStrategyById(strategyId);
     return strategy ? strategy.name : strategyId;
+  };
+  
+  const getTargetStatusDisplay = () => {
+    if (!trade || !trade.status === 'closed' || !trade.takeProfit || !metrics) {
+      return null;
+    }
+    
+    const targetPrice = parseFloat(trade.takeProfit.toString());
+    const entryPrice = parseFloat(trade.entryPrice.toString());
+    const exitPrice = trade.exitPrice ? parseFloat(trade.exitPrice.toString()) : null;
+    const direction = trade.direction === 'long' ? 1 : -1;
+    
+    const quantity = parseFloat(trade.quantity.toString());
+    const pointValue = trade.type === 'futures' && trade.contractDetails?.tickValue 
+      ? parseFloat(trade.contractDetails.tickValue.toString()) 
+      : 1;
+    
+    let missedValue = 0;
+    if (exitPrice && trade.targetReached && !trade.targetReachedBeforeExit) {
+      const priceDiff = Math.abs(targetPrice - exitPrice);
+      missedValue = priceDiff * quantity * pointValue;
+    }
+    
+    if (trade.targetReached) {
+      if (trade.targetReachedBeforeExit) {
+        return (
+          <div className="flex items-center">
+            <CheckCircle2 className="h-4 w-4 mr-1.5 text-green-500" />
+            <p className="font-medium text-green-600">Target reached before exit</p>
+          </div>
+        );
+      } else {
+        return (
+          <div>
+            <div className="flex items-center">
+              <AlertTriangle className="h-4 w-4 mr-1.5 text-yellow-500" />
+              <p className="font-medium text-yellow-600">Target reached after exit</p>
+            </div>
+            {missedValue > 0 && (
+              <p className="text-xs text-muted-foreground ml-6 mt-1">
+                Missed additional profit: ${missedValue.toFixed(2)}
+              </p>
+            )}
+          </div>
+        );
+      }
+    } else {
+      return (
+        <div className="flex items-center">
+          <XCircle className="h-4 w-4 mr-1.5 text-orange-500" />
+          <p className="font-medium text-orange-600">Target not reached</p>
+        </div>
+      );
+    }
   };
   
   useEffect(() => {
@@ -332,16 +386,7 @@ export default function TradeDetail() {
                   <p className="text-sm text-muted-foreground">Take Profit</p>
                   <p className="font-medium">{trade.takeProfit}</p>
                   {trade.status === 'closed' && trade.targetReached !== undefined && (
-                    <div className="flex items-center mt-1">
-                      {trade.targetReached ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-green-500" />
-                      ) : (
-                        <XCircle className="h-3.5 w-3.5 mr-1 text-orange-500" />
-                      )}
-                      <p className="text-xs">
-                        {trade.targetReached ? 'Target reached' : 'Target not reached'}
-                      </p>
-                    </div>
+                    getTargetStatusDisplay()
                   )}
                 </div>
               )}
