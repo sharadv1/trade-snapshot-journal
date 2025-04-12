@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { ReflectionsList } from './ReflectionsList';
 import { WeeklyReflection } from '@/types';
@@ -10,7 +11,7 @@ import { startOfWeek, endOfWeek, addWeeks, format, parseISO, isBefore, isEqual, 
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
-import { generateHTMLReport, downloadReport } from '@/components/journal/ReportGenerator';
+import { generatePDFReport } from '@/components/journal/ReportGenerator';
 import { toast } from '@/utils/toast';
 
 export function WeeklyReflectionsPage() {
@@ -45,30 +46,30 @@ export function WeeklyReflectionsPage() {
     // Format date range for the report
     const dateRange = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
     
+    // Show generation toast
+    toast.info("Generating PDF report...");
+    
     // Data for the report
     const reportData = {
-      title: `Weekly Trading Journal: ${dateRange}`,
+      title: `Weekly Trading Report: ${dateRange}`,
       dateRange,
-      reflection: reflection.reflection || "No reflection for this week.",
-      weeklyPlan: reflection.weeklyPlan || undefined,
-      grade: reflection.grade || undefined,
       trades: weekTrades,
       metrics: {
         totalPnL,
         winRate,
         totalR,
-        tradeCount: weekTrades.length
+        tradeCount: weekTrades.length,
+        winningTrades: winningTrades.length,
+        losingTrades: weekTrades.length - winningTrades.length
       }
     };
     
-    // Generate the HTML report
-    const reportHTML = generateHTMLReport(reportData);
+    // Generate and download the PDF report
+    const filename = `trading-report-${format(weekStart, 'yyyy-MM-dd')}.pdf`;
     
-    // Download the report
-    const filename = `weekly-trading-report-${format(weekStart, 'yyyy-MM-dd')}.html`;
-    downloadReport(reportHTML, filename);
-    
-    toast.success("Weekly report downloaded successfully!");
+    if (generatePDFReport(reportData, filename)) {
+      toast.success("Trading report downloaded successfully!");
+    }
   };
   
   // Inject the download functionality into the reflections data
@@ -84,7 +85,7 @@ export function WeeklyReflectionsPage() {
               e.stopPropagation();
               handleDownloadReport(reflection);
             }}
-            title="Download weekly report"
+            title="Download weekly report as PDF"
           >
             <Download className="h-4 w-4" />
           </Button>

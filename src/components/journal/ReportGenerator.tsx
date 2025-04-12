@@ -1,18 +1,24 @@
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { Trade, TradeWithMetrics } from '@/types';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+import { toast } from 'sonner';
 
 interface ReportData {
   title: string;
   dateRange: string;
-  reflection: string;
-  weeklyPlan?: string;
-  grade?: string;
   trades: TradeWithMetrics[];
   metrics: {
     totalPnL: number;
     winRate: number;
     totalR: number;
     tradeCount: number;
+    avgR?: number;
+    largestWin?: number;
+    largestLoss?: number;
+    winningTrades?: number;
+    losingTrades?: number;
   };
 }
 
@@ -243,4 +249,209 @@ export const downloadReport = (htmlContent: string, filename: string) => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, 100);
+};
+
+export const generatePDFReport = (data: ReportData, filename: string) => {
+  const {
+    title,
+    dateRange,
+    trades,
+    metrics
+  } = data;
+
+  try {
+    // Create a new PDF document
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text(title, pageWidth / 2, 15, { align: 'center' });
+    
+    // Add date range
+    doc.setFontSize(12);
+    doc.text(dateRange, pageWidth / 2, 22, { align: 'center' });
+    
+    // Add metrics summary table
+    doc.setFontSize(14);
+    doc.text('Performance Summary', 14, 35);
+    
+    // Calculate additional metrics
+    const avgR = metrics.tradeCount > 0 ? metrics.totalR / metrics.tradeCount : 0;
+    const winningTrades = trades.filter(t => (t.metrics?.profitLoss || 0) > 0).length;
+    const losingTrades = trades.filter(t => (t.metrics?.profitLoss || 0) < 0).length;
+    
+    const profitableTrades = trades.filter(t => (t.metrics?.profitLoss || 0) > 0);
+    const losingTradesList = trades.filter(t => (t.metrics?.profitLoss || 0) < 0);
+    
+    const largestWin = profitableTrades.length > 0 
+      ? Math.max(...profitableTrades.map(t => t.metrics?.profitLoss || 0)) 
+      : 0;
+      
+    const largestLoss = losingTradesList.length > 0 
+      ? Math.min(...losingTradesList.map(t => t.metrics?.profitLoss || 0)) 
+      : 0;
+
+    // Metrics table
+    autoTable(doc, {
+      startY: 40,
+      head: [['Metric', 'Value']],
+      body: [
+        ['Total P&L', formatCurrency(metrics.totalPnL)],
+        ['Win Rate', `${metrics.winRate.toFixed(1)}%`],
+        ['Total R', `${metrics.totalR.toFixed(2)}R`],
+        ['Average R per Trade', `${avgR.toFixed(2)}R`],
+        ['Number of Trades', metrics.tradeCount.toString()],
+        ['Winning Trades', winningTrades.toString()],
+        ['Losing Trades', losingTrades.toString()],
+        ['Largest Win', formatCurrency(largestWin)],
+        ['Largest Loss', formatCurrency(largestLoss)]
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: [66, 66, 66] },
+      margin: { top: 40 },
+    });
+    
+    // Direction distribution
+    const longTrades = trades.filter(t => t.direction === 'long').length;
+    const shortTrades = trades.filter(t => t.direction === 'short').length;
+    
+    if (metrics.tradeCount > 0) {
+      const longPercentage = (longTrades / metrics.tradeCount) * 100;
+      const shortPercentage = (shortTrades / metrics.tradeCount) * 100;
+      
+      doc.text('Trade Direction Distribution', 14, doc.lastAutoTable.finalY + 15);
+      
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 20,
+        head: [['Direction', 'Count', 'Percentage']],
+        body: [
+          ['Long', longTrades.toString(), `${longPercentage.toFixed(1)}%`],
+          ['Short', shortTrades.toString(), `${shortPercentage.toFixed(1)}%`]
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [66, 66, 66] }
+      });
+    }
+    
+    // Symbol distribution (top 5)
+    const symbolCounts: Record<string, number> = {};
+    trades.forEach(trade => {
+      symbolCounts[trade.symbol] = (symbolCounts[trade.symbol] || 0) + 1;
+    });
+    
+    const topSymbols = Object.entries(symbolCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+      
+    if (topSymbols.length > 0) {
+      doc.text('Top Traded Symbols', 14, doc.lastAutoTable.finalY + 15);
+      
+      const symbolRows = topSymbols.map(([symbol, count]) => {
+        const percentage = (count / metrics.tradeCount) * 100;
+        return [symbol, count.toString(), `${percentage.toFixed(1)}%`];
+      });
+      
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 20,
+        head: [['Symbol', 'Count', 'Percentage']],
+        body: symbolRows,
+        theme: 'striped',
+        headStyles: { fillColor: [66, 66, 66] }
+      });
+    }
+
+    // R-Multiple Distribution
+    const rMultiples = trades
+      .filter(t => t.metrics?.rMultiple !== undefined)
+      .map(t => t.metrics?.rMultiple || 0);
+    
+    if (rMultiples.length > 0) {
+      // Group R-multiples into ranges
+      const ranges: Record<string, number> = {
+        '>2R': 0,
+        '1R to 2R': 0,
+        '0R to 1R': 0,
+        '-1R to 0R': 0,
+        '-2R to -1R': 0,
+        '<-2R': 0
+      };
+      
+      rMultiples.forEach(r => {
+        if (r > 2) ranges['>2R']++;
+        else if (r > 1) ranges['1R to 2R']++;
+        else if (r > 0) ranges['0R to 1R']++;
+        else if (r > -1) ranges['-1R to 0R']++;
+        else if (r > -2) ranges['-2R to -1R']++;
+        else ranges['<-2R']++;
+      });
+      
+      doc.text('R-Multiple Distribution', 14, doc.lastAutoTable.finalY + 15);
+      
+      const rRows = Object.entries(ranges).map(([range, count]) => {
+        const percentage = (count / rMultiples.length) * 100;
+        return [range, count.toString(), `${percentage.toFixed(1)}%`];
+      });
+      
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 20,
+        head: [['R-Multiple', 'Count', 'Percentage']],
+        body: rRows,
+        theme: 'striped',
+        headStyles: { fillColor: [66, 66, 66] }
+      });
+    }
+    
+    // Add trades table on a new page
+    doc.addPage();
+    doc.setFontSize(14);
+    doc.text('Trade Details', 14, 15);
+    
+    const tradeRows = trades.map(trade => {
+      const profitLoss = trade.metrics?.profitLoss || 0;
+      const rMultiple = trade.metrics?.rMultiple || 0;
+      const entryDate = new Date(trade.entryDate).toLocaleDateString();
+      const exitDate = trade.exitDate ? new Date(trade.exitDate).toLocaleDateString() : 'Open';
+      
+      return [
+        trade.symbol,
+        trade.direction.toUpperCase(),
+        entryDate,
+        exitDate,
+        formatCurrency(profitLoss),
+        `${rMultiple.toFixed(2)}R`,
+        trade.grade || 'N/A'
+      ];
+    });
+    
+    autoTable(doc, {
+      startY: 20,
+      head: [['Symbol', 'Direction', 'Entry Date', 'Exit Date', 'P&L', 'R', 'Grade']],
+      body: tradeRows,
+      theme: 'striped',
+      headStyles: { fillColor: [66, 66, 66] },
+      styles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 20 },
+        4: { cellWidth: 25 },
+      }
+    });
+    
+    // Add footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.text(`Generated on ${new Date().toLocaleDateString()} | Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' });
+    }
+    
+    // Save the PDF
+    doc.save(filename);
+    return true;
+  } catch (error) {
+    console.error('Error generating PDF report:', error);
+    toast.error('Error generating PDF report');
+    return false;
+  }
 };

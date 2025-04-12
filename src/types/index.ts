@@ -27,7 +27,7 @@ export interface Trade {
   maxFavorablePrice?: number | string;
   maxAdversePrice?: number | string;
   targetReached?: boolean;
-  targetReachedBeforeExit?: boolean; // New property to track if target was reached before exit
+  targetReachedBeforeExit?: boolean;
 }
 
 export interface TradeWithMetrics extends Trade {
@@ -69,6 +69,15 @@ export interface WeeklyReflection {
   reflection: string;
   weeklyPlan?: string;
   grade?: string;
+  weekId?: string;
+  weekStart?: string;
+  weekEnd?: string;
+  totalPnL?: number;
+  totalR?: number;
+  tradeIds?: string[];
+  isPlaceholder?: boolean;
+  lastUpdated?: string;
+  actions?: React.ReactNode;
 }
 
 export interface MonthlyReflection {
@@ -77,6 +86,15 @@ export interface MonthlyReflection {
   reflection: string;
   monthlyPlan?: string;
   grade?: string;
+  monthId?: string;
+  monthStart?: string;
+  monthEnd?: string;
+  totalPnL?: number;
+  totalR?: number;
+  tradeIds?: string[];
+  isPlaceholder?: boolean;
+  lastUpdated?: string;
+  actions?: React.ReactNode;
 }
 
 export interface PartialExit {
