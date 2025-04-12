@@ -1,6 +1,5 @@
-
 import { formatCurrency } from '@/utils/calculations/formatters';
-import { Trade } from '@/types';
+import { Trade, TradeWithMetrics } from '@/types';
 
 interface ReportData {
   title: string;
@@ -8,7 +7,7 @@ interface ReportData {
   reflection: string;
   weeklyPlan?: string;
   grade?: string;
-  trades: Trade[];
+  trades: TradeWithMetrics[];
   metrics: {
     totalPnL: number;
     winRate: number;

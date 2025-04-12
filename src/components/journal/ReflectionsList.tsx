@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { ReflectionDeleteDialog } from './reflections/ReflectionDeleteDialog';
 import { ReflectionCard } from './reflections/ReflectionCard';
-import { Check, Filter, Calendar, Plus, ArrowRight } from 'lucide-react';
+import { Check, Filter, Calendar, Plus, ArrowRight, Download } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -246,8 +246,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      {/* Display any custom actions if provided */}
-                      {'actions' in reflection && reflection.actions}
+                      {reflection.actions && reflection.actions}
                       
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -300,6 +299,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
         onClose={handleCloseDeleteDialog}
         reflection={reflectionToDelete}
         onReflectionDeleted={handleReflectionDeleted}
+        type={type}
       />
     </div>
   );
