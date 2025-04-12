@@ -208,6 +208,8 @@ export const getTradeMetrics = (trade: Trade) => {
     const direction = trade.direction === 'long' ? 1 : -1;
     
     // Calculate how much the price moved in your favor at its best point
+    // For long: maxFavPrice > entryPrice is good
+    // For short: maxFavPrice < entryPrice is good
     let favorableMove = (maxFavPrice - entryPrice) * direction;
     
     // Apply contract multiplier for futures
@@ -215,7 +217,8 @@ export const getTradeMetrics = (trade: Trade) => {
       favorableMove = favorableMove * pointValue;
     }
     
-    maxFavorableExcursion = favorableMove * quantity;
+    // Ensure max favorable excursion is positive (it's the maximum price movement in your favor)
+    maxFavorableExcursion = Math.max(0, favorableMove * quantity);
     
     // Calculate the percentage of max move captured if trade is closed
     if (trade.status === 'closed' && weightedExitPrice && maxFavorableExcursion > 0) {
@@ -228,7 +231,8 @@ export const getTradeMetrics = (trade: Trade) => {
   if (trade.maxAdversePrice && trade.entryPrice) {
     const entryPrice = parseFloat(trade.entryPrice.toString());
     const maxAdvPrice = parseFloat(trade.maxAdversePrice.toString());
-    const direction = trade.direction === 'long' ? -1 : 1; // Reverse direction for adverse move
+    // Inverse of favorable - for long: price drop is adverse, for short: price rise is adverse
+    const direction = trade.direction === 'long' ? -1 : 1;
     
     // Calculate how much the price moved against you at its worst point
     let adverseMove = (maxAdvPrice - entryPrice) * direction;
@@ -238,7 +242,8 @@ export const getTradeMetrics = (trade: Trade) => {
       adverseMove = adverseMove * pointValue;
     }
     
-    maxAdverseExcursion = Math.max(0, adverseMove * quantity); // Ensure it's not negative
+    // Ensure max adverse excursion is positive (it's the maximum adverse movement against your position)
+    maxAdverseExcursion = Math.max(0, adverseMove * quantity);
   }
 
   // For open trades, calculate the rMultiple based on current price or last close

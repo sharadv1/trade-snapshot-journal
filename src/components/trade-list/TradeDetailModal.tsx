@@ -123,8 +123,8 @@ export function TradeDetailModal({ tradeId, isOpen, onClose }: TradeDetailModalP
               <TradeMetrics trade={trade as TradeWithMetrics} />
             </div>
 
-            {/* New section for price excursions and drawdown metrics */}
-            {metrics && (metrics.maxFavorableExcursion > 0 || metrics.maxAdverseExcursion > 0 || trade.targetReached !== undefined) && (
+            {/* Post-Entry Performance section - always show if metrics exist */}
+            {metrics && (
               <div className="border-t pt-4">
                 <h3 className="text-sm font-medium mb-3">Post-Entry Performance</h3>
                 <div className="grid grid-cols-2 gap-4">
