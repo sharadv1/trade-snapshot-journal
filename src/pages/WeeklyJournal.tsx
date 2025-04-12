@@ -31,7 +31,7 @@ import {
   parseISO,
   isValid
 } from 'date-fns';
-import { ArrowLeft, ArrowRight, Save, Calendar, Pencil, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Calendar, Pencil, ChevronDown, ChevronUp, ExternalLink, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { TradeWithMetrics, WeeklyReflection } from '@/types';
@@ -56,6 +56,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { TradeDetailModal } from '@/components/trade-list/TradeDetailModal';
 
 export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
@@ -160,6 +161,8 @@ export default function WeeklyJournal() {
   const [editGrade, setEditGrade] = useState('');
   const [editWeekId, setEditWeekId] = useState('');
   const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
+  const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null);
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
 
   const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const currentWeekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -596,6 +599,33 @@ export default function WeeklyJournal() {
     };
   };
 
+  const handleTradeClick = (tradeId: string) => {
+    setSelectedTradeId(tradeId);
+    setIsTradeModalOpen(true);
+  };
+  
+  const handleCloseTradeModal = () => {
+    setIsTradeModalOpen(false);
+  };
+
+  const renderGradeBadge = (grade?: string) => {
+    if (!grade) return null;
+    
+    const gradeColors: Record<string, string> = {
+      'A': 'bg-green-100 text-green-800',
+      'B': 'bg-blue-100 text-blue-800',
+      'C': 'bg-yellow-100 text-yellow-800',
+      'D': 'bg-orange-100 text-orange-800',
+      'F': 'bg-red-100 text-red-800'
+    };
+    
+    return (
+      <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${gradeColors[grade] || 'bg-gray-100'}`}>
+        <Award className="h-3 w-3 mr-1" /> {grade}
+      </div>
+    );
+  };
+
   return (
     <div className="container mx-auto py-8 max-w-screen-xl">
       <div className="mb-4 grid grid-cols-3 items-center">
@@ -832,6 +862,7 @@ export default function WeeklyJournal() {
                 <TableRow>
                   <TableHead>Symbol</TableHead>
                   <TableHead>Direction</TableHead>
+                  <TableHead>Grade</TableHead>
                   <TableHead>Entry Date</TableHead>
                   <TableHead>Exit Date</TableHead>
                   <TableHead>P&L</TableHead>
@@ -840,9 +871,22 @@ export default function WeeklyJournal() {
               </TableHeader>
               <TableBody>
                 {periodTrades.map((trade) => (
-                  <TableRow key={trade.id}>
+                  <TableRow 
+                    key={trade.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleTradeClick(trade.id)}
+                  >
                     <TableCell>{trade.symbol}</TableCell>
-                    <TableCell>{trade.direction}</TableCell>
+                    <TableCell>
+                      <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                        trade.direction === 'long' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {trade.direction.toUpperCase()}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {renderGradeBadge(trade.grade)}
+                    </TableCell>
                     <TableCell>{format(new Date(trade.entryDate), 'MMM d, yyyy')}</TableCell>
                     <TableCell>
                       {trade.exitDate ? format(new Date(trade.exitDate), 'MMM d, yyyy') : '-'}
@@ -865,6 +909,12 @@ export default function WeeklyJournal() {
           )}
         </CardContent>
       </Card>
+      
+      <TradeDetailModal 
+        tradeId={selectedTradeId}
+        isOpen={isTradeModalOpen}
+        onClose={handleCloseTradeModal}
+      />
       
       <Dialog open={isWeeklyDialogOpen} onOpenChange={setIsWeeklyDialogOpen}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
