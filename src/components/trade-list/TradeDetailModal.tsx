@@ -5,7 +5,7 @@ import { getTradeById } from '@/utils/tradeStorage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Target, Thermometer, CheckCircle2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TradeMetrics } from '@/components/TradeMetrics';
 import { format } from 'date-fns';
@@ -122,6 +122,70 @@ export function TradeDetailModal({ tradeId, isOpen, onClose }: TradeDetailModalP
               <h3 className="text-sm font-medium mb-3">Trade Metrics</h3>
               <TradeMetrics trade={trade as TradeWithMetrics} />
             </div>
+
+            {/* New section for price excursions and drawdown metrics */}
+            {metrics && (metrics.maxFavorableExcursion > 0 || metrics.maxAdverseExcursion > 0 || trade.targetReached !== undefined) && (
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-medium mb-3">Post-Entry Performance</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {metrics.maxFavorableExcursion > 0 && (
+                    <div>
+                      <p className="text-sm text-muted-foreground flex items-center">
+                        <Target className="h-4 w-4 mr-1.5 text-green-500" />
+                        High Water Mark
+                      </p>
+                      <p className="font-medium text-green-600">${metrics.maxFavorableExcursion.toFixed(2)}</p>
+                      {metrics.capturedProfitPercent > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          You captured {metrics.capturedProfitPercent.toFixed(0)}% of the maximum potential move
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {metrics.maxAdverseExcursion > 0 && (
+                    <div>
+                      <p className="text-sm text-muted-foreground flex items-center">
+                        <Thermometer className="h-4 w-4 mr-1.5 text-red-500" />
+                        Max Drawdown
+                      </p>
+                      <p className="font-medium text-red-600">${metrics.maxAdverseExcursion.toFixed(2)}</p>
+                      {metrics.initialRiskedAmount > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {((metrics.maxAdverseExcursion / metrics.initialRiskedAmount) * 100).toFixed(0)}% of risk used
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {trade.status === 'closed' && trade.takeProfit && trade.targetReached !== undefined && (
+                    <div className="col-span-2">
+                      <p className="text-sm text-muted-foreground">Target Status</p>
+                      <div className="flex items-center mt-1">
+                        {trade.targetReached ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 mr-1.5 text-green-500" />
+                            <p className="font-medium text-green-600">Target price of {trade.takeProfit} was reached</p>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="h-4 w-4 mr-1.5 text-orange-500" />
+                            <p className="font-medium text-orange-600">
+                              Target price of {trade.takeProfit} was not reached
+                              {metrics.maxFavorableExcursion > 0 && metrics.profitLoss > 0 && (
+                                <span className="block text-xs mt-1">
+                                  You missed additional profit by exiting before your target
+                                </span>
+                              )}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {trade.notes && (
               <div className="border-t pt-4">
