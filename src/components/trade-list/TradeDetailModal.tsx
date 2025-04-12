@@ -190,12 +190,7 @@ export function TradeDetailModal({ tradeId, isOpen, onClose }: TradeDetailModalP
             {trade.notes && (
               <div className="border-t pt-4">
                 <h3 className="text-sm font-medium mb-2">Notes</h3>
-                <div className="text-sm text-muted-foreground">
-                  {trade.notes && 
-                    (trade.notes.length > 300 
-                      ? `${trade.notes.substring(0, 300).replace(/<[^>]*>/g, '')}...` 
-                      : trade.notes.replace(/<[^>]*>/g, ''))}
-                </div>
+                <div className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: trade.notes }} />
               </div>
             )}
 
