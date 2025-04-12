@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { TradeWithMetrics } from '@/types';
@@ -6,6 +7,7 @@ import { ChevronUp, ChevronDown, Clock, CheckCircle, Award } from 'lucide-react'
 import { format } from 'date-fns';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { getStrategyById } from '@/utils/strategyStorage';
+import { TradeDetailModal } from './TradeDetailModal';
 
 interface TradeListTableProps {
   trades: TradeWithMetrics[];
@@ -22,12 +24,24 @@ export function TradeListTable({
   handleSort,
   onTradeDeleted
 }: TradeListTableProps) {
+  const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Helper function to display strategy name instead of ID
   const getStrategyName = (strategyId: string | undefined): string => {
     if (!strategyId) return 'Unspecified';
     
     const strategy = getStrategyById(strategyId);
     return strategy ? strategy.name : strategyId;
+  };
+
+  const handleTradeClick = (tradeId: string) => {
+    setSelectedTradeId(tradeId);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
   };
 
   return (
@@ -96,7 +110,11 @@ export function TradeListTable({
             </tr>
           ) : (
             trades.map(trade => (
-              <tr key={trade.id} className="border-b hover:bg-muted/50">
+              <tr 
+                key={trade.id} 
+                className="border-b hover:bg-muted/50 cursor-pointer" 
+                onClick={() => handleTradeClick(trade.id)}
+              >
                 <td className="p-2">
                   <div className="font-medium">{trade.symbol}</div>
                   <div className="text-xs text-muted-foreground">{trade.type}</div>
@@ -149,7 +167,7 @@ export function TradeListTable({
                     </div>
                   )}
                 </td>
-                <td className="p-2 text-right">
+                <td className="p-2 text-right" onClick={(e) => e.stopPropagation()}>
                   <Link to={`/trade/${trade.id}`}>
                     <Button variant="ghost" size="sm">View</Button>
                   </Link>
@@ -159,6 +177,12 @@ export function TradeListTable({
           )}
         </tbody>
       </table>
+
+      <TradeDetailModal 
+        tradeId={selectedTradeId}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 }
