@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { ReflectionsList } from './ReflectionsList';
 import { WeeklyReflection } from '@/types';
@@ -9,9 +8,92 @@ import {
 } from '@/utils/journalStorage';
 import { startOfWeek, endOfWeek, addWeeks, format, parseISO, isBefore, isEqual, isWithinInterval } from 'date-fns';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
+import { generateHTMLReport, downloadReport } from '@/components/journal/ReportGenerator';
+import { toast } from '@/utils/toast';
 
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
+  
+  // Function to download a weekly report
+  const handleDownloadReport = (reflection: WeeklyReflection) => {
+    if (!reflection.weekStart || !reflection.weekEnd) {
+      toast.error("Cannot generate report: Missing week dates");
+      return;
+    }
+    
+    // Get trades for this week
+    const allTrades = getTradesWithMetrics();
+    const weekStart = new Date(reflection.weekStart);
+    const weekEnd = new Date(reflection.weekEnd);
+    
+    const weekTrades = allTrades.filter(trade => {
+      if (trade.exitDate) {
+        const exitDate = new Date(trade.exitDate);
+        return exitDate >= weekStart && exitDate <= weekEnd;
+      }
+      return false;
+    });
+    
+    // Calculate metrics
+    const totalPnL = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
+    const totalR = weekTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
+    const winningTrades = weekTrades.filter(trade => (trade.metrics.profitLoss || 0) > 0);
+    const winRate = weekTrades.length > 0 ? (winningTrades.length / weekTrades.length) * 100 : 0;
+    
+    // Format date range for the report
+    const dateRange = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
+    
+    // Data for the report
+    const reportData = {
+      title: `Weekly Trading Journal: ${dateRange}`,
+      dateRange,
+      reflection: reflection.reflection || "No reflection for this week.",
+      weeklyPlan: reflection.weeklyPlan || undefined,
+      grade: reflection.grade || undefined,
+      trades: weekTrades,
+      metrics: {
+        totalPnL,
+        winRate,
+        totalR,
+        tradeCount: weekTrades.length
+      }
+    };
+    
+    // Generate the HTML report
+    const reportHTML = generateHTMLReport(reportData);
+    
+    // Download the report
+    const filename = `weekly-trading-report-${format(weekStart, 'yyyy-MM-dd')}.html`;
+    downloadReport(reportHTML, filename);
+    
+    toast.success("Weekly report downloaded successfully!");
+  };
+  
+  // Inject the download functionality into the reflections data
+  useEffect(() => {
+    if (reflections.length > 0) {
+      const updatedReflections = reflections.map(reflection => ({
+        ...reflection,
+        actions: (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownloadReport(reflection);
+            }}
+            title="Download weekly report"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+        )
+      }));
+      
+      setReflections(updatedReflections);
+    }
+  }, [reflections]);
   
   useEffect(() => {
     // Generate all weeks from start of 2025

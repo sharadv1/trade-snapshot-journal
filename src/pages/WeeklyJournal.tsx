@@ -31,7 +31,7 @@ import {
   parseISO,
   isValid
 } from 'date-fns';
-import { ArrowLeft, ArrowRight, Save, Calendar, Pencil, ChevronDown, ChevronUp, ExternalLink, Award } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Calendar, Pencil, ChevronDown, ChevronUp, ExternalLink, Award, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { TradeWithMetrics, WeeklyReflection } from '@/types';
@@ -57,6 +57,7 @@ import {
 } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TradeDetailModal } from '@/components/trade-list/TradeDetailModal';
+import { generateHTMLReport, downloadReport } from '@/components/journal/ReportGenerator';
 
 export default function WeeklyJournal() {
   const { weekId: paramWeekId, monthId: paramMonthId } = useParams<{ weekId: string; monthId: string }>();
@@ -626,6 +627,42 @@ export default function WeeklyJournal() {
     );
   };
 
+  const handleDownloadReport = () => {
+    if (isMonthView) {
+      toast.error("Monthly reports are not available yet. Please use the weekly view.");
+      return;
+    }
+
+    const winningTrades = periodTrades.filter(trade => (trade.metrics.profitLoss || 0) > 0);
+    const winRate = periodTrades.length > 0 ? (winningTrades.length / periodTrades.length) * 100 : 0;
+    
+    const totalR = periodTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
+    
+    const totalPnL = periodTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
+
+    const reportData = {
+      title: `Weekly Trading Journal: ${formattedWeekRange}`,
+      dateRange: formattedWeekRange,
+      reflection: reflection || "No reflection for this week.",
+      weeklyPlan: weeklyPlan || undefined,
+      grade: weekGrade || undefined,
+      trades: periodTrades,
+      metrics: {
+        totalPnL,
+        winRate,
+        totalR,
+        tradeCount: periodTrades.length
+      }
+    };
+
+    const reportHTML = generateHTMLReport(reportData);
+    
+    const filename = `weekly-trading-report-${format(currentWeekStart, 'yyyy-MM-dd')}.html`;
+    downloadReport(reportHTML, filename);
+    
+    toast.success("Weekly report downloaded successfully!");
+  };
+
   return (
     <div className="container mx-auto py-8 max-w-screen-xl">
       <div className="mb-4 grid grid-cols-3 items-center">
@@ -669,7 +706,20 @@ export default function WeeklyJournal() {
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
-        <div className="col-span-1"></div>
+        <div className="col-span-1 flex justify-end">
+          {!isMonthView && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadReport}
+              className="flex items-center gap-1"
+              title="Download weekly report"
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Download Report
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="mb-8">
@@ -680,6 +730,15 @@ export default function WeeklyJournal() {
         <Card className="mb-8">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Weekly Reflection - {formattedWeekRange}</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadReport}
+              className="flex items-center gap-1"
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Download Report
+            </Button>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
