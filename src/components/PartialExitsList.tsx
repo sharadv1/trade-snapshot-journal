@@ -60,14 +60,17 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
   // Sort partial exits by date (newest first)
   const sortedExits = [...currentTrade.partialExits].sort((a, b) => {
     // Handle potential invalid dates
-    const dateA = new Date(a.exitDate || a.date || '').getTime() || 0;
-    const dateB = new Date(b.exitDate || b.date || '').getTime() || 0;
+    const dateA = new Date(a.exitDate || (a.date || '')).getTime() || 0;
+    const dateB = new Date(b.exitDate || (b.date || '')).getTime() || 0;
     return dateB - dateA;
   });
 
   // Calculate total quantity exited so far
   const totalExitedQuantity = sortedExits.reduce(
-    (total, exit) => total + exit.quantity, 
+    (total, exit) => {
+      const exitQuantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
+      return total + exitQuantity;
+    }, 
     0
   );
 
@@ -79,7 +82,10 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
 
   // Calculate max quantity for each exit (original quantity + current exit quantity)
   const getMaxQuantityForExit = (currentExit: PartialExit) => {
-    return remainingQuantity + currentExit.quantity;
+    const exitQuantity = typeof currentExit.quantity === 'string' ? 
+      parseFloat(currentExit.quantity.toString()) : 
+      currentExit.quantity;
+    return remainingQuantity + exitQuantity;
   };
 
   const handleExitUpdate = () => {
@@ -136,10 +142,10 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-sm font-medium">
-                      {exit.quantity} units @ {formatCurrency(exit.exitPrice || exit.price)}
+                      {exit.quantity} units @ {formatCurrency(exit.exitPrice || (exit.price || 0))}
                     </span>
                     <div className="text-sm text-muted-foreground">
-                      {formatTradeDateWithTime(exit.exitDate || exit.date)}
+                      {formatTradeDateWithTime(exit.exitDate || (exit.date || ''))}
                     </div>
                     
                     {exit.notes && (

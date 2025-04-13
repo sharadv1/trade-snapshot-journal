@@ -6,7 +6,7 @@ export interface IdeaFormData {
   date: string;
   symbol: string;
   description: string; // Explicitly required
-  status: 'still valid' | 'invalidated' | 'taken' | 'missed' | 'open' | 'expired' | 'invalid';
+  status: 'still valid' | 'invalidated' | 'taken' | 'missed' | 'open' | 'expired' | 'invalid' | 'pending' | 'executed';
   direction: 'long' | 'short';  // This is now required, no undefined
   images: string[];
 }

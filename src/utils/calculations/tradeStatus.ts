@@ -1,96 +1,65 @@
 
-/**
- * Utilities for checking trade status
- */
 import { Trade, PartialExit } from '@/types';
+
+/**
+ * Calculate the remaining quantity for a trade after partial exits
+ */
+export function getRemainingQuantity(trade: Trade): number {
+  if (!trade || !trade.quantity) return 0;
+  
+  // Convert quantity to number if it's a string
+  const initialQuantity = typeof trade.quantity === 'string' ? 
+    parseFloat(trade.quantity) : trade.quantity;
+  
+  // If no partial exits, return full quantity
+  if (!trade.partialExits || trade.partialExits.length === 0) {
+    return initialQuantity;
+  }
+  
+  // Sum up the quantity of all partial exits
+  const exitedQuantity = trade.partialExits.reduce((sum, exit) => {
+    const exitQuantity = typeof exit.quantity === 'string' ? 
+      parseFloat(exit.quantity.toString()) : exit.quantity;
+    return sum + exitQuantity;
+  }, 0);
+  
+  // Return the remaining quantity, minimum 0
+  return Math.max(initialQuantity - exitedQuantity, 0);
+}
 
 /**
  * Check if a trade is fully exited through partial exits
  */
 export function isTradeFullyExited(trade: Trade): boolean {
-  if (!trade.partialExits || trade.partialExits.length === 0) {
-    return false;
+  const remainingQty = getRemainingQuantity(trade);
+  return remainingQty <= 0;
+}
+
+/**
+ * Format a trade date (without time)
+ */
+export function formatTradeDate(dateString?: string): string {
+  if (!dateString) return 'N/A';
+  
+  try {
+    return new Date(dateString).toLocaleDateString();
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Invalid date';
   }
-  
-  const totalExitedQuantity = trade.partialExits.reduce(
-    (total, exit) => total + exit.quantity, 0
-  );
-  
-  // Consider a trade fully exited if the exited quantity equals or exceeds the trade quantity
-  return totalExitedQuantity >= trade.quantity;
 }
 
 /**
- * Get the remaining quantity for a trade
+ * Format a trade date with time
  */
-export function getRemainingQuantity(trade: Trade): number {
-  if (!trade.partialExits || trade.partialExits.length === 0) {
-    return trade.quantity;
-  }
-  
-  const totalExitedQuantity = trade.partialExits.reduce(
-    (total, exit) => total + exit.quantity, 0
-  );
-  
-  // Make sure we never return negative values
-  return Math.max(0, trade.quantity - totalExitedQuantity);
-}
-
-/**
- * Check if a trade can be reopened
- */
-export function canReopenTrade(trade: Trade): boolean {
-  // Any closed trade can be reopened regardless of partial exits
-  return trade.status === 'closed';
-}
-
-/**
- * Format a date safely, handling invalid dates
- */
-export function formatTradeDate(dateString: string | undefined): string {
+export function formatTradeDateWithTime(dateString?: string): string {
   if (!dateString) return 'N/A';
   
   try {
     const date = new Date(dateString);
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      return 'N/A';
-    }
-    
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  } catch (err) {
-    console.error('Error formatting date:', err);
-    return 'N/A';
-  }
-}
-
-/**
- * Format date with time safely
- */
-export function formatTradeDateWithTime(dateString: string | undefined): string {
-  if (!dateString) return 'N/A';
-  
-  try {
-    const date = new Date(dateString);
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      return 'N/A';
-    }
-    
-    return `${date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })} ${date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })}`;
-  } catch (err) {
-    console.error('Error formatting date with time:', err);
-    return 'N/A';
+    return date.toLocaleString();
+  } catch (error) {
+    console.error('Error formatting date with time:', error);
+    return 'Invalid date';
   }
 }

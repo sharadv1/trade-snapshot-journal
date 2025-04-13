@@ -1,4 +1,3 @@
-
 export interface Trade {
   id: string;
   symbol: string;
@@ -29,6 +28,9 @@ export interface Trade {
   maxAdversePrice?: number | string;
   targetReached?: boolean;
   targetReachedBeforeExit?: boolean;
+  ideaId?: string;
+  tags?: string[];
+  riskRewardRatio?: number;
 }
 
 export interface TradeWithMetrics extends Trade {
@@ -106,6 +108,8 @@ export interface PartialExit {
   exitDate: string;
   fees?: number;
   notes?: string;
+  price?: number | string;
+  date?: string;
 }
 
 export interface ContractDetails {
@@ -126,6 +130,10 @@ export interface Lesson {
   date: string;
   tags?: string[];
   media?: LessonMedia[];
+  types?: string[];
+  content?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface LessonMedia {
@@ -133,6 +141,7 @@ export interface LessonMedia {
   type: 'image' | 'video' | 'pdf';
   url: string;
   name?: string;
+  caption?: string;
 }
 
 export interface TradeIdea {
@@ -140,7 +149,7 @@ export interface TradeIdea {
   symbol: string;
   direction: 'long' | 'short';
   dateCreated: string;
-  status: 'pending' | 'executed' | 'invalid' | 'expired';
+  status: 'pending' | 'executed' | 'invalid' | 'expired' | 'still valid' | 'invalidated' | 'taken' | 'missed' | 'open';
   strategy?: string;
   description?: string;
   timeframe?: string;
@@ -149,6 +158,11 @@ export interface TradeIdea {
   stopLossConditions?: string;
   takeProfitConditions?: string;
   tradeId?: string;
+  date?: string;
+  createdAt?: string;
+  entryPrice?: number | string;
+  stopLoss?: number | string;
+  takeProfit?: number | string;
 }
 
 // Define trade types
@@ -345,3 +359,36 @@ export const COMMON_FUTURES_CONTRACTS: CommonFuturesContract[] = [
     contractSize: 1000
   }
 ];
+
+// Define interface for MediaFile which is used in some components
+export interface MediaFile {
+  url: string;
+  type: 'image' | 'video' | 'pdf';
+}
+
+// Define the ReflectionDeleteDialogProps for the DeleteDialog component
+export interface ReflectionDeleteDialogProps {
+  type: 'weekly' | 'monthly';
+  onConfirm: () => void;
+}
+
+// Define props for components that are missing definitions
+export interface RichTextEditorProps {
+  id: string;
+  content?: string;
+  initialContent?: string;
+  onChange: (value: string) => void;
+}
+
+export interface WeeklySummaryMetricsProps {
+  trades: TradeWithMetrics[];
+  totalPnL: number;
+  totalR: number;
+}
+
+export interface TradeDetailModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  tradeId?: string;
+  trade?: TradeWithMetrics;
+}

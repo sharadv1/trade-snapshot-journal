@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,9 +57,7 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
       entryPrice: parsedEntryPrice,
       quantity: parsedQuantity,
       strategy,
-      tags: [],
-      images: [],
-      partialExits: []
+      images: []
     };
     
     if (hasExit) {
@@ -115,6 +112,7 @@ export function QuickTradeEntry({ onTradeAdded, compact = false }: QuickTradeEnt
     const value = e.target.value;
     setter(value);
   };
+  
   
   return (
     <Card>

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import {
   Dialog,
@@ -36,16 +35,21 @@ export function DataImportSummary({ isOpen, onClose, summaryData }: DataImportSu
   const totalPnL = summaryData.trades.reduce((sum, trade) => {
     if (trade.status === 'closed' && trade.exitPrice && trade.entryPrice && trade.quantity) {
       const multiplier = trade.direction === 'long' ? 1 : -1;
-      return sum + ((trade.exitPrice - trade.entryPrice) * trade.quantity * multiplier);
+      const exitPrice = typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice) : trade.exitPrice;
+      const entryPrice = typeof trade.entryPrice === 'string' ? parseFloat(trade.entryPrice) : trade.entryPrice;
+      const quantity = typeof trade.quantity === 'string' ? parseFloat(trade.quantity) : trade.quantity;
+      return sum + ((exitPrice - entryPrice) * quantity * multiplier);
     }
     return sum;
   }, 0);
 
   const winningTrades = summaryData.trades.filter(trade => {
     if (trade.status !== 'closed' || !trade.exitPrice || !trade.entryPrice) return false;
+    const exitPrice = typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice) : trade.exitPrice;
+    const entryPrice = typeof trade.entryPrice === 'string' ? parseFloat(trade.entryPrice) : trade.entryPrice;
     return trade.direction === 'long' 
-      ? trade.exitPrice > trade.entryPrice 
-      : trade.exitPrice < trade.entryPrice;
+      ? exitPrice > entryPrice 
+      : exitPrice < entryPrice;
   });
 
   const winRate = summaryData.trades.length > 0 
@@ -123,7 +127,10 @@ export function DataImportSummary({ isOpen, onClose, summaryData }: DataImportSu
                         let pnl = 0;
                         if (trade.status === 'closed' && trade.exitPrice && trade.entryPrice && trade.quantity) {
                           const multiplier = trade.direction === 'long' ? 1 : -1;
-                          pnl = (trade.exitPrice - trade.entryPrice) * trade.quantity * multiplier;
+                          const exitPrice = typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice) : trade.exitPrice;
+                          const entryPrice = typeof trade.entryPrice === 'string' ? parseFloat(trade.entryPrice) : trade.entryPrice;
+                          const quantity = typeof trade.quantity === 'string' ? parseFloat(trade.quantity) : trade.quantity;
+                          pnl = (exitPrice - entryPrice) * quantity * multiplier;
                         }
                         
                         return (

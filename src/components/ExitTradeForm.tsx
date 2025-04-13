@@ -9,6 +9,7 @@ import { useExitTradeLogic } from './trade-exit/useExitTradeLogic';
 import { PartialExitsList } from './PartialExitsList';
 import { Badge } from '@/components/ui/badge';
 import { getRemainingQuantity, isTradeFullyExited } from '@/utils/calculations/tradeStatus';
+import { formatCurrency } from '@/utils/tradeCalculations';
 
 interface ExitTradeFormProps {
   trade: Trade;
@@ -129,7 +130,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-sm font-medium">
-                          {trade.quantity} units @ {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(trade.exitPrice)}
+                          {trade.quantity} units @ {formatCurrency(trade.exitPrice)}
                         </span>
                         <div className="text-sm text-muted-foreground">
                           {trade.exitDate ? new Date(trade.exitDate).toLocaleString() : 'No exit date recorded'}
@@ -141,7 +142,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
                         
                         {trade.fees !== undefined && trade.fees > 0 && (
                           <div className="text-xs text-muted-foreground mt-1">
-                            Fees: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(trade.fees)}
+                            Fees: {formatCurrency(trade.fees)}
                           </div>
                         )}
                       </div>
@@ -158,10 +159,10 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
               <form id="partial-exit-form" onSubmit={handleSubmitPartialExit}>
                 <PartialExitForm 
                   trade={trade}
-                  remainingQuantity={trade.quantity}
-                  partialQuantity={trade.quantity} 
+                  remainingQuantity={typeof trade.quantity === 'string' ? parseFloat(trade.quantity) : trade.quantity}
+                  partialQuantity={typeof trade.quantity === 'string' ? parseFloat(trade.quantity) : trade.quantity} 
                   setPartialQuantity={setPartialQuantity}
-                  partialExitPrice={trade.exitPrice}
+                  partialExitPrice={typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice) : trade.exitPrice}
                   setPartialExitPrice={setPartialExitPrice}
                   partialExitDate={trade.exitDate || new Date().toISOString()}
                   setPartialExitDate={setPartialExitDate}

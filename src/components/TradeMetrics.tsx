@@ -61,24 +61,26 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
   const showExtended = extended || isExpanded;
   
   const renderTargetStatus = () => {
-    if (!trade.status === 'closed' || !trade.takeProfit) {
+    if (trade.status !== 'closed' || !trade.takeProfit) {
       return null;
     }
     
     let missedValue = 0;
-    if (trade.exitPrice && trade.targetReached && !trade.targetReachedBeforeExit) {
-      const targetPrice = parseFloat(trade.takeProfit.toString());
-      const exitPrice = parseFloat(trade.exitPrice.toString());
-      const quantity = parseFloat(trade.quantity.toString());
+    if (trade.exitPrice && trade.targetReached === true && trade.targetReachedBeforeExit === false) {
+      const targetPrice = typeof trade.takeProfit === 'string' ? parseFloat(trade.takeProfit) : trade.takeProfit;
+      const exitPrice = typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice) : trade.exitPrice;
+      const quantity = typeof trade.quantity === 'string' ? parseFloat(trade.quantity.toString()) : trade.quantity;
       const pointValue = trade.type === 'futures' && trade.contractDetails?.tickValue 
-        ? parseFloat(trade.contractDetails.tickValue.toString()) 
+        ? (typeof trade.contractDetails.tickValue === 'string' ? 
+            parseFloat(trade.contractDetails.tickValue) : 
+            trade.contractDetails.tickValue)
         : 1;
       const priceDiff = Math.abs(targetPrice - exitPrice);
       missedValue = priceDiff * quantity * pointValue;
     }
     
-    if (trade.targetReached) {
-      if (trade.targetReachedBeforeExit) {
+    if (trade.targetReached === true) {
+      if (trade.targetReachedBeforeExit === true) {
         return (
           <>
             <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-green-500" />
