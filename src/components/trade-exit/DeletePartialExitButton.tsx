@@ -56,25 +56,33 @@ export function DeletePartialExitButton({
       
       // Calculate total exited quantity with the updated partial exits
       const totalExitedQuantity = updatedPartialExits.reduce(
-        (total, exit) => total + exit.quantity, 0
+        (total, exit) => {
+          const quantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
+          return total + quantity;
+        }, 0
       );
       
       // Update trade status based on exited quantity
-      if (totalExitedQuantity >= updatedTrade.quantity) {
+      const totalTradeQuantity = typeof updatedTrade.quantity === 'string' ? 
+        parseFloat(updatedTrade.quantity) : 
+        updatedTrade.quantity;
+        
+      if (totalExitedQuantity >= totalTradeQuantity) {
         // If still fully exited after deletion, keep the trade closed
         updatedTrade.status = 'closed';
         
         // Recalculate the weighted average exit price
-        const totalQuantity = updatedTrade.quantity;
         let weightedSum = 0;
         
         updatedPartialExits.forEach(exit => {
-          weightedSum += exit.exitPrice * exit.quantity;
+          const exitPrice = typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice) : exit.exitPrice;
+          const exitQuantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
+          weightedSum += exitPrice * exitQuantity;
         });
         
         // Set the trade's exit price to the weighted average
-        if (totalQuantity > 0) {
-          updatedTrade.exitPrice = weightedSum / totalQuantity;
+        if (totalExitedQuantity > 0) {
+          updatedTrade.exitPrice = weightedSum / totalExitedQuantity;
         }
         
         // Find the latest exit date among partial exits

@@ -29,8 +29,11 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
 
     // If it's a closed trade with exitPrice but no partials, initialize the form with the existing data
     if (trade.status === 'closed' && trade.exitPrice && (!trade.partialExits || trade.partialExits.length === 0)) {
-      setPartialQuantity(trade.quantity);
-      setPartialExitPrice(trade.exitPrice);
+      const tradeQty = typeof trade.quantity === 'string' ? parseFloat(trade.quantity) : trade.quantity;
+      const exitPrc = typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice) : trade.exitPrice;
+      
+      setPartialQuantity(tradeQty);
+      setPartialExitPrice(exitPrc);
       setPartialExitDate(trade.exitDate || new Date().toISOString());
       setPartialFees(trade.fees);
       setPartialNotes(trade.notes);
@@ -90,13 +93,14 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
       // Special case: converting a closed trade without partials to use the partial exit system
       if (isClosedWithoutPartials && latestTrade.exitPrice) {
         // Create a new partial exit record for the full quantity
+        const tradeQty = typeof latestTrade.quantity === 'string' ? 
+          parseFloat(latestTrade.quantity) : latestTrade.quantity;
+        
         const conversionExit: PartialExit = {
           id: generateUUID(),
-          date: partialExitDate,
           exitDate: partialExitDate,
-          price: roundedExitPrice,
           exitPrice: roundedExitPrice,
-          quantity: latestTrade.quantity,
+          quantity: tradeQty,
           fees: partialFees || 0,
           notes: partialNotes
         };
@@ -133,9 +137,7 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
       
       const partialExit: PartialExit = {
         id: generateUUID(),
-        date: partialExitDate,
         exitDate: partialExitDate,
-        price: roundedExitPrice,
         exitPrice: roundedExitPrice,
         quantity: partialQuantity,
         fees: partialFees || 0,
@@ -146,8 +148,15 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
         [...latestTrade.partialExits, partialExit] : [partialExit];
       
       // Calculate remaining quantity after this exit
-      const partialQuantitySum = updatedPartialExits.reduce((sum, exit) => sum + exit.quantity, 0);
-      const updatedRemainingQuantity = Math.max(0, latestTrade.quantity - partialQuantitySum);
+      const partialQuantitySum = updatedPartialExits.reduce((sum, exit) => {
+        const exitQuantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
+        return sum + exitQuantity;
+      }, 0);
+      
+      const tradeQuantity = typeof latestTrade.quantity === 'string' ? 
+        parseFloat(latestTrade.quantity) : latestTrade.quantity;
+        
+      const updatedRemainingQuantity = Math.max(0, tradeQuantity - partialQuantitySum);
       
       // If all quantity has been exited, mark for closing the trade
       const shouldClose = updatedRemainingQuantity <= 0;
@@ -161,13 +170,15 @@ export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: 
       // If closing the trade, calculate the weighted average exit price
       if (shouldClose) {
         // Calculate weighted average exit price and round to 2 decimal places
-        const totalQuantity = updatedPartialExits.reduce((sum, exit) => sum + exit.quantity, 0);
-        const weightedAvgPrice = updatedPartialExits.reduce(
-          (sum, exit) => sum + (exit.exitPrice * exit.quantity),
-          0
-        ) / totalQuantity;
+        let weightedSum = 0;
         
-        updatedTrade.exitPrice = Number(weightedAvgPrice.toFixed(2));
+        updatedPartialExits.forEach(exit => {
+          const exitPrice = typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice) : exit.exitPrice;
+          const exitQuantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
+          weightedSum += exitPrice * exitQuantity;
+        });
+        
+        updatedTrade.exitPrice = Number((weightedSum / partialQuantitySum).toFixed(2));
         
         // Use the latest exit date as the trade exit date
         const sortedExits = [...updatedPartialExits].sort((a, b) => 

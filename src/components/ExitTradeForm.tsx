@@ -75,6 +75,12 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     }
   };
 
+  // Helper function to ensure numbers are displayed properly
+  const formatPrice = (price: string | number | undefined): number => {
+    if (price === undefined) return 0;
+    return typeof price === 'string' ? parseFloat(price) : price;
+  };
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -130,7 +136,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-sm font-medium">
-                          {trade.quantity} units @ {formatCurrency(trade.exitPrice)}
+                          {trade.quantity} units @ {formatCurrency(formatPrice(trade.exitPrice))}
                         </span>
                         <div className="text-sm text-muted-foreground">
                           {trade.exitDate ? new Date(trade.exitDate).toLocaleString() : 'No exit date recorded'}
@@ -160,7 +166,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
                 <PartialExitForm 
                   trade={trade}
                   remainingQuantity={typeof trade.quantity === 'string' ? parseFloat(trade.quantity) : trade.quantity}
-                  partialQuantity={typeof trade.quantity === 'string' ? parseFloat(trade.quantity) : trade.quantity} 
+                  partialQuantity={typeof trade.quantity === 'string' ? parseFloat(trade.quantity) : trade.quantity}
                   setPartialQuantity={setPartialQuantity}
                   partialExitPrice={typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice) : trade.exitPrice}
                   setPartialExitPrice={setPartialExitPrice}

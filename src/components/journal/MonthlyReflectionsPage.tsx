@@ -100,6 +100,7 @@ export function MonthlyReflectionsPage() {
             // Include additional metrics in the reflection object
             monthsByRange.set(normalizedMonthKey, {
               ...reflectionObj,
+              date: reflectionObj.monthStart || reflectionObj.date || new Date().toISOString(),
               monthId: reflectionObj.monthId,
               totalPnL,
               totalR,
@@ -142,6 +143,7 @@ export function MonthlyReflectionsPage() {
             // Create a placeholder reflection with trade info
             monthsByRange.set(normalizedMonthKey, {
               id: monthId,
+              date: monthStart.toISOString(), // Add a date property to avoid TypeScript errors
               monthId: monthId,
               monthStart: monthStart.toISOString(),
               monthEnd: monthEnd.toISOString(),

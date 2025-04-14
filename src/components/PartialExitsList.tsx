@@ -68,6 +68,7 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
   // Calculate total quantity exited so far
   const totalExitedQuantity = sortedExits.reduce(
     (total, exit) => {
+      // Convert exit quantity to number
       const exitQuantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
       return total + exitQuantity;
     }, 
@@ -142,7 +143,7 @@ export function PartialExitsList({ trade, onUpdate, allowEditing = false }: Part
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-sm font-medium">
-                      {exit.quantity} units @ {formatCurrency(exit.exitPrice || (exit.price || 0))}
+                      {exit.quantity} units @ {formatCurrency(typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice) : exit.exitPrice)}
                     </span>
                     <div className="text-sm text-muted-foreground">
                       {formatTradeDateWithTime(exit.exitDate || (exit.date || ''))}

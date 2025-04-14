@@ -1,3 +1,4 @@
+
 export interface Trade {
   id: string;
   symbol: string;
@@ -57,7 +58,7 @@ export interface Strategy {
   description?: string;
   rules?: string;
   createdAt: Date;
-  color?: string; // Added color property which is used in multiple components
+  color?: string; 
 }
 
 export interface JournalEntry {
@@ -69,7 +70,7 @@ export interface JournalEntry {
 
 export interface WeeklyReflection {
   id: string;
-  date: string;
+  date?: string; // Make date optional
   reflection: string;
   weeklyPlan?: string;
   grade?: string;
@@ -86,7 +87,7 @@ export interface WeeklyReflection {
 
 export interface MonthlyReflection {
   id: string;
-  date: string;
+  date?: string; // Make date optional
   reflection: string;
   monthlyPlan?: string;
   grade?: string;
@@ -122,7 +123,6 @@ export interface ContractDetails {
 // Added alias for backwards compatibility
 export type FuturesContractDetails = ContractDetails;
 
-// Adding missing types for lessons and ideas
 export interface Lesson {
   id: string;
   title: string;
@@ -132,6 +132,7 @@ export interface Lesson {
   media?: LessonMedia[];
   types?: string[];
   content?: string;
+  category?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -363,7 +364,7 @@ export const COMMON_FUTURES_CONTRACTS: CommonFuturesContract[] = [
 // Define interface for MediaFile which is used in some components
 export interface MediaFile {
   url: string;
-  type: 'image' | 'video' | 'pdf';
+  type: 'image' | 'video' | 'pdf'; // Updated to include 'pdf'
 }
 
 // Define the ReflectionDeleteDialogProps for the DeleteDialog component
@@ -376,14 +377,16 @@ export interface ReflectionDeleteDialogProps {
 export interface RichTextEditorProps {
   id: string;
   content?: string;
-  initialContent?: string;
+  initialContent?: string; // Added initialContent for compatibility
   onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
 }
 
 export interface WeeklySummaryMetricsProps {
   trades: TradeWithMetrics[];
-  totalPnL: number;
-  totalR: number;
+  totalPnL?: number; // Made optional for compatibility
+  totalR?: number; // Made optional for compatibility
 }
 
 export interface TradeDetailModalProps {

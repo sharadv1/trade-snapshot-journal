@@ -33,8 +33,12 @@ export function EditPartialExitModal({
   maxQuantity
 }: EditPartialExitModalProps) {
   const [open, setOpen] = useState(false);
-  const [quantity, setQuantity] = useState(partialExit.quantity);
-  const [exitPrice, setExitPrice] = useState(partialExit.exitPrice);
+  // Ensure quantities are stored as numbers in state
+  const initialQuantity = typeof partialExit.quantity === 'string' ? parseFloat(partialExit.quantity) : partialExit.quantity;
+  const initialExitPrice = typeof partialExit.exitPrice === 'string' ? parseFloat(partialExit.exitPrice) : partialExit.exitPrice;
+  
+  const [quantity, setQuantity] = useState<number>(initialQuantity);
+  const [exitPrice, setExitPrice] = useState<number>(initialExitPrice);
   const [exitDate, setExitDate] = useState(partialExit.exitDate);
   const [fees, setFees] = useState<number | undefined>(partialExit.fees);
   const [notes, setNotes] = useState(partialExit.notes || '');
@@ -90,28 +94,41 @@ export function EditPartialExitModal({
       };
       
       const totalExitedQuantity = updatedPartialExits.reduce(
-        (total, exit) => total + exit.quantity, 0
+        (total, exit) => {
+          const exitQty = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
+          return total + exitQty;
+        }, 0
       );
+      
+      const totalTradeQuantity = typeof updatedTrade.quantity === 'string' ? 
+        parseFloat(updatedTrade.quantity.toString()) : 
+        updatedTrade.quantity;
       
       // Auto-detect if target was reached based on exit price
       if (updatedTrade.takeProfit) {
+        const targetPrice = typeof updatedTrade.takeProfit === 'string' ? 
+          parseFloat(updatedTrade.takeProfit) : 
+          updatedTrade.takeProfit;
+          
         const isLong = updatedTrade.direction === 'long';
         const targetReached = isLong 
-          ? roundedExitPrice >= updatedTrade.takeProfit 
-          : roundedExitPrice <= updatedTrade.takeProfit;
+          ? roundedExitPrice >= targetPrice 
+          : roundedExitPrice <= targetPrice;
         
         if (targetReached) {
           updatedTrade.targetReached = true;
         }
       }
       
-      if (totalExitedQuantity >= updatedTrade.quantity) {
+      if (totalExitedQuantity >= totalTradeQuantity) {
         updatedTrade.status = 'closed';
         
         let weightedSum = 0;
         
         updatedPartialExits.forEach(exit => {
-          weightedSum += exit.exitPrice * exit.quantity;
+          const exitPrc = typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice) : exit.exitPrice;
+          const exitQty = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
+          weightedSum += exitPrc * exitQty;
         });
         
         updatedTrade.exitPrice = Number((weightedSum / totalExitedQuantity).toFixed(2));
@@ -128,7 +145,7 @@ export function EditPartialExitModal({
           (sum, exit) => sum + (exit.fees || 0), 0
         );
       } 
-      else if (latestTrade.status === 'closed' && totalExitedQuantity < updatedTrade.quantity) {
+      else if (latestTrade.status === 'closed' && totalExitedQuantity < totalTradeQuantity) {
         updatedTrade.status = 'open';
         updatedTrade.exitDate = undefined;
         updatedTrade.exitPrice = undefined;

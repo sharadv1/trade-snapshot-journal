@@ -183,6 +183,7 @@ export function WeeklyReflectionsPage() {
             // Add enriched data to the map - this prevents duplicates by week range
             weeksByRange.set(normalizedWeekKey, {
               ...reflectionObj,
+              date: reflectionObj.weekStart || reflectionObj.date || new Date().toISOString(), // Add date property
               weekId: reflectionObj.weekId,
               totalPnL,
               totalR,
@@ -226,6 +227,7 @@ export function WeeklyReflectionsPage() {
             // Create a placeholder reflection with trade info
             weeksByRange.set(normalizedWeekKey, {
               id: weekId,
+              date: weekStart.toISOString(), // Add date property with ISO string
               weekId: weekId,
               weekStart: weekStart.toISOString(),
               weekEnd: weekEnd.toISOString(),
