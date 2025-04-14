@@ -1,42 +1,116 @@
+/**
+ * Calculation functions for the application
+ */
 
-// Export all calculation utilities from this central file
+import { Trade } from '@/types';
 
-// Trade metrics calculation
-export { getTradeMetrics, calculateTradeMetrics } from './metricsCalculator';
+/**
+ * Calculate the profit/loss for a trade
+ */
+export const calculateProfitLoss = (trade: Trade): number => {
+  if (trade.status !== 'closed' || !trade.exitPrice) {
+    return 0;
+  }
 
-// Contract utilities
-export * from './contractUtils';
+  const entryPrice = typeof trade.entryPrice === 'number' ? trade.entryPrice : parseFloat(String(trade.entryPrice));
+  const exitPrice = typeof trade.exitPrice === 'number' ? trade.exitPrice : parseFloat(String(trade.exitPrice));
+  const quantity = typeof trade.quantity === 'number' ? trade.quantity : parseFloat(String(trade.quantity));
 
-// Advanced metrics
-export * from './advancedMetrics';
+  if (isNaN(entryPrice) || isNaN(exitPrice) || isNaN(quantity)) {
+    console.error('Invalid trade data:', trade);
+    return 0;
+  }
 
-// Trade status utilities
-export * from './tradeStatus';
+  const priceDifference = exitPrice - entryPrice;
 
-// Basic formatting utilities
-export const formatCurrency = (value: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(value);
+  if (trade.direction === 'long') {
+    return priceDifference * quantity;
+  } else {
+    return -priceDifference * quantity;
+  }
 };
 
-export const formatPercentage = (value: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'percent',
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1
-  }).format(value / 100);
+/**
+ * Calculate the risk/reward ratio for a trade
+ */
+export const calculateRiskRewardRatio = (trade: Trade): number => {
+  if (!trade.stopLoss || !trade.takeProfit) {
+    return 0;
+  }
+
+  const entryPrice = typeof trade.entryPrice === 'number' ? trade.entryPrice : parseFloat(String(trade.entryPrice));
+  const stopLoss = typeof trade.stopLoss === 'number' ? trade.stopLoss : parseFloat(String(trade.stopLoss));
+  const takeProfit = typeof trade.takeProfit === 'number' ? trade.takeProfit : parseFloat(String(trade.takeProfit));
+
+  if (isNaN(entryPrice) || isNaN(stopLoss) || isNaN(takeProfit)) {
+    console.error('Invalid trade data:', trade);
+    return 0;
+  }
+
+  const risk = Math.abs(entryPrice - stopLoss);
+  const reward = Math.abs(takeProfit - entryPrice);
+
+  if (risk === 0) {
+    return 0;
+  }
+
+  return reward / risk;
 };
 
-// Format tick value or point value (for futures contracts)
-export const formatPointValue = (value: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(value);
+/**
+ * Calculate the R-multiple for a trade
+ */
+export const calculateRMultiple = (trade: Trade): number => {
+  if (!trade.stopLoss) {
+    return 0;
+  }
+
+  const profitLoss = calculateProfitLoss(trade);
+  const entryPrice = typeof trade.entryPrice === 'number' ? trade.entryPrice : parseFloat(String(trade.entryPrice));
+  const stopLoss = typeof trade.stopLoss === 'number' ? trade.stopLoss : parseFloat(String(trade.stopLoss));
+  const quantity = typeof trade.quantity === 'number' ? trade.quantity : parseFloat(String(trade.quantity));
+
+  if (isNaN(entryPrice) || isNaN(stopLoss) || isNaN(quantity)) {
+    console.error('Invalid trade data:', trade);
+    return 0;
+  }
+
+  const riskPerShare = Math.abs(entryPrice - stopLoss);
+  const initialRisk = riskPerShare * quantity;
+
+  if (initialRisk === 0) {
+    return 0;
+  }
+
+  return profitLoss / initialRisk;
+};
+
+/**
+ * Calculate all trade metrics
+ */
+export const calculateTradeMetrics = (trade: Trade) => {
+  const profitLoss = calculateProfitLoss(trade);
+  const riskRewardRatio = calculateRiskRewardRatio(trade);
+  const rMultiple = calculateRMultiple(trade);
+
+  return {
+    profitLoss,
+    riskRewardRatio,
+    rMultiple
+  };
+};
+
+/**
+ * Get trades for a specific week
+ */
+export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<any[]> => {
+  const trades = await getTrades();
+  
+  return trades.filter(trade => {
+    const entryDate = new Date(trade.entryDate);
+    return entryDate >= weekStart && entryDate <= weekEnd;
+  }).map(trade => ({
+    ...trade,
+    metrics: calculateTradeMetrics(trade)
+  }));
 };

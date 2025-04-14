@@ -764,7 +764,7 @@ export default function TradeDetail() {
         <ImageViewerDialog 
           images={trade.images}
           currentIndex={selectedImageIndex}
-          isOpen={isImageViewerOpen}
+          isOpen={!!isOpen}
           onClose={handleImageClose}
           onIndexChange={setSelectedImageIndex}
           image=""

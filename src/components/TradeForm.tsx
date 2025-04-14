@@ -23,16 +23,6 @@ interface TradeFormProps {
   ideaId?: string | null;
 }
 
-// Adapter function to convert handlers from one format to another 
-const adaptChangeHandler = (
-  handler: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void
-) => {
-  return (field: keyof Trade, value: any) => {
-    // Create a synthetic event-like object that has name and value
-    handler({ target: { name: field, value } } as any);
-  };
-};
-
 export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError, ideaId }: TradeFormProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -63,9 +53,6 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     handleSubmit: submitForm,
     pointValue,
   } = useTradeForm(initialTrade, isEditing, ideaIdFromProps);
-
-  // Create adapted handlers that match the expected interfaces
-  const adaptedHandleChange = adaptChangeHandler(handleChange);
 
   useEffect(() => {
     if (!trade) {
@@ -191,10 +178,6 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     }
   };
 
-  const handleContractDetailsChangeAdapter = (details: any) => {
-    handleContractDetailsChange(details);
-  };
-
   return (
     <form onSubmit={handleSubmit} className="w-full" id="trade-form" name="trade-form">
       <Card className="border">
@@ -247,10 +230,10 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
             <TabsContent value="details" className="space-y-4 mt-0 w-full">
               <TradeDetailsForm 
                 trade={trade}
-                onTradeChange={handleChange}
+                onTradeChange={(field, value) => handleChange({ target: { name: field, value } } as any)}
                 onTradeTypeChange={handleTypeChange}
                 contractDetails={contractDetails}
-                onContractDetailsChange={handleContractDetailsChangeAdapter}
+                onContractDetailsChange={handleContractDetailsChange}
                 pointValue={pointValue}
                 maxRisk={maxRisk}
                 disableEdits={false}
@@ -259,7 +242,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
               <div className="mt-8 pt-4 border-t">
                 <RiskParametersForm 
                   trade={trade}
-                  handleChange={handleChange}
+                  handleChange={(field, value) => handleChange({ target: { name: field, value } } as any)}
                 />
               </div>
             </TabsContent>
@@ -267,7 +250,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
             <TabsContent value="notes" className="space-y-4 mt-0 w-full">
               <NotesAndImagesForm 
                 trade={trade as Trade}  
-                handleChange={handleChange}
+                handleChange={(field, value) => handleChange({ target: { name: field, value } } as any)}
                 images={images}
                 onImageUpload={handleImageUploadAdapter}
                 onImageRemove={handleRemoveImageAdapter}

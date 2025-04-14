@@ -56,20 +56,6 @@ export const useTradeForm = (
     initialTrade || defaultTrade as Trade // Type assertion here
   );
   
-  const setTrade = setTradeState; // Alias for backward compatibility
-  
-  const { images, setImages, handleImageUpload, handleRemoveImage } = useTradeImages(
-    initialTrade?.images || []
-  );
-  
-  const { handleSubmit } = useTradeSubmit(
-    trade,
-    images,
-    contractDetails,
-    isEditing,
-    initialTrade
-  );
-  
   // Define handleTypeChange function that was missing
   const handleTypeChange = (type: string) => {
     setTradeState(prev => ({
@@ -132,9 +118,23 @@ export const useTradeForm = (
     setContractDetails(details);
   };
   
+  // Setup image handling
+  const { images, setImages, handleImageUpload, handleRemoveImage } = useTradeImages(
+    initialTrade?.images || []
+  );
+  
+  // Setup submit handler
+  const { handleSubmit } = useTradeSubmit(
+    trade,
+    images,
+    contractDetails,
+    isEditing,
+    initialTrade
+  );
+  
   return {
     trade,
-    setTrade,
+    setTrade: setTradeState,
     images,
     setImages,
     handleChange,

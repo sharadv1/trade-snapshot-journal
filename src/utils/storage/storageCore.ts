@@ -1,31 +1,47 @@
 
-// Re-export everything from our refactored modules
-// This ensures backward compatibility with existing code
+/**
+ * Core storage utilities for the application
+ */
 
-export { TRADES_STORAGE_KEY } from './storageOperations';
-export { SERVER_URL_KEY } from './serverConnection';
+import { Trade } from '@/types';
 
-export { 
-  isUsingServerSync,
-  getServerUrl,
-  setServerSync
-} from './serverConnection';
+// Storage keys
+export const TRADES_STORAGE_KEY = 'trade-journal-trades';
+export const STRATEGIES_STORAGE_KEY = 'trade-journal-strategies';
+export const SYMBOLS_STORAGE_KEY = 'trade-journal-symbols';
+export const IDEAS_STORAGE_KEY = 'trade-journal-ideas';
+export const LESSONS_STORAGE_KEY = 'trade-journal-lessons';
+export const MAX_RISK_KEY = 'trade-journal-max-risk';
 
-export {
-  getTradesSync,
-  saveTrades,
-  getTrades
-} from './storageOperations';
+// Generic storage functions
+export const getItemFromStorage = <T>(key: string, defaultValue: T): T => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error(`Error getting item from storage (${key}):`, error);
+    return defaultValue;
+  }
+};
 
-// Re-export utility functions that might be used directly
-export { 
-  safeGetItem,
-  safeSetItem,
-  dispatchStorageEvents
-} from './storageUtils';
+export const saveItemToStorage = <T>(key: string, value: T): void => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Error saving item to storage (${key}):`, error);
+    throw error;
+  }
+};
 
-// Also export validation utilities in case they're needed elsewhere
-export {
-  isValidTrade,
-  normalizeTrade
-} from './tradeValidation';
+// Trade-specific functions
+export const getTrades = async (): Promise<Trade[]> => {
+  return getItemFromStorage<Trade[]>(TRADES_STORAGE_KEY, []);
+};
+
+export const getTradesSync = (): Trade[] => {
+  return getItemFromStorage<Trade[]>(TRADES_STORAGE_KEY, []);
+};
+
+export const saveTrades = async (trades: Trade[]): Promise<void> => {
+  saveItemToStorage(TRADES_STORAGE_KEY, trades);
+};

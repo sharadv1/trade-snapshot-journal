@@ -116,7 +116,7 @@ export function TradeDetailModal({ tradeId, isOpen, onClose }: TradeDetailModalP
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+    <Dialog open={isOpen === true} onOpenChange={open => !open && onClose()}>
       <DialogContent className="sm:max-w-[650px] max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex justify-between items-center">

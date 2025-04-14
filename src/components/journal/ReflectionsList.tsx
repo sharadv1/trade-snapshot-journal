@@ -300,6 +300,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
         reflection={reflectionToDelete}
         onReflectionDeleted={handleReflectionDeleted}
         type={type}
+        onConfirm={handleReflectionDeleted}
       />
     </div>
   );
