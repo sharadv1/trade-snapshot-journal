@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { ReflectionsList } from './ReflectionsList';
+import { ReflectionsList } from './reflections/ReflectionsList';
 import { WeeklyReflection } from '@/types';
 import { 
   getAllWeeklyReflections, 
@@ -99,7 +100,8 @@ export function WeeklyReflectionsPage() {
     // Generate all weeks from start of 2025
     const generateAllWeeks = () => {
       console.log("Generating weeks list for WeeklyReflectionsPage");
-      const weekMap = new Map<string, WeeklyReflection>(); // Use a map to prevent duplicates
+      // Map to track weeks by their actual date range to prevent duplicates of the same week
+      const weeksByRange = new Map<string, WeeklyReflection>();
       const start = new Date(2025, 0, 1); // January 1, 2025
       const today = new Date();
       
