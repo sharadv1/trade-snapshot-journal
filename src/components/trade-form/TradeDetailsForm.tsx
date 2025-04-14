@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trade, TRADE_TYPES, TradeType } from '@/types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,14 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
   maxRisk,
   disableEdits = false,
 }) => {
+  const [strategies, setStrategies] = useState([]);
+
+  useEffect(() => {
+    // Load strategies synchronously
+    const loadedStrategies = getStrategies();
+    setStrategies(loadedStrategies);
+  }, []);
+
   const handleSymbolChange = (value: string) => {
     onTradeChange('symbol', value);
   };
@@ -78,8 +86,6 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
     { value: 'Q3', label: 'Q3' },
     { value: 'Q4', label: 'Q4' },
   ];
-
-  const strategies = getStrategies();
 
   return (
     <div className="space-y-5">
@@ -202,7 +208,7 @@ export const TradeDetailsForm: React.FC<TradeDetailsFormProps> = ({
             <SelectValue placeholder="Select strategy" />
           </SelectTrigger>
           <SelectContent className="bg-background">
-            {strategies && strategies.length > 0 ? (
+            {strategies.length > 0 ? (
               strategies.map((strategy) => (
                 <SelectItem key={strategy.id} value={strategy.id}>
                   {strategy.name}

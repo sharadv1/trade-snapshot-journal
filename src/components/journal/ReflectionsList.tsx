@@ -42,6 +42,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedReflection, setSelectedReflection] = useState<WeeklyReflection | MonthlyReflection | null>(null);
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   
@@ -73,6 +74,10 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
   
   const handleReflectionDeleted = () => {
     handleCloseDeleteDialog();
+  };
+  
+  const handleDeleteReflection = (id: string) => {
+    // Implement delete logic here
   };
   
   const getFormattedDate = (reflection: WeeklyReflection | MonthlyReflection): string => {
@@ -296,11 +301,15 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
       
       <ReflectionDeleteDialog
         isOpen={isDeleteDialogOpen}
-        onClose={handleCloseDeleteDialog}
-        reflection={reflectionToDelete}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        reflection={selectedReflection}
         onReflectionDeleted={handleReflectionDeleted}
         type={type}
-        onConfirm={handleReflectionDeleted}
+        onConfirm={() => {
+          if (selectedReflection) {
+            handleDeleteReflection(selectedReflection.id);
+          }
+        }}
       />
     </div>
   );

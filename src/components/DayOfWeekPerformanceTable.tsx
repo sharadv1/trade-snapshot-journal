@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { TradeWithMetrics } from '@/types';
 import { formatCurrency } from '@/utils/tradeCalculations';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getStrategies } from '@/utils/strategyStorage';
 import { calculateExpectedValue } from '@/utils/calculations/advancedMetrics';
@@ -22,8 +22,18 @@ interface DayPerformance {
 }
 
 export function DayOfWeekPerformanceTable({ trades, timeframes = ['15m', '1h'] }: DayOfWeekPerformanceTableProps) {
-  const strategies = getStrategies();
+  const [strategies, setStrategies] = useState([]);
   const [selectedStrategies, setSelectedStrategies] = useState<string[]>([]);
+  
+  // Fetch strategies on component mount
+  useEffect(() => {
+    const loadStrategies = async () => {
+      const strategiesData = getStrategies();
+      setStrategies(strategiesData);
+    };
+    
+    loadStrategies();
+  }, []);
   
   // Filter trades by timeframe if specified
   const filteredTrades = timeframes 

@@ -1,8 +1,11 @@
+
 /**
  * Calculation functions for the application
  */
 
 import { Trade } from '@/types';
+import { getTradeMetrics } from './metricsCalculator';
+export { formatCurrency, formatPercentage } from './formatters';
 
 /**
  * Calculate the profit/loss for a trade
@@ -87,30 +90,8 @@ export const calculateRMultiple = (trade: Trade): number => {
 
 /**
  * Calculate all trade metrics
+ * We're wrapping the getTradeMetrics function to ensure backward compatibility
  */
 export const calculateTradeMetrics = (trade: Trade) => {
-  const profitLoss = calculateProfitLoss(trade);
-  const riskRewardRatio = calculateRiskRewardRatio(trade);
-  const rMultiple = calculateRMultiple(trade);
-
-  return {
-    profitLoss,
-    riskRewardRatio,
-    rMultiple
-  };
-};
-
-/**
- * Get trades for a specific week
- */
-export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<any[]> => {
-  const trades = await getTrades();
-  
-  return trades.filter(trade => {
-    const entryDate = new Date(trade.entryDate);
-    return entryDate >= weekStart && entryDate <= weekEnd;
-  }).map(trade => ({
-    ...trade,
-    metrics: calculateTradeMetrics(trade)
-  }));
+  return getTradeMetrics(trade);
 };

@@ -1,253 +1,140 @@
-import { useState, useEffect } from 'react';
-import { Trade, TradeWithMetrics } from '@/types';
-import { getTradeById } from '@/utils/tradeStorage';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ArrowUpRight, Target, Thermometer, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { TradeMetrics } from '@/components/TradeMetrics';
-import { format } from 'date-fns';
-import { getStrategyById } from '@/utils/strategyStorage';
+import { getTradeById } from '@/utils/tradeStorage';
+import { Trade } from '@/types';
+import { Loader2 } from 'lucide-react';
+import { formatCurrency } from '@/utils/calculations/formatters';
 import { calculateTradeMetrics } from '@/utils/calculations';
 
 interface TradeDetailModalProps {
-  tradeId: string | null;
   isOpen: boolean;
   onClose: () => void;
+  tradeId?: string;
 }
 
-export function TradeDetailModal({ tradeId, isOpen, onClose }: TradeDetailModalProps) {
+export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
+  isOpen,
+  onClose,
+  tradeId
+}) => {
   const [trade, setTrade] = useState<Trade | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-
-  // Get strategy name helper
-  const getStrategyName = (strategyId: string | undefined): string => {
-    if (!strategyId) return 'No Strategy';
-    
-    const strategy = getStrategyById(strategyId);
-    return strategy ? strategy.name : strategyId;
-  };
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    if (tradeId && isOpen) {
-      setIsLoading(true);
-      const foundTrade = getTradeById(tradeId);
-      setTrade(foundTrade);
-      setIsLoading(false);
+    if (isOpen && tradeId) {
+      setLoading(true);
+      
+      try {
+        const fetchedTrade = getTradeById(tradeId);
+        setTrade(fetchedTrade || null);
+      } catch (error) {
+        console.error('Error fetching trade:', error);
+      } finally {
+        setLoading(false);
+      }
     } else {
       setTrade(null);
     }
-  }, [tradeId, isOpen]);
+  }, [isOpen, tradeId]);
 
-  const handleFullDetailClick = () => {
-    if (trade?.id) {
-      onClose();
-      navigate(`/trade/${trade.id}`);
-    }
-  };
-
-  if (!trade) {
-    return null;
-  }
-
-  const metrics = calculateTradeMetrics(trade as TradeWithMetrics);
-
-  // Function to determine target status message
-  const getTargetStatusDisplay = () => {
-    if (!trade.status === 'closed' || !trade.takeProfit || metrics?.maxFavorableExcursion === undefined) {
-      return null;
-    }
-    
-    const targetPrice = parseFloat(trade.takeProfit.toString());
-    const entryPrice = parseFloat(trade.entryPrice.toString());
-    const exitPrice = trade.exitPrice ? parseFloat(trade.exitPrice.toString()) : null;
-    const direction = trade.direction === 'long' ? 1 : -1;
-    
-    // Calculate target value (in currency)
-    const quantity = parseFloat(trade.quantity.toString());
-    const pointValue = trade.type === 'futures' && trade.contractDetails?.tickValue 
-      ? parseFloat(trade.contractDetails.tickValue.toString()) 
-      : 1;
-    
-    // Calculate potential gain from exit to target
-    let missedValue = 0;
-    if (exitPrice && trade.targetReached && !trade.targetReachedBeforeExit) {
-      const priceDiff = Math.abs(targetPrice - exitPrice);
-      missedValue = priceDiff * quantity * pointValue;
-    }
-    
-    if (trade.targetReached === true) {
-      if (trade.targetReachedBeforeExit) {
-        return (
-          <div className="flex items-center mt-1">
-            <CheckCircle2 className="h-4 w-4 mr-1.5 text-green-500" />
-            <p className="font-medium text-green-600">Target price of {trade.takeProfit} was reached before exit</p>
-          </div>
-        );
-      } else {
-        return (
-          <div className="flex items-center mt-1">
-            <AlertTriangle className="h-4 w-4 mr-1.5 text-yellow-500" />
-            <div>
-              <p className="font-medium text-yellow-600">
-                Target price of {trade.takeProfit} was reached after exit
-              </p>
-              {missedValue > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Missed additional profit of ${missedValue.toFixed(2)}
-                </p>
-              )}
-            </div>
-          </div>
-        );
-      }
-    } else {
-      return (
-        <div className="flex items-center mt-1">
-          <XCircle className="h-4 w-4 mr-1.5 text-orange-500" />
-          <p className="font-medium text-orange-600">
-            Target price of {trade.takeProfit} was not reached
-          </p>
-        </div>
-      );
-    }
-  };
-
+  const metrics = trade ? calculateTradeMetrics(trade) : null;
+  
   return (
-    <Dialog open={isOpen === true} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="sm:max-w-[650px] max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex justify-between items-center">
-            <div>
-              <span>{trade.symbol}</span>
-              <span className={`ml-3 text-sm px-2 py-1 rounded ${
-                trade.direction === 'long' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-              }`}>
-                {trade.direction.toUpperCase()}
-              </span>
-              {trade.grade && (
-                <span className="ml-3 text-sm px-2 py-1 rounded bg-blue-100 text-blue-800">
-                  Grade: {trade.grade}
-                </span>
-              )}
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleFullDetailClick}
-              className="flex items-center"
-            >
-              Full Details
-              <ArrowUpRight className="ml-1 h-4 w-4" />
-            </Button>
-          </DialogTitle>
-        </DialogHeader>
-
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Strategy</p>
-                <p className="font-medium">{getStrategyName(trade.strategy)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Entry Date</p>
-                <p className="font-medium">{format(new Date(trade.entryDate), 'MMM d, yyyy')}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Entry Price</p>
-                <p className="font-medium">{trade.entryPrice}</p>
-              </div>
-              {trade.exitPrice && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Exit Price</p>
-                  <p className="font-medium">{trade.exitPrice}</p>
-                </div>
-              )}
-              {trade.status === 'closed' && trade.exitDate && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Exit Date</p>
-                  <p className="font-medium">{format(new Date(trade.exitDate), 'MMM d, yyyy')}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <p className="font-medium">{trade.status === 'open' ? 'Open' : 'Closed'}</p>
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-medium mb-3">Trade Metrics</h3>
-              <TradeMetrics trade={trade as TradeWithMetrics} />
-            </div>
-
-            {/* Post-Entry Performance section - always show if metrics exist */}
-            {metrics && (
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium mb-3">Post-Entry Performance</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {metrics.maxFavorableExcursion > 0 && (
-                    <div>
-                      <p className="text-sm text-muted-foreground flex items-center">
-                        <Target className="h-4 w-4 mr-1.5 text-green-500" />
-                        High Water Mark
-                      </p>
-                      <p className="font-medium text-green-600">${metrics.maxFavorableExcursion.toFixed(2)}</p>
-                      {metrics.capturedProfitPercent > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          You captured {metrics.capturedProfitPercent.toFixed(0)}% of the maximum potential move
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  
-                  {metrics.maxAdverseExcursion > 0 && (
-                    <div>
-                      <p className="text-sm text-muted-foreground flex items-center">
-                        <Thermometer className="h-4 w-4 mr-1.5 text-red-500" />
-                        Max Drawdown
-                      </p>
-                      <p className="font-medium text-red-600">${metrics.maxAdverseExcursion.toFixed(2)}</p>
-                      {metrics.initialRiskedAmount > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {((metrics.maxAdverseExcursion / metrics.initialRiskedAmount) * 100).toFixed(0)}% of risk used
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  
-                  {trade.status === 'closed' && trade.takeProfit && (
-                    <div className="col-span-2">
-                      <p className="text-sm text-muted-foreground">Target Status</p>
-                      {getTargetStatusDisplay()}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {trade.notes && (
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium mb-2">Notes</h3>
-                <div className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: trade.notes }} />
-              </div>
-            )}
-
-            {trade.mistakes && trade.mistakes.length > 0 && (
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium mb-2">Mistakes</h3>
-                <ul className="text-sm text-muted-foreground list-disc pl-5">
-                  {trade.mistakes.map((mistake, index) => (
-                    <li key={index}>{mistake}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+    <Dialog open={isOpen === true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        {loading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        </ScrollArea>
+        ) : !trade ? (
+          <div className="p-6 text-center">
+            <p>Trade not found</p>
+          </div>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-xl flex items-center">
+                {trade.symbol} - {trade.direction.charAt(0).toUpperCase() + trade.direction.slice(1)}
+              </DialogTitle>
+              <DialogDescription>
+                Trade details from journal
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-medium">Entry Details</h3>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="text-sm">Entry Price:</div>
+                    <div className="text-sm font-medium">{formatCurrency(trade.entryPrice || 0)}</div>
+                    
+                    <div className="text-sm">Exit Price:</div>
+                    <div className="text-sm font-medium">{trade.exitPrice ? formatCurrency(trade.exitPrice) : 'Still Open'}</div>
+                    
+                    <div className="text-sm">Quantity:</div>
+                    <div className="text-sm font-medium">{trade.quantity}</div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium">Performance</h3>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="text-sm">P&L:</div>
+                    <div className={`text-sm font-medium ${metrics?.profitLoss && metrics.profitLoss > 0 ? 'text-green-600' : metrics?.profitLoss && metrics.profitLoss < 0 ? 'text-red-600' : ''}`}>
+                      {metrics?.profitLoss !== undefined ? formatCurrency(metrics.profitLoss) : 'N/A'}
+                    </div>
+                    
+                    <div className="text-sm">R Multiple:</div>
+                    <div className={`text-sm font-medium ${metrics?.rMultiple && metrics.rMultiple > 0 ? 'text-green-600' : metrics?.rMultiple && metrics.rMultiple < 0 ? 'text-red-600' : ''}`}>
+                      {metrics?.rMultiple ? `${metrics.rMultiple.toFixed(2)}R` : 'N/A'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {trade.notes && (
+                <div>
+                  <h3 className="font-medium mb-2">Notes</h3>
+                  <div className="text-sm p-3 bg-secondary/20 rounded-md whitespace-pre-wrap">
+                    {trade.notes}
+                  </div>
+                </div>
+              )}
+              
+              {trade.images && trade.images.length > 0 && (
+                <div>
+                  <h3 className="font-medium mb-2">Images</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {trade.images.map((image, index) => (
+                      <img 
+                        key={index}
+                        src={image}
+                        alt={`Trade image ${index + 1}`}
+                        className="rounded-md w-full h-auto object-cover max-h-40"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose}>
+                Close
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
-}
+};

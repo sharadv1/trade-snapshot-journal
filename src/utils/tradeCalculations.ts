@@ -7,6 +7,9 @@
 // Re-export everything from the new modular structure
 export * from './calculations';
 
+// Re-export formatters for backward compatibility
+export { formatCurrency, formatPercentage } from './calculations/formatters';
+
 // Additional exports specifically for the Weekly Journal
 import { getTrades } from './storage/storageCore';
 import { calculateTradeMetrics } from './calculations';

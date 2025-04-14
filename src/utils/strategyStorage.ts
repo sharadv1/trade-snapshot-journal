@@ -1,15 +1,17 @@
+
 import { Strategy } from '@/types';
 import { generateUUID } from '@/utils/generateUUID';
 import { getItemFromStorage, saveItemToStorage, STRATEGIES_STORAGE_KEY } from './storage/storageCore';
 
 // Get all strategies
-export const getStrategies = async (): Promise<Strategy[]> => {
+export const getStrategies = (): Strategy[] => {
   return getItemFromStorage<Strategy[]>(STRATEGIES_STORAGE_KEY, []);
 };
 
-// Get strategies sync version for component rendering
-export const getStrategiesSync = (): Strategy[] => {
-  return getItemFromStorage<Strategy[]>(STRATEGIES_STORAGE_KEY, []);
+// Get strategy by ID
+export const getStrategyById = (strategyId: string): Strategy | undefined => {
+  const strategies = getStrategies();
+  return strategies.find(strategy => strategy.id === strategyId);
 };
 
 // Save all strategies
@@ -19,7 +21,7 @@ export const saveStrategies = async (strategies: Strategy[]): Promise<void> => {
 
 // Add a new strategy
 export const addStrategy = async (strategy: Omit<Strategy, 'id'>): Promise<Strategy> => {
-  const strategies = await getStrategies();
+  const strategies = getStrategies();
   
   const newStrategy: Strategy = {
     ...strategy,
@@ -35,7 +37,7 @@ export const addStrategy = async (strategy: Omit<Strategy, 'id'>): Promise<Strat
 
 // Update an existing strategy
 export const updateStrategy = async (updatedStrategy: Strategy): Promise<void> => {
-  const strategies = await getStrategies();
+  const strategies = getStrategies();
   const index = strategies.findIndex(strategy => strategy.id === updatedStrategy.id);
   
   if (index !== -1) {
@@ -48,7 +50,7 @@ export const updateStrategy = async (updatedStrategy: Strategy): Promise<void> =
 
 // Delete a strategy
 export const deleteStrategy = async (strategyId: string): Promise<void> => {
-  const strategies = await getStrategies();
+  const strategies = getStrategies();
   const filteredStrategies = strategies.filter(strategy => strategy.id !== strategyId);
   
   await saveStrategies(filteredStrategies);

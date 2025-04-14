@@ -56,7 +56,12 @@ export const useTradeForm = (
     initialTrade || defaultTrade as Trade // Type assertion here
   );
   
-  // Define handleTypeChange function that was missing
+  // Setup image handling first so it can be used in the useEffect below
+  const { images, setImages, handleImageUpload, handleRemoveImage } = useTradeImages(
+    initialTrade?.images || []
+  );
+  
+  // Define handleTypeChange function
   const handleTypeChange = (type: string) => {
     setTradeState(prev => ({
       ...prev,
@@ -117,11 +122,6 @@ export const useTradeForm = (
   const handleContractDetailsChange = (details: Record<string, any>) => {
     setContractDetails(details);
   };
-  
-  // Setup image handling
-  const { images, setImages, handleImageUpload, handleRemoveImage } = useTradeImages(
-    initialTrade?.images || []
-  );
   
   // Setup submit handler
   const { handleSubmit } = useTradeSubmit(
