@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,6 +22,16 @@ interface TradeFormProps {
   onError?: (error: unknown) => void;
   ideaId?: string | null;
 }
+
+// Adapter function to convert handlers from one format to another 
+const adaptChangeHandler = (
+  handler: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void
+) => {
+  return (field: keyof Trade, value: any) => {
+    // Create a synthetic event-like object that has name and value
+    handler({ target: { name: field, value } } as any);
+  };
+};
 
 export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError, ideaId }: TradeFormProps) {
   const navigate = useNavigate();
@@ -52,6 +63,9 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     handleSubmit: submitForm,
     pointValue,
   } = useTradeForm(initialTrade, isEditing, ideaIdFromProps);
+
+  // Create adapted handlers that match the expected interfaces
+  const adaptedHandleChange = adaptChangeHandler(handleChange);
 
   useEffect(() => {
     if (!trade) {

@@ -11,7 +11,7 @@ import StrategyManagement from '@/pages/StrategyManagement';
 import NotFound from '@/pages/NotFound';
 import { Layout } from '@/components/layout/Layout';
 import SymbolManagement from '@/pages/SymbolManagement';
-import WeeklyJournal from '@/pages/WeeklyJournal';
+import { WeeklyJournal } from '@/pages/WeeklyJournal'; // Changed to named import
 import { JournalLayout } from '@/components/journal/JournalLayout';
 import { WeeklyReflectionsPage } from '@/components/journal/WeeklyReflectionsPage';
 import { MonthlyReflectionsPage } from '@/components/journal/MonthlyReflectionsPage';

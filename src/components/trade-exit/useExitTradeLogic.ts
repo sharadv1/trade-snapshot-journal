@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { toast } from '@/utils/toast';
 import { Trade } from '@/types';
@@ -11,6 +12,11 @@ interface UseExitTradeLogicProps {
 }
 
 export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) => {
+  // Helper function to get current time in Central timezone
+  const getCurrentCentralTime = () => {
+    return formatInTimeZone(new Date(), 'America/Chicago', "yyyy-MM-dd'T'HH:mm");
+  };
+
   const [exitPrice, setExitPrice] = useState<number>(0);
   const [exitQuantity, setExitQuantity] = useState<number>(0);
   const [exitDate, setExitDate] = useState<string>(getCurrentCentralTime());
@@ -24,10 +30,6 @@ export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) 
   
   const handleSetExitQuantity = (value: string | number) => {
     setExitQuantity(typeof value === 'string' ? parseFloat(value) || 0 : value);
-  };
-
-  const getCurrentCentralTime = () => {
-    return formatInTimeZone(new Date(), 'America/Chicago', "yyyy-MM-dd'T'HH:mm");
   };
 
   const handleExitDateFocus = () => {
@@ -88,20 +90,22 @@ export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) 
 
       let exitedQty = 0;
       updatedPartialExits.forEach(exit => {
-        const exitQty = typeof exit.quantity === 'string' ? parseFloat(exit.quantity.toString()) : exit.quantity;
+        const exitQty = typeof exit.quantity === 'number' ? exit.quantity : parseFloat(String(exit.quantity));
         const exitQtyNumber = isNaN(exitQty) ? 0 : exitQty;
         exitedQty += exitQtyNumber;
       });
 
-      const totalTradeQuantity = typeof updatedTrade.quantity === 'string' ?
-        parseFloat(updatedTrade.quantity.toString()) :
-        updatedTrade.quantity;
+      const totalTradeQuantity = typeof updatedTrade.quantity === 'number' ?
+        updatedTrade.quantity : 
+        parseFloat(String(updatedTrade.quantity));
 
       // Auto-detect if target was reached based on exit price
       if (trade.takeProfit) {
-        const targetPrice = typeof trade.takeProfit === 'string' ? parseFloat(trade.takeProfit.toString()) : trade.takeProfit;
+        const targetPrice = typeof trade.takeProfit === 'number' ? 
+          trade.takeProfit : parseFloat(String(trade.takeProfit));
         const targetPriceNum = isNaN(targetPrice) ? 0 : targetPrice;
-        const currentExitPrice = typeof exitPrice === 'string' ? parseFloat(exitPrice.toString()) : exitPrice;
+        const currentExitPrice = typeof exitPrice === 'number' ? 
+          exitPrice : parseFloat(String(exitPrice));
         const currentExitPriceNum = isNaN(currentExitPrice) ? 0 : currentExitPrice;
         
         const isLong = trade.direction === 'long';
@@ -120,8 +124,8 @@ export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) 
         let weightedSum = 0;
 
         updatedPartialExits.forEach(exit => {
-          const exitPrice = typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice.toString()) : exit.exitPrice;
-          const exitQuantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity.toString()) : exit.quantity;
+          const exitPrice = typeof exit.exitPrice === 'number' ? exit.exitPrice : parseFloat(String(exit.exitPrice));
+          const exitQuantity = typeof exit.quantity === 'number' ? exit.quantity : parseFloat(String(exit.quantity));
           weightedSum += (isNaN(exitPrice) ? 0 : exitPrice) * (isNaN(exitQuantity) ? 0 : exitQuantity);
         });
 
@@ -156,10 +160,12 @@ export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) 
       setExitDate(getCurrentCentralTime());
       setFees(undefined);
       setNotes('');
-
+      
+      return true;
     } catch (error) {
       console.error("Error adding partial exit:", error);
       toast.error("Failed to add partial exit");
+      return false;
     } finally {
       setIsSubmitting(false);
     }

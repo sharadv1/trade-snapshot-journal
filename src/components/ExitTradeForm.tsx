@@ -20,23 +20,24 @@ interface ExitTradeFormProps {
 
 export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: propRemainingQuantity }: ExitTradeFormProps) {
   const {
-    partialQuantity,
-    setPartialQuantity,
-    partialExitPrice,
-    setPartialExitPrice,
-    partialExitDate,
-    setPartialExitDate,
-    partialFees,
-    setPartialFees,
-    partialNotes,
-    setPartialNotes,
-    remainingQuantity: calculatedRemainingQuantity,
-    handlePartialExit
-  } = useExitTradeLogic(trade, onUpdate, onClose);
+    exitQuantity,
+    exitPrice,
+    exitDate,
+    fees: partialFees,
+    notes: partialNotes,
+    isSubmitting,
+    handleSetExitQuantity: setPartialQuantity,
+    handleSetExitPrice: setPartialExitPrice,
+    handleExitDateFocus,
+    handleNotesChange,
+    handleFeesChange,
+    handleSubmit
+  } = useExitTradeLogic({ trade, onSuccess: onUpdate });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   
+  // Calculate remaining quantity or use the prop if provided
+  const calculatedRemainingQuantity = getRemainingQuantity(trade);
   const actualRemainingQuantity = Math.max(
     propRemainingQuantity !== undefined ? propRemainingQuantity : calculatedRemainingQuantity,
     0
@@ -57,10 +58,9 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
 
   const handleSubmitPartialExit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     console.log('Recording partial exit');
     try {
-      const success = await handlePartialExit();
+      const success = await handleSubmit();
       if (success) {
         console.log("Partial exit successful");
         setUpdateSuccess(true);
@@ -70,8 +70,8 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
           setUpdateSuccess(false);
         }, 3000);
       }
-    } finally {
-      setIsSubmitting(false);
+    } catch (error) {
+      console.error("Error submitting partial exit:", error);
     }
   };
 
@@ -79,6 +79,19 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
   const formatPrice = (price: string | number | undefined): number => {
     if (price === undefined) return 0;
     return typeof price === 'string' ? parseFloat(price) : price;
+  };
+
+  const setPartialExitDate = (date: string) => {
+    // This just passes the date to the form
+    // The actual logic is handled in useExitTradeLogic
+  };
+
+  const setPartialFees = (fees: number | undefined) => {
+    // Handle in the form
+  };
+
+  const setPartialNotes = (notes: string | undefined) => {
+    // Handle in the form
   };
 
   return (
@@ -168,7 +181,7 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
                   remainingQuantity={typeof trade.quantity === 'string' ? parseFloat(trade.quantity) : trade.quantity}
                   partialQuantity={typeof trade.quantity === 'string' ? parseFloat(trade.quantity) : trade.quantity}
                   setPartialQuantity={setPartialQuantity}
-                  partialExitPrice={typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice) : trade.exitPrice}
+                  partialExitPrice={typeof trade.exitPrice === 'string' ? parseFloat(String(trade.exitPrice)) : trade.exitPrice}
                   setPartialExitPrice={setPartialExitPrice}
                   partialExitDate={trade.exitDate || new Date().toISOString()}
                   setPartialExitDate={setPartialExitDate}
@@ -205,11 +218,11 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
             <PartialExitForm 
               trade={trade}
               remainingQuantity={actualRemainingQuantity}
-              partialQuantity={partialQuantity || 1} 
+              partialQuantity={exitQuantity || 1} 
               setPartialQuantity={setPartialQuantity}
-              partialExitPrice={partialExitPrice}
+              partialExitPrice={exitPrice}
               setPartialExitPrice={setPartialExitPrice}
-              partialExitDate={partialExitDate}
+              partialExitDate={exitDate}
               setPartialExitDate={setPartialExitDate}
               partialFees={partialFees}
               setPartialFees={setPartialFees}

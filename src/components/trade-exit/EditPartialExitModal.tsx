@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { 
   Dialog, 
@@ -71,7 +72,7 @@ export function EditPartialExitModal({
       
       const roundedExitPrice = typeof exitPrice === 'number' ? 
         Number(exitPrice.toFixed(2)) : 
-        Number(parseFloat(exitPrice.toString()).toFixed(2));
+        Number(parseFloat(String(exitPrice)).toFixed(2));
       
       const updatedPartialExits = latestTrade.partialExits?.map(exit => 
         exit.id === partialExit.id 
@@ -95,18 +96,18 @@ export function EditPartialExitModal({
       
       const totalExitedQuantity = updatedPartialExits.reduce(
         (total, exit) => {
-          const exitQty = typeof exit.quantity === 'string' ? parseFloat(exit.quantity.toString()) : exit.quantity;
+          const exitQty = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
           return total + (isNaN(exitQty) ? 0 : exitQty);
         }, 0
       );
       
       const totalTradeQuantity = typeof updatedTrade.quantity === 'string' ? 
-        parseFloat(updatedTrade.quantity.toString()) : 
+        parseFloat(updatedTrade.quantity) : 
         updatedTrade.quantity;
       
       if (updatedTrade.takeProfit) {
         const targetPrice = typeof updatedTrade.takeProfit === 'string' ? 
-          parseFloat(updatedTrade.takeProfit.toString()) : 
+          parseFloat(updatedTrade.takeProfit) : 
           updatedTrade.takeProfit;
           
         const isLong = updatedTrade.direction === 'long';
@@ -125,8 +126,8 @@ export function EditPartialExitModal({
         let weightedSum = 0;
         
         updatedPartialExits.forEach(exit => {
-          const exitPrc = typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice.toString()) : exit.exitPrice;
-          const exitQty = typeof exit.quantity === 'string' ? parseFloat(exit.quantity.toString()) : exit.quantity;
+          const exitPrc = typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice) : exit.exitPrice;
+          const exitQty = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
           weightedSum += (isNaN(exitPrc) ? 0 : exitPrc) * (isNaN(exitQty) ? 0 : exitQty);
         });
         

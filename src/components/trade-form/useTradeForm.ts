@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Trade, PartialExit } from '@/types';
 import { useTradeSubmit } from './hooks/useTradeSubmit';
@@ -23,7 +24,6 @@ export const useTradeForm = (
     direction: 'long',
     entryDate: centralTimeISOString,
     entryPrice: 0,
-    positionSize: 0,
     quantity: 1,
     status: 'open',
     type: 'stock',
@@ -52,10 +52,11 @@ export const useTradeForm = (
   const [ideaDetails, setIdeaDetails] = useState<any>(null);
   
   // Use custom hooks
-  const { trade, setTrade, handleChange, handleTypeChange } = useTradeState(
-    initialTrade || defaultTrade as Trade, // Type assertion here
-    isEditing
+  const { trade, setTradeState, handleChange } = useTradeState(
+    initialTrade || defaultTrade as Trade // Type assertion here
   );
+  
+  const setTrade = setTradeState; // Alias for backward compatibility
   
   const { images, setImages, handleImageUpload, handleRemoveImage } = useTradeImages(
     initialTrade?.images || []
@@ -69,6 +70,14 @@ export const useTradeForm = (
     initialTrade
   );
   
+  // Define handleTypeChange function that was missing
+  const handleTypeChange = (type: string) => {
+    setTradeState(prev => ({
+      ...prev,
+      type: type as Trade['type']
+    }));
+  };
+  
   // Initialize from idea if ideaId is provided
   useEffect(() => {
     if (ideaId && !isEditing) {
@@ -76,7 +85,7 @@ export const useTradeForm = (
       if (idea) {
         setIdeaDetails(idea);
         
-        setTrade(prev => ({
+        setTradeState(prev => ({
           ...prev,
           symbol: idea.symbol || '',
           direction: idea.direction === 'long' || idea.direction === 'short' 
@@ -96,17 +105,17 @@ export const useTradeForm = (
         }
       }
     }
-  }, [ideaId, isEditing, setTrade, setImages]);
+  }, [ideaId, isEditing, setTradeState, setImages]);
   
   // When stopLoss changes and initialStopLoss is not set, update initialStopLoss too
   useEffect(() => {
     if (trade.stopLoss && !trade.initialStopLoss && !isEditing) {
-      setTrade(prev => ({
+      setTradeState(prev => ({
         ...prev,
         initialStopLoss: trade.stopLoss
       }));
     }
-  }, [trade.stopLoss, isEditing, setTrade]);
+  }, [trade.stopLoss, isEditing, setTradeState]);
   
   // Calculate and update the point value when needed
   useEffect(() => {
