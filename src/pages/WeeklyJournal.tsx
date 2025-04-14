@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { format, startOfWeek, endOfWeek, addDays, isSameDay } from 'date-fns';
+
+import React, { useState, useEffect } from 'react';
+import { format, startOfWeek, endOfWeek, addDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,15 +12,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { WeeklyReflection, TradeWithMetrics } from '@/types';
 import { getWeeklyReflections, addWeeklyReflection, updateWeeklyReflection, deleteWeeklyReflection } from '@/utils/reflectionStorage';
 import { TradeCommentsList } from '@/components/journal/TradeCommentsList';
-import { ReflectionCard } from '@/components/journal/reflections/ReflectionCard';
-import { countWords, hasContent, getCurrentPeriodId } from '@/components/journal/reflections/ReflectionUtility';
-import { getTradesForWeek } from '@/utils/tradeCalculations';
-import { formatCurrency } from '@/utils/calculations/formatters';
 import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics';
 import { TradeDetailModal } from '@/components/TradeDetailModal';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { toast } from '@/utils/toast';
+import { getTradesForWeek } from '@/utils/tradeCalculations';
 
 const formatDate = (date: Date): string => format(date, 'MMMM dd, yyyy');
 
@@ -141,9 +139,12 @@ export function WeeklyJournal() {
         };
         await updateWeeklyReflection(updatedReflection);
         
-        setWeeklyReflections(prevReflections =>
-          prevReflections.map(r => (r.id === selectedReflection.id ? updatedReflection : r))
-        );
+        setWeeklyReflections(prevReflections => {
+          if (!Array.isArray(prevReflections)) {
+            return [updatedReflection];
+          }
+          return prevReflections.map(r => (r.id === selectedReflection.id ? updatedReflection : r));
+        });
         
         toast.success("Reflection updated successfully", { duration: 3000 });
       } else {
@@ -153,7 +154,12 @@ export function WeeklyJournal() {
         };
         await addWeeklyReflection(newReflection);
         
-        setWeeklyReflections(prevReflections => [...prevReflections, newReflection]);
+        setWeeklyReflections(prevReflections => {
+          if (!Array.isArray(prevReflections)) {
+            return [newReflection];
+          }
+          return [...prevReflections, newReflection];
+        });
         toast.success("Reflection saved successfully", { duration: 3000 });
       }
     } catch (error) {
@@ -171,9 +177,12 @@ export function WeeklyJournal() {
       if (selectedReflection) {
         await deleteWeeklyReflection(selectedReflection.id);
         
-        setWeeklyReflections(prevReflections =>
-          prevReflections.filter(r => r.id !== selectedReflection.id)
-        );
+        setWeeklyReflections(prevReflections => {
+          if (!Array.isArray(prevReflections)) {
+            return [];
+          }
+          return prevReflections.filter(r => r.id !== selectedReflection.id);
+        });
         
         setSelectedReflection(null);
         setReflection('');
@@ -193,7 +202,7 @@ export function WeeklyJournal() {
     weeklyReflections.find(r => r.weekId === weekId) : undefined;
   
   const hasExistingContent = currentReflection ? 
-    (currentReflection.reflection || currentReflection.weeklyPlan) : false;
+    !!(currentReflection.reflection || currentReflection.weeklyPlan) : false;
   
   const handleCreateNew = () => {
     navigate(`/journal/weekly/${weekId}`);
@@ -204,6 +213,12 @@ export function WeeklyJournal() {
   
   const totalR = Array.isArray(tradesForWeek) ? 
     tradesForWeek.reduce((sum, trade) => sum + (trade.metrics?.rMultiple || 0), 0) : 0;
+
+  // Helper function for word count
+  function countWords(text: string): number {
+    if (!text || typeof text !== 'string') return 0;
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  }
   
   return (
     <div className="container mx-auto py-6">
@@ -264,28 +279,30 @@ export function WeeklyJournal() {
             <CardContent className="h-[500px] p-0">
               <ScrollArea className="h-full">
                 <div className="divide-y">
-                  {weeklyReflections.sort((a, b) => (b.weekStart || '').localeCompare(a.weekStart || '')).map((reflection) => (
-                    <div
-                      key={reflection.id}
-                      className={`p-4 cursor-pointer hover:bg-accent/30 ${selectedReflection?.id === reflection.id ? 'bg-accent' : ''}`}
-                      onClick={() => handleReflectionClick(reflection)}
-                    >
-                      {reflection.weekStart && reflection.weekEnd ? (
-                        <div className="flex items-center justify-between">
-                          <div>
-                            Week of {formatDate(new Date(reflection.weekStart))} - {formatDate(new Date(reflection.weekEnd))}
+                  {Array.isArray(weeklyReflections) && weeklyReflections
+                    .sort((a, b) => (b.weekStart || '').localeCompare(a.weekStart || ''))
+                    .map((reflection) => (
+                      <div
+                        key={reflection.id}
+                        className={`p-4 cursor-pointer hover:bg-accent/30 ${selectedReflection?.id === reflection.id ? 'bg-accent' : ''}`}
+                        onClick={() => handleReflectionClick(reflection)}
+                      >
+                        {reflection.weekStart && reflection.weekEnd ? (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              Week of {formatDate(new Date(reflection.weekStart))} - {formatDate(new Date(reflection.weekEnd))}
+                            </div>
+                            {reflection.grade && (
+                              <Badge variant="outline">{reflection.grade}</Badge>
+                            )}
                           </div>
-                          {reflection.grade && (
-                            <Badge variant="outline">{reflection.grade}</Badge>
-                          )}
-                        </div>
-                      ) : (
-                        <div>
-                          No Date
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        ) : (
+                          <div>
+                            No Date
+                          </div>
+                        )}
+                      </div>
+                    ))}
                 </div>
               </ScrollArea>
             </CardContent>

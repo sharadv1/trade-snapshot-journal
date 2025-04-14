@@ -1,4 +1,3 @@
-
 /**
  * Re-export all calculation functions from their modular structure
  * This file is kept for backward compatibility
@@ -11,44 +10,38 @@ export * from './calculations';
 export { formatCurrency, formatPercentage } from './calculations/formatters';
 
 // Additional exports specifically for the Weekly Journal
-import { getTrades } from './storage/storageCore';
-import { calculateTradeMetrics } from './calculations';
+import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
+import { TradeWithMetrics } from '@/types';
+import { isWithinInterval } from 'date-fns';
 
-export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<any[]> => {
+// Function to get trades for a specific week
+export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<TradeWithMetrics[]> => {
   try {
-    const trades = await getTrades();
+    // Get all trades with metrics
+    const allTrades = getTradesWithMetrics();
     
-    // Ensure trades is an array before filtering
-    if (!Array.isArray(trades)) {
-      console.error('Expected array of trades but got:', typeof trades);
+    // Ensure allTrades is an array
+    if (!Array.isArray(allTrades)) {
+      console.error('Expected array of trades but got:', typeof allTrades);
       return [];
     }
     
-    return trades.filter(trade => {
+    // Filter trades for the week
+    const tradesForWeek = allTrades.filter(trade => {
+      if (!trade.exitDate) return false;
+      
       try {
-        const entryDate = new Date(trade.entryDate);
-        return entryDate >= weekStart && entryDate <= weekEnd;
-      } catch (error) {
-        console.error('Error processing trade date:', error, trade);
+        const exitDate = new Date(trade.exitDate);
+        return isWithinInterval(exitDate, { start: weekStart, end: weekEnd });
+      } catch (e) {
+        console.error('Error parsing exit date:', e);
         return false;
       }
-    }).map(trade => {
-      try {
-        return {
-          ...trade,
-          metrics: calculateTradeMetrics(trade)
-        };
-      } catch (error) {
-        console.error('Error calculating metrics for trade:', error, trade);
-        // Return trade without metrics if calculation fails
-        return {
-          ...trade,
-          metrics: { profitLoss: 0, rMultiple: 0 }
-        };
-      }
     });
+    
+    return tradesForWeek;
   } catch (error) {
-    console.error('Error in getTradesForWeek:', error);
+    console.error('Error getting trades for week:', error);
     return [];
   }
 };

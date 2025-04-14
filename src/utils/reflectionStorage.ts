@@ -10,7 +10,19 @@ const MONTHLY_REFLECTIONS_KEY = 'trade-journal-monthly-reflections';
 export const getWeeklyReflections = async (): Promise<WeeklyReflection[]> => {
   try {
     const reflectionsJson = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
-    return reflectionsJson ? JSON.parse(reflectionsJson) : [];
+    if (!reflectionsJson) return [];
+    
+    const parsed = JSON.parse(reflectionsJson);
+    
+    // Ensure we're returning an array
+    if (Array.isArray(parsed)) {
+      return parsed;
+    } else if (typeof parsed === 'object') {
+      // Convert object with reflection entries to array
+      return Object.values(parsed).filter(Boolean) as WeeklyReflection[];
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error getting weekly reflections:', error);
     return [];
@@ -90,7 +102,19 @@ export const deleteWeeklyReflection = async (id: string): Promise<void> => {
 export const getMonthlyReflections = async (): Promise<MonthlyReflection[]> => {
   try {
     const reflectionsJson = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
-    return reflectionsJson ? JSON.parse(reflectionsJson) : [];
+    if (!reflectionsJson) return [];
+    
+    const parsed = JSON.parse(reflectionsJson);
+    
+    // Ensure we're returning an array
+    if (Array.isArray(parsed)) {
+      return parsed;
+    } else if (typeof parsed === 'object') {
+      // Convert object with reflection entries to array
+      return Object.values(parsed).filter(Boolean) as MonthlyReflection[];
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error getting monthly reflections:', error);
     return [];

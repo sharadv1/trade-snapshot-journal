@@ -37,12 +37,18 @@ const DEFAULT_TRADE: Trade = {
   targetReachedBeforeExit: false
 };
 
-// Changing to a named export to match the import in TradeForm.tsx
-export const useTradeForm = (initialTrade: Trade = DEFAULT_TRADE) => {
+// Define a more comprehensive hook that provides all the necessary functionality
+export const useTradeForm = (initialTrade: Trade = DEFAULT_TRADE, isEditing = false, ideaId?: string | null) => {
   const [trade, setTrade] = useState<Trade>(initialTrade);
+  const [contractDetails, setContractDetails] = useState<any>(initialTrade.contractDetails || {});
+  const [activeTab, setActiveTab] = useState<string>("details");
+  const [images, setImages] = useState<string[]>(initialTrade?.images || []);
+  const [pointValue, setPointValue] = useState<number>(0);
 
   useEffect(() => {
     setTrade(initialTrade);
+    setImages(initialTrade?.images || []);
+    setContractDetails(initialTrade?.contractDetails || {});
   }, [initialTrade]);
 
   const setTradeState = useCallback((newState: Trade) => {
@@ -57,11 +63,78 @@ export const useTradeForm = (initialTrade: Trade = DEFAULT_TRADE) => {
     }));
   };
 
-  // Fix the error by ensuring correct type compatibility
+  const handleTypeChange = (type: string) => {
+    setTrade(prevState => ({
+      ...prevState,
+      type,
+    }));
+  };
+
+  const handleContractDetailsChange = (details: any) => {
+    setContractDetails(details);
+    setTrade(prevTrade => ({
+      ...prevTrade,
+      contractDetails: details
+    }));
+  };
+
+  const handleImageUpload = async (file: File): Promise<void> => {
+    const reader = new FileReader();
+    
+    return new Promise((resolve, reject) => {
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          const newImages = [...images, e.target.result.toString()];
+          setImages(newImages);
+          setTrade(prevTrade => ({
+            ...prevTrade,
+            images: newImages
+          }));
+          resolve();
+        } else {
+          reject(new Error('Failed to read file'));
+        }
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('Error reading file'));
+      };
+      
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const newImages = images.filter((_, i) => i !== index);
+    setImages(newImages);
+    setTrade(prevTrade => ({
+      ...prevTrade,
+      images: newImages
+    }));
+  };
+
+  // Mock submit function for completeness
+  const submitForm = (e: React.FormEvent, callback?: (tradeId: string) => void) => {
+    e.preventDefault();
+    // In a real implementation, this would save the trade
+    if (callback) callback(trade.id);
+    return true;
+  };
+
   return {
     trade,
-    setTradeState, // Renamed to match expectations
+    contractDetails,
+    activeTab,
+    setActiveTab,
+    images,
     handleChange,
+    handleTypeChange,
+    handleContractDetailsChange,
+    handleImageUpload,
+    handleRemoveImage,
+    handleSubmit: submitForm,
+    pointValue,
+    setTradeState,
   };
 };
 

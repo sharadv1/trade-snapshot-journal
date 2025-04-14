@@ -44,7 +44,7 @@ const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
   return timeframeDisplayMap[timeframe] || timeframe;
 };
 
-export default function TradeDetail() {
+export function TradeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [trade, setTrade] = useState<Trade | null>(null);
@@ -208,8 +208,8 @@ export default function TradeDetail() {
   
   const metrics = trade ? calculateTradeMetrics(trade) : null;
   
-  const isExitTradeModalOpen = exitTradeModalOpen === true || exitTradeModalOpen === "true";
-  
+  const isExitTradeModalOpen = exitTradeModalOpen === true;
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-6">

@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -40,9 +41,19 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   
   const {
     trade,
-    setTradeState, // Renamed to match expectations
+    contractDetails,
+    activeTab,
+    setActiveTab,
+    images,
     handleChange,
-  } = useTradeForm(initialTrade);
+    handleTypeChange,
+    handleContractDetailsChange,
+    handleImageUpload,
+    handleRemoveImage,
+    handleSubmit: submitForm,
+    pointValue,
+    setTradeState,
+  } = useTradeForm(initialTrade, isEditing, ideaIdFromProps);
 
   useEffect(() => {
     if (!trade) {
@@ -103,7 +114,7 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     if (!trade.entryPrice) errors.push('Entry price is required');
     if (!trade.quantity) errors.push('Quantity is required');
     if (!trade.entryDate) errors.push('Entry date is required');
-    if (!trade.initialStopLoss) errors.push('Initial stop loss is required');
+    if (!trade.stopLoss) errors.push('Initial stop loss is required');
     
     setValidationErrors(errors);
     
