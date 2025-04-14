@@ -5,6 +5,12 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { MediaUpload } from '@/components/MediaUpload';
 import { MediaViewerDialog } from '@/components/MediaViewerDialog';
 
+// Add a custom type to handle pdf files
+type ExtendedMediaFile = {
+  url: string;
+  type: 'image' | 'video' | 'pdf';
+};
+
 interface LessonMediaProps {
   media: LessonMediaType[];
   onUpload?: (files: File[]) => void;
@@ -16,7 +22,7 @@ export function LessonMedia({ media, onUpload, isEditing = false }: LessonMediaP
     // Convert LessonMediaType[] to the MediaFile[] format expected by MediaUpload
     const mediaForUpload = media.map(m => ({
       url: m.url,
-      type: m.type as 'image' | 'video' | 'pdf'
+      type: m.type === 'pdf' ? 'image' : m.type // Convert pdf to image for MediaUpload to handle
     }));
     
     const handleMediaUpload = (file: File) => {
@@ -134,9 +140,10 @@ export function LessonMedia({ media, onUpload, isEditing = false }: LessonMediaP
   };
   
   // Convert LessonMediaType[] to the format expected by MediaViewerDialog
+  // and handle potential pdf type by converting to image
   const mediaForViewer = media.map(m => ({
     url: m.url,
-    type: m.type as 'image' | 'video' | 'pdf'
+    type: (m.type === 'pdf' ? 'image' : m.type) as 'image' | 'video'
   }));
   
   return (

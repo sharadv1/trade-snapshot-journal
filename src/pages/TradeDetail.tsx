@@ -55,6 +55,7 @@ export default function TradeDetail() {
   const [retryCount, setRetryCount] = useState(0);
   const [isOverMaxRisk, setIsOverMaxRisk] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [exitTradeModalOpen, setExitTradeModalOpen] = useState(false);
 
   const getStrategyName = (strategyId: string | undefined): string => {
     if (!strategyId) return 'No Strategy';
@@ -206,6 +207,8 @@ export default function TradeDetail() {
   };
   
   const metrics = trade ? calculateTradeMetrics(trade) : null;
+  
+  const isExitTradeModalOpen = exitTradeModalOpen === true || exitTradeModalOpen === "true";
   
   return (
     <div className="container mx-auto py-8 px-4">

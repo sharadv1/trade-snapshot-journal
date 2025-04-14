@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -41,18 +40,9 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
   
   const {
     trade,
-    contractDetails,
-    activeTab,
-    setActiveTab,
-    images,
+    setTradeState, // Renamed to match expectations
     handleChange,
-    handleTypeChange,
-    handleContractDetailsChange,
-    handleImageUpload,
-    handleRemoveImage,
-    handleSubmit: submitForm,
-    pointValue,
-  } = useTradeForm(initialTrade, isEditing, ideaIdFromProps);
+  } = useTradeForm(initialTrade);
 
   useEffect(() => {
     if (!trade) {

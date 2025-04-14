@@ -1,5 +1,6 @@
+
 import { useState, useEffect, useCallback } from 'react';
-import { Trade } from '@/types';
+import { Trade, ContractDetails } from '@/types';
 import { generateUUID } from '@/utils/generateUUID';
 
 const DEFAULT_TRADE: Trade = {
@@ -29,15 +30,15 @@ const DEFAULT_TRADE: Trade = {
   tags: [],
   ideaId: '',
   partialExits: [],
-  contractDetails: {},
+  contractDetails: {} as ContractDetails,
   maxFavorablePrice: 0,
   maxAdversePrice: 0,
   targetReached: false,
   targetReachedBeforeExit: false
 };
 
-// Fix the type mismatch issue
-const useTradeForm = (initialTrade: Trade = DEFAULT_TRADE) => {
+// Changing to a named export to match the import in TradeForm.tsx
+export const useTradeForm = (initialTrade: Trade = DEFAULT_TRADE) => {
   const [trade, setTrade] = useState<Trade>(initialTrade);
 
   useEffect(() => {
@@ -50,7 +51,7 @@ const useTradeForm = (initialTrade: Trade = DEFAULT_TRADE) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setTradeState(prevState => ({
+    setTrade(prevState => ({
       ...prevState,
       [name]: value,
     }));
@@ -64,4 +65,5 @@ const useTradeForm = (initialTrade: Trade = DEFAULT_TRADE) => {
   };
 };
 
+// Also export as default for backward compatibility
 export default useTradeForm;
