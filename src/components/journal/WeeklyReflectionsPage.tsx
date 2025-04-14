@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { ReflectionsList } from './ReflectionsList';
 import { WeeklyReflection } from '@/types';
@@ -74,7 +73,7 @@ export function WeeklyReflectionsPage() {
   
   // Inject the download functionality into the reflections data
   useEffect(() => {
-    if (reflections.length > 0) {
+    if (reflections && reflections.length > 0) {
       const updatedReflections = reflections.map(reflection => ({
         ...reflection,
         actions: (
@@ -106,10 +105,20 @@ export function WeeklyReflectionsPage() {
       
       // First, collect all existing reflections from storage (already saved by user)
       const existingReflections = getAllWeeklyReflections();
+      
+      // Ensure existingReflections is an object
+      if (!existingReflections || typeof existingReflections !== 'object') {
+        console.error('Expected object of reflections but got:', typeof existingReflections);
+        return [];
+      }
+      
       const allTrades = getTradesWithMetrics();
       
-      // Map to track weeks by their actual date range to prevent duplicates of the same week
-      const weeksByRange = new Map<string, WeeklyReflection>();
+      // Ensure allTrades is an array
+      if (!Array.isArray(allTrades)) {
+        console.error('Expected array of trades but got:', typeof allTrades);
+        return [];
+      }
       
       // First pass: Process all existing reflections
       Object.values(existingReflections).forEach(reflection => {

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +22,9 @@ export interface ReflectionsListProps {
 }
 
 export function ReflectionsList({ reflections, type, getStats }: ReflectionsListProps) {
+  // Ensure reflections is an array
+  const safeReflections = Array.isArray(reflections) ? reflections : [];
+  
   // Function to format date ranges for display
   const formatDateRange = (reflection: WeeklyReflection | MonthlyReflection) => {
     if (type === 'weekly') {
@@ -94,7 +96,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
         </Button>
       </div>
 
-      {reflections.length === 0 ? (
+      {safeReflections.length === 0 ? (
         <Card>
           <CardContent className="py-8">
             <p className="text-center text-muted-foreground">
@@ -104,7 +106,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {reflections.map((reflection) => {
+          {safeReflections.map((reflection) => {
             const stats = getStats(reflection);
             const dateRange = formatDateRange(reflection);
             

@@ -29,7 +29,7 @@ export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<
     
     // Filter trades for the week
     const tradesForWeek = allTrades.filter(trade => {
-      if (!trade.exitDate) return false;
+      if (!trade || !trade.exitDate) return false;
       
       try {
         const exitDate = new Date(trade.exitDate);
