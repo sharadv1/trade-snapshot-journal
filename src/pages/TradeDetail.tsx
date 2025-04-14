@@ -41,7 +41,7 @@ const getTimeframeDisplayValue = (timeframe: string | undefined): string => {
     'm1': 'Monthly (M1)'
   };
   
-  return timeframeDisplayValue[timeframe] || timeframe;
+  return timeframeDisplayMap[timeframe] || timeframe;
 };
 
 export default function TradeDetail() {
