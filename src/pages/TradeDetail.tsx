@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, ChevronDown, ChevronUp, Star, AlertTriangle, Ratio, Target, CheckCircle2, XCircle } from 'lucide-react';
@@ -65,7 +66,7 @@ export function TradeDetail() {
   };
   
   const getTargetStatusDisplay = () => {
-    if (!trade || !trade.status === 'closed' || !trade.takeProfit || !metrics) {
+    if (!trade || trade.status !== 'closed' || !trade.takeProfit || !metrics) {
       return null;
     }
     
@@ -85,8 +86,8 @@ export function TradeDetail() {
       missedValue = priceDiff * quantity * pointValue;
     }
     
-    if (trade.targetReached) {
-      if (trade.targetReachedBeforeExit) {
+    if (trade.targetReached === true) {
+      if (trade.targetReachedBeforeExit === true) {
         return (
           <div className="flex items-center">
             <CheckCircle2 className="h-4 w-4 mr-1.5 text-green-500" />

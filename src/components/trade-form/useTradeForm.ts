@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { Trade, ContractDetails } from '@/types';
+import { Trade, ContractDetails, TradeType, TRADE_TYPES } from '@/types';
 import { generateUUID } from '@/utils/generateUUID';
 
 const DEFAULT_TRADE: Trade = {
@@ -63,7 +63,7 @@ export const useTradeForm = (initialTrade: Trade = DEFAULT_TRADE, isEditing = fa
     }));
   };
 
-  const handleTypeChange = (type: string) => {
+  const handleTypeChange = (type: TradeType) => { // Changed to accept TradeType only
     setTrade(prevState => ({
       ...prevState,
       type,

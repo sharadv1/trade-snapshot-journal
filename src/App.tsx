@@ -4,14 +4,14 @@ import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from '
 import Dashboard from '@/pages/Dashboard';
 import Analytics from '@/pages/Analytics';
 import TradeEntry from '@/pages/TradeEntry';
-import TradeDetail from '@/pages/TradeDetail';
+import { TradeDetail } from '@/pages/TradeDetail'; // Changed to named import
 import TradeEdit from '@/pages/TradeEdit';
 import Ideas from '@/pages/Ideas';
 import StrategyManagement from '@/pages/StrategyManagement';
 import NotFound from '@/pages/NotFound';
 import { Layout } from '@/components/layout/Layout';
 import SymbolManagement from '@/pages/SymbolManagement';
-import { WeeklyJournal } from '@/pages/WeeklyJournal'; // Changed to named import
+import { WeeklyJournal } from '@/pages/WeeklyJournal';
 import { JournalLayout } from '@/components/journal/JournalLayout';
 import { WeeklyReflectionsPage } from '@/components/journal/WeeklyReflectionsPage';
 import { MonthlyReflectionsPage } from '@/components/journal/MonthlyReflectionsPage';
