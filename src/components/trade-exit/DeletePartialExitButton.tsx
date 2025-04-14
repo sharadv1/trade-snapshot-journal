@@ -58,13 +58,13 @@ export function DeletePartialExitButton({
       const totalExitedQuantity = updatedPartialExits.reduce(
         (total, exit) => {
           const quantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
-          return total + quantity;
+          return total + (isNaN(quantity) ? 0 : quantity);
         }, 0
       );
       
       // Update trade status based on exited quantity
       const totalTradeQuantity = typeof updatedTrade.quantity === 'string' ? 
-        parseFloat(updatedTrade.quantity) : 
+        parseFloat(updatedTrade.quantity.toString()) : 
         updatedTrade.quantity;
         
       if (totalExitedQuantity >= totalTradeQuantity) {
@@ -75,9 +75,9 @@ export function DeletePartialExitButton({
         let weightedSum = 0;
         
         updatedPartialExits.forEach(exit => {
-          const exitPrice = typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice) : exit.exitPrice;
-          const exitQuantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
-          weightedSum += exitPrice * exitQuantity;
+          const exitPrice = typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice.toString()) : exit.exitPrice;
+          const exitQuantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity.toString()) : exit.quantity;
+          weightedSum += (isNaN(exitPrice) ? 0 : exitPrice) * (isNaN(exitQuantity) ? 0 : exitQuantity);
         });
         
         // Set the trade's exit price to the weighted average

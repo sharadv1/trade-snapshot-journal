@@ -16,7 +16,7 @@ export function LessonMedia({ media, onUpload, isEditing = false }: LessonMediaP
     // Convert LessonMediaType[] to the MediaFile[] format expected by MediaUpload
     const mediaForUpload = media.map(m => ({
       url: m.url,
-      type: m.type
+      type: m.type as 'image' | 'video' | 'pdf'
     }));
     
     const handleMediaUpload = (file: File) => {
@@ -136,7 +136,7 @@ export function LessonMedia({ media, onUpload, isEditing = false }: LessonMediaP
   // Convert LessonMediaType[] to the format expected by MediaViewerDialog
   const mediaForViewer = media.map(m => ({
     url: m.url,
-    type: m.type
+    type: m.type as 'image' | 'video' | 'pdf'
   }));
   
   return (

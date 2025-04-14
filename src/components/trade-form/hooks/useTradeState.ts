@@ -1,108 +1,87 @@
-
 import { useState, useEffect } from 'react';
-import { Trade, FuturesContractDetails, COMMON_FUTURES_CONTRACTS } from '@/types';
-import { getIdeaById } from '@/utils/ideaStorage';
+import { Trade } from '@/types';
 
-export function useTradeState(initialTrade?: Trade, isEditing = false, ideaIdFromProps?: string | null) {
-  const [trade, setTrade] = useState<Partial<Trade>>(
-    initialTrade || {
-      symbol: '',
-      type: 'stock',
-      direction: 'long',
-      entryDate: new Date().toISOString().slice(0, 16),
-      entryPrice: 0,
-      quantity: 0,
-      fees: 0,
-      status: 'open',
-      strategy: 'default-strategy',
-      images: [],
-      tags: [],
-      mistakes: [],
-      partialExits: [],
-      pspTime: '',
-      timeframe: undefined,
-      ideaId: ideaIdFromProps || ''
-    }
-  );
+interface UseTradeStateProps {
+  initialTrade?: Trade;
+}
 
-  const [contractDetails, setContractDetails] = useState<Partial<FuturesContractDetails>>(
-    initialTrade?.contractDetails || {
+export const useTradeState = (props: UseTradeStateProps = {}) => {
+  const { initialTrade } = props;
+  
+  const [tradeState, setTradeState] = useState<Trade>({
+    id: initialTrade?.id || '',
+    symbol: initialTrade?.symbol || '',
+    entryDate: initialTrade?.entryDate || '',
+    exitDate: initialTrade?.exitDate || '',
+    entryPrice: initialTrade?.entryPrice || 0,
+    exitPrice: initialTrade?.exitPrice || 0,
+    quantity: initialTrade?.quantity || 0,
+    stopLoss: initialTrade?.stopLoss || 0,
+    initialStopLoss: initialTrade?.initialStopLoss || 0,
+    takeProfit: initialTrade?.takeProfit || 0,
+    direction: initialTrade?.direction || 'long',
+    type: initialTrade?.type || 'stock',
+    status: initialTrade?.status || 'open',
+    notes: initialTrade?.notes || '',
+    grade: initialTrade?.grade,
+    timeframe: initialTrade?.timeframe || '',
+    fees: initialTrade?.fees || 0,
+    strategy: initialTrade?.strategy || '',
+    images: initialTrade?.images || [],
+    contractDetails: initialTrade?.contractDetails || {
       exchange: '',
+      tickSize: 0,
       contractSize: 1,
-      tickSize: 0.01,
-      tickValue: 0.01
-    }
-  );
+      tickValue: 0
+    },
+    partialExits: initialTrade?.partialExits || [],
+    mistakes: initialTrade?.mistakes || [],
+    account: initialTrade?.account || '',
+    pspTime: initialTrade?.pspTime || '',
+    ssmtQuarters: initialTrade?.ssmtQuarters || '',
+    maxFavorablePrice: initialTrade?.maxFavorablePrice || 0,
+    maxAdversePrice: initialTrade?.maxAdversePrice || 0,
+    targetReached: initialTrade?.targetReached || false,
+    targetReachedBeforeExit: initialTrade?.targetReachedBeforeExit || false,
+    ideaId: initialTrade?.ideaId || '',
+    tags: initialTrade?.tags || [],
+    riskRewardRatio: initialTrade?.riskRewardRatio || 0,
+  });
 
   useEffect(() => {
-    if (!isEditing && ideaIdFromProps) {
-      console.log('Loading idea data for ID:', ideaIdFromProps);
-      const idea = getIdeaById(ideaIdFromProps);
-      if (idea) {
-        console.log('Idea found:', idea);
-        setTrade(prev => ({
-          ...prev,
-          symbol: idea.symbol,
-          ideaId: idea.id || '',
-          direction: (idea.direction as 'long' | 'short') || 'long',
-          notes: prev.notes ? `${prev.notes}\n\nBased on trade idea: ${idea.description || 'No description'}` : `Based on trade idea: ${idea.description || 'No description'}`
-        }));
-      } else {
-        console.log('No idea found for ID:', ideaIdFromProps);
+    // Calculate risk reward ratio
+    if (tradeState.takeProfit && tradeState.initialStopLoss) {
+      const takeProfit = typeof tradeState.takeProfit === 'string' ? parseFloat(tradeState.takeProfit) : tradeState.takeProfit;
+      const entryPrice = typeof tradeState.entryPrice === 'string' ? parseFloat(tradeState.entryPrice.toString()) : tradeState.entryPrice;
+      const initialStopLoss = typeof tradeState.initialStopLoss === 'string' ? parseFloat(tradeState.initialStopLoss.toString()) : tradeState.initialStopLoss;
+      
+      // Only proceed if all values are valid numbers
+      if (!isNaN(takeProfit) && !isNaN(entryPrice) && !isNaN(initialStopLoss)) {
+        const potentialProfit = Math.abs(takeProfit - entryPrice);
+        const risk = Math.abs(entryPrice - initialStopLoss);
+        
+        if (risk > 0) {
+          const riskRewardRatio = (potentialProfit / risk).toFixed(2);
+          setTradeState(prev => ({
+            ...prev,
+            riskRewardRatio: parseFloat(riskRewardRatio)
+          }));
+        }
       }
     }
-  }, [ideaIdFromProps, isEditing]);
+  }, [tradeState.takeProfit, tradeState.initialStopLoss, tradeState.entryPrice]);
 
-  useEffect(() => {
-    if (trade.type === 'futures' && trade.symbol) {
-      const contract = COMMON_FUTURES_CONTRACTS.find(c => c.symbol === trade.symbol);
-      if (contract) {
-        setContractDetails({
-          exchange: contract.exchange,
-          contractSize: 1,
-          tickSize: contract.tickSize,
-          tickValue: contract.tickSize * contract.pointValue
-        });
-      }
-    }
-  }, [trade.type, trade.symbol]);
-
-  const pointValue = trade.type === 'futures' && contractDetails.tickSize && contractDetails.tickValue
-    ? contractDetails.tickValue / contractDetails.tickSize
-    : 0;
-
-  const handleChange = (field: keyof Trade, value: any) => {
-    console.log(`Changing ${field} to:`, value);
-    
-    if (field === 'strategy' && value === 'custom' && !isEditing) {
-      return;
-    }
-
-    setTrade(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Change this function to accept a single details object instead of field and value
-  const handleContractDetailsChange = (details: Partial<FuturesContractDetails>) => {
-    console.log('Updating contract details:', details);
-    setContractDetails(prev => ({ ...prev, ...details }));
-  };
-
-  const handleTypeChange = (type: Trade['type']) => {
-    handleChange('type', type);
-    
-    if (type !== 'futures' && trade.type === 'futures') {
-      handleChange('symbol', '');
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setTradeState(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
   };
 
   return {
-    trade,
-    setTrade,
-    contractDetails,
-    setContractDetails,
-    pointValue,
-    handleChange,
-    handleContractDetailsChange,
-    handleTypeChange
+    trade: tradeState,
+    setTradeState,
+    handleChange
   };
-}
+};

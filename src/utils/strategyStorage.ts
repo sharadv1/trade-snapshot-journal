@@ -1,143 +1,105 @@
-
 import { Strategy } from '@/types';
-import { getTradesSync } from '@/utils/storage/storageCore';
+import { getLocalStorage, setLocalStorage } from './storageCore';
+import { generateUUID } from './generateUUID';
 
-const STRATEGIES_KEY = 'trading-journal-strategies';
+const STRATEGIES_KEY = 'trade-journal-strategies';
 
+// Function to initialize default strategies if none exist
+export const initializeDefaultStrategies = () => {
+  let strategies = getStrategies();
+  if (!strategies || strategies.length === 0) {
+    const defaultStrategies: Strategy[] = [
+      {
+        id: 'support-resistance',
+        name: 'Support & Resistance',
+        description: 'Trading key levels where price has historically reversed',
+        color: '#3B82F6',
+        createdAt: new Date()
+      },
+      {
+        id: 'trend-following',
+        name: 'Trend Following',
+        description: 'Going with the established market trend using moving averages or other trend indicators',
+        color: '#10B981',
+        createdAt: new Date()
+      },
+      {
+        id: 'breakout',
+        name: 'Breakouts',
+        description: 'Entering when price breaks above resistance or below support',
+        color: '#F59E0B',
+        createdAt: new Date()
+      },
+      {
+        id: 'reversal',
+        name: 'Reversals',
+        description: 'Looking for price to change direction after extended moves',
+        color: '#EF4444',
+        createdAt: new Date()
+      },
+    ];
+    saveStrategies(defaultStrategies);
+  }
+};
+
+// Function to get all strategies from local storage
 export const getStrategies = (): Strategy[] => {
-  const strategiesJson = localStorage.getItem(STRATEGIES_KEY);
-  if (!strategiesJson) {
-    // If no strategies found, create and save defaults
-    const defaults = getDefaultStrategies();
-    saveStrategies(defaults);
-    return defaults;
-  }
-  
-  try {
-    // Parse the strategies
-    const strategies = JSON.parse(strategiesJson);
-    
-    // Validation: make sure we have a valid array
-    if (!Array.isArray(strategies)) {
-      console.error('Retrieved strategies is not an array');
-      return getDefaultStrategies();
-    }
-    
-    // Return the parsed strategies
-    return strategies;
-  } catch (error) {
-    console.error('Error parsing strategies:', error);
-    
-    // If there's a parsing error, log but don't replace data
-    console.warn('Preserving original strategy data despite parse error');
-    return [];
-  }
+  const strategiesString = getLocalStorage(STRATEGIES_KEY);
+  return strategiesString ? JSON.parse(strategiesString) : [];
 };
 
-export const syncStrategiesWithServer = async (): Promise<boolean> => {
-  return true;
-};
-
+// Function to save strategies to local storage
 export const saveStrategies = (strategies: Strategy[]): void => {
-  // Ensure we're saving an array
-  if (!Array.isArray(strategies)) {
-    console.error('Attempting to save invalid strategies data (not an array)');
-    return;
-  }
-  
-  localStorage.setItem(STRATEGIES_KEY, JSON.stringify(strategies));
-  // Dispatch storage event to notify other components
-  window.dispatchEvent(new Event('storage'));
-  window.dispatchEvent(new Event('strategies-updated'));
+  setLocalStorage(STRATEGIES_KEY, JSON.stringify(strategies));
 };
 
-export const addStrategy = (strategy: Strategy): void => {
-  const strategies = getStrategies();
-  
-  // Validate ID - make sure we don't have duplicates
-  if (strategies.some(s => s.id === strategy.id)) {
-    console.warn(`Strategy with ID ${strategy.id} already exists. Using a new ID.`);
-    // Generate a new ID to avoid conflicts
-    strategy.id = `strategy-${Date.now()}`;
-  }
-  
-  strategies.push(strategy);
-  saveStrategies(strategies);
-  console.log(`Added new strategy: ${strategy.name} (${strategy.id})`);
-};
-
-export const updateStrategy = (updatedStrategy: Strategy): void => {
-  const strategies = getStrategies();
-  const index = strategies.findIndex(s => s.id === updatedStrategy.id);
-  if (index !== -1) {
-    strategies[index] = updatedStrategy;
+// Function to add a new strategy
+export const addStrategy = (strategy: Omit<Strategy, 'id'>): Strategy | null => {
+  try {
+    const newStrategy: Strategy = {
+      id: generateUUID(),
+      ...strategy,
+    };
+    const strategies = getStrategies();
+    strategies.push(newStrategy);
     saveStrategies(strategies);
-    console.log(`Updated strategy: ${updatedStrategy.name} (${updatedStrategy.id})`);
-  } else {
-    console.warn(`Strategy with ID ${updatedStrategy.id} not found for update`);
+    return newStrategy;
+  } catch (error) {
+    console.error("Error adding strategy:", error);
+    return null;
   }
 };
 
-export const deleteStrategy = (strategyId: string): void => {
-  const strategies = getStrategies();
-  const filteredStrategies = strategies.filter(s => s.id !== strategyId);
-  
-  // Only save if we actually removed something
-  if (filteredStrategies.length !== strategies.length) {
+// Function to update an existing strategy
+export const updateStrategy = (updatedStrategy: Strategy): boolean => {
+  try {
+    const strategies = getStrategies();
+    const updatedStrategies = strategies.map(strategy =>
+      strategy.id === updatedStrategy.id ? updatedStrategy : strategy
+    );
+    saveStrategies(updatedStrategies);
+    return true;
+  } catch (error) {
+    console.error("Error updating strategy:", error);
+    return false;
+  }
+};
+
+// Function to delete a strategy by ID
+export const deleteStrategy = (id: string): boolean => {
+  try {
+    const strategies = getStrategies();
+    const filteredStrategies = strategies.filter(strategy => strategy.id !== id);
     saveStrategies(filteredStrategies);
-    console.log(`Deleted strategy with ID: ${strategyId}`);
-  } else {
-    console.warn(`Strategy with ID ${strategyId} not found for deletion`);
+    return true;
+  } catch (error) {
+    console.error("Error deleting strategy:", error);
+    return false;
   }
 };
 
-export const getStrategyById = (strategyId: string): Strategy | undefined => {
-  if (!strategyId) return undefined;
-  
+// Function to get a strategy by ID
+export const getStrategyById = (id: string): Strategy | undefined => {
   const strategies = getStrategies();
-  const strategy = strategies.find(s => s.id === strategyId);
-  
-  if (!strategy) {
-    console.warn(`Strategy with ID ${strategyId} not found`);
-  }
-  
-  return strategy;
-};
-
-export const getStrategyUsage = (strategyId: string): number => {
-  const trades = getTradesSync();
-  return trades.filter(t => t.strategy === strategyId).length;
-};
-
-export const isStrategyInUse = (strategyId: string): boolean => {
-  return getStrategyUsage(strategyId) > 0;
-};
-
-export const getDefaultStrategies = (): Strategy[] => {
-  return [
-    {
-      id: 'strategy-1',
-      name: 'Trend Following',
-      description: 'Following established market trends',
-      color: '#4CAF50'
-    },
-    {
-      id: 'strategy-2',
-      name: 'Breakout',
-      description: 'Trading breakouts from consolidation patterns',
-      color: '#2196F3'
-    },
-    {
-      id: 'strategy-3',
-      name: 'Mean Reversion',
-      description: 'Trading price returns to the mean',
-      color: '#F44336'
-    },
-    {
-      id: 'strategy-4',
-      name: 'Momentum',
-      description: 'Trading strong price movements',
-      color: '#9C27B0'
-    }
-  ];
+  return strategies.find(strategy => strategy.id === id);
 };

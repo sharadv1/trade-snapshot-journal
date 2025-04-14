@@ -127,7 +127,7 @@ export interface Lesson {
   id: string;
   title: string;
   description: string;
-  date: string;
+  date?: string;  // Make date optional
   tags?: string[];
   media?: LessonMedia[];
   types?: string[];

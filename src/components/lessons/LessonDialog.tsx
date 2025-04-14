@@ -200,10 +200,11 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
         const newLesson: Lesson = {
           id: generateUUID(),
           title,
-          content: description || '',
-          category: 'general',
           description,
+          content: description || '',
+          date: now,
           types,
+          category: 'general',
           media,
           createdAt: now,
           updatedAt: now
@@ -328,7 +329,10 @@ export function LessonDialog({ open, onClose, lesson }: LessonDialogProps) {
             </Label>
             <div className="col-span-3 space-y-4">
               <MediaUpload 
-                media={media.map(item => ({ url: item.url, type: item.type }))}
+                media={media.map(item => ({ 
+                  url: item.url, 
+                  type: item.type as 'image' | 'video' | 'pdf' 
+                }))}
                 onMediaUpload={handleMediaUpload}
                 onMediaRemove={handleRemoveMedia}
                 onImageUpload={handleMediaUpload}

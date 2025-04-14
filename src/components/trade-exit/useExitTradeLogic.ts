@@ -1,236 +1,182 @@
-
-import { useState, useEffect, useCallback } from 'react';
-import { Trade, PartialExit } from '@/types';
-import { updateTrade, getTradeById } from '@/utils/storage/tradeOperations';
+import { useState, useCallback } from 'react';
 import { toast } from '@/utils/toast';
+import { Trade } from '@/types';
+import { getTradeById, updateTrade } from '@/utils/storage/tradeOperations';
 import { generateUUID } from '@/utils/generateUUID';
-import { getRemainingQuantity } from '@/utils/calculations/tradeStatus';
+import { formatInTimeZone } from 'date-fns-tz';
 
-export function useExitTradeLogic(trade: Trade, onUpdate: () => void, onClose?: () => void) {
-  // State variables for partial exit
-  const [partialQuantity, setPartialQuantity] = useState<number>(1);
-  const [partialExitPrice, setPartialExitPrice] = useState<number | undefined>(undefined);
-  const [partialExitDate, setPartialExitDate] = useState<string>(new Date().toISOString().slice(0, 16));
-  const [partialFees, setPartialFees] = useState<number | undefined>(undefined);
-  const [partialNotes, setPartialNotes] = useState<string | undefined>(undefined);
-  
-  // Calculate remaining quantity
-  const [remainingQuantity, setRemainingQuantity] = useState<number>(getRemainingQuantity(trade));
-  
-  // Update state based on trade props when they change
-  useEffect(() => {
-    const quantity = getRemainingQuantity(trade);
-    setRemainingQuantity(quantity);
+interface UseExitTradeLogicProps {
+  trade: Trade;
+  onSuccess: () => void;
+}
 
-    // Set initial partial quantity to 1 or remaining (whichever is smaller)
-    if (quantity > 0) {
-      setPartialQuantity(Math.min(1, quantity));
+export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) => {
+  const [exitPrice, setExitPrice] = useState<number>(0);
+  const [exitQuantity, setExitQuantity] = useState<number>(0);
+  const [exitDate, setExitDate] = useState<string>(getCurrentCentralTime());
+  const [fees, setFees] = useState<number | undefined>(undefined);
+  const [notes, setNotes] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  
+  const handleSetExitPrice = (value: string | number) => {
+    setExitPrice(typeof value === 'string' ? parseFloat(value) || 0 : value);
+  };
+  
+  const handleSetExitQuantity = (value: string | number) => {
+    setExitQuantity(typeof value === 'string' ? parseFloat(value) || 0 : value);
+  };
+
+  const getCurrentCentralTime = () => {
+    return formatInTimeZone(new Date(), 'America/Chicago', "yyyy-MM-dd'T'HH:mm");
+  };
+
+  const handleExitDateFocus = () => {
+    if (!exitDate) {
+      setExitDate(getCurrentCentralTime());
+    }
+  };
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNotes(e.target.value);
+  };
+
+  const handleFeesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFees(value === '' ? undefined : parseFloat(value));
+  };
+
+  const handleSubmit = useCallback(async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    if (exitQuantity <= 0) {
+      toast.error("Exit quantity must be greater than zero.");
+      setIsSubmitting(false);
+      return;
     }
 
-    // If it's a closed trade with exitPrice but no partials, initialize the form with the existing data
-    if (trade.status === 'closed' && trade.exitPrice && (!trade.partialExits || trade.partialExits.length === 0)) {
-      const tradeQty = typeof trade.quantity === 'string' ? parseFloat(trade.quantity) : trade.quantity;
-      const exitPrc = typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice) : trade.exitPrice;
-      
-      setPartialQuantity(tradeQty);
-      setPartialExitPrice(exitPrc);
-      setPartialExitDate(trade.exitDate || new Date().toISOString());
-      setPartialFees(trade.fees);
-      setPartialNotes(trade.notes);
+    if (exitPrice <= 0) {
+      toast.error("Exit price must be greater than zero.");
+      setIsSubmitting(false);
+      return;
     }
-  }, [trade]);
-  
-  const dispatchUpdateEvents = useCallback(() => {
-    // Dispatch custom event to ensure UI updates
-    document.dispatchEvent(new CustomEvent('trade-updated'));
-    
-    // Trigger storage events to notify other components
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'trade-journal-trades'
-    }));
-    
-    // Call update callback
-    if (onUpdate) onUpdate();
-  }, [onUpdate]);
-  
-  const handlePartialExit = async () => {
-    if (!partialQuantity || partialQuantity <= 0) {
-      toast.error("Please enter a valid quantity");
-      return false;
-    }
-    
-    if (!partialExitPrice) {
-      toast.error("Please enter an exit price");
-      return false;
-    }
-    
-    if (!partialExitDate) {
-      toast.error("Please enter an exit date");
-      return false;
-    }
-    
-    // Skip this check for closed trades we're converting
-    const isClosed = trade.status === 'closed';
-    const isClosedWithoutPartials = isClosed && (!trade.partialExits || trade.partialExits.length === 0);
-    
-    if (!isClosedWithoutPartials && partialQuantity > remainingQuantity) {
-      toast.error(`Cannot exit more than the remaining quantity (${remainingQuantity})`);
-      return false;
-    }
-    
+
     try {
-      // Get the latest version of the trade
       const latestTrade = getTradeById(trade.id);
-      
       if (!latestTrade) {
-        toast.error("Trade not found. It may have been deleted.");
-        return false;
+        toast.error("Failed to retrieve latest trade data");
+        return;
       }
-      
-      // Round the exit price to 2 decimal places
-      const roundedExitPrice = Number(partialExitPrice.toFixed(2));
-      
-      // Special case: converting a closed trade without partials to use the partial exit system
-      if (isClosedWithoutPartials && latestTrade.exitPrice) {
-        // Create a new partial exit record for the full quantity
-        const tradeQty = typeof latestTrade.quantity === 'string' ? 
-          parseFloat(latestTrade.quantity) : latestTrade.quantity;
-        
-        const conversionExit: PartialExit = {
-          id: generateUUID(),
-          exitDate: partialExitDate,
-          exitPrice: roundedExitPrice,
-          quantity: tradeQty,
-          fees: partialFees || 0,
-          notes: partialNotes
-        };
-        
-        // Update the trade with this partial exit
-        const updatedTrade: Trade = {
-          ...latestTrade,
-          partialExits: [conversionExit],
-          // Keep the trade closed
-          status: 'closed',
-          exitPrice: roundedExitPrice,
-          exitDate: partialExitDate,
-          fees: partialFees,
-          notes: partialNotes
-        };
-        
-        console.log('Converting closed trade to use partial exits:', updatedTrade);
-        await updateTrade(updatedTrade);
-        
-        toast.success("Trade exit data updated successfully");
-        dispatchUpdateEvents();
-        return true;
-      }
-      
-      // Regular partial exit case - for open trades
-      // Calculate current remaining quantity from the latest trade data
-      const currentRemainingQuantity = getRemainingQuantity(latestTrade);
-      
-      // Additional check to ensure we're not exiting more than available
-      if (!isClosedWithoutPartials && partialQuantity > currentRemainingQuantity) {
-        toast.error(`Cannot exit more than the remaining quantity (${currentRemainingQuantity})`);
-        return false;
-      }
-      
-      const partialExit: PartialExit = {
+
+      const newPartialExit = {
         id: generateUUID(),
-        exitDate: partialExitDate,
-        exitPrice: roundedExitPrice,
-        quantity: partialQuantity,
-        fees: partialFees || 0,
-        notes: partialNotes
+        exitPrice: exitPrice,
+        quantity: exitQuantity,
+        exitDate: exitDate,
+        fees: fees,
+        notes: notes,
+        date: exitDate,
+        price: exitPrice
       };
-      
-      const updatedPartialExits = latestTrade.partialExits ? 
-        [...latestTrade.partialExits, partialExit] : [partialExit];
-      
-      // Calculate remaining quantity after this exit
-      const partialQuantitySum = updatedPartialExits.reduce((sum, exit) => {
-        const exitQuantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
-        return sum + exitQuantity;
-      }, 0);
-      
-      const tradeQuantity = typeof latestTrade.quantity === 'string' ? 
-        parseFloat(latestTrade.quantity) : latestTrade.quantity;
-        
-      const updatedRemainingQuantity = Math.max(0, tradeQuantity - partialQuantitySum);
-      
-      // If all quantity has been exited, mark for closing the trade
-      const shouldClose = updatedRemainingQuantity <= 0;
-      
+
+      const updatedPartialExits = [...(latestTrade.partialExits || []), newPartialExit];
+
       const updatedTrade: Trade = {
         ...latestTrade,
-        partialExits: updatedPartialExits,
-        status: shouldClose ? 'closed' : 'open'
+        partialExits: updatedPartialExits
       };
-      
-      // If closing the trade, calculate the weighted average exit price
-      if (shouldClose) {
-        // Calculate weighted average exit price and round to 2 decimal places
+
+      let exitedQty = 0;
+      updatedPartialExits.forEach(exit => {
+        const exitQty = typeof exit.quantity === 'string' ? parseFloat(exit.quantity.toString()) : exit.quantity;
+        const exitQtyNumber = isNaN(exitQty) ? 0 : exitQty;
+        exitedQty += exitQtyNumber;
+      });
+
+      const totalTradeQuantity = typeof updatedTrade.quantity === 'string' ?
+        parseFloat(updatedTrade.quantity.toString()) :
+        updatedTrade.quantity;
+
+      // Auto-detect if target was reached based on exit price
+      if (trade.takeProfit) {
+        const targetPrice = typeof trade.takeProfit === 'string' ? parseFloat(trade.takeProfit.toString()) : trade.takeProfit;
+        const targetPriceNum = isNaN(targetPrice) ? 0 : targetPrice;
+        const currentExitPrice = typeof exitPrice === 'string' ? parseFloat(exitPrice.toString()) : exitPrice;
+        const currentExitPriceNum = isNaN(currentExitPrice) ? 0 : currentExitPrice;
+        
+        const isLong = trade.direction === 'long';
+        const targetReached = isLong 
+          ? currentExitPriceNum >= targetPriceNum 
+          : currentExitPriceNum <= targetPriceNum;
+
+        if (targetReached) {
+          updatedTrade.targetReached = true;
+        }
+      }
+
+      if (exitedQty >= totalTradeQuantity) {
+        updatedTrade.status = 'closed';
+
         let weightedSum = 0;
-        
+
         updatedPartialExits.forEach(exit => {
-          const exitPrice = typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice) : exit.exitPrice;
-          const exitQuantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
-          weightedSum += exitPrice * exitQuantity;
+          const exitPrice = typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice.toString()) : exit.exitPrice;
+          const exitQuantity = typeof exit.quantity === 'string' ? parseFloat(exit.quantity.toString()) : exit.quantity;
+          weightedSum += (isNaN(exitPrice) ? 0 : exitPrice) * (isNaN(exitQuantity) ? 0 : exitQuantity);
         });
-        
-        updatedTrade.exitPrice = Number((weightedSum / partialQuantitySum).toFixed(2));
-        
-        // Use the latest exit date as the trade exit date
-        const sortedExits = [...updatedPartialExits].sort((a, b) => 
+
+        updatedTrade.exitPrice = weightedSum / exitedQty;
+
+        const sortedExits = [...updatedPartialExits].sort((a, b) =>
           new Date(b.exitDate).getTime() - new Date(a.exitDate).getTime()
         );
-        
-        updatedTrade.exitDate = sortedExits[0].exitDate;
-        updatedTrade.fees = updatedPartialExits.reduce((sum, exit) => sum + (exit.fees || 0), 0);
+
+        if (sortedExits.length > 0) {
+          updatedTrade.exitDate = sortedExits[0].exitDate;
+        }
+
+        updatedTrade.fees = updatedPartialExits.reduce(
+          (sum, exit) => sum + (exit.fees || 0), 0
+        );
       }
-      
-      console.log('Updating trade with partial exit:', updatedTrade);
+
+      console.log('Updating trade after partial exit:', updatedTrade);
       await updateTrade(updatedTrade);
+
+      document.dispatchEvent(new CustomEvent('trade-updated'));
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'trade-journal-trades'
+      }));
+
+      toast.success("Partial exit added successfully");
+      onSuccess();
       
-      toast.success("Partial exit recorded successfully");
-      
-      // Dispatch events to update UI
-      dispatchUpdateEvents();
-      
-      // Reset partial exit form
-      setPartialQuantity(1);
-      setPartialExitPrice(undefined);
-      setPartialExitDate(new Date().toISOString().slice(0, 16));
-      setPartialFees(undefined);
-      setPartialNotes(undefined);
-      
-      // Update the remaining quantity state
-      setRemainingQuantity(updatedRemainingQuantity);
-      
-      // IMPORTANT: Changed the behavior to never call onClose automatically
-      // This ensures the user stays on the exit page after recording an exit
-      // Only call onClose if the user explicitly requests it
-      
-      return true;
+      setExitPrice(0);
+      setExitQuantity(0);
+      setExitDate(getCurrentCentralTime());
+      setFees(undefined);
+      setNotes('');
+
     } catch (error) {
-      console.error("Error recording partial exit:", error);
-      toast.error("Failed to record partial exit");
-      return false;
+      console.error("Error adding partial exit:", error);
+      toast.error("Failed to add partial exit");
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-  
+  }, [trade, exitPrice, exitQuantity, exitDate, fees, notes, onSuccess, isSubmitting]);
+
   return {
-    partialQuantity,
-    setPartialQuantity,
-    partialExitPrice,
-    setPartialExitPrice,
-    partialExitDate,
-    setPartialExitDate,
-    partialFees,
-    setPartialFees,
-    partialNotes,
-    setPartialNotes,
-    remainingQuantity,
-    handlePartialExit
+    exitPrice,
+    exitQuantity,
+    exitDate,
+    fees,
+    notes,
+    isSubmitting,
+    handleSetExitPrice,
+    handleSetExitQuantity,
+    handleExitDateFocus,
+    handleNotesChange,
+    handleFeesChange,
+    handleSubmit
   };
-}
+};

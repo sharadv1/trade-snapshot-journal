@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Trade, TradeWithMetrics } from '@/types';
 import { getTradeById } from '@/utils/tradeStorage';
@@ -79,7 +78,7 @@ export function TradeDetailModal({ tradeId, isOpen, onClose }: TradeDetailModalP
       missedValue = priceDiff * quantity * pointValue;
     }
     
-    if (trade.targetReached) {
+    if (trade.targetReached === true) {
       if (trade.targetReachedBeforeExit) {
         return (
           <div className="flex items-center mt-1">

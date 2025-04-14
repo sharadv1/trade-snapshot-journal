@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { 
   Dialog, 
@@ -33,7 +32,6 @@ export function EditPartialExitModal({
   maxQuantity
 }: EditPartialExitModalProps) {
   const [open, setOpen] = useState(false);
-  // Ensure quantities are stored as numbers in state
   const initialQuantity = typeof partialExit.quantity === 'string' ? parseFloat(partialExit.quantity) : partialExit.quantity;
   const initialExitPrice = typeof partialExit.exitPrice === 'string' ? parseFloat(partialExit.exitPrice) : partialExit.exitPrice;
   
@@ -54,7 +52,7 @@ export function EditPartialExitModal({
   };
 
   const handleSave = () => {
-    if (quantity <= 0 || quantity > maxQuantity) {
+    if (Number(quantity) <= 0 || Number(quantity) > maxQuantity) {
       toast.error(`Quantity must be between 1 and ${maxQuantity}`);
       return;
     }
@@ -71,7 +69,9 @@ export function EditPartialExitModal({
         return;
       }
       
-      const roundedExitPrice = Number(exitPrice.toFixed(2));
+      const roundedExitPrice = typeof exitPrice === 'number' ? 
+        Number(exitPrice.toFixed(2)) : 
+        Number(parseFloat(exitPrice.toString()).toFixed(2));
       
       const updatedPartialExits = latestTrade.partialExits?.map(exit => 
         exit.id === partialExit.id 
@@ -95,8 +95,8 @@ export function EditPartialExitModal({
       
       const totalExitedQuantity = updatedPartialExits.reduce(
         (total, exit) => {
-          const exitQty = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
-          return total + exitQty;
+          const exitQty = typeof exit.quantity === 'string' ? parseFloat(exit.quantity.toString()) : exit.quantity;
+          return total + (isNaN(exitQty) ? 0 : exitQty);
         }, 0
       );
       
@@ -104,16 +104,15 @@ export function EditPartialExitModal({
         parseFloat(updatedTrade.quantity.toString()) : 
         updatedTrade.quantity;
       
-      // Auto-detect if target was reached based on exit price
       if (updatedTrade.takeProfit) {
         const targetPrice = typeof updatedTrade.takeProfit === 'string' ? 
-          parseFloat(updatedTrade.takeProfit) : 
+          parseFloat(updatedTrade.takeProfit.toString()) : 
           updatedTrade.takeProfit;
           
         const isLong = updatedTrade.direction === 'long';
         const targetReached = isLong 
-          ? roundedExitPrice >= targetPrice 
-          : roundedExitPrice <= targetPrice;
+          ? Number(roundedExitPrice) >= Number(targetPrice) 
+          : Number(roundedExitPrice) <= Number(targetPrice);
         
         if (targetReached) {
           updatedTrade.targetReached = true;
@@ -126,9 +125,9 @@ export function EditPartialExitModal({
         let weightedSum = 0;
         
         updatedPartialExits.forEach(exit => {
-          const exitPrc = typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice) : exit.exitPrice;
-          const exitQty = typeof exit.quantity === 'string' ? parseFloat(exit.quantity) : exit.quantity;
-          weightedSum += exitPrc * exitQty;
+          const exitPrc = typeof exit.exitPrice === 'string' ? parseFloat(exit.exitPrice.toString()) : exit.exitPrice;
+          const exitQty = typeof exit.quantity === 'string' ? parseFloat(exit.quantity.toString()) : exit.quantity;
+          weightedSum += (isNaN(exitPrc) ? 0 : exitPrc) * (isNaN(exitQty) ? 0 : exitQty);
         });
         
         updatedTrade.exitPrice = Number((weightedSum / totalExitedQuantity).toFixed(2));

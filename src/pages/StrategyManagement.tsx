@@ -1,20 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Plus, Pencil, Trash } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { generateUUID } from '@/utils/generateUUID';
 import { toast } from '@/utils/toast';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { deleteStrategy, getStrategies, saveStrategies } from '@/utils/strategyStorage';
+import { Strategy } from '@/types';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { getRandomColor } from '@/utils/colors';
+import { Edit, Trash2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { SketchPicker } from 'react-color';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,292 +21,243 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Strategy } from '@/types';
-import { getStrategies, addStrategy, updateStrategy, deleteStrategy, isStrategyInUse } from '@/utils/strategyStorage';
 
-const getRandomColor = () => {
-  const letters = '0123456789ABCDEF';
-  let color = '#';
-  for (let i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
-};
-
-export default function StrategyManagement() {
+const StrategyManagement: React.FC = () => {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
-  const [isAdding, setIsAdding] = useState(false);
-  const [newStrategy, setNewStrategy] = useState({
-    name: '',
-    description: '',
-    color: getRandomColor()
-  });
-  const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
-  const [updatedStrategy, setUpdatedStrategy] = useState<Strategy>({
-    id: '',
-    name: '',
-    description: '',
-    color: ''
-  });
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [strategyToDelete, setStrategyToDelete] = useState<string | null>(null);
-  const [isDeleteDisabled, setIsDeleteDisabled] = useState(false);
+  const [strategyName, setStrategyName] = useState('');
+  const [strategyDescription, setStrategyDescription] = useState('');
+  const [strategyColor, setStrategyColor] = useState(getRandomColor());
+  const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
   useEffect(() => {
-    const loadStrategies = () => {
-      const loadedStrategies = getStrategies();
-      setStrategies(loadedStrategies);
-    };
-
     loadStrategies();
-
-    // Listen for storage events to refresh the list
-    const handleStorageChange = () => {
-      loadStrategies();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
   }, []);
 
-  const handleAddStrategy = () => {
-    if (!newStrategy.name || !newStrategy.color) {
-      toast.error("Strategy name and color are required");
+  const loadStrategies = async () => {
+    const loadedStrategies = await getStrategies();
+    setStrategies(loadedStrategies);
+  };
+
+  const handleAddStrategy = async () => {
+    if (!strategyName) {
+      toast.error('Strategy name is required');
       return;
     }
-    
-    const strategy: Strategy = {
-      id: `strategy-${generateUUID()}`, // Add ID
-      name: newStrategy.name,
-      description: newStrategy.description,
-      color: newStrategy.color
+
+    const newStrategy: Strategy = {
+      id: generateUUID(),
+      name: strategyName,
+      description: strategyDescription,
+      color: strategyColor,
+      createdAt: new Date()
     };
-    
-    addStrategy(strategy);
-    toast.success("Strategy added successfully");
-    
-    // Reset form
-    setNewStrategy({
+
+    const updatedStrategies = [...strategies, newStrategy];
+    await saveStrategies(updatedStrategies);
+    setStrategies(updatedStrategies);
+    setStrategyName('');
+    setStrategyDescription('');
+    setStrategyColor(getRandomColor());
+    toast.success('Strategy added successfully');
+  };
+
+  const handleEditStrategy = (strategy: Strategy) => {
+    setIsEditing(true);
+    setSelectedStrategy(strategy);
+    setStrategyName(strategy.name);
+    setStrategyDescription(strategy.description || '');
+    setStrategyColor(strategy.color || getRandomColor());
+  };
+
+  const handleUpdateStrategy = async () => {
+    if (!selectedStrategy) return;
+
+    const updatedStrategies = strategies.map(strategy =>
+      strategy.id === selectedStrategy.id
+        ? { ...strategy, name: strategyName, description: strategyDescription, color: strategyColor }
+        : strategy
+    );
+
+    await saveStrategies(updatedStrategies);
+    setStrategies(updatedStrategies);
+    setStrategyName('');
+    setStrategyDescription('');
+    setStrategyColor(getRandomColor());
+    setSelectedStrategy(null);
+    setIsEditing(false);
+    toast.success('Strategy updated successfully');
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setSelectedStrategy(null);
+    setStrategyName('');
+    setStrategyDescription('');
+    setStrategyColor(getRandomColor());
+  };
+
+  const handleDeleteStrategy = async (id: string) => {
+    const updatedStrategies = strategies.filter(strategy => strategy.id !== id);
+    await saveStrategies(updatedStrategies);
+    setStrategies(updatedStrategies);
+    toast.success('Strategy deleted successfully');
+  };
+
+  const handleCreateDefaultStrategy = async () => {
+    const newStrategy: Strategy = {
+      id: generateUUID(),
       name: '',
       description: '',
-      color: getRandomColor()
-    });
-    
-    setIsAdding(false);
+      color: getRandomColor(),
+      createdAt: new Date()
+    };
+
+    const updatedStrategies = [...strategies, newStrategy];
+    await saveStrategies(updatedStrategies);
+    setStrategies(updatedStrategies);
   };
 
-  const handleEditClick = (strategy: Strategy) => {
-    setEditingStrategy(strategy);
-    setUpdatedStrategy({ ...strategy });
-  };
-
-  const handleUpdateStrategy = () => {
-    if (!updatedStrategy.name || !updatedStrategy.color) {
-      toast.error("Strategy name and color are required");
-      return;
+  const handleColorChange = (color: any) => {
+    setStrategyColor(color.hex);
+    if (selectedStrategy) {
+      setSelectedStrategy({
+        ...selectedStrategy,
+        name: strategyName,
+        description: strategyDescription,
+        color: strategyColor,
+        createdAt: selectedStrategy.createdAt || new Date()
+      });
     }
-
-    if (updatedStrategy.id) {
-      updateStrategy(updatedStrategy);
-      toast.success("Strategy updated successfully");
-    }
-
-    setEditingStrategy(null);
-    setUpdatedStrategy({
-      id: '',
-      name: '',
-      description: '',
-      color: ''
-    });
-  };
-
-  const handleDeleteClick = (strategyId: string) => {
-    setStrategyToDelete(strategyId);
-    setDeleteConfirmOpen(true);
-    setIsDeleteDisabled(isStrategyInUse(strategyId));
-  };
-
-  const confirmDelete = () => {
-    if (strategyToDelete) {
-      deleteStrategy(strategyToDelete);
-      toast.success("Strategy deleted successfully");
-    }
-    setStrategyToDelete(null);
-    setDeleteConfirmOpen(false);
-  };
-
-  const generateUUID = () => {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0, 
-            v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
   };
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold tracking-tight mb-6">Strategy Management</h1>
+      <h1 className="text-3xl font-bold mb-6">Strategy Management</h1>
 
-      {/* Add Strategy Section */}
-      {!isAdding ? (
-        <Button onClick={() => setIsAdding(true)} className="mb-4">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Strategy
-        </Button>
-      ) : (
-        <div className="mb-6 p-4 border rounded-md">
-          <h2 className="text-xl font-semibold mb-4">Add New Strategy</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Add/Edit Strategy Form */}
+        <Card className="border">
+          <CardHeader>
+            <CardTitle>{isEditing ? 'Edit Strategy' : 'Add New Strategy'}</CardTitle>
+            <CardDescription>Manage your trading strategies</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="strategyName">Strategy Name</Label>
               <Input
-                type="text"
-                id="name"
-                value={newStrategy.name}
-                onChange={(e) => setNewStrategy({ ...newStrategy, name: e.target.value })}
+                id="strategyName"
+                placeholder="e.g. Trend Following"
+                value={strategyName}
+                onChange={(e) => setStrategyName(e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="color">Color</Label>
+              <Label htmlFor="strategyDescription">Description</Label>
               <Input
-                type="color"
-                id="color"
-                value={newStrategy.color}
-                onChange={(e) => setNewStrategy({ ...newStrategy, color: e.target.value })}
+                id="strategyDescription"
+                placeholder="e.g. Trading with the trend"
+                value={strategyDescription}
+                onChange={(e) => setStrategyDescription(e.target.value)}
               />
             </div>
-            <div className="md:col-span-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={newStrategy.description}
-                onChange={(e) => setNewStrategy({ ...newStrategy, description: e.target.value })}
-              />
+            <div>
+              <Label>Color</Label>
+              <div className="flex items-center space-x-3">
+                <Badge style={{ backgroundColor: strategyColor, color: 'white' }}>
+                  {strategyColor}
+                </Badge>
+                <Button variant="outline" size="sm" onClick={() => setShowColorPicker(!showColorPicker)}>
+                  Pick Color
+                </Button>
+              </div>
+              {showColorPicker && (
+                <SketchPicker
+                  color={strategyColor}
+                  onChange={handleColorChange}
+                />
+              )}
             </div>
-          </div>
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setIsAdding(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddStrategy}>Add Strategy</Button>
-          </div>
-        </div>
-      )}
-
-      {/* Strategy Table */}
-      <div className="overflow-x-auto">
-        <Table>
-          <TableCaption>A list of your trade strategies.</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px]">Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Color</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {strategies.map((strategy) => (
-              <TableRow key={strategy.id}>
-                <TableCell className="font-medium">{strategy.name}</TableCell>
-                <TableCell>{strategy.description}</TableCell>
-                <TableCell>
-                  <div
-                    className="w-6 h-6 rounded-full"
-                    style={{ backgroundColor: strategy.color }}
-                  ></div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditClick(strategy)}
-                    disabled={editingStrategy !== null}
-                    className="mr-2"
-                  >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => handleDeleteClick(strategy.id)}
-                    disabled={isDeleteDisabled}
-                  >
-                    <Trash className="mr-2 h-4 w-4" />
-                    Delete
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Edit Strategy Modal */}
-      {editingStrategy && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-md shadow-lg w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Edit Strategy</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-name">Name</Label>
-                <Input
-                  type="text"
-                  id="edit-name"
-                  value={updatedStrategy.name}
-                  onChange={(e) => setUpdatedStrategy({ ...updatedStrategy, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-color">Color</Label>
-                <Input
-                  type="color"
-                  id="edit-color"
-                  value={updatedStrategy.color}
-                  onChange={(e) => setUpdatedStrategy({ ...updatedStrategy, color: e.target.value })}
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="edit-description">Description</Label>
-                <Textarea
-                  id="edit-description"
-                  value={updatedStrategy.description}
-                  onChange={(e) => setUpdatedStrategy({ ...updatedStrategy, description: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setEditingStrategy(null)}>
+          </CardContent>
+          <div className="p-6 flex justify-end items-center space-x-2">
+            {isEditing && (
+              <Button variant="ghost" onClick={handleCancelEdit}>
                 Cancel
               </Button>
-              <Button onClick={handleUpdateStrategy}>Update Strategy</Button>
-            </div>
+            )}
+            <Button onClick={isEditing ? handleUpdateStrategy : handleAddStrategy}>
+              {isEditing ? 'Update Strategy' : 'Add Strategy'}
+            </Button>
           </div>
-        </div>
-      )}
+        </Card>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this strategy. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} disabled={isDeleteDisabled} className={isDeleteDisabled ? "cursor-not-allowed" : ""}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Strategy List */}
+        <Card className="border">
+          <CardHeader>
+            <CardTitle>Current Strategies</CardTitle>
+            <CardDescription>View and manage existing strategies</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[400px]">
+            <ScrollArea className="h-full pr-4">
+              <div className="space-y-3">
+                {strategies.length === 0 ? (
+                  <p className="text-muted-foreground">No strategies added yet.</p>
+                ) : (
+                  strategies.map((strategy) => (
+                    <div key={strategy.id} className="flex items-center justify-between p-3 rounded-md hover:bg-secondary/50">
+                      <div className="flex items-center space-x-3">
+                        <Badge style={{ backgroundColor: strategy.color, color: 'white' }}>
+                          {strategy.name}
+                        </Badge>
+                        <p className="text-sm text-muted-foreground">{strategy.description}</p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditStrategy(strategy)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Strategy</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this strategy? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteStrategy(strategy.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </CardContent>
+          <div className="p-6 flex justify-end">
+            <Button variant="outline" onClick={handleCreateDefaultStrategy}>
+              Create Default Strategy
+            </Button>
+          </div>
+        </Card>
+      </div>
     </div>
   );
-}
+};
+
+export default StrategyManagement;

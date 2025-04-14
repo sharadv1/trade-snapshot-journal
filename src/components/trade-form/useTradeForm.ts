@@ -36,7 +36,7 @@ export const useTradeForm = (
     images: [],
     riskRewardRatio: 0,
     account: '',
-    grade: '',
+    grade: undefined, // Use undefined instead of empty string for optional enum
     mistakes: [],
     timeframe: '',
     pspTime: '',

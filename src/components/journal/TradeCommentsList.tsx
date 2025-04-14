@@ -1,4 +1,3 @@
-
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -123,7 +122,7 @@ export function TradeCommentsList({
                           )}
                         </div>
                         <div className={`font-medium ${trade.metrics.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrency(trade.metrics.profitLoss)}
+                          {formatCurrency(typeof trade.metrics.profitLoss === 'string' ? parseFloat(trade.metrics.profitLoss) : trade.metrics.profitLoss)}
                           {trade.metrics.rMultiple !== undefined && (
                             <span className="ml-2">
                               ({trade.metrics.rMultiple > 0 ? '+' : ''}{trade.metrics.rMultiple.toFixed(2)}R)
@@ -139,11 +138,11 @@ export function TradeCommentsList({
                         </div>
                         <div>
                           <span className="text-muted-foreground">Entry: </span>
-                          {formatCurrency(trade.entryPrice)}
+                          {formatCurrency(typeof trade.entryPrice === 'string' ? parseFloat(trade.entryPrice || '0') : (trade.entryPrice || 0))}
                         </div>
                         <div>
                           <span className="text-muted-foreground">Exit: </span>
-                          {formatCurrency(trade.exitPrice || 0)}
+                          {formatCurrency(typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice || '0') : (trade.exitPrice || 0))}
                         </div>
                         <div>
                           <span className="text-muted-foreground">R:R setup: </span>

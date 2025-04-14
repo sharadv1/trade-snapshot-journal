@@ -325,10 +325,11 @@ export default function TradeDetail() {
                 <p className="font-medium">{trade.direction === 'long' ? 'Long' : 'Short'}</p>
               </div>
               
-              <div>
-                <p className="text-sm text-muted-foreground">Timeframe</p>
-                <p className="font-medium">{getTimeframeDisplayValue(trade.timeframe)}</p>
-              </div>
+              {trade.timeframe && (
+                <span className="text-muted-foreground">
+                  {trade.timeframe}
+                </span>
+              )}
               
               {trade.pspTime && (
                 <div>
@@ -478,7 +479,7 @@ export default function TradeDetail() {
                       <div>
                         <p className="text-sm text-muted-foreground">Target Status</p>
                         <div className="flex items-center">
-                          {trade.targetReached ? (
+                          {trade.targetReached === true && (
                             <>
                               <CheckCircle2 className="h-4 w-4 mr-1 text-green-500" />
                               <p className="font-medium text-green-600">Target Reached</p>

@@ -1,474 +1,385 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useState, useEffect, useCallback } from 'react';
+import { format, startOfWeek, endOfWeek, addDays, isSameDay } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { 
-  saveWeeklyReflection, 
-  getWeeklyReflection, 
-  saveMonthlyReflection, 
-  getMonthlyReflection,
-  getAllWeeklyReflections,
-  getAllMonthlyReflections,
-  getWeeklyReflectionsForMonth
-} from '@/utils/journalStorage';
-import { 
-  format, 
-  startOfWeek, 
-  endOfWeek, 
-  startOfMonth, 
-  endOfMonth,
-  addWeeks,
-  subWeeks,
-  addMonths,
-  subMonths,
-  parseISO,
-  isValid
-} from 'date-fns';
-import { ArrowLeft, ArrowRight, Save, Calendar, Pencil, ChevronDown, ChevronUp, ExternalLink, Award, Download } from 'lucide-react';
-import { toast } from 'sonner';
-import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
-import { TradeWithMetrics, WeeklyReflection } from '@/types';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
+import { Calendar as CalendarIcon, ChevronsLeft, ChevronsRight, Plus, Trash2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { WeeklyReflection, TradeWithMetrics } from '@/types';
+import { getWeeklyReflections, addWeeklyReflection, updateWeeklyReflection, deleteWeeklyReflection } from '@/utils/reflectionStorage';
+import { TradeCommentsList } from '@/components/journal/TradeCommentsList';
+import { ReflectionCard } from '@/components/journal/reflections/ReflectionCard';
+import { countWords, hasContent, getCurrentPeriodId } from '@/components/journal/reflections/ReflectionUtility';
+import { getTradesForWeek } from '@/utils/tradeCalculations';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { WeeklySummaryMetrics } from '@/components/journal/WeeklySummaryMetrics';
+import { TradeDetailModal } from '@/components/TradeDetailModal';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { TradeDetailModal } from '@/components/trade-list/TradeDetailModal';
-import { generatePDFReport } from '@/components/journal/ReportGenerator';
+import { toast } from '@/utils/toast';
 
-// Make sure the component is exported as default
-export default function WeeklyJournal() {
-  const { weekId } = useParams();
+const formatDate = (date: Date): string => format(date, 'MMMM dd, yyyy');
+
+export function WeeklyJournal() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [date, setDate] = useState<Date>(weekId ? parseISO(weekId) : new Date());
-  const [reflection, setReflection] = useState<WeeklyReflection | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [trades, setTrades] = useState<TradeWithMetrics[]>([]);
-  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [weeklyReflections, setWeeklyReflections] = useState<WeeklyReflection[]>([]);
+  const [selectedReflection, setSelectedReflection] = useState<WeeklyReflection | null>(null);
+  const [reflection, setReflection] = useState<string>('');
+  const [weeklyPlan, setWeeklyPlan] = useState<string>('');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [selectedTrade, setSelectedTrade] = useState<TradeWithMetrics | null>(null);
-  const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
-  const editorRef = useRef(null);
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState<boolean>(false);
+  const [tradesForWeek, setTradesForWeek] = useState<TradeWithMetrics[]>([]);
   
-  const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
-  const weekStartFormatted = format(weekStart, 'MMM d');
-  const weekEndFormatted = format(weekEnd, 'MMM d, yyyy');
-  const weekRange = `${weekStartFormatted} - ${weekEndFormatted}`;
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+  const weekId = format(weekStart, 'yyyy-MM-dd');
+  const dateRange = `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
   
-  const [content, setContent] = useState('');
-  const [weeklyPlan, setWeeklyPlan] = useState('');
-  const [grade, setGrade] = useState<string | undefined>(undefined);
+  const reflectionWordCount = countWords(reflection);
+  const planWordCount = countWords(weeklyPlan);
   
-  const [totalPnL, setTotalPnL] = useState(0);
-  const [totalR, setTotalR] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
   
-  const [isMonthlyView, setIsMonthlyView] = useState(false);
-  const [monthDate, setMonthDate] = useState<Date>(new Date());
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
-  const [allWeeklyReflections, setAllWeeklyReflections] = useState<WeeklyReflection[]>([]);
-  const [allMonthlyReflections, setAllMonthlyReflections] = useState<any[]>([]);
-  
-  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
-  
-  // Function to handle downloading the weekly report
-  const handleDownloadReport = () => {
-    if (!reflection?.weekStart || !reflection?.weekEnd) {
-      toast.error("Cannot generate report: Missing week dates");
-      return;
-    }
-    
-    // Get trades for this week
-    const weekStart = new Date(reflection.weekStart);
-    const weekEnd = new Date(reflection.weekEnd);
-    
-    const weekTrades = trades.filter(trade => {
-      if (trade.exitDate) {
-        const exitDate = new Date(trade.exitDate);
-        return exitDate >= weekStart && exitDate <= weekEnd;
-      }
-      return false;
-    });
-    
-    // Format date range for the report
-    const dateRange = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
-    
-    // Show generation toast
-    toast.info("Generating PDF report...");
-    
-    // Data for the report
-    const reportData = {
-      title: `Weekly Trading Report: ${dateRange}`,
-      dateRange,
-      trades: weekTrades,
-      metrics: {
-        totalPnL,
-        winRate: (weekTrades.filter(trade => (trade.metrics?.profitLoss || 0) > 0).length / weekTrades.length) * 100,
-        totalR,
-        tradeCount: weekTrades.length,
-        winningTrades: weekTrades.filter(trade => (trade.metrics?.profitLoss || 0) > 0).length,
-        losingTrades: weekTrades.length - weekTrades.filter(trade => (trade.metrics?.profitLoss || 0) > 0).length
-      }
+  // Fetch reflections and trades on component mount and when the week changes
+  useEffect(() => {
+    const loadReflections = async () => {
+      const reflections = await getWeeklyReflections();
+      setWeeklyReflections(reflections);
     };
     
-    // Generate and download the PDF report
-    const filename = `trading-report-${format(weekStart, 'yyyy-MM-dd')}.pdf`;
+    loadReflections();
+  }, [weekId]);
+  
+  useEffect(() => {
+    const loadTrades = async () => {
+      const trades = await getTradesForWeek(weekStart, weekEnd);
+      setTradesForWeek(trades);
+    };
     
-    if (generatePDFReport(reportData, filename)) {
-      toast.success("Trading report downloaded successfully!");
+    loadTrades();
+  }, [weekStart, weekEnd]);
+  
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      setCurrentDate(date);
     }
   };
   
-  // Function to fetch all weekly reflections
-  const fetchAllWeeklyReflections = useCallback(() => {
-    const reflections = getAllWeeklyReflections();
-    setAllWeeklyReflections(Object.values(reflections));
-  }, []);
-  
-  // Function to fetch all monthly reflections
-  const fetchAllMonthlyReflections = useCallback(() => {
-    const reflections = getAllMonthlyReflections();
-    setAllMonthlyReflections(Object.values(reflections));
-  }, []);
-  
-  // Function to handle navigation to a specific week
-  const goToWeek = (newDate: Date) => {
-    const newWeekId = format(newDate, 'yyyy-MM-dd');
-    navigate(`/weekly-journal/${newWeekId}`);
-    setDate(newDate);
-  };
-  
-  // Function to handle navigation to the next week
-  const goToNextWeek = () => {
-    const nextWeek = addWeeks(date, 1);
-    goToWeek(nextWeek);
-  };
-  
-  // Function to handle navigation to the previous week
   const goToPreviousWeek = () => {
-    const previousWeek = subWeeks(date, 1);
-    goToWeek(previousWeek);
+    const previousWeek = addDays(currentDate, -7);
+    setCurrentDate(previousWeek);
   };
   
-  // Function to handle navigation to a specific month
-  const goToMonth = (newDate: Date) => {
-    const newMonthId = format(newDate, 'yyyy-MM-dd');
-    navigate(`/monthly-journal/${newMonthId}`);
-    setDate(newDate);
+  const goToNextWeek = () => {
+    const nextWeek = addDays(currentDate, 7);
+    setCurrentDate(nextWeek);
   };
   
-  // Function to handle navigation to the next month
-  const goToNextMonth = () => {
-    const nextMonth = addMonths(monthDate, 1);
-    goToMonth(nextMonth);
+  const goToToday = () => {
+    setCurrentDate(new Date());
   };
   
-  // Function to handle navigation to the previous month
-  const goToPreviousMonth = () => {
-    const previousMonth = subMonths(monthDate, 1);
-    goToMonth(previousMonth);
+  const handleReflectionClick = (reflection: WeeklyReflection) => {
+    setSelectedReflection(reflection);
+    setReflection(reflection.reflection || '');
+    setWeeklyPlan(reflection.weeklyPlan || '');
   };
   
-  // Function to handle saving the weekly reflection
-  const handleSave = async () => {
+  const handleTradeClick = (trade: TradeWithMetrics) => {
+    setSelectedTrade(trade);
+    setIsTradeModalOpen(true);
+  };
+  
+  const handleSaveReflection = async () => {
     setIsSaving(true);
     
-    const weekId = format(weekStart, 'yyyy-MM-dd');
-    
-    const reflectionToSave: WeeklyReflection = {
-      id: reflection?.id || weekId,
-      date: new Date().toISOString(),
-      reflection: content,
-      weeklyPlan: weeklyPlan,
-      grade: grade,
-      weekId: weekId,
-      weekStart: weekStart.toISOString(),
-      weekEnd: weekEnd.toISOString(),
-      totalPnL: totalPnL,
-      totalR: totalR,
-      tradeIds: trades.map(trade => trade.id),
-      isPlaceholder: false,
+    const reflectionData = {
+      weekId,
+      weekStart: format(weekStart, 'yyyy-MM-dd'),
+      weekEnd: format(weekEnd, 'yyyy-MM-dd'),
+      reflection,
+      weeklyPlan,
       lastUpdated: new Date().toISOString()
     };
     
     try {
-      await saveWeeklyReflection(reflectionToSave);
-      toast.success('Weekly reflection saved!');
-      
-      // Dispatch a custom event to notify other components
-      window.dispatchEvent(new Event('journal-updated'));
-      window.dispatchEvent(new Event('journalUpdated'));
-      
-      // Update the reflection state with the saved reflection
-      setReflection(reflectionToSave);
+      if (selectedReflection) {
+        // Update existing reflection
+        const updatedReflection: WeeklyReflection = {
+          ...selectedReflection,
+          ...reflectionData
+        };
+        await updateWeeklyReflection(updatedReflection);
+        
+        // Update the state
+        setWeeklyReflections(prevReflections =>
+          prevReflections.map(r => (r.id === selectedReflection.id ? updatedReflection : r))
+        );
+        
+        toast.success("Reflection updated successfully", { duration: 3000 });
+      } else {
+        // Create new reflection
+        const newReflection: WeeklyReflection = {
+          id: weekId,
+          ...reflectionData
+        };
+        await addWeeklyReflection(newReflection);
+        
+        // Update the state
+        setWeeklyReflections(prevReflections => [...prevReflections, newReflection]);
+        toast.success("Reflection saved successfully", { duration: 3000 });
+      }
     } catch (error) {
-      console.error('Error saving weekly reflection:', error);
-      toast.error('Failed to save weekly reflection');
+      setIsSaving(false);
+      toast.error("Failed to save reflection", { duration: 3000 });
     } finally {
       setIsSaving(false);
     }
   };
   
-  // Function to handle opening the trade detail modal
-  const handleOpenTradeModal = (trade: TradeWithMetrics) => {
-    setSelectedTrade(trade);
-    setIsTradeModalOpen(true);
-  };
-  
-  // Function to handle closing the trade detail modal
-  const handleCloseTradeModal = () => {
-    setSelectedTrade(null);
-    setIsTradeModalOpen(false);
-  };
-  
-  // Function to fetch the weekly reflection
-  const fetchWeeklyReflection = useCallback(async () => {
-    if (!weekId) {
-      console.warn('No weekId provided');
-      return;
-    }
+  const handleDeleteReflection = async () => {
+    setIsSaving(true);
     
     try {
-      const fetchedReflection = await getWeeklyReflection(weekId);
-      if (fetchedReflection) {
-        setReflection(fetchedReflection);
-        setContent(fetchedReflection.reflection || '');
-        setWeeklyPlan(fetchedReflection.weeklyPlan || '');
-        setGrade(fetchedReflection.grade);
-        console.log('Fetched weekly reflection:', fetchedReflection);
-      } else {
-        setReflection(null);
-        setContent('');
+      if (selectedReflection) {
+        await deleteWeeklyReflection(selectedReflection.id);
+        
+        // Update the state
+        setWeeklyReflections(prevReflections =>
+          prevReflections.filter(r => r.id !== selectedReflection.id)
+        );
+        
+        // Clear selected reflection
+        setSelectedReflection(null);
+        setReflection('');
         setWeeklyPlan('');
-        setGrade(undefined);
-        console.log('No weekly reflection found for weekId:', weekId);
+        
+        toast.success("Reflection deleted successfully", { duration: 3000 });
       }
     } catch (error) {
-      console.error('Error fetching weekly reflection:', error);
-      toast.error('Failed to fetch weekly reflection');
+      toast.error("Failed to delete reflection", { duration: 3000 });
+    } finally {
+      setIsSaving(false);
+      setIsDeleteModalOpen(false);
     }
-  }, [weekId]);
-  
-  // Function to fetch trades for the week
-  const fetchTradesForWeek = useCallback(() => {
-    const allTrades = getTradesWithMetrics();
-    
-    // Filter trades that exited within the week
-    const weekTrades = allTrades.filter(trade => {
-      if (trade.exitDate) {
-        const exitDate = new Date(trade.exitDate);
-        return exitDate >= weekStart && exitDate <= weekEnd;
-      }
-      return false;
-    });
-    
-    setTrades(weekTrades);
-    
-    // Calculate total P&L and total R for the week
-    const totalPnL = weekTrades.reduce((sum, trade) => sum + (trade.metrics?.profitLoss || 0), 0);
-    const totalR = weekTrades.reduce((sum, trade) => sum + (trade.metrics?.rMultiple || 0), 0);
-    setTotalPnL(totalPnL);
-    setTotalR(totalR);
-  }, [weekStart, weekEnd]);
-  
-  // Load data on initial render and when weekId changes
-  useEffect(() => {
-    fetchWeeklyReflection();
-    fetchTradesForWeek();
-    fetchAllWeeklyReflections();
-    fetchAllMonthlyReflections();
-  }, [fetchWeeklyReflection, fetchTradesForWeek, fetchAllWeeklyReflections, fetchAllMonthlyReflections]);
-  
-  // Function to handle grade selection
-  const handleGradeChange = (value: string) => {
-    setGrade(value);
   };
   
+  const currentReflection = weeklyReflections.find(r => r.weekId === weekId);
+  
+  const hasExistingContent = currentReflection ? (currentReflection.reflection || currentReflection.weeklyPlan) : false;
+  
+  const handleCreateNew = () => {
+    navigate(`/journal/weekly/${weekId}`);
+  };
+  
+  const totalPnL = tradesForWeek.reduce((sum, trade) => sum + (trade.metrics?.profitLoss || 0), 0);
+  const totalR = tradesForWeek.reduce((sum, trade) => sum + (trade.metrics?.rMultiple || 0), 0);
+  
   return (
-    <div className="container max-w-5xl mx-auto py-8">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-2xl font-bold">
-            Weekly Trading Journal
-          </CardTitle>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={() => setIsReportDialogOpen(true)}>
-              <Download className="mr-2 h-4 w-4" />
-              Download Report
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleSave} disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Save className="mr-2 h-4 w-4 animate-pulse" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save
-                </>
-              )}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardDescription>
-          Reflect on your trading week and plan for the next.
-        </CardDescription>
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center space-x-2">
+          <h1 className="text-2xl font-semibold">Weekly Journal</h1>
+          <Badge variant="secondary">{dateRange}</Badge>
+        </div>
         
-        <CardContent className="grid gap-4">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={goToPreviousWeek}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Previous Week
-            </Button>
-            <h2 className="text-xl font-semibold">{weekRange}</h2>
-            <Button variant="ghost" size="sm" onClick={goToNextWeek}>
-              Next Week
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="grid gap-4">
-            <div>
-              <Label htmlFor="reflection">Weekly Reflection</Label>
-              <RichTextEditor 
-                id="reflection"
-                initialContent={content}
-                onChange={setContent}
+        <div className="flex items-center space-x-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={
+                  "h-8 w-[220px] justify-start text-left font-normal" +
+                  (currentDate ? "pl-3" : "text-muted-foreground")
+                }
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {currentDate ? formatDate(currentDate) : <span>Pick a week</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="center" side="bottom">
+              <Calendar
+                mode="single"
+                captionLayout="dropdown"
+                defaultMonth={currentDate}
+                selected={currentDate}
+                onSelect={handleDateChange}
+                numberOfMonths={3}
               />
-            </div>
-            
-            <div>
-              <Label htmlFor="weeklyPlan">Weekly Plan</Label>
-              <RichTextEditor 
-                id="weeklyPlan"
-                initialContent={weeklyPlan}
-                onChange={setWeeklyPlan}
-              />
-            </div>
-            
-            <div>
-              <Label>Grade</Label>
-              <Select value={grade} onValueChange={handleGradeChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a grade" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="A">A</SelectItem>
-                  <SelectItem value="B">B</SelectItem>
-                  <SelectItem value="C">C</SelectItem>
-                  <SelectItem value="D">D</SelectItem>
-                  <SelectItem value="F">F</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+            </PopoverContent>
+          </Popover>
           
-          <div>
-            <Collapsible open={isCollapsibleOpen} onOpenChange={setIsCollapsibleOpen}>
-              <CollapsibleTrigger className="w-full flex items-center justify-between p-2 border rounded-md hover:bg-secondary/50">
-                Weekly Summary & Trades
-                {isCollapsibleOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <WeeklySummaryMetrics totalPnL={totalPnL} totalR={totalR} trades={trades} />
-                
-                {trades.length > 0 ? (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Symbol</TableHead>
-                          <TableHead>Direction</TableHead>
-                          <TableHead>Exit Date</TableHead>
-                          <TableHead className="text-right">P/L</TableHead>
-                          <TableHead className="text-right">R</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {trades.map((trade) => (
-                          <TableRow key={trade.id}>
-                            <TableCell className="font-medium">{trade.symbol}</TableCell>
-                            <TableCell>{trade.direction}</TableCell>
-                            <TableCell>{trade.exitDate ? format(new Date(trade.exitDate), 'MMM d, yyyy') : 'N/A'}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(trade.metrics?.profitLoss || 0)}</TableCell>
-                            <TableCell className="text-right">{trade.metrics?.rMultiple?.toFixed(2) || '0.00'}</TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="sm" onClick={() => handleOpenTradeModal(trade)}>
-                                View
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="text-center p-4">
-                    No trades for this week.
-                  </div>
-                )}
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
-        </CardContent>
-      </Card>
+          <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={goToNextWeek}>
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
+          <Button onClick={goToToday}>Today</Button>
+          
+          {/* Button to Create New or Edit Existing Reflection */}
+          {isMounted && (
+            <Button onClick={handleCreateNew}>
+              {hasExistingContent ? 'Edit Reflection' : 'Create Reflection'}
+            </Button>
+          )}
+        </div>
+      </div>
       
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Left Column: Reflections List */}
+        <div className="md:col-span-1">
+          <Card className="h-full border">
+            <CardHeader>
+              <CardTitle>Past Reflections</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[500px] p-0">
+              <ScrollArea className="h-full">
+                <div className="divide-y">
+                  {weeklyReflections.sort((a, b) => (b.weekStart || '').localeCompare(a.weekStart || '')).map((reflection) => (
+                    <div
+                      key={reflection.id}
+                      className={`p-4 cursor-pointer hover:bg-accent/30 ${selectedReflection?.id === reflection.id ? 'bg-accent' : ''}`}
+                      onClick={() => handleReflectionClick(reflection)}
+                    >
+                      {reflection.weekStart && reflection.weekEnd ? (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            Week of {formatDate(new Date(reflection.weekStart))} - {formatDate(new Date(reflection.weekEnd))}
+                          </div>
+                          {reflection.grade && (
+                            <Badge variant="outline">{reflection.grade}</Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          No Date
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Middle Column: Reflection Input */}
+        <div className="md:col-span-2">
+          <Card className="border">
+            <CardHeader>
+              <CardTitle>
+                {selectedReflection ? 'Edit Reflection' : 'New Reflection'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Weekly Reflection</h3>
+                  <RichTextEditor
+                    id="weekly-reflection"
+                    content={reflection}
+                    onChange={setReflection}
+                    placeholder="Write your weekly reflection here..."
+                  />
+                </div>
+                
+                <div className="mt-8">
+                  <h3 className="text-lg font-medium mb-2">Next Week's Plan</h3>
+                  <RichTextEditor
+                    id="weekly-plan"
+                    content={weeklyPlan}
+                    onChange={setWeeklyPlan}
+                    placeholder="Plan for next week..."
+                  />
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <div>
+                    Reflection: {reflectionWordCount} words | Plan: {planWordCount} words
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSaveReflection}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? 'Saving...' : 'Save Reflection'}
+                    </Button>
+                    
+                    {selectedReflection && (
+                      <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" className="text-red-500 border-red-300 hover:bg-red-50">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Reflection</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this weekly reflection? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDeleteReflection} className="bg-red-500 hover:bg-red-600">
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 gap-6 mt-6">
+        <WeeklySummaryMetrics
+          trades={tradesForWeek}
+        />
+        
+        <TradeCommentsList trades={tradesForWeek} listTitle="Trades This Week" />
+      </div>
+      
+      {/* Trade Detail Modal */}
       <TradeDetailModal 
         isOpen={isTradeModalOpen}
-        onClose={handleCloseTradeModal}
-        trade={selectedTrade}
+        onClose={() => setIsTradeModalOpen(false)}
+        tradeId={selectedTrade?.id} 
       />
       
-      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Download Weekly Report</DialogTitle>
-            <DialogDescription>
-              Generate a PDF report for this week's trading performance.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <p>
-              Download a detailed report of your trading activity for the week of 
-              <br />
-              <strong className="text-lg">{weekRange}</strong>.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsReportDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleDownloadReport}>
-              Download Report
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Reflection</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this weekly reflection? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteReflection} className="bg-red-500 hover:bg-red-600">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

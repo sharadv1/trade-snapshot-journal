@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   AlertDialog,
@@ -13,11 +12,12 @@ import {
 import { WeeklyReflection, MonthlyReflection } from '@/types';
 
 interface ReflectionDeleteDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  reflection: WeeklyReflection | MonthlyReflection | null;
-  onReflectionDeleted: () => void;
-  type?: 'weekly' | 'monthly';
+  type: 'weekly' | 'monthly';
+  onConfirm: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  reflection?: WeeklyReflection | MonthlyReflection | null;
+  onReflectionDeleted?: () => void;
 }
 
 export const ReflectionDeleteDialog: React.FC<ReflectionDeleteDialogProps> = ({ 
@@ -25,33 +25,59 @@ export const ReflectionDeleteDialog: React.FC<ReflectionDeleteDialogProps> = ({
   onClose, 
   reflection, 
   onReflectionDeleted,
-  type = 'weekly'
+  type = 'weekly',
+  onConfirm
 }) => {
   const handleConfirm = () => {
-    if (reflection) {
+    if (onConfirm) {
+      onConfirm();
+    }
+    if (reflection && onReflectionDeleted) {
       onReflectionDeleted();
     }
   };
 
+  if (onClose !== undefined && isOpen !== undefined) {
+    return (
+      <AlertDialog open={isOpen} onOpenChange={onClose}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Reflection</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this {type} reflection? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-500 hover:bg-red-600" 
+              onClick={handleConfirm}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  }
+  
   return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete Reflection</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete this {type} reflection? This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction 
-            className="bg-red-500 hover:bg-red-600" 
-            onClick={handleConfirm}
-          >
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Delete Reflection</AlertDialogTitle>
+        <AlertDialogDescription>
+          Are you sure you want to delete this {type} reflection? This action cannot be undone.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogAction 
+          className="bg-red-500 hover:bg-red-600" 
+          onClick={handleConfirm}
+        >
+          Delete
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
   );
 };
