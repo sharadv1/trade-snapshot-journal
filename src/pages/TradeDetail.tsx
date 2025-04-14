@@ -54,7 +54,8 @@ export default function TradeDetail() {
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [isOverMaxRisk, setIsOverMaxRisk] = useState(false);
-  
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+
   const getStrategyName = (strategyId: string | undefined): string => {
     if (!strategyId) return 'No Strategy';
     
@@ -764,8 +765,8 @@ export default function TradeDetail() {
         <ImageViewerDialog 
           images={trade.images}
           currentIndex={selectedImageIndex}
-          isOpen={!!isOpen}
-          onClose={handleImageClose}
+          isOpen={modalIsOpen}
+          onClose={() => setModalIsOpen(false)}
           onIndexChange={setSelectedImageIndex}
           image=""
         />

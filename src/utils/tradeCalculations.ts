@@ -15,13 +15,40 @@ import { getTrades } from './storage/storageCore';
 import { calculateTradeMetrics } from './calculations';
 
 export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<any[]> => {
-  const trades = await getTrades();
-  
-  return trades.filter(trade => {
-    const entryDate = new Date(trade.entryDate);
-    return entryDate >= weekStart && entryDate <= weekEnd;
-  }).map(trade => ({
-    ...trade,
-    metrics: calculateTradeMetrics(trade)
-  }));
+  try {
+    const trades = await getTrades();
+    
+    // Ensure trades is an array before filtering
+    if (!Array.isArray(trades)) {
+      console.error('Expected array of trades but got:', typeof trades);
+      return [];
+    }
+    
+    return trades.filter(trade => {
+      try {
+        const entryDate = new Date(trade.entryDate);
+        return entryDate >= weekStart && entryDate <= weekEnd;
+      } catch (error) {
+        console.error('Error processing trade date:', error, trade);
+        return false;
+      }
+    }).map(trade => {
+      try {
+        return {
+          ...trade,
+          metrics: calculateTradeMetrics(trade)
+        };
+      } catch (error) {
+        console.error('Error calculating metrics for trade:', error, trade);
+        // Return trade without metrics if calculation fails
+        return {
+          ...trade,
+          metrics: { profitLoss: 0, rMultiple: 0 }
+        };
+      }
+    });
+  } catch (error) {
+    console.error('Error in getTradesForWeek:', error);
+    return [];
+  }
 };

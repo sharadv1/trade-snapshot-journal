@@ -50,11 +50,21 @@ export function WeeklyJournal() {
     setIsMounted(true);
   }, []);
   
-  // Fetch reflections and trades on component mount and when the week changes
   useEffect(() => {
     const loadReflections = async () => {
-      const reflections = await getWeeklyReflections();
-      setWeeklyReflections(reflections);
+      try {
+        const reflections = await getWeeklyReflections();
+        
+        if (Array.isArray(reflections)) {
+          setWeeklyReflections(reflections);
+        } else {
+          console.error('Expected array of reflections but got:', typeof reflections);
+          setWeeklyReflections([]);
+        }
+      } catch (error) {
+        console.error('Error loading reflections:', error);
+        setWeeklyReflections([]);
+      }
     };
     
     loadReflections();
@@ -62,8 +72,19 @@ export function WeeklyJournal() {
   
   useEffect(() => {
     const loadTrades = async () => {
-      const trades = await getTradesForWeek(weekStart, weekEnd);
-      setTradesForWeek(trades);
+      try {
+        const trades = await getTradesForWeek(weekStart, weekEnd);
+        
+        if (Array.isArray(trades)) {
+          setTradesForWeek(trades);
+        } else {
+          console.error('Expected array of trades but got:', typeof trades);
+          setTradesForWeek([]);
+        }
+      } catch (error) {
+        console.error('Error loading trades for week:', error);
+        setTradesForWeek([]);
+      }
     };
     
     loadTrades();
@@ -114,28 +135,24 @@ export function WeeklyJournal() {
     
     try {
       if (selectedReflection) {
-        // Update existing reflection
         const updatedReflection: WeeklyReflection = {
           ...selectedReflection,
           ...reflectionData
         };
         await updateWeeklyReflection(updatedReflection);
         
-        // Update the state
         setWeeklyReflections(prevReflections =>
           prevReflections.map(r => (r.id === selectedReflection.id ? updatedReflection : r))
         );
         
         toast.success("Reflection updated successfully", { duration: 3000 });
       } else {
-        // Create new reflection
         const newReflection: WeeklyReflection = {
           id: weekId,
           ...reflectionData
         };
         await addWeeklyReflection(newReflection);
         
-        // Update the state
         setWeeklyReflections(prevReflections => [...prevReflections, newReflection]);
         toast.success("Reflection saved successfully", { duration: 3000 });
       }
@@ -154,12 +171,10 @@ export function WeeklyJournal() {
       if (selectedReflection) {
         await deleteWeeklyReflection(selectedReflection.id);
         
-        // Update the state
         setWeeklyReflections(prevReflections =>
           prevReflections.filter(r => r.id !== selectedReflection.id)
         );
         
-        // Clear selected reflection
         setSelectedReflection(null);
         setReflection('');
         setWeeklyPlan('');
@@ -174,16 +189,21 @@ export function WeeklyJournal() {
     }
   };
   
-  const currentReflection = weeklyReflections.find(r => r.weekId === weekId);
+  const currentReflection = Array.isArray(weeklyReflections) ? 
+    weeklyReflections.find(r => r.weekId === weekId) : undefined;
   
-  const hasExistingContent = currentReflection ? (currentReflection.reflection || currentReflection.weeklyPlan) : false;
+  const hasExistingContent = currentReflection ? 
+    (currentReflection.reflection || currentReflection.weeklyPlan) : false;
   
   const handleCreateNew = () => {
     navigate(`/journal/weekly/${weekId}`);
   };
   
-  const totalPnL = tradesForWeek.reduce((sum, trade) => sum + (trade.metrics?.profitLoss || 0), 0);
-  const totalR = tradesForWeek.reduce((sum, trade) => sum + (trade.metrics?.rMultiple || 0), 0);
+  const totalPnL = Array.isArray(tradesForWeek) ? 
+    tradesForWeek.reduce((sum, trade) => sum + (trade.metrics?.profitLoss || 0), 0) : 0;
+  
+  const totalR = Array.isArray(tradesForWeek) ? 
+    tradesForWeek.reduce((sum, trade) => sum + (trade.metrics?.rMultiple || 0), 0) : 0;
   
   return (
     <div className="container mx-auto py-6">
@@ -227,7 +247,6 @@ export function WeeklyJournal() {
           </Button>
           <Button onClick={goToToday}>Today</Button>
           
-          {/* Button to Create New or Edit Existing Reflection */}
           {isMounted && (
             <Button onClick={handleCreateNew}>
               {hasExistingContent ? 'Edit Reflection' : 'Create Reflection'}
@@ -237,7 +256,6 @@ export function WeeklyJournal() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left Column: Reflections List */}
         <div className="md:col-span-1">
           <Card className="h-full border">
             <CardHeader>
@@ -274,7 +292,6 @@ export function WeeklyJournal() {
           </Card>
         </div>
         
-        {/* Middle Column: Reflection Input */}
         <div className="md:col-span-2">
           <Card className="border">
             <CardHeader>
@@ -357,7 +374,6 @@ export function WeeklyJournal() {
         <TradeCommentsList trades={tradesForWeek} listTitle="Trades This Week" />
       </div>
       
-      {/* Trade Detail Modal */}
       <TradeDetailModal 
         isOpen={isTradeModalOpen}
         onClose={() => setIsTradeModalOpen(false)}

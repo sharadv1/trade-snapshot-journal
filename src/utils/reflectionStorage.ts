@@ -37,12 +37,12 @@ export const addWeeklyReflection = async (reflection: WeeklyReflection): Promise
         lastUpdated: new Date().toISOString()
       };
     } else {
-      // Add a new reflection
-      reflections.push({
+      // Add a new reflection - remove createdAt from the object literal
+      const newReflection = {
         ...reflection,
-        createdAt: new Date().toISOString(),
         lastUpdated: new Date().toISOString()
-      });
+      };
+      reflections.push(newReflection);
     }
     
     localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
@@ -117,12 +117,12 @@ export const addMonthlyReflection = async (reflection: MonthlyReflection): Promi
         lastUpdated: new Date().toISOString()
       };
     } else {
-      // Add a new reflection
-      reflections.push({
+      // Add a new reflection - remove createdAt from the object literal
+      const newReflection = {
         ...reflection,
-        createdAt: new Date().toISOString(),
         lastUpdated: new Date().toISOString()
-      });
+      };
+      reflections.push(newReflection);
     }
     
     localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
