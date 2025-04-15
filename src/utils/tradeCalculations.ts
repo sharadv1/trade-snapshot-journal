@@ -15,11 +15,30 @@ import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { TradeWithMetrics } from '@/types';
 import { isWithinInterval } from 'date-fns';
 
+// Use a cache to prevent redundant calculations
+const tradeCache: {
+  trades: TradeWithMetrics[] | null;
+  timestamp: number;
+} = {
+  trades: null,
+  timestamp: 0
+};
+
 // Function to get trades for a specific week
 export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<TradeWithMetrics[]> => {
   try {
-    // Get all trades with metrics
-    const allTrades = getTradesWithMetrics();
+    // Reuse cached trades if they were fetched in the last 2 seconds
+    const now = Date.now();
+    const cacheIsValid = tradeCache.trades !== null && (now - tradeCache.timestamp) < 2000;
+    
+    // Get all trades with metrics (use cache if valid)
+    const allTrades = cacheIsValid ? tradeCache.trades : getTradesWithMetrics();
+    
+    // Update cache if needed
+    if (!cacheIsValid) {
+      tradeCache.trades = allTrades;
+      tradeCache.timestamp = now;
+    }
     
     // Ensure allTrades is an array
     if (!Array.isArray(allTrades)) {
