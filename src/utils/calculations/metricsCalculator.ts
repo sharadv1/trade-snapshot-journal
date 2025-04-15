@@ -20,6 +20,29 @@ export const getTradeMetrics = (trade: Trade) => {
   let maxAdverseExcursion = 0; // How much heat the trade took
   let capturedProfitPercent = 0; // What percentage of the max move you captured
 
+  // Validate essential properties
+  if (!trade) {
+    calculationExplanation += 'Trade object is missing or invalid. ';
+    return {
+      profitLoss,
+      riskRewardRatio,
+      rMultiple,
+      profitLossPercentage,
+      riskedAmount,
+      initialRiskedAmount,
+      maxPotentialGain,
+      calculationExplanation,
+      weightedExitPrice,
+      latestExitDate,
+      maxFavorableExcursion,
+      maxAdverseExcursion,
+      capturedProfitPercent
+    };
+  }
+
+  // Ensure trade.direction exists and is valid
+  const direction = trade.direction || 'long';
+
   if (!trade.entryPrice) {
     calculationExplanation += 'Entry price is missing. ';
     return {
@@ -66,9 +89,13 @@ export const getTradeMetrics = (trade: Trade) => {
       const storedContractsJson = localStorage.getItem(FUTURES_CONTRACTS_KEY);
       if (storedContractsJson) {
         const storedContracts = JSON.parse(storedContractsJson);
-        return storedContracts.find((c: any) => 
-          c.symbol.toUpperCase() === trade.symbol.toUpperCase()
-        );
+        // Ensure we have an array before using find
+        if (Array.isArray(storedContracts)) {
+          return storedContracts.find((c: any) => 
+            c.symbol.toUpperCase() === trade.symbol.toUpperCase()
+          );
+        }
+        return null;
       }
     } catch (error) {
       console.error('Error reading stored contracts:', error);
@@ -109,11 +136,11 @@ export const getTradeMetrics = (trade: Trade) => {
 
     trade.partialExits.forEach(exit => {
       if (exit.exitPrice && exit.quantity) {
-        const quantity = parseFloat(exit.quantity.toString());
-        const exitPrice = parseFloat(exit.exitPrice.toString());
-        const entryPrice = parseFloat(trade.entryPrice!.toString());
+        const quantity = parseFloat(String(exit.quantity));
+        const exitPrice = parseFloat(String(exit.exitPrice));
+        const entryPrice = parseFloat(String(trade.entryPrice));
 
-        const tradeDirectionMultiplier = trade.direction === 'long' ? 1 : -1;
+        const tradeDirectionMultiplier = direction === 'long' ? 1 : -1;
         
         // Calculate P&L with point value for futures
         let exitProfitLoss = (exitPrice - entryPrice) * quantity * tradeDirectionMultiplier;
@@ -137,11 +164,11 @@ export const getTradeMetrics = (trade: Trade) => {
   if (trade.partialExits && trade.partialExits.length > 0) {
     calculatePartialExits();
   } else if (trade.exitPrice && trade.quantity) {
-    const quantity = parseFloat(trade.quantity.toString());
-    const entryPrice = parseFloat(trade.entryPrice.toString());
-    const exitPrice = parseFloat(trade.exitPrice.toString());
+    const quantity = parseFloat(String(trade.quantity));
+    const entryPrice = parseFloat(String(trade.entryPrice));
+    const exitPrice = parseFloat(String(trade.exitPrice));
 
-    const tradeDirectionMultiplier = trade.direction === 'long' ? 1 : -1;
+    const tradeDirectionMultiplier = direction === 'long' ? 1 : -1;
     
     // Calculate P&L with point value for futures
     let exitProfitLoss = (exitPrice - entryPrice) * quantity * tradeDirectionMultiplier;
@@ -154,13 +181,19 @@ export const getTradeMetrics = (trade: Trade) => {
     latestExitDate = trade.exitDate;
   }
 
+  // For short positions, risk calculation needs to be inverted
   // Calculate CURRENT risk per share/contract based on entry and stop loss
-  let riskedAmountPerUnit = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.stopLoss.toString()));
+  const stopLossValue = parseFloat(String(trade.stopLoss));
+  const entryValue = parseFloat(String(trade.entryPrice));
+  
+  // For long positions, stop < entry; for short positions, stop > entry
+  let riskedAmountPerUnit = Math.abs(entryValue - stopLossValue);
   
   // Calculate INITIAL risk per share/contract if available
   let initialRiskedAmountPerUnit = 0;
   if (trade.initialStopLoss) {
-    initialRiskedAmountPerUnit = Math.abs(parseFloat(trade.entryPrice.toString()) - parseFloat(trade.initialStopLoss.toString()));
+    const initialStopValue = parseFloat(String(trade.initialStopLoss));
+    initialRiskedAmountPerUnit = Math.abs(entryValue - initialStopValue);
   } else {
     // If initialStopLoss is not available, use current stopLoss
     initialRiskedAmountPerUnit = riskedAmountPerUnit;
@@ -179,14 +212,16 @@ export const getTradeMetrics = (trade: Trade) => {
   }
   
   // Calculate actual risked amount (per unit * quantity)
-  const quantity = parseFloat(trade.quantity.toString());
+  const quantity = trade.quantity ? parseFloat(String(trade.quantity)) : 0;
   riskedAmount = riskedAmountPerUnit * quantity;
   initialRiskedAmount = initialRiskedAmountPerUnit * quantity;
 
   if (trade.takeProfit) {
-    const takeProfitValue = parseFloat(trade.takeProfit.toString());
-    const entryPrice = parseFloat(trade.entryPrice.toString());
-    let maxGainPerUnit = Math.abs(takeProfitValue - entryPrice);
+    const takeProfitValue = parseFloat(String(trade.takeProfit));
+    
+    // For long positions, TP > entry; for short positions, TP < entry
+    // Calculate the absolute difference regardless of direction
+    let maxGainPerUnit = Math.abs(takeProfitValue - entryValue);
     
     // Apply contract multiplier for futures
     if (trade.type === 'futures') {
@@ -203,14 +238,15 @@ export const getTradeMetrics = (trade: Trade) => {
 
   // Calculate the maximum favorable and adverse excursions if they exist
   if (trade.maxFavorablePrice && trade.entryPrice) {
-    const entryPrice = parseFloat(trade.entryPrice.toString());
-    const maxFavPrice = parseFloat(trade.maxFavorablePrice.toString());
-    const direction = trade.direction === 'long' ? 1 : -1;
+    const maxFavPrice = parseFloat(String(trade.maxFavorablePrice));
     
-    // Calculate how much the price moved in your favor at its best point
+    // Calculate direction multiplier considering long vs short
     // For long: maxFavPrice > entryPrice is good
     // For short: maxFavPrice < entryPrice is good
-    let favorableMove = (maxFavPrice - entryPrice) * direction;
+    const directionMultiplier = direction === 'long' ? 1 : -1;
+    
+    // Calculate how much the price moved in your favor at its best point
+    let favorableMove = (maxFavPrice - entryValue) * directionMultiplier;
     
     // Apply contract multiplier for futures
     if (trade.type === 'futures') {
@@ -222,20 +258,20 @@ export const getTradeMetrics = (trade: Trade) => {
     
     // Calculate the percentage of max move captured if trade is closed
     if (trade.status === 'closed' && weightedExitPrice && maxFavorableExcursion > 0) {
-      const actualMove = (parseFloat(weightedExitPrice.toString()) - entryPrice) * direction;
+      const actualMove = (weightedExitPrice - entryValue) * directionMultiplier;
       const actualPL = actualMove * (trade.type === 'futures' ? pointValue : 1) * quantity;
       capturedProfitPercent = (actualPL / maxFavorableExcursion) * 100;
     }
   }
   
   if (trade.maxAdversePrice && trade.entryPrice) {
-    const entryPrice = parseFloat(trade.entryPrice.toString());
-    const maxAdvPrice = parseFloat(trade.maxAdversePrice.toString());
+    const maxAdvPrice = parseFloat(String(trade.maxAdversePrice));
+    
     // Inverse of favorable - for long: price drop is adverse, for short: price rise is adverse
-    const direction = trade.direction === 'long' ? -1 : 1;
+    const directionMultiplier = direction === 'long' ? -1 : 1;
     
     // Calculate how much the price moved against you at its worst point
-    let adverseMove = (maxAdvPrice - entryPrice) * direction;
+    let adverseMove = (maxAdvPrice - entryValue) * directionMultiplier;
     
     // Apply contract multiplier for futures
     if (trade.type === 'futures') {
@@ -267,8 +303,8 @@ export const getTradeMetrics = (trade: Trade) => {
     } else {
       calculationExplanation += 'Cannot calculate percentage: risked amount is zero. ';
     }
-  } else if (trade.entryPrice !== 0) {
-    profitLossPercentage = (profitLoss / (parseFloat(trade.entryPrice.toString()) * quantity)) * 100;
+  } else if (entryValue !== 0) {
+    profitLossPercentage = (profitLoss / (entryValue * quantity)) * 100;
   } else {
     calculationExplanation += 'Entry price is zero. Cannot calculate profit/loss percentage. ';
   }
@@ -284,6 +320,9 @@ export const getTradeMetrics = (trade: Trade) => {
     if (trade.initialStopLoss && trade.initialStopLoss !== trade.stopLoss) {
       calculationExplanation += `Initial Stop: ${trade.initialStopLoss}, `;
     }
+    
+    // Add position direction info
+    calculationExplanation += `Direction: ${direction}, `;
     
     calculationExplanation += `Current Risk: $${riskedAmount.toFixed(2)}`;
     

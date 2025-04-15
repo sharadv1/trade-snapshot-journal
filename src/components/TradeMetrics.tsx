@@ -1,3 +1,4 @@
+
 import { Trade, TradeWithMetrics } from '@/types';
 import { calculateTradeMetrics } from '@/utils/calculations';
 import { Badge } from '@/components/ui/badge';
@@ -17,27 +18,45 @@ interface TradeMetricsProps {
 export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
   const [metrics, setMetrics] = useState<any>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     if (trade) {
-      const calculatedMetrics = calculateTradeMetrics(trade);
-      setMetrics(calculatedMetrics);
+      try {
+        const calculatedMetrics = calculateTradeMetrics(trade);
+        setMetrics(calculatedMetrics);
+        setError(null);
+      } catch (err) {
+        console.error("Error calculating metrics:", err);
+        setError("Failed to calculate metrics");
+      }
     }
   }, [trade]);
+  
+  if (error) {
+    return (
+      <div className="p-4 bg-background border rounded-lg shadow-sm">
+        <div className="flex items-center text-red-600">
+          <AlertTriangle className="h-4 w-4 mr-2" />
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
   
   if (!metrics) return null;
   
   const {
-    profitLoss,
-    riskRewardRatio,
-    rMultiple,
-    riskedAmount,
-    initialRiskedAmount,
-    maxPotentialGain,
-    calculationExplanation,
-    maxFavorableExcursion,
-    maxAdverseExcursion,
-    capturedProfitPercent
+    profitLoss = 0,
+    riskRewardRatio = 0,
+    rMultiple = 0,
+    riskedAmount = 0,
+    initialRiskedAmount = 0,
+    maxPotentialGain = 0,
+    calculationExplanation = '',
+    maxFavorableExcursion = 0,
+    maxAdverseExcursion = 0,
+    capturedProfitPercent = 0
   } = metrics;
   
   const rMultipleDisplay = rMultiple && !isNaN(rMultiple) ? rMultiple.toFixed(2) : 'N/A';
