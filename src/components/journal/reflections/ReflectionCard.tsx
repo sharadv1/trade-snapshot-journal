@@ -56,7 +56,7 @@ export const ReflectionCard = memo(({
     }
   }, [reflection.reflection]);
   
-  // Handle navigation with improved performance
+  // Handle navigation with improved performance using a deferred approach
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -65,13 +65,24 @@ export const ReflectionCard = memo(({
       ? (reflection as WeeklyReflection).weekId || reflection.id
       : (reflection as MonthlyReflection).monthId || reflection.id;
     
-    // Pre-cache the route we're going to
-    const route = `/journal/${type}/${reflectionId}`;
+    if (!reflectionId) {
+      console.error('Cannot navigate to reflection with empty ID');
+      return;
+    }
     
-    // Use requestAnimationFrame to ensure UI updates before navigation
-    requestAnimationFrame(() => {
+    // Show visual feedback immediately
+    const currentTarget = e.currentTarget;
+    if (currentTarget) {
+      currentTarget.classList.add('opacity-70');
+    }
+    
+    // Use setTimeout with 0ms to push navigation to the next event loop cycle
+    // This allows the UI to update before the potentially heavy navigation occurs
+    setTimeout(() => {
+      const route = `/journal/${type}/${reflectionId}`;
+      console.log(`Navigating to: ${route}`);
       navigate(route);
-    });
+    }, 0);
   }, [reflection, type, navigate]);
 
   return (

@@ -20,7 +20,10 @@ const reflectionCache = {
     '/journal/weekly/', 
     '/journal/monthly/',
     '/journal/weekly?forceHideBadge=true',
-    '/journal/monthly?forceHideBadge=true'
+    '/journal/monthly?forceHideBadge=true',
+    // Add more path patterns for any detail pages
+    '/journal/weekly/',
+    '/journal/monthly/'
   ]
 };
 
@@ -43,12 +46,9 @@ export function useReflectionGenerator() {
   useEffect(() => {
     const path = window.location.pathname + window.location.search;
     
-    // Check for detail pages (with path parameters)
-    const isDetailPage = path.match(/\/journal\/(weekly|monthly)\/[^\/]+$/i);
-    
-    // Check for routing patterns that should skip generation
-    if (reflectionCache.forceSkipPaths.some(skipPath => path === skipPath || path.startsWith(skipPath + '?'))) {
-      console.log(`Skipping reflection generation on journal listing path: ${path}`);
+    // Always skip on journal pages - they don't need realtime reflection generation
+    if (path.startsWith('/journal/')) {
+      console.log(`Skipping reflection generation on journal path: ${path}`);
       shouldForceSkip.current = true;
       setIsComplete(true);
       setIsGenerating(false);
@@ -61,7 +61,7 @@ export function useReflectionGenerator() {
         setIsComplete(true);
         setIsGenerating(false);
       }
-    }, 500); // Reduced from 1000ms to 500ms for faster completion
+    }, 300); // Even faster completion
     
     return () => clearTimeout(safetyTimer);
   }, []);
@@ -90,11 +90,8 @@ export function useReflectionGenerator() {
     // Re-check route on effect - route could have changed
     const currentPath = window.location.pathname + window.location.search;
     
-    // Check for detail pages (with path parameters)
-    const isDetailPage = currentPath.match(/\/journal\/(weekly|monthly)\/[^\/]+$/i);
-    
-    // Check for routing patterns that should skip generation
-    if (reflectionCache.forceSkipPaths.some(skipPath => currentPath === skipPath || currentPath.startsWith(skipPath + '?')) || isDetailPage) {
+    // Always skip on journal pages
+    if (currentPath.startsWith('/journal/')) {
       console.log(`Route check: skipping reflection generation on journal path: ${currentPath}`);
       setIsComplete(true);
       setIsGenerating(false);
@@ -114,7 +111,7 @@ export function useReflectionGenerator() {
           generationState.hasGenerated = true;
           generationState.inProgress = false;
         }
-      }, 800); // Reduced timeout to prevent UI freezing
+      }, 500); // Even shorter timeout to prevent UI freezing
       
       return;
     }
@@ -151,9 +148,8 @@ export function useReflectionGenerator() {
       try {
         // Final check if path is a journal page
         const currentPathFinal = window.location.pathname + window.location.search;
-        const isDetailPageFinal = currentPathFinal.match(/\/journal\/(weekly|monthly)\/[^\/]+$/i);
         
-        if (reflectionCache.forceSkipPaths.some(skipPath => currentPathFinal === skipPath || currentPathFinal.startsWith(skipPath + '?')) || isDetailPageFinal) {
+        if (currentPathFinal.startsWith('/journal/')) {
           console.log(`Final check: skipping reflection generation on journal path: ${currentPathFinal}`);
           updateCompleteState();
           return;
@@ -171,7 +167,7 @@ export function useReflectionGenerator() {
             console.log('Forcing reflection generation completion after timeout');
             updateCompleteState();
           }
-        }, 1000);
+        }, 750);
         
         // Dynamically import with a timeout guard
         timeoutRef.current = setTimeout(async () => {
