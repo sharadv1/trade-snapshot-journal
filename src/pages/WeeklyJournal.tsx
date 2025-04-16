@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ChevronLeft, ChevronRight, Save } from 'lucide-react';
 import { WeeklyReflection, TradeWithMetrics } from '@/types';
-import { getWeeklyReflectionById, saveWeeklyReflection, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
+import { getWeeklyReflection, saveWeeklyReflection, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { toast } from '@/utils/toast';
 import { getTradesForWeek } from '@/utils/tradeCalculations';
@@ -59,7 +59,8 @@ export function WeeklyJournal() {
     
     try {
       setIsLoading(true);
-      const reflectionData = await getWeeklyReflectionById(weekId);
+      // Use getWeeklyReflection instead of getWeeklyReflectionById
+      const reflectionData = await getWeeklyReflection(weekId);
       
       if (reflectionData) {
         setWeeklyReflection(reflectionData);
@@ -334,7 +335,7 @@ export function WeeklyJournal() {
                     <td className="py-2 px-4">{trade.symbol}</td>
                     <td className="py-2 px-4">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        trade.direction === 'LONG' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        trade.direction.toUpperCase() === 'LONG' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
                         {trade.direction}
                       </span>

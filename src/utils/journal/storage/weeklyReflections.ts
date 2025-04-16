@@ -1,4 +1,3 @@
-
 import { WeeklyReflection } from '@/types';
 import { generateUUID } from '@/utils/generateUUID';
 import { 
@@ -62,6 +61,9 @@ export async function getWeeklyReflection(weekId: string): Promise<WeeklyReflect
     return null;
   }
 }
+
+// Alias function to maintain compatibility with older code
+export const getWeeklyReflectionById = getWeeklyReflection;
 
 /**
  * Add or update a weekly reflection
