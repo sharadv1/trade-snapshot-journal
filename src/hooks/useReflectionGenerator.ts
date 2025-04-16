@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { toast } from '@/utils/toast';
 
@@ -7,12 +6,23 @@ export function useReflectionGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  
+  const isMounted = useRef(true);
+  const hasAttemptedGeneration = useRef(false);
 
   useEffect(() => {
-    let isMounted = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (hasAttemptedGeneration.current || !isMounted.current) return;
+    
+    hasAttemptedGeneration.current = true;
     
     const generateReflections = async () => {
-      if (!isMounted) return;
+      if (!isMounted.current) return;
       
       try {
         setIsGenerating(true);
@@ -23,42 +33,41 @@ export function useReflectionGenerator() {
           console.log(`Found ${trades.length} trades for reflection generation`);
           
           try {
-            // Import dynamically to avoid circular dependencies
             const { generateMissingReflections } = await import('@/utils/journal/reflectionGenerator');
             await generateMissingReflections(trades);
             
-            if (!isMounted) return;
+            if (!isMounted.current) return;
             
             console.log('Reflections generation completed successfully');
             setIsComplete(true);
           } catch (error) {
-            if (!isMounted) return;
+            if (!isMounted.current) return;
             console.error('Failed to generate reflections:', error);
             throw error;
           }
         } else {
           console.log('No trades found, skipping reflection generation');
-          if (isMounted) setIsComplete(true);
+          if (isMounted.current) setIsComplete(true);
         }
       } catch (error) {
-        if (!isMounted) return;
+        if (!isMounted.current) return;
         
         console.error('Error generating reflections:', error);
         setError(error instanceof Error ? error.message : 'Unknown error');
         
-        toast.error('Failed to generate reflections. Please try again.');
+        if (isMounted.current) {
+          toast.error('Failed to generate reflections. Please try again.');
+        }
       } finally {
-        if (isMounted) setIsGenerating(false);
+        if (isMounted.current) setIsGenerating(false);
       }
     };
     
-    // Small delay to avoid interfering with initial render
     const timer = setTimeout(() => {
       generateReflections();
     }, 1000);
     
     return () => {
-      isMounted = false;
       clearTimeout(timer);
     };
   }, []);

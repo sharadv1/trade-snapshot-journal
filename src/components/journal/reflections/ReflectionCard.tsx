@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,25 +19,18 @@ export interface ReflectionCardProps {
     tradeCount: number;
     hasContent: boolean;
   };
-  // Additional optional props for enhanced functionality
-  reflectionWordCount?: number;
-  planWordCount?: number;
-  canDelete?: boolean;
-  onDelete?: (reflectionId: string) => Promise<void>;
+  // Optional props
   hasContent?: boolean;
 }
 
-export function ReflectionCard({
+// Using memo to prevent unnecessary re-renders of reflection cards
+export const ReflectionCard = memo(({
   reflection,
   type,
   dateRange,
   stats,
-  reflectionWordCount,
-  planWordCount,
-  canDelete,
-  onDelete,
   hasContent
-}: ReflectionCardProps) {
+}: ReflectionCardProps) => {
   // Get the reflection ID (weekId or monthId)
   const id = type === 'weekly' 
     ? (reflection as WeeklyReflection).weekId 
@@ -114,10 +107,15 @@ export function ReflectionCard({
         
         {reflection.reflection && (
           <div className="mt-3 text-sm text-muted-foreground line-clamp-2">
-            {reflection.reflection.replace(/<[^>]*>/g, ' ')}
+            {typeof reflection.reflection === 'string' 
+              ? reflection.reflection.replace(/<[^>]*>/g, ' ')
+              : ''}
           </div>
         )}
       </Link>
     </Card>
   );
-}
+});
+
+// Display name for debugging
+ReflectionCard.displayName = 'ReflectionCard';

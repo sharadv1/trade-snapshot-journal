@@ -1,8 +1,15 @@
+
 /**
  * Reflection Storage API - Re-exports from modular storage system
+ * 
+ * This file serves as the main entry point for reflection storage operations
+ * and re-exports all the necessary functions from the modular storage system.
+ * 
+ * This approach keeps the API consistent while allowing for better modularization
+ * and performance optimization.
  */
 
-// Core storage utilities
+// Core storage utilities - minimizing what we expose to prevent circular imports
 export { 
   notifyJournalUpdate 
 } from './storage/storageCore';
@@ -34,9 +41,10 @@ export {
   saveMonthlyReflection
 } from './storage/monthlyReflections';
 
-// Trade association operations
+// Trade association operations - now with optimized processing
 export {
-  associateTradeWithReflections
+  associateTradeWithReflections,
+  clearTradeAssociationCache
 } from './storage/tradeAssociations';
 
 // Duplicate removal utilities
@@ -44,5 +52,5 @@ export {
   removeDuplicateReflections
 } from './storage/duplicateReflections';
 
-// For backward compatibility - ensure all functions return the same values
-// and behave exactly as they did in the original file
+// Important: No direct imports from weeklyReflections or monthlyReflections should
+// be made in components - always use this central API to prevent circular dependencies

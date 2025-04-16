@@ -8,12 +8,62 @@ export const MONTHLY_REFLECTIONS_KEY = 'trade-journal-monthly-reflections';
 let lastEventDispatchTime: Record<string, number> = {};
 const MIN_EVENT_INTERVAL = 500;
 
+// Debounce management for events
+interface DebouncedEvent {
+  timer: NodeJS.Timeout | null;
+  lastFired: number;
+}
+
+const debouncedEvents: Record<string, DebouncedEvent> = {};
+
 /**
- * Dispatches events to notify of journal updates with rate limiting
+ * Dispatches events to notify of journal updates with rate limiting and debouncing
  */
 export function notifyJournalUpdate(source: string): void {
-  window.dispatchEvent(new CustomEvent('journal-updated', { detail: { source } }));
-  window.dispatchEvent(new Event('storage'));
+  const debounceKey = `journal-updated-${source}`;
+  const now = Date.now();
+  
+  // Cancel any pending updates for this source
+  if (debouncedEvents[debounceKey] && debouncedEvents[debounceKey].timer) {
+    clearTimeout(debouncedEvents[debounceKey].timer);
+  }
+  
+  // If we've dispatched this event recently, debounce it
+  if (debouncedEvents[debounceKey] && now - debouncedEvents[debounceKey].lastFired < MIN_EVENT_INTERVAL) {
+    debouncedEvents[debounceKey].timer = setTimeout(() => {
+      dispatchJournalEvents(source);
+      debouncedEvents[debounceKey].lastFired = Date.now();
+      debouncedEvents[debounceKey].timer = null;
+    }, MIN_EVENT_INTERVAL);
+    return;
+  }
+  
+  // Otherwise dispatch immediately
+  dispatchJournalEvents(source);
+  
+  // Update the debounce tracking
+  debouncedEvents[debounceKey] = {
+    timer: null,
+    lastFired: now
+  };
+}
+
+/**
+ * Helper to actually dispatch events safely
+ */
+function dispatchJournalEvents(source: string): void {
+  try {
+    window.dispatchEvent(new CustomEvent('journal-updated', { detail: { source } }));
+    
+    // Only dispatch the storage event once - this is the most expensive
+    try {
+      window.dispatchEvent(new Event('storage'));
+    } catch (error) {
+      console.error('Error dispatching storage event:', error);
+    }
+  } catch (error) {
+    console.error('Error dispatching journal update events:', error);
+  }
 }
 
 /**
@@ -28,21 +78,19 @@ export function dispatchStorageEvent(key: string): void {
   
   lastEventDispatchTime[key] = now;
   
-  const customEvent = new CustomEvent('journalUpdated', { detail: { key } });
-  window.dispatchEvent(customEvent);
-  
-  const anotherCustomEvent = new CustomEvent('journal-updated', { detail: { key } });
-  window.dispatchEvent(anotherCustomEvent);
-  
   try {
-    const storageEvent = new StorageEvent('storage', { key });
-    window.dispatchEvent(storageEvent);
+    // Only dispatch one type of event to reduce cascading updates
+    const customEvent = new CustomEvent('journal-updated', { detail: { key } });
+    window.dispatchEvent(customEvent);
+    
+    // Don't dispatch these redundant events which cause cascading updates
+    // window.dispatchEvent(new CustomEvent('journalUpdated', { detail: { key } }));
+    // window.dispatchEvent(new StorageEvent('storage', { key }));
   } catch (e) {
-    console.error('Error dispatching storage event:', e);
-    window.dispatchEvent(new Event('storage'));
+    console.error('Error dispatching events:', e);
   }
   
-  console.log(`Storage events dispatched for key: ${key}`);
+  console.log(`Storage event dispatched for key: ${key}`);
 }
 
 /**
@@ -72,11 +120,4 @@ export function debugStorage(action: string, key: string, data?: any): void {
   if (data) {
     console.log('Data:', typeof data === 'string' ? data.substring(0, 100) + '...' : data);
   }
-  
-  const allKeys = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k) allKeys.push(k);
-  }
-  console.log('All localStorage keys:', allKeys);
 }
