@@ -23,6 +23,7 @@ export {
 export { 
   getWeeklyReflections,
   getWeeklyReflection,
+  getWeeklyReflectionById,
   addWeeklyReflection,
   updateWeeklyReflection,
   deleteWeeklyReflection,
