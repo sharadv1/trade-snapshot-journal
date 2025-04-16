@@ -6,6 +6,11 @@ import { generateUUID } from './generateUUID';
 const WEEKLY_REFLECTIONS_KEY = 'trade-journal-weekly-reflections';
 const MONTHLY_REFLECTIONS_KEY = 'trade-journal-monthly-reflections';
 
+// Type guards
+function isValidReflection(obj: any): boolean {
+  return obj && typeof obj === 'object' && 'id' in obj;
+}
+
 // Weekly Reflections
 export const getWeeklyReflections = async (): Promise<WeeklyReflection[]> => {
   try {
@@ -27,10 +32,10 @@ export const getWeeklyReflections = async (): Promise<WeeklyReflection[]> => {
     
     // Ensure we're returning an array
     if (Array.isArray(parsed)) {
-      return parsed;
+      return parsed.filter(isValidReflection);
     } else if (typeof parsed === 'object' && parsed !== null) {
       // Convert object with reflection entries to array
-      const reflections = Object.values(parsed).filter(Boolean) as WeeklyReflection[];
+      const reflections = Object.values(parsed).filter(isValidReflection) as WeeklyReflection[];
       console.log(`Converted ${reflections.length} weekly reflections from object to array`);
       return reflections;
     }
@@ -167,10 +172,10 @@ export const getMonthlyReflections = async (): Promise<MonthlyReflection[]> => {
     
     // Ensure we're returning an array
     if (Array.isArray(parsed)) {
-      return parsed;
+      return parsed.filter(isValidReflection);
     } else if (typeof parsed === 'object' && parsed !== null) {
       // Convert object with reflection entries to array
-      const reflections = Object.values(parsed).filter(Boolean) as MonthlyReflection[];
+      const reflections = Object.values(parsed).filter(isValidReflection) as MonthlyReflection[];
       console.log(`Converted ${reflections.length} monthly reflections from object to array`);
       return reflections;
     }
@@ -289,4 +294,3 @@ export const deleteMonthlyReflection = async (id: string): Promise<void> => {
     throw error;
   }
 };
-

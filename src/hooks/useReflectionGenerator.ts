@@ -9,8 +9,12 @@ export function useReflectionGenerator() {
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+    
     // Generate reflections when component mounts
     const generateReflections = async () => {
+      if (!isMounted) return;
+      
       try {
         setIsGenerating(true);
         setError(null);
@@ -24,6 +28,8 @@ export function useReflectionGenerator() {
             const { generateMissingReflections } = await import('@/utils/reflectionGenerator');
             await generateMissingReflections(trades);
             
+            if (!isMounted) return;
+            
             // Dispatch an event to notify the UI that reflections have been generated
             const customEvent = new CustomEvent('journal-updated', { 
               detail: { source: 'reflectionGenerator', success: true } 
@@ -33,14 +39,17 @@ export function useReflectionGenerator() {
             console.log('Reflections generation completed successfully');
             setIsComplete(true);
           } catch (error) {
+            if (!isMounted) return;
             console.error('Failed to generate reflections:', error);
             throw error;
           }
         } else {
           console.log('No trades found, skipping reflection generation');
-          setIsComplete(true);
+          if (isMounted) setIsComplete(true);
         }
       } catch (error) {
+        if (!isMounted) return;
+        
         console.error('Error generating reflections:', error);
         setError(error instanceof Error ? error.message : 'Unknown error');
         
@@ -52,7 +61,7 @@ export function useReflectionGenerator() {
         });
         window.dispatchEvent(customEvent);
       } finally {
-        setIsGenerating(false);
+        if (isMounted) setIsGenerating(false);
       }
     };
     
@@ -61,7 +70,10 @@ export function useReflectionGenerator() {
       generateReflections();
     }, 1000);
     
-    return () => clearTimeout(timer);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   return { isGenerating, error, isComplete };
