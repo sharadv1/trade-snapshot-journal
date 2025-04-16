@@ -31,18 +31,24 @@ export const generateMissingReflections = async (trades: TradeWithMetrics[]) => 
     const existingWeeklyReflections = await getWeeklyReflections();
     const existingMonthlyReflections = await getMonthlyReflections();
     
+    // Ensure we have valid arrays
+    if (!Array.isArray(existingWeeklyReflections) || !Array.isArray(existingMonthlyReflections)) {
+      console.error('Invalid reflection data format, expected arrays');
+      throw new Error('Invalid reflection data format');
+    }
+    
     // Convert to maps for easier lookup
     const weeklyReflectionsMap = new Map();
     const monthlyReflectionsMap = new Map();
     
     existingWeeklyReflections.forEach(reflection => {
-      if (reflection.weekId) {
+      if (reflection && reflection.weekId) {
         weeklyReflectionsMap.set(reflection.weekId, reflection);
       }
     });
     
     existingMonthlyReflections.forEach(reflection => {
-      if (reflection.monthId) {
+      if (reflection && reflection.monthId) {
         monthlyReflectionsMap.set(reflection.monthId, reflection);
       }
     });
@@ -68,15 +74,20 @@ export const generateMissingReflections = async (trades: TradeWithMetrics[]) => 
         
         // Only generate a reflection if there are trades for this week
         if (weekTrades.length > 0) {
-          // Generate a reflection for the week
-          const newReflection = generateWeeklyReflection(weekId, weekStart, weekEnd, weekTrades);
-          
-          // Save the new reflection
-          await addWeeklyReflection(newReflection);
-          
-          // Mark as processed
-          generatedWeeklyIds.add(weekId);
-          console.log(`Generated weekly reflection for ${weekId} with ${weekTrades.length} trades`);
+          try {
+            // Generate a reflection for the week
+            const newReflection = generateWeeklyReflection(weekId, weekStart, weekEnd, weekTrades);
+            
+            // Save the new reflection
+            await addWeeklyReflection(newReflection);
+            
+            // Mark as processed
+            generatedWeeklyIds.add(weekId);
+            console.log(`Generated weekly reflection for ${weekId} with ${weekTrades.length} trades`);
+          } catch (error) {
+            console.error(`Error generating reflection for week ${weekId}:`, error);
+            // Continue with other weeks
+          }
         }
       }
       
@@ -106,15 +117,20 @@ export const generateMissingReflections = async (trades: TradeWithMetrics[]) => 
         
         // Only generate a reflection if there are trades for this month
         if (monthTrades.length > 0) {
-          // Generate a reflection for the month
-          const newReflection = generateMonthlyReflection(monthId, monthStart, monthEnd, monthTrades);
-          
-          // Save the new reflection
-          await addMonthlyReflection(newReflection);
-          
-          // Mark as processed
-          generatedMonthlyIds.add(monthId);
-          console.log(`Generated monthly reflection for ${monthId} with ${monthTrades.length} trades`);
+          try {
+            // Generate a reflection for the month
+            const newReflection = generateMonthlyReflection(monthId, monthStart, monthEnd, monthTrades);
+            
+            // Save the new reflection
+            await addMonthlyReflection(newReflection);
+            
+            // Mark as processed
+            generatedMonthlyIds.add(monthId);
+            console.log(`Generated monthly reflection for ${monthId} with ${monthTrades.length} trades`);
+          } catch (error) {
+            console.error(`Error generating reflection for month ${monthId}:`, error);
+            // Continue with other months
+          }
         }
       }
       

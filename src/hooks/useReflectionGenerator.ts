@@ -6,6 +6,7 @@ import { toast } from '@/utils/toast';
 export function useReflectionGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
     // Generate reflections when component mounts
@@ -30,12 +31,14 @@ export function useReflectionGenerator() {
             window.dispatchEvent(customEvent);
             
             console.log('Reflections generation completed successfully');
+            setIsComplete(true);
           } catch (error) {
             console.error('Failed to generate reflections:', error);
             throw error;
           }
         } else {
           console.log('No trades found, skipping reflection generation');
+          setIsComplete(true);
         }
       } catch (error) {
         console.error('Error generating reflections:', error);
@@ -56,10 +59,10 @@ export function useReflectionGenerator() {
     // Small delay to avoid interfering with initial render
     const timer = setTimeout(() => {
       generateReflections();
-    }, 2000);
+    }, 1000);
     
     return () => clearTimeout(timer);
   }, []);
 
-  return { isGenerating, error };
+  return { isGenerating, error, isComplete };
 }

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
 import { format, parseISO } from 'date-fns';
@@ -62,14 +62,9 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
         }
       } else if (monthlyReflection.monthId) {
         try {
-          const parts = monthlyReflection.monthId.split('-');
-          if (parts.length === 2) {
-            const year = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10) - 1;
-            const date = new Date(year, month, 1);
-            if (isNaN(date.getTime())) {
-              return 'Invalid month';
-            }
+          const date = new Date(parseInt(monthlyReflection.monthId.split('-')[0]), 
+                               parseInt(monthlyReflection.monthId.split('-')[1]) - 1, 1);
+          if (!isNaN(date.getTime())) {
             return format(date, 'MMMM yyyy');
           }
         } catch (error) {
@@ -121,6 +116,17 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
 
   console.log(`Rendering ${safeReflections.length} ${type} reflections`);
 
+  // Check if there's any invalid data in the reflections
+  const hasInvalidData = safeReflections.some(r => !r.id || (type === 'weekly' && !(r as WeeklyReflection).weekId) || 
+                                            (type === 'monthly' && !(r as MonthlyReflection).monthId));
+  
+  // Show warning if invalid data is detected
+  if (hasInvalidData) {
+    console.warn("Invalid reflection data detected:", safeReflections.filter(r => !r.id || 
+      (type === 'weekly' && !(r as WeeklyReflection).weekId) || 
+      (type === 'monthly' && !(r as MonthlyReflection).monthId)));
+  }
+
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
@@ -135,6 +141,17 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
           </Link>
         </Button>
       </div>
+
+      {hasInvalidData && (
+        <Card className="mb-4 border-amber-300 bg-amber-50">
+          <CardContent className="py-3 flex items-center">
+            <AlertTriangle className="h-5 w-5 text-amber-500 mr-2" />
+            <p className="text-amber-700">
+              Some reflections contain invalid data. This may affect display and functionality.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {safeReflections.length === 0 ? (
         <Card>
@@ -153,6 +170,13 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
             }
             
             try {
+              const reflectionId = getReflectionId(reflection);
+              
+              if (!reflectionId) {
+                console.warn('Reflection has no ID:', reflection);
+                return null;
+              }
+              
               const stats = getStats(reflection);
               const dateRange = formatDateRange(reflection);
               
@@ -174,13 +198,6 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
               
               // Determine if reflection can be deleted
               const canDelete = isDeletable(reflection);
-              
-              const reflectionId = getReflectionId(reflection);
-
-              if (!reflectionId) {
-                console.warn('Reflection has no ID:', reflection);
-                return null;
-              }
 
               return (
                 <ReflectionCard
@@ -198,7 +215,13 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
               );
             } catch (error) {
               console.error("Error rendering reflection card:", error, reflection);
-              return null;
+              return (
+                <Card key={`error-${Math.random()}`} className="border-red-300 bg-red-50">
+                  <CardContent className="py-3">
+                    <p className="text-red-700">Error displaying this reflection</p>
+                  </CardContent>
+                </Card>
+              );
             }
           }).filter(Boolean)}
         </div>
