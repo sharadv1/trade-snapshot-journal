@@ -43,9 +43,14 @@ export const ReflectionCard = memo(({
   const getContentPreview = () => {
     if (!reflection.reflection || typeof reflection.reflection !== 'string') return '';
     
-    // Extract plain text and limit to first 100 characters
-    const plainText = reflection.reflection.replace(/<[^>]*>/g, ' ').trim();
-    return plainText.length > 100 ? `${plainText.substring(0, 100)}...` : plainText;
+    try {
+      // Extract plain text and limit to first 100 characters
+      const plainText = reflection.reflection.replace(/<[^>]*>/g, ' ').trim();
+      return plainText.length > 100 ? `${plainText.substring(0, 100)}...` : plainText;
+    } catch (e) {
+      console.error('Error parsing reflection content:', e);
+      return '';
+    }
   };
 
   return (
