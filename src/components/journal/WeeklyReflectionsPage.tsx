@@ -1,10 +1,9 @@
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections } from '@/utils/journal/reflectionStorage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useReflectionGenerator } from '@/hooks/useReflectionGenerator';
 import { Loader2, Plus, Search, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -12,55 +11,21 @@ import { ReflectionCard } from './reflections/ReflectionCard';
 import { getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflectionUtils';
 import { toast } from '@/utils/toast';
 
-// Global cache to prevent redundant data fetching
-const reflectionsCache = {
-  data: [] as WeeklyReflection[],
-  timestamp: 0,
-  lastPath: ''
-};
-
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
   const [filteredReflections, setFilteredReflections] = useState<WeeklyReflection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [forceReload, setForceReload] = useState(false);
   
-  const isMounted = useRef(true);
-  const loadingRef = useRef(false);
-  
-  // The generation process should be completely skipped on this page
-  const { isComplete } = useReflectionGenerator();
-  
-  // Function to load reflections with caching
+  // Function to load reflections
   const loadReflections = useCallback(async () => {
-    if (loadingRef.current || !isMounted.current) return;
-    
     try {
-      loadingRef.current = true;
       setIsLoading(true);
-      
-      const now = Date.now();
-      const currentPath = window.location.pathname;
-      
-      // Use cache if available and not forcing reload
-      if (!forceReload && 
-          reflectionsCache.data.length > 0 && 
-          now - reflectionsCache.timestamp < 30000 &&
-          reflectionsCache.lastPath === currentPath) {
-        console.log('Using cached reflections data');
-        setReflections(reflectionsCache.data);
-        setFilteredReflections(reflectionsCache.data);
-        setIsLoading(false);
-        loadingRef.current = false;
-        return;
-      }
+      setLoadError(null);
       
       console.log("Loading weekly reflections...");
       const fetchedReflections = await getWeeklyReflections();
-      
-      if (!isMounted.current) return;
       
       if (Array.isArray(fetchedReflections)) {
         // Sort reflections by date (most recent first)
@@ -75,11 +40,6 @@ export function WeeklyReflectionsPage() {
           }
         });
         
-        // Update cache
-        reflectionsCache.data = sortedReflections;
-        reflectionsCache.timestamp = now;
-        reflectionsCache.lastPath = currentPath;
-        
         console.log(`Loaded ${sortedReflections.length} weekly reflections successfully`);
         setReflections(sortedReflections);
         setFilteredReflections(sortedReflections);
@@ -93,14 +53,11 @@ export function WeeklyReflectionsPage() {
       console.error("Error loading reflections:", error);
       setLoadError("Failed to load reflections. Please try refreshing the page.");
     } finally {
-      if (isMounted.current) {
-        setIsLoading(false);
-        loadingRef.current = false;
-      }
+      setIsLoading(false);
     }
-  }, [forceReload]);
+  }, []);
 
-  // Handle search with simpler filtering
+  // Handle search
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setFilteredReflections(reflections);
@@ -109,7 +66,6 @@ export function WeeklyReflectionsPage() {
     
     const query = searchQuery.toLowerCase();
     const filtered = reflections.filter(reflection => {
-      // Simple and efficient filtering
       if (!reflection) return false;
       
       // Search in date
@@ -129,38 +85,29 @@ export function WeeklyReflectionsPage() {
     setFilteredReflections(filtered);
   }, [searchQuery, reflections]);
 
-  // Initial load and reload on generation complete
+  // Initial load and reload on event
   useEffect(() => {
     loadReflections();
-  }, [loadReflections, isComplete]);
-  
-  // Event listeners for storage updates
-  useEffect(() => {
-    const handleReflectionsGenerated = () => {
-      console.log("Reflections generation completed - reloading reflections list");
-      // Invalidate cache
-      reflectionsCache.timestamp = 0;
+    
+    // Listen for updates to reflections
+    const handleUpdate = () => {
       loadReflections();
     };
     
     // Register event listeners
-    window.addEventListener('reflections-generated', handleReflectionsGenerated);
-    window.addEventListener('journal-updated', handleReflectionsGenerated);
+    window.addEventListener('journal-updated', handleUpdate);
+    window.addEventListener('journalUpdated', handleUpdate);
+    window.addEventListener('trades-updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
     
     return () => {
-      isMounted.current = false;
       // Clean up event listeners
-      window.removeEventListener('reflections-generated', handleReflectionsGenerated);
-      window.removeEventListener('journal-updated', handleReflectionsGenerated);
+      window.removeEventListener('journal-updated', handleUpdate);
+      window.removeEventListener('journalUpdated', handleUpdate);
+      window.removeEventListener('trades-updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
     };
   }, [loadReflections]);
-  
-  // Force reload function
-  const handleForceReload = useCallback(() => {
-    reflectionsCache.timestamp = 0; // Invalidate cache
-    setForceReload(prev => !prev);
-    toast.info("Refreshing reflections...");
-  }, []);
   
   // Format date range for display
   const formatDateRange = useCallback((reflection: WeeklyReflection) => {
@@ -187,6 +134,12 @@ export function WeeklyReflectionsPage() {
     }
   }, []);
   
+  // Handle force refresh
+  const handleForceRefresh = () => {
+    toast.info("Refreshing reflections...");
+    loadReflections();
+  };
+  
   // Render loading state
   if (isLoading) {
     return (
@@ -196,7 +149,7 @@ export function WeeklyReflectionsPage() {
         <Button 
           variant="outline" 
           className="mt-4" 
-          onClick={handleForceReload}
+          onClick={handleForceRefresh}
         >
           <RefreshCw className="mr-2 h-4 w-4" />
           Refresh
@@ -212,7 +165,7 @@ export function WeeklyReflectionsPage() {
         <CardContent className="py-8">
           <p className="text-center text-red-500">{loadError}</p>
           <div className="flex justify-center mt-4">
-            <Button onClick={handleForceReload}>Retry Loading</Button>
+            <Button onClick={handleForceRefresh}>Retry Loading</Button>
           </div>
         </CardContent>
       </Card>
@@ -251,7 +204,7 @@ export function WeeklyReflectionsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button variant="outline" onClick={handleForceReload}>
+          <Button variant="outline" onClick={handleForceRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -288,7 +241,7 @@ export function WeeklyReflectionsPage() {
                 />
               );
             } catch (error) {
-              console.error("Error rendering reflection card:", error, reflection);
+              console.error("Error rendering reflection card:", error);
               return null;
             }
           }).filter(Boolean)}
