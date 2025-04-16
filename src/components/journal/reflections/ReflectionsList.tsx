@@ -9,7 +9,7 @@ import { format, parseISO } from 'date-fns';
 import { toast } from '@/utils/toast';
 import { deleteWeeklyReflection, deleteMonthlyReflection } from '@/utils/reflectionStorage';
 import { ReflectionCard } from './ReflectionCard';
-import { countWords, hasContent, getCurrentPeriodId } from './ReflectionUtility';
+import { countWords, hasContent, getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflectionUtils';
 
 export interface ReflectionsListProps {
   reflections: WeeklyReflection[] | MonthlyReflection[];
@@ -193,9 +193,6 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                 reflectionWordCount = countWords(monthlyReflection.reflection || '');
               }
               
-              // Determine if reflection has content
-              const reflectionHasContent = hasContent(reflection, type, stats.hasContent);
-              
               // Determine if reflection can be deleted
               const canDelete = isDeletable(reflection);
 
@@ -210,7 +207,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                   planWordCount={planWordCount}
                   canDelete={canDelete}
                   onDelete={handleDelete}
-                  hasContent={reflectionHasContent}
+                  hasContent={stats.hasContent}
                 />
               );
             } catch (error) {

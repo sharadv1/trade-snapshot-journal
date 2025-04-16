@@ -9,7 +9,7 @@ import { formatCurrency } from '@/utils/calculations/formatters';
 import { ArrowRight, Calendar, Check } from 'lucide-react';
 import { getGradeColorClass } from '@/utils/journal/reflectionUtils';
 
-interface ReflectionCardProps {
+export interface ReflectionCardProps {
   reflection: WeeklyReflection | MonthlyReflection;
   type: 'weekly' | 'monthly';
   dateRange: string;
@@ -19,13 +19,24 @@ interface ReflectionCardProps {
     tradeCount: number;
     hasContent: boolean;
   };
+  // Additional optional props for enhanced functionality
+  reflectionWordCount?: number;
+  planWordCount?: number;
+  canDelete?: boolean;
+  onDelete?: (reflectionId: string) => Promise<void>;
+  hasContent?: boolean;
 }
 
 export function ReflectionCard({
   reflection,
   type,
   dateRange,
-  stats
+  stats,
+  reflectionWordCount,
+  planWordCount,
+  canDelete,
+  onDelete,
+  hasContent
 }: ReflectionCardProps) {
   // Get the reflection ID (weekId or monthId)
   const id = type === 'weekly' 
@@ -63,7 +74,7 @@ export function ReflectionCard({
                 </Badge>
               )}
               
-              {stats.hasContent && (
+              {hasContent && (
                 <Badge 
                   variant="outline" 
                   className="bg-green-100 text-green-800 ml-2"

@@ -21,10 +21,10 @@ export async function getWeeklyReflections(): Promise<WeeklyReflection[]> {
     
     // Handle both array and object formats
     if (Array.isArray(parsed)) {
-      return parsed.filter(r => r && typeof r === 'object' && r.id);
+      return parsed.filter(r => r && typeof r === 'object' && 'id' in r);
     } else if (parsed && typeof parsed === 'object') {
       // Convert object to array for consistency
-      return Object.values(parsed).filter(r => r && typeof r === 'object' && r.id) as WeeklyReflection[];
+      return Object.values(parsed).filter(r => r && typeof r === 'object' && 'id' in r) as WeeklyReflection[];
     }
     
     return [];
@@ -144,10 +144,10 @@ export async function getMonthlyReflections(): Promise<MonthlyReflection[]> {
     
     // Handle both array and object formats
     if (Array.isArray(parsed)) {
-      return parsed.filter(r => r && typeof r === 'object' && r.id);
+      return parsed.filter(r => r && typeof r === 'object' && 'id' in r);
     } else if (parsed && typeof parsed === 'object') {
       // Convert object to array for consistency
-      return Object.values(parsed).filter(r => r && typeof r === 'object' && r.id) as MonthlyReflection[];
+      return Object.values(parsed).filter(r => r && typeof r === 'object' && 'id' in r) as MonthlyReflection[];
     }
     
     return [];
