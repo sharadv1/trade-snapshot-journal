@@ -98,12 +98,24 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
       return null;
     }
     
+    // Safely handle potentially undefined values
+    if (trade.targetReached === undefined) {
+      return (
+        <>
+          <XCircle className="h-3.5 w-3.5 mr-1 text-gray-500" />
+          <p className="text-base text-gray-600">Status unknown</p>
+        </>
+      );
+    }
+    
     let missedValue = 0;
     if (trade.exitPrice && trade.targetReached === true && trade.targetReachedBeforeExit === false) {
       try {
         const targetPrice = typeof trade.takeProfit === 'string' ? parseFloat(trade.takeProfit) : trade.takeProfit;
         const exitPrice = typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice) : trade.exitPrice;
         const quantity = typeof trade.quantity === 'string' ? parseFloat(trade.quantity.toString()) : trade.quantity;
+        
+        // Check for contractDetails and tickValue existence before accessing
         const pointValue = trade.type === 'futures' && trade.contractDetails?.tickValue 
           ? (typeof trade.contractDetails.tickValue === 'string' ? 
               parseFloat(trade.contractDetails.tickValue) : 
@@ -156,12 +168,17 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
     }
   };
   
-  // Safe formatter function for numerical values
+  // Safe formatter function for numerical values - prevent toString errors
   const formatMetricValue = (value: any, prefix = '$', decimals = 2) => {
     if (value === undefined || value === null || isNaN(value)) {
       return 'N/A';
     }
-    return `${prefix}${value.toFixed(decimals)}`;
+    try {
+      return `${prefix}${value.toFixed(decimals)}`;
+    } catch (err) {
+      console.error("Error formatting value:", value, err);
+      return 'Error';
+    }
   };
   
   return (
