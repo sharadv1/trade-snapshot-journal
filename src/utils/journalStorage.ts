@@ -863,29 +863,51 @@ export const deleteMonthlyReflection = (monthId: string): void => {
 };
 
 export const getAllWeeklyReflections = () => {
-  const reflectionsString = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
-  debugStorage('Getting ALL weekly reflections', WEEKLY_REFLECTIONS_KEY, reflectionsString?.substring(0, 100) + '...');
-  
-  if (!reflectionsString) return {};
-  
   try {
-    return JSON.parse(reflectionsString);
-  } catch (e) {
-    console.error('Error parsing weekly reflections from storage', e);
+    console.log('[JOURNAL STORAGE] Getting ALL weekly reflections for key "trade-journal-weekly-reflections"');
+    const reflectionsJson = localStorage.getItem('trade-journal-weekly-reflections');
+    
+    if (!reflectionsJson) {
+      console.log('No weekly reflections found in local storage');
+      return {};
+    }
+    
+    console.log('Data:', reflectionsJson.substring(0, 100) + '...');
+    
+    try {
+      const data = JSON.parse(reflectionsJson);
+      return data || {};
+    } catch (e) {
+      console.error('Failed to parse weekly reflections JSON:', e);
+      return {};
+    }
+  } catch (error) {
+    console.error('Error getting all weekly reflections:', error);
     return {};
   }
 };
 
 export const getAllMonthlyReflections = () => {
-  const reflectionsString = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
-  debugStorage('Getting ALL monthly reflections', MONTHLY_REFLECTIONS_KEY, reflectionsString?.substring(0, 100) + '...');
-  
-  if (!reflectionsString) return {};
-  
   try {
-    return JSON.parse(reflectionsString);
-  } catch (e) {
-    console.error('Error parsing monthly reflections from storage', e);
+    console.log('[JOURNAL STORAGE] Getting ALL monthly reflections for key "trade-journal-monthly-reflections"');
+    const reflectionsJson = localStorage.getItem('trade-journal-monthly-reflections');
+    
+    if (!reflectionsJson) {
+      console.log('No monthly reflections found in local storage');
+      return {};
+    }
+    
+    console.log('Data:', reflectionsJson.substring(0, 100) + '...');
+    
+    try {
+      const data = JSON.parse(reflectionsJson);
+      return data || {};
+    } catch (e) {
+      console.error('Failed to parse monthly reflections JSON:', e);
+      return {};
+    }
+  } catch (error) {
+    console.error('Error getting all monthly reflections:', error);
     return {};
   }
 };
@@ -941,5 +963,25 @@ export const getWeeklyReflectionsForMonth = (monthId: string): WeeklyReflection[
   } catch (e) {
     console.error('Error in getWeeklyReflectionsForMonth:', e);
     return [];
+  }
+};
+
+export const getWeeklyReflection = (weekId: string) => {
+  try {
+    const reflections = getAllWeeklyReflections();
+    return reflections[weekId] || null;
+  } catch (error) {
+    console.error('Error getting weekly reflection:', error);
+    return null;
+  }
+};
+
+export const weeklyReflectionExists = (weekId: string) => {
+  try {
+    const reflections = getAllWeeklyReflections();
+    return !!reflections[weekId];
+  } catch (error) {
+    console.error('Error checking if weekly reflection exists:', error);
+    return false;
   }
 };

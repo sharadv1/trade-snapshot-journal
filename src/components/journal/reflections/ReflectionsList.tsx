@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,23 +31,37 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
     if (type === 'weekly') {
       const weeklyReflection = reflection as WeeklyReflection;
       if (weeklyReflection.weekStart && weeklyReflection.weekEnd) {
-        const start = new Date(weeklyReflection.weekStart);
-        const end = new Date(weeklyReflection.weekEnd);
-        return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
+        try {
+          const start = new Date(weeklyReflection.weekStart);
+          const end = new Date(weeklyReflection.weekEnd);
+          return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
+        } catch (error) {
+          console.error("Error formatting date range:", error);
+          return 'Invalid date range';
+        }
       }
       return 'Date range unavailable';
     } else {
       const monthlyReflection = reflection as MonthlyReflection;
       if (monthlyReflection.monthStart && monthlyReflection.monthEnd) {
-        const start = new Date(monthlyReflection.monthStart);
-        const end = new Date(monthlyReflection.monthEnd);
-        return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
+        try {
+          const start = new Date(monthlyReflection.monthStart);
+          const end = new Date(monthlyReflection.monthEnd);
+          return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
+        } catch (error) {
+          console.error("Error formatting date range:", error);
+          return 'Invalid date range';
+        }
       } else if (monthlyReflection.monthId) {
-        const parts = monthlyReflection.monthId.split('-');
-        if (parts.length === 2) {
-          const year = parseInt(parts[0], 10);
-          const month = parseInt(parts[1], 10) - 1;
-          return format(new Date(year, month, 1), 'MMMM yyyy');
+        try {
+          const parts = monthlyReflection.monthId.split('-');
+          if (parts.length === 2) {
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            return format(new Date(year, month, 1), 'MMMM yyyy');
+          }
+        } catch (error) {
+          console.error("Error parsing month ID:", error);
         }
       }
       return 'Date unavailable';
@@ -56,9 +71,9 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
   // Helper to get reflection ID (weekId or monthId)
   const getReflectionId = (reflection: WeeklyReflection | MonthlyReflection) => {
     if (type === 'weekly') {
-      return (reflection as WeeklyReflection).weekId;
+      return (reflection as WeeklyReflection).weekId || reflection.id;
     } else {
-      return (reflection as MonthlyReflection).monthId;
+      return (reflection as MonthlyReflection).monthId || reflection.id;
     }
   };
   
@@ -80,6 +95,8 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
     const stats = getStats(reflection);
     return stats.tradeCount === 0;
   };
+
+  console.log(`Rendering ${safeReflections.length} ${type} reflections`);
 
   return (
     <div className="w-full">
@@ -107,43 +124,50 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {safeReflections.map((reflection) => {
-            const stats = getStats(reflection);
-            const dateRange = formatDateRange(reflection);
-            
-            // Calculate word counts
-            let reflectionWordCount = 0;
-            let planWordCount = 0;
-            
-            if (type === 'weekly') {
-              const weeklyReflection = reflection as WeeklyReflection;
-              reflectionWordCount = countWords(weeklyReflection.reflection);
-              planWordCount = countWords(weeklyReflection.weeklyPlan);
-            } else {
-              const monthlyReflection = reflection as MonthlyReflection;
-              reflectionWordCount = countWords(monthlyReflection.reflection);
-            }
-            
-            // Determine if reflection has content
-            const reflectionHasContent = hasContent(reflection, type, stats.hasContent);
-            
-            // Determine if reflection can be deleted
-            const canDelete = isDeletable(reflection);
+            try {
+              const stats = getStats(reflection);
+              const dateRange = formatDateRange(reflection);
+              
+              // Calculate word counts
+              let reflectionWordCount = 0;
+              let planWordCount = 0;
+              
+              if (type === 'weekly') {
+                const weeklyReflection = reflection as WeeklyReflection;
+                reflectionWordCount = countWords(weeklyReflection.reflection);
+                planWordCount = countWords(weeklyReflection.weeklyPlan);
+              } else {
+                const monthlyReflection = reflection as MonthlyReflection;
+                reflectionWordCount = countWords(monthlyReflection.reflection);
+              }
+              
+              // Determine if reflection has content
+              const reflectionHasContent = hasContent(reflection, type, stats.hasContent);
+              
+              // Determine if reflection can be deleted
+              const canDelete = isDeletable(reflection);
+              
+              const reflectionId = getReflectionId(reflection);
 
-            return (
-              <ReflectionCard
-                key={getReflectionId(reflection)}
-                reflection={reflection}
-                type={type}
-                stats={stats}
-                dateRange={dateRange}
-                reflectionWordCount={reflectionWordCount}
-                planWordCount={planWordCount}
-                canDelete={canDelete}
-                onDelete={handleDelete}
-                hasContent={reflectionHasContent}
-              />
-            );
-          })}
+              return (
+                <ReflectionCard
+                  key={reflectionId || reflection.id || `reflection-${Math.random()}`}
+                  reflection={reflection}
+                  type={type}
+                  stats={stats}
+                  dateRange={dateRange}
+                  reflectionWordCount={reflectionWordCount}
+                  planWordCount={planWordCount}
+                  canDelete={canDelete}
+                  onDelete={handleDelete}
+                  hasContent={reflectionHasContent}
+                />
+              );
+            } catch (error) {
+              console.error("Error rendering reflection card:", error, reflection);
+              return null;
+            }
+          }).filter(Boolean)}
         </div>
       )}
     </div>

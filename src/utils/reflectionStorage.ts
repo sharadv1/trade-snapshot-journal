@@ -1,4 +1,3 @@
-
 import { WeeklyReflection, MonthlyReflection } from '@/types';
 import { generateUUID } from './generateUUID';
 
@@ -9,19 +8,27 @@ const MONTHLY_REFLECTIONS_KEY = 'trade-journal-monthly-reflections';
 // Weekly Reflections
 export const getWeeklyReflections = async (): Promise<WeeklyReflection[]> => {
   try {
+    console.log('Getting weekly reflections from storage');
     const reflectionsJson = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
-    if (!reflectionsJson) return [];
+    if (!reflectionsJson) {
+      console.log('No weekly reflections found in storage');
+      return [];
+    }
     
     const parsed = JSON.parse(reflectionsJson);
+    console.log('Parsed weekly reflections:', typeof parsed);
     
     // Ensure we're returning an array
     if (Array.isArray(parsed)) {
       return parsed;
     } else if (typeof parsed === 'object') {
       // Convert object with reflection entries to array
-      return Object.values(parsed).filter(Boolean) as WeeklyReflection[];
+      const reflections = Object.values(parsed).filter(Boolean) as WeeklyReflection[];
+      console.log(`Converted ${reflections.length} weekly reflections from object to array`);
+      return reflections;
     }
     
+    console.log('Unknown format for weekly reflections, returning empty array');
     return [];
   } catch (error) {
     console.error('Error getting weekly reflections:', error);
