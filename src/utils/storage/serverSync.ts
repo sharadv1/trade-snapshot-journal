@@ -4,7 +4,10 @@ import {
   setServerSync, 
   SERVER_URL_KEY, 
   isUsingServerSync, 
-  getServerUrl 
+  getServerUrl,
+  isValidJsonResponse,
+  getLastConnectionError,
+  clearConnectionError
 } from './serverConnection';
 import { getTrades, saveTrades } from './storageOperations';
 import { checkStorageQuota, safeGetItem } from './storageUtils';
@@ -12,7 +15,7 @@ import { checkStorageQuota, safeGetItem } from './storageUtils';
 // Re-export the isUsingServerSync function
 export { isUsingServerSync, getServerUrl };
 
-// Initialize server connection
+// Initialize server connection with improved error handling
 export const initializeServerSync = (url: string): Promise<boolean> => {
   if (!url) {
     setServerSync(false, '');
@@ -27,40 +30,65 @@ export const initializeServerSync = (url: string): Promise<boolean> => {
   
   console.log('Pinging server at:', pingUrl);
   
-  return fetch(pingUrl)
-    .then(response => {
-      if (response.ok) {
-        // Check if response is actually JSON
-        return response.text().then(text => {
-          try {
-            // Try to parse as JSON to make sure it's not HTML
-            const pingData = JSON.parse(text);
-            if (pingData && pingData.status === 'ok') {
-              console.log('Successfully connected to trade server');
-              setServerSync(true, url);
-              toast.success('Connected to trade server successfully');
-              return true;
-            } else {
-              throw new Error('Invalid ping response format');
-            }
-          } catch (e) {
-            console.error('Server returned HTML instead of JSON:', text.substring(0, 100));
-            setServerSync(false, '');
-            toast.error('Server returned HTML instead of JSON. Check server URL configuration.');
-            return false;
-          }
-        });
-      } else {
+  // Add a timeout for the fetch to prevent long hanging connections
+  const timeout = 10000; // 10 seconds
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  return fetch(pingUrl, { signal: controller.signal })
+    .then(async response => {
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
         console.error('Server returned an error status', response.status);
         setServerSync(false, '');
-        toast.error('Failed to connect to trade server');
+        toast.error(`Failed to connect to trade server (status: ${response.status})`);
+        return false;
+      }
+
+      // Validate that the response is actually JSON, not HTML
+      const isJson = await isValidJsonResponse(response);
+      if (!isJson) {
+        const errorMessage = getLastConnectionError() || 'Server returned invalid content';
+        console.error(errorMessage);
+        setServerSync(false, '');
+        toast.error(errorMessage);
+        return false;
+      }
+      
+      try {
+        const pingData = await response.json();
+        if (pingData && pingData.status === 'ok') {
+          console.log('Successfully connected to trade server');
+          setServerSync(true, url);
+          toast.success('Connected to trade server successfully');
+          clearConnectionError();
+          return true;
+        } else {
+          throw new Error('Invalid ping response format');
+        }
+      } catch (e) {
+        console.error('Error parsing server response:', e);
+        setServerSync(false, '');
+        toast.error('Server returned invalid data. Check server configuration.');
         return false;
       }
     })
     .catch(error => {
+      clearTimeout(timeoutId);
       console.error('Error connecting to trade server:', error);
+      
+      let errorMessage = 'Cannot reach trade server';
+      
+      if (error.name === 'AbortError') {
+        errorMessage = 'Connection to server timed out';
+      } else if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        errorMessage = 'Network error - server unreachable';
+      }
+      
       setServerSync(false, '');
-      toast.error('Cannot reach trade server, using local storage only');
+      toast.error(`${errorMessage}, using local storage only`);
       return false;
     });
 };
@@ -87,15 +115,18 @@ export const configureServerConnection = async (url: string): Promise<boolean> =
       toast.warning('Storage space is low, server sync is recommended');
     }
     
+    // Clean up URL - make sure it has the correct structure for API access
+    const cleanUrl = url.trim();
+    
     // Try to save the URL in localStorage BEFORE trying to connect to server
     try {
-      setServerSync(true, url); // Set this BEFORE trying localStorage to ensure memory fallback works
+      setServerSync(true, cleanUrl); // Set this BEFORE trying localStorage to ensure memory fallback works
     } catch (storageError) {
       console.error('Failed to save server URL:', storageError);
       toast.warning('Could not save server settings, but proceeding with connection');
     }
     
-    const success = await initializeServerSync(url);
+    const success = await initializeServerSync(cleanUrl);
     
     // If connection is successful, immediately sync with server to get latest data
     if (success) {
@@ -195,7 +226,7 @@ export const syncAllData = async (): Promise<boolean> => {
   return success;
 };
 
-// Force sync with server (pull server data)
+// Force sync with server (pull server data) with enhanced validation
 export const syncWithServer = async (forceRefresh: boolean = false): Promise<boolean> => {
   const serverUrl = getServerUrl();
   
@@ -207,15 +238,33 @@ export const syncWithServer = async (forceRefresh: boolean = false): Promise<boo
   try {
     console.log('Syncing trades with server at:', serverUrl);
     
-    // If forceRefresh is true, always get from server
-    if (forceRefresh) {
-      const response = await fetch(serverUrl);
-      if (response.ok) {
-        // Check if response is actually JSON
-        const text = await response.text();
+    // Add a timeout for the fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+    
+    try {
+      // If forceRefresh is true, always get from server
+      if (forceRefresh) {
+        const response = await fetch(serverUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          console.error('Server returned an error status', response.status);
+          toast.error('Failed to sync trades with server');
+          return false;
+        }
+        
+        // Validate that we have a JSON response, not HTML
+        const isJson = await isValidJsonResponse(response);
+        if (!isJson) {
+          const errorMessage = getLastConnectionError() || 'Server returned invalid content';
+          console.error(errorMessage);
+          toast.error(errorMessage);
+          return false;
+        }
+        
         try {
-          // Try to parse as JSON to make sure it's not HTML
-          const serverTrades = JSON.parse(text);
+          const serverTrades = await response.json();
           
           if (Array.isArray(serverTrades)) {
             localStorage.setItem('trade-journal-trades', JSON.stringify(serverTrades));
@@ -226,28 +275,36 @@ export const syncWithServer = async (forceRefresh: boolean = false): Promise<boo
             throw new Error('Server returned invalid data format (not an array)');
           }
         } catch (e) {
-          console.error('Server returned HTML instead of JSON:', text.substring(0, 100));
-          toast.error('Server returned HTML instead of JSON. Check server URL configuration.');
+          console.error('Error parsing server response:', e);
+          toast.error('Server returned invalid data. Check server configuration.');
           return false;
         }
       } else {
-        console.error('Server returned an error status', response.status);
-        toast.error('Failed to sync trades with server');
-        return false;
-      }
-    } else {
-      // Normal two-way sync
-      // First get current trades
-      const localTrades = await getTrades();
-      
-      // Try to get server trades
-      const response = await fetch(serverUrl);
-      if (response.ok) {
-        // Check if response is actually JSON
-        const text = await response.text();
+        // Normal two-way sync
+        // First get current trades
+        const localTrades = await getTrades();
+        
+        // Try to get server trades
+        const response = await fetch(serverUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          console.error('Server returned an error status', response.status);
+          toast.error('Failed to sync trades with server');
+          return false;
+        }
+        
+        // Validate that we have a JSON response, not HTML
+        const isJson = await isValidJsonResponse(response);
+        if (!isJson) {
+          const errorMessage = getLastConnectionError() || 'Server returned invalid content';
+          console.error(errorMessage);
+          toast.error(errorMessage);
+          return false;
+        }
+        
         try {
-          // Try to parse as JSON to make sure it's not HTML
-          const serverTrades = JSON.parse(text);
+          const serverTrades = await response.json();
           
           if (!Array.isArray(serverTrades)) {
             throw new Error('Server returned invalid data format (not an array)');
@@ -262,26 +319,37 @@ export const syncWithServer = async (forceRefresh: boolean = false): Promise<boo
             console.log('Using server trades (same or more trades)');
           } else {
             // Local has more trades, push to server
-            await fetch(serverUrl, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(localTrades),
-            });
-            console.log('Pushed local trades to server (more local trades)');
+            const pushController = new AbortController();
+            const pushTimeoutId = setTimeout(() => pushController.abort(), 10000);
+            
+            try {
+              await fetch(serverUrl, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(localTrades),
+                signal: pushController.signal
+              });
+              console.log('Pushed local trades to server (more local trades)');
+            } catch (pushError) {
+              console.error('Error pushing trades to server:', pushError);
+              toast.error('Failed to push local trades to server');
+              clearTimeout(pushTimeoutId);
+              return false;
+            } finally {
+              clearTimeout(pushTimeoutId);
+            }
           }
           return true;
         } catch (e) {
-          console.error('Server returned HTML instead of JSON:', text.substring(0, 100));
-          toast.error('Server returned HTML instead of JSON. Check server URL configuration.');
+          console.error('Error processing server data:', e);
+          toast.error('Error processing server data');
           return false;
         }
-      } else {
-        console.error('Server returned an error status', response.status);
-        toast.error('Failed to sync trades with server');
-        return false;
       }
+    } finally {
+      clearTimeout(timeoutId);
     }
   } catch (error) {
     console.error('Error syncing with server:', error);

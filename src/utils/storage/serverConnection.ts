@@ -1,3 +1,4 @@
+
 import { safeGetItem, safeSetItem } from './storageUtils';
 
 // Server URL storage key
@@ -9,6 +10,9 @@ let serverUrl = '';
 
 // Memory fallback when localStorage is full
 let memoryServerUrl = '';
+
+// Add error handling state
+let lastConnectionError: string | null = null;
 
 // Get the server connection status
 export const isUsingServerSync = (): boolean => {
@@ -36,6 +40,15 @@ export const getServerUrl = (): string => {
   return memoryServerUrl;
 };
 
+// Allow retrieval of the last connection error
+export const getLastConnectionError = (): string | null => {
+  return lastConnectionError;
+};
+
+export const clearConnectionError = (): void => {
+  lastConnectionError = null;
+};
+
 export const setServerSync = (enabled: boolean, url: string = ''): void => {
   useServerSync = enabled;
   
@@ -50,6 +63,9 @@ export const setServerSync = (enabled: boolean, url: string = ''): void => {
   
   // Log to help with debugging
   console.log(`Server sync ${enabled ? 'enabled' : 'disabled'}${enabled ? ' with URL: ' + url : ''}`);
+
+  // Clear any previous connection errors when changing state
+  lastConnectionError = null;
 
   // If enabling with a URL, save to localStorage
   if (enabled && url) {
@@ -160,3 +176,29 @@ export const isLikelyDockerEnvironment = (): boolean => {
     origin !== 'http://127.0.0.1:5173'
   );
 };
+
+// Helper to validate if a response is actually JSON and not HTML
+export const isValidJsonResponse = async (response: Response): Promise<boolean> => {
+  try {
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      // Server might be returning HTML - get a small preview to log
+      const text = await response.clone().text();
+      const preview = text.substring(0, 100);
+      console.error('Server returned non-JSON content:', preview);
+      lastConnectionError = 'Server returned HTML instead of JSON. The server may not be properly configured.';
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Error validating JSON response:', error);
+    lastConnectionError = error instanceof Error ? error.message : 'Unknown validation error';
+    return false;
+  }
+};
+
+// Check if the server is a development Vite server
+export const isDevServer = (url: string): boolean => {
+  return url.includes('localhost') || url.includes('127.0.0.1');
+};
+

@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { toast } from '@/utils/toast';
 
-// Cache for tracking generation attempts across component instances
+// Global cache for tracking generation attempts across component instances
 const generationState = {
   hasGenerated: false,
   inProgress: false,
@@ -19,6 +19,7 @@ export function useReflectionGenerator() {
   const isMounted = useRef(true);
   const isProcessingRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const attemptsRef = useRef(0);
 
   // Clear any timeouts when unmounting
   useEffect(() => {
@@ -48,6 +49,16 @@ export function useReflectionGenerator() {
       return;
     }
     
+    // Limit the number of attempts to prevent infinite loops
+    if (attemptsRef.current > 3) {
+      console.log('Too many reflection generation attempts, stopping');
+      setIsGenerating(false);
+      setError('Too many generation attempts. Please refresh the page and try again.');
+      return;
+    }
+    
+    attemptsRef.current++;
+    
     // Begin generation process
     const generateReflections = async () => {
       try {
@@ -60,6 +71,12 @@ export function useReflectionGenerator() {
         // Dynamically import trade operations with a timeout guard
         timeoutRef.current = setTimeout(async () => {
           try {
+            // Safety check to prevent further processing if component unmounted
+            if (!isMounted.current) {
+              cleanupProcessing();
+              return;
+            }
+            
             const { getTradesWithMetrics } = await import('@/utils/storage/tradeOperations');
             
             // Get trades safely

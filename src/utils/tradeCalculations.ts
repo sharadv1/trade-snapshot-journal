@@ -21,7 +21,21 @@ const tradeCache = {
   timestamp: 0,
   weekCache: new Map<string, TradeWithMetrics[]>(),
   currentRequest: null as string | null,
-  pendingRequests: new Set<string>()
+  pendingRequests: new Set<string>(),
+  lastCacheInvalidation: 0
+};
+
+// Clear cache when necessary
+const checkAndInvalidateCache = () => {
+  const now = Date.now();
+  // Invalidate the cache every 30 seconds to ensure fresh data
+  if (now - tradeCache.lastCacheInvalidation > 30000) {
+    tradeCache.trades = null;
+    tradeCache.timestamp = 0;
+    tradeCache.weekCache.clear();
+    tradeCache.lastCacheInvalidation = now;
+    console.log('Trade cache invalidated due to age');
+  }
 };
 
 /**
@@ -30,6 +44,15 @@ const tradeCache = {
  */
 export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<TradeWithMetrics[]> => {
   try {
+    // Validate inputs first to prevent issues
+    if (!weekStart || !weekEnd || !(weekStart instanceof Date) || !(weekEnd instanceof Date)) {
+      console.error('Invalid week parameters:', { weekStart, weekEnd });
+      return [];
+    }
+    
+    // Periodically invalidate cache to ensure fresh data
+    checkAndInvalidateCache();
+    
     // Create a cache key for this specific week request
     const cacheKey = `${weekStart.toISOString()}_${weekEnd.toISOString()}`;
     
@@ -104,7 +127,9 @@ export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<
   } catch (error) {
     console.error('Error getting trades for week:', error);
     // Remove from pending requests to allow retries
-    tradeCache.pendingRequests.delete(`${weekStart.toISOString()}_${weekEnd.toISOString()}`);
+    if (weekStart && weekEnd) {
+      tradeCache.pendingRequests.delete(`${weekStart.toISOString()}_${weekEnd.toISOString()}`);
+    }
     return [];
   }
 };
@@ -116,4 +141,6 @@ export const clearTradeCache = () => {
   tradeCache.weekCache.clear();
   tradeCache.currentRequest = null;
   tradeCache.pendingRequests.clear();
+  tradeCache.lastCacheInvalidation = Date.now();
+  console.log('Trade cache manually cleared');
 };
