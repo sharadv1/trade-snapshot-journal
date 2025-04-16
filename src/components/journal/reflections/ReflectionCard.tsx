@@ -1,12 +1,12 @@
 
-import React, { memo, useCallback } from 'react';
+import React, { memo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { ArrowRight, Calendar, Check } from 'lucide-react';
 import { getGradeColorClass } from '@/utils/journal/reflectionUtils';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export interface ReflectionCardProps {
   reflection: WeeklyReflection | MonthlyReflection;
@@ -18,7 +18,7 @@ export interface ReflectionCardProps {
     tradeCount: number;
     hasContent: boolean;
   };
-  // Optional props that were causing the type error
+  // Optional props
   hasContent?: boolean;
   reflectionWordCount?: number;
   planWordCount?: number;
@@ -26,7 +26,6 @@ export interface ReflectionCardProps {
   onDelete?: (reflectionId: string) => Promise<void>;
 }
 
-// Using memo with a custom comparison function to prevent unnecessary re-renders
 export const ReflectionCard = memo(({
   reflection,
   type,
@@ -34,79 +33,24 @@ export const ReflectionCard = memo(({
   stats,
   hasContent,
 }: ReflectionCardProps) => {
-  const navigate = useNavigate();
-  
   // Get grade
   const grade = reflection.grade;
   
   // Determine if reflection is profitable
   const isProfitable = stats.pnl > 0;
   
-  // Content preview with memoization
-  const contentPreview = useCallback(() => {
-    if (!reflection.reflection || typeof reflection.reflection !== 'string') return '';
-    
-    try {
-      // Extract plain text and limit to first 100 characters
-      const plainText = reflection.reflection.replace(/<[^>]*>/g, ' ').trim();
-      return plainText.length > 100 ? `${plainText.substring(0, 100)}...` : plainText;
-    } catch (e) {
-      console.error('Error parsing reflection content:', e);
-      return '';
-    }
-  }, [reflection.reflection]);
-  
-  // Ultra-optimized navigation handler to prevent UI freezing
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const reflectionId = type === 'weekly' 
-      ? (reflection as WeeklyReflection).weekId || reflection.id
-      : (reflection as MonthlyReflection).monthId || reflection.id;
-    
-    if (!reflectionId) {
-      console.error('Cannot navigate to reflection with empty ID');
-      return;
-    }
-    
-    // Apply visual feedback immediately
-    const card = e.currentTarget;
-    if (card) {
-      card.classList.add('opacity-80');
-    }
-    
-    // Prepare the route ahead of time
-    const route = `/journal/${type}/${reflectionId}`;
-    console.log(`Preparing to navigate to: ${route}`);
-    
-    // Use window.requestIdleCallback if available, or setTimeout as fallback
-    // This ensures navigation happens during an idle period, preventing UI freeze
-    const navigateWhenIdle = () => {
-      // Remove visual feedback before navigating
-      if (card) {
-        card.classList.remove('opacity-80');
-      }
-      console.log(`Navigating to: ${route}`);
-      navigate(route);
-    };
-    
-    if (typeof window.requestIdleCallback === 'function') {
-      window.requestIdleCallback(() => navigateWhenIdle(), { timeout: 100 });
-    } else {
-      // Fallback to setTimeout with a minimal delay
-      setTimeout(navigateWhenIdle, 20);
-    }
-  }, [reflection, type, navigate]);
+  // Get reflection ID
+  const reflectionId = type === 'weekly' 
+    ? (reflection as WeeklyReflection).weekId || reflection.id
+    : (reflection as MonthlyReflection).monthId || reflection.id;
 
   return (
     <Card 
-      className={`hover:bg-accent/10 transition-colors cursor-pointer ${
+      className={`hover:bg-accent/10 transition-colors ${
         reflection.isPlaceholder ? 'border-dashed' : ''
       }`}
-      onClick={handleClick}
     >
-      <div className="block p-4">
+      <Link to={`/journal/${type}/${reflectionId}`} className="block p-4">
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-base font-medium inline-flex items-center">
@@ -162,10 +106,12 @@ export const ReflectionCard = memo(({
         
         {reflection.reflection && (
           <div className="mt-3 text-sm text-muted-foreground line-clamp-2">
-            {contentPreview()}
+            {typeof reflection.reflection === 'string' ? 
+              reflection.reflection.replace(/<[^>]*>/g, ' ').trim().substring(0, 100) + (reflection.reflection.length > 100 ? '...' : '') : 
+              ''}
           </div>
         )}
-      </div>
+      </Link>
     </Card>
   );
 }, (prevProps, nextProps) => {

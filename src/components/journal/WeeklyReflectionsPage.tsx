@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useReflectionGenerator } from '@/hooks/useReflectionGenerator';
 import { Loader2, Plus, Search, RefreshCw } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { ReflectionCard } from './reflections/ReflectionCard';
 import { getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflectionUtils';
@@ -20,7 +20,6 @@ const reflectionsCache = {
 };
 
 export function WeeklyReflectionsPage() {
-  const navigate = useNavigate();
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
   const [filteredReflections, setFilteredReflections] = useState<WeeklyReflection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
