@@ -13,7 +13,15 @@ const generationState = {
 const reflectionCache = {
   timestamp: 0,
   isValid: false,
-  forceSkipPaths: ['/journal', '/journal/weekly', '/journal/monthly', '/journal/weekly/', '/journal/monthly/']
+  forceSkipPaths: [
+    '/journal', 
+    '/journal/weekly', 
+    '/journal/monthly', 
+    '/journal/weekly/', 
+    '/journal/monthly/',
+    '/journal/weekly?forceHideBadge=true',
+    '/journal/monthly?forceHideBadge=true'
+  ]
 };
 
 export function useReflectionGenerator() {
@@ -33,14 +41,14 @@ export function useReflectionGenerator() {
   
   // Check route immediately on mount
   useEffect(() => {
-    const path = window.location.pathname;
+    const path = window.location.pathname + window.location.search;
     
     // Check for detail pages (with path parameters)
     const isDetailPage = path.match(/\/journal\/(weekly|monthly)\/[^\/]+$/i);
     
-    // Immediately mark as complete and skip all processing on journal pages
-    if (reflectionCache.forceSkipPaths.some(skipPath => path.startsWith(skipPath)) || isDetailPage) {
-      console.log(`Skipping reflection generation on path: ${path}`);
+    // Check for routing patterns that should skip generation
+    if (reflectionCache.forceSkipPaths.some(skipPath => path === skipPath || path.startsWith(skipPath + '?'))) {
+      console.log(`Skipping reflection generation on journal listing path: ${path}`);
       shouldForceSkip.current = true;
       setIsComplete(true);
       setIsGenerating(false);
@@ -53,7 +61,7 @@ export function useReflectionGenerator() {
         setIsComplete(true);
         setIsGenerating(false);
       }
-    }, 1000); // Reduced from 2000ms to 1000ms for faster completion
+    }, 500); // Reduced from 1000ms to 500ms for faster completion
     
     return () => clearTimeout(safetyTimer);
   }, []);
@@ -80,12 +88,14 @@ export function useReflectionGenerator() {
     }
     
     // Re-check route on effect - route could have changed
-    const currentPath = window.location.pathname;
+    const currentPath = window.location.pathname + window.location.search;
+    
     // Check for detail pages (with path parameters)
     const isDetailPage = currentPath.match(/\/journal\/(weekly|monthly)\/[^\/]+$/i);
     
-    if (reflectionCache.forceSkipPaths.some(skipPath => currentPath.startsWith(skipPath)) || isDetailPage) {
-      console.log(`Route check: skipping reflection generation on path: ${currentPath}`);
+    // Check for routing patterns that should skip generation
+    if (reflectionCache.forceSkipPaths.some(skipPath => currentPath === skipPath || currentPath.startsWith(skipPath + '?')) || isDetailPage) {
+      console.log(`Route check: skipping reflection generation on journal path: ${currentPath}`);
       setIsComplete(true);
       setIsGenerating(false);
       return;
@@ -104,14 +114,14 @@ export function useReflectionGenerator() {
           generationState.hasGenerated = true;
           generationState.inProgress = false;
         }
-      }, 1000); // Reduced timeout to 1 second to prevent UI freezing
+      }, 800); // Reduced timeout to prevent UI freezing
       
       return;
     }
     
     // Check cache validity - to further reduce unnecessary processing
     const now = Date.now();
-    if (reflectionCache.isValid && (now - reflectionCache.timestamp < 30000)) {
+    if (reflectionCache.isValid && (now - reflectionCache.timestamp < 60000)) {
       console.log('Using cached generation state, skipping');
       setIsComplete(true);
       setIsGenerating(false);
@@ -119,15 +129,15 @@ export function useReflectionGenerator() {
     }
     
     // Skip if already completed successfully recently
-    if (generationState.hasGenerated && (now - generationState.lastAttempt < 30000)) {
+    if (generationState.hasGenerated && (now - generationState.lastAttempt < 60000)) {
       console.log('Using cached generation result from recent successful attempt');
       setIsComplete(true);
       setIsGenerating(false);
       return;
     }
     
-    // Limit the number of attempts to prevent infinite loops
-    if (attemptsRef.current > 0) { // Only allow one attempt max per instance
+    // Hard limit the number of attempts to prevent infinite loops
+    if (attemptsRef.current >= 1) { // Only allow one attempt max per instance
       console.log('Limiting reflection generation attempts to prevent loops');
       setIsGenerating(false);
       setIsComplete(true); // Mark as complete anyway to prevent UI blocking
@@ -139,12 +149,12 @@ export function useReflectionGenerator() {
     // Begin generation process with a slight delay to avoid UI blocking
     setTimeout(async () => {
       try {
-        // Check one final time if path is a journal page
-        const currentPathFinal = window.location.pathname;
+        // Final check if path is a journal page
+        const currentPathFinal = window.location.pathname + window.location.search;
         const isDetailPageFinal = currentPathFinal.match(/\/journal\/(weekly|monthly)\/[^\/]+$/i);
         
-        if (reflectionCache.forceSkipPaths.some(skipPath => currentPathFinal.startsWith(skipPath)) || isDetailPageFinal) {
-          console.log(`Final check: skipping reflection generation on path: ${currentPathFinal}`);
+        if (reflectionCache.forceSkipPaths.some(skipPath => currentPathFinal === skipPath || currentPathFinal.startsWith(skipPath + '?')) || isDetailPageFinal) {
+          console.log(`Final check: skipping reflection generation on journal path: ${currentPathFinal}`);
           updateCompleteState();
           return;
         }
@@ -161,7 +171,7 @@ export function useReflectionGenerator() {
             console.log('Forcing reflection generation completion after timeout');
             updateCompleteState();
           }
-        }, 1500);
+        }, 1000);
         
         // Dynamically import with a timeout guard
         timeoutRef.current = setTimeout(async () => {

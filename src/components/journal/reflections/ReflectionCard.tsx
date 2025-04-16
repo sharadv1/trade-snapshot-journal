@@ -56,7 +56,7 @@ export const ReflectionCard = memo(({
     }
   }, [reflection.reflection]);
   
-  // Handle navigation with stopPropagation to prevent bubbling
+  // Handle navigation with improved performance
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -65,10 +65,13 @@ export const ReflectionCard = memo(({
       ? (reflection as WeeklyReflection).weekId || reflection.id
       : (reflection as MonthlyReflection).monthId || reflection.id;
     
-    // Use timeout to prevent UI freezing during navigation
-    setTimeout(() => {
-      navigate(`/journal/${type}/${reflectionId}`);
-    }, 10);
+    // Pre-cache the route we're going to
+    const route = `/journal/${type}/${reflectionId}`;
+    
+    // Use requestAnimationFrame to ensure UI updates before navigation
+    requestAnimationFrame(() => {
+      navigate(route);
+    });
   }, [reflection, type, navigate]);
 
   return (
