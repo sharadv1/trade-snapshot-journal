@@ -965,23 +965,3 @@ export const getWeeklyReflectionsForMonth = (monthId: string): WeeklyReflection[
     return [];
   }
 };
-
-export const getWeeklyReflection = (weekId: string) => {
-  try {
-    const reflections = getAllWeeklyReflections();
-    return reflections[weekId] || null;
-  } catch (error) {
-    console.error('Error getting weekly reflection:', error);
-    return null;
-  }
-};
-
-export const weeklyReflectionExists = (weekId: string) => {
-  try {
-    const reflections = getAllWeeklyReflections();
-    return !!reflections[weekId];
-  } catch (error) {
-    console.error('Error checking if weekly reflection exists:', error);
-    return false;
-  }
-};
