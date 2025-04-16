@@ -1,7 +1,6 @@
 
 import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
@@ -19,8 +18,12 @@ export interface ReflectionCardProps {
     tradeCount: number;
     hasContent: boolean;
   };
-  // Optional props
+  // Optional props that were causing the type error
   hasContent?: boolean;
+  reflectionWordCount?: number;
+  planWordCount?: number;
+  canDelete?: boolean;
+  onDelete?: (reflectionId: string) => Promise<void>;
 }
 
 // Using memo to prevent unnecessary re-renders of reflection cards
@@ -29,7 +32,11 @@ export const ReflectionCard = memo(({
   type,
   dateRange,
   stats,
-  hasContent
+  hasContent,
+  reflectionWordCount,
+  planWordCount,
+  canDelete,
+  onDelete
 }: ReflectionCardProps) => {
   // Get the reflection ID (weekId or monthId)
   const id = type === 'weekly' 
