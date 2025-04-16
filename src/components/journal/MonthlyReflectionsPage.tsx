@@ -1,217 +1,229 @@
 
-import React, { useEffect, useState } from 'react';
-import { ReflectionsList } from './ReflectionsList';
+import React, { useEffect, useState, useCallback } from 'react';
 import { MonthlyReflection } from '@/types';
-import { 
-  getAllMonthlyReflections, 
-  monthlyReflectionExists,
-  getMonthlyReflection
-} from '@/utils/journalStorage';
-import { startOfMonth, endOfMonth, addMonths, format } from 'date-fns';
-import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
+import { getMonthlyReflections } from '@/utils/journal/reflectionStorage';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { useReflectionGenerator } from '@/hooks/useReflectionGenerator';
+import { Loader2, Plus, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { format, parseISO } from 'date-fns';
+import { Input } from '@/components/ui/input';
+import { ReflectionCard } from './reflections/ReflectionCard';
+import { getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflectionUtils';
 
 export function MonthlyReflectionsPage() {
   const [reflections, setReflections] = useState<MonthlyReflection[]>([]);
+  const [filteredReflections, setFilteredReflections] = useState<MonthlyReflection[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
+  // Use the reflection generator hook to ensure reflections are created
+  const { isGenerating, error: generationError, isComplete } = useReflectionGenerator();
+  
+  // Function to load reflections
+  const loadReflections = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    
+    try {
+      console.log("Loading monthly reflections...");
+      const fetchedReflections = await getMonthlyReflections();
+      
+      if (Array.isArray(fetchedReflections)) {
+        // Sort reflections by date (most recent first)
+        const sortedReflections = fetchedReflections.sort((a, b) => {
+          if (!a.monthStart || !b.monthStart) return 0;
+          
+          try {
+            return new Date(b.monthStart).getTime() - new Date(a.monthStart).getTime();
+          } catch (error) {
+            console.warn("Error sorting reflections by date:", error);
+            return 0;
+          }
+        });
+        
+        setReflections(sortedReflections);
+        setFilteredReflections(sortedReflections);
+      } else {
+        console.error('Expected array of reflections but got:', typeof fetchedReflections);
+        setReflections([]);
+        setFilteredReflections([]);
+        setLoadError("Invalid reflection data format");
+      }
+    } catch (error) {
+      console.error("Error loading reflections:", error);
+      setLoadError("Failed to load reflections. Please try refreshing the page.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Handle search
   useEffect(() => {
-    // Generate all months from start of 2025
-    const generateAllMonths = () => {
-      console.log("Generating months list for MonthlyReflectionsPage");
-      const start = new Date(2025, 0, 1); // January 1, 2025
-      const today = new Date();
-      const allTrades = getTradesWithMetrics();
-      
-      // Map to track months by their actual date range to prevent duplicates
-      const monthsByRange = new Map<string, MonthlyReflection>();
-      
-      // First, collect all existing reflections from storage
-      const existingReflections = getAllMonthlyReflections();
-      
-      // First pass: Process all existing reflections
-      Object.values(existingReflections).forEach(reflection => {
-        if (reflection && typeof reflection === 'object' && 'id' in reflection) {
-          const reflectionObj = reflection as MonthlyReflection;
-          
-          // Skip placeholders or empty reflections
-          if (!reflectionObj.monthId) return;
-          
-          // Generate a normalized month key that represents the actual month range
-          let normalizedMonthKey = "";
-          
-          if (reflectionObj.monthStart && reflectionObj.monthEnd) {
-            const startDate = new Date(reflectionObj.monthStart);
-            normalizedMonthKey = format(startDate, 'yyyy-MM');
-          } else if (reflectionObj.monthId) {
-            // Try to parse the ID as a month
-            if (reflectionObj.monthId.match(/^\d{4}-\d{2}$/)) {
-              normalizedMonthKey = reflectionObj.monthId;
-            } else {
-              try {
-                const monthDate = new Date(reflectionObj.monthId);
-                if (!isNaN(monthDate.getTime())) {
-                  normalizedMonthKey = format(monthDate, 'yyyy-MM');
-                } else {
-                  normalizedMonthKey = reflectionObj.monthId;
-                }
-              } catch (e) {
-                normalizedMonthKey = reflectionObj.monthId;
-              }
-            }
-          }
-          
-          if (!normalizedMonthKey) {
-            console.log(`Skipping reflection due to missing month data:`, reflectionObj);
-            return;
-          }
-          
-          // Calculate metrics for this reflection
-          const monthTrades = allTrades.filter(trade => {
-            if (trade.exitDate && reflectionObj.monthStart && reflectionObj.monthEnd) {
-              const exitDate = new Date(trade.exitDate);
-              const monthStart = new Date(reflectionObj.monthStart);
-              const monthEndDate = new Date(reflectionObj.monthEnd);
-              return exitDate >= monthStart && exitDate <= monthEndDate;
-            }
-            return false;
-          });
-          
-          // Calculate metrics using pre-calculated trade metrics
-          const totalPnL = monthTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
-          const totalR = monthTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
-          
-          // Check if we already have a reflection for this month
-          const existingEntry = monthsByRange.get(normalizedMonthKey);
-          
-          // If no existing entry or this one is newer (non-placeholder or has content), use this one
-          const hasContent = !!reflectionObj.reflection;
-          const isPlaceholder = reflectionObj.isPlaceholder === true;
-          
-          if (!existingEntry || 
-              // Prefer entries with content over empty ones
-              (hasContent && !existingEntry.reflection) ||
-              // Prefer non-placeholder entries
-              (!isPlaceholder && existingEntry.isPlaceholder) ||
-              // If both have content and same placeholder status, use the one with latest update
-              (hasContent && !!existingEntry.reflection && 
-               (isPlaceholder === existingEntry.isPlaceholder) && 
-               reflectionObj.lastUpdated && existingEntry.lastUpdated && 
-               new Date(reflectionObj.lastUpdated) > new Date(existingEntry.lastUpdated))) {
-            
-            // Include additional metrics in the reflection object
-            monthsByRange.set(normalizedMonthKey, {
-              ...reflectionObj,
-              date: reflectionObj.monthStart || reflectionObj.date || new Date().toISOString(),
-              monthId: reflectionObj.monthId,
-              totalPnL,
-              totalR,
-              tradeIds: monthTrades.map(trade => trade.id),
-              isPlaceholder: isPlaceholder
-            });
-            
-            console.log(`Selected reflection for month ${normalizedMonthKey}:`, reflectionObj.monthId);
-          } else {
-            console.log(`Skipping duplicate reflection for month ${normalizedMonthKey}:`, reflectionObj.monthId);
-          }
-        }
-      });
-      
-      // Second pass: Generate placeholder reflections ONLY for months with trades that don't have reflections yet
-      let currentDate = startOfMonth(start);
-      
-      while (currentDate <= today) {
-        const monthStart = startOfMonth(currentDate);
-        const monthEnd = endOfMonth(currentDate);
-        const normalizedMonthKey = format(monthStart, 'yyyy-MM');
-        const monthId = normalizedMonthKey;
-        
-        // Only add a placeholder if this month doesn't already exist in our map
-        if (!monthsByRange.has(normalizedMonthKey)) {
-          // Check if there are any trades for this month
-          const monthTrades = allTrades.filter(trade => {
-            if (trade.exitDate) {
-              const exitDate = new Date(trade.exitDate);
-              return exitDate >= monthStart && exitDate <= monthEnd;
-            }
-            return false;
-          });
-          
-          // Only create a placeholder if there are trades for this month
-          if (monthTrades.length > 0) {
-            const totalPnL = monthTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
-            const totalR = monthTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
-            
-            // Create a placeholder reflection with trade info
-            monthsByRange.set(normalizedMonthKey, {
-              id: monthId,
-              date: monthStart.toISOString(), // Add a date property to avoid TypeScript errors
-              monthId: monthId,
-              monthStart: monthStart.toISOString(),
-              monthEnd: monthEnd.toISOString(),
-              reflection: '',
-              grade: '',
-              tradeIds: monthTrades.map(trade => trade.id),
-              isPlaceholder: true,
-              totalPnL,
-              totalR
-            });
-            
-            console.log(`Created placeholder for month with trades: ${normalizedMonthKey}`);
-          }
-        }
-        
-        currentDate = addMonths(currentDate, 1);
+    if (searchQuery.trim() === '') {
+      setFilteredReflections(reflections);
+      return;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    const filtered = reflections.filter(reflection => {
+      // Search in date
+      if (reflection.monthStart && reflection.monthStart.toLowerCase().includes(query)) {
+        return true;
       }
       
-      // Convert map to array and sort by date (most recent first)
-      const uniqueReflections = Array.from(monthsByRange.values()).sort((a, b) => {
-        if (!a.monthStart || !b.monthStart) return 0;
-        return new Date(b.monthStart).getTime() - new Date(a.monthStart).getTime();
-      });
+      // Search in content
+      if (reflection.reflection && reflection.reflection.toLowerCase().includes(query)) {
+        return true;
+      }
       
-      console.log(`Generated ${uniqueReflections.length} unique monthly reflections`);
-      return uniqueReflections;
+      return false;
+    });
+    
+    setFilteredReflections(filtered);
+  }, [searchQuery, reflections]);
+
+  // Initial load of reflections
+  useEffect(() => {
+    if (isComplete || !isGenerating) {
+      loadReflections();
+    }
+  }, [loadReflections, isComplete, isGenerating]);
+  
+  // Set up event listeners for storage updates
+  useEffect(() => {
+    const handleStorageUpdate = () => {
+      console.log("Journal update detected - refreshing reflections list");
+      loadReflections();
     };
     
-    const allMonths = generateAllMonths();
-    setReflections(allMonths);
-    
-    // Listen for updates to reflections
-    const handleUpdate = () => {
-      const updatedMonths = generateAllMonths();
-      setReflections(updatedMonths);
-    };
-    
-    window.addEventListener('journal-updated', handleUpdate);
-    window.addEventListener('journalUpdated', handleUpdate);
-    window.addEventListener('trades-updated', handleUpdate);
-    window.addEventListener('storage', handleUpdate);
+    // Register event listeners
+    window.addEventListener('journal-updated', handleStorageUpdate);
+    window.addEventListener('storage', handleStorageUpdate);
     
     return () => {
-      window.removeEventListener('journal-updated', handleUpdate);
-      window.removeEventListener('journalUpdated', handleUpdate);
-      window.removeEventListener('trades-updated', handleUpdate);
-      window.removeEventListener('storage', handleUpdate);
+      // Clean up event listeners
+      window.removeEventListener('journal-updated', handleStorageUpdate);
+      window.removeEventListener('storage', handleStorageUpdate);
     };
-  }, []);
+  }, [loadReflections]);
   
-  // Get stats function for monthly reflections
-  const getMonthlyStats = (reflection: MonthlyReflection) => {
-    return {
-      pnl: reflection.totalPnL || 0,
-      rValue: reflection.totalR || 0,
-      tradeCount: reflection.tradeIds?.length || 0,
-      // Correctly determine if the reflection has content
-      hasContent: !!reflection.reflection && !reflection.isPlaceholder
-    };
+  // Format date range for display
+  const formatDateRange = (reflection: MonthlyReflection) => {
+    if (reflection.monthStart && reflection.monthEnd) {
+      try {
+        const start = parseISO(reflection.monthStart);
+        return format(start, 'MMMM yyyy');
+      } catch (error) {
+        console.error("Error formatting date range:", error);
+        return 'Invalid date range';
+      }
+    } else if (reflection.monthId) {
+      try {
+        const [year, month] = reflection.monthId.split('-').map(n => parseInt(n));
+        const date = new Date(year, month - 1, 1);
+        return format(date, 'MMMM yyyy');
+      } catch (error) {
+        console.error("Error parsing month ID:", error);
+        return 'Invalid date';
+      }
+    }
+    return 'Date unavailable';
   };
   
+  // Render loading state
+  if (isLoading || isGenerating) {
+    return (
+      <div className="flex justify-center items-center py-12 flex-col">
+        <Loader2 className="h-8 w-8 animate-spin mb-4" />
+        <p className="text-muted-foreground">
+          {isGenerating ? 'Generating reflections...' : 'Loading reflections...'}
+        </p>
+      </div>
+    );
+  }
+  
+  // Render error state
+  if (loadError || generationError) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <p className="text-center text-red-500">{loadError || generationError || "An unknown error occurred"}</p>
+          <div className="flex justify-center mt-4">
+            <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Render empty state
+  if (reflections.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <p className="text-center">No monthly reflections found. Start creating your trading journal!</p>
+          <div className="flex justify-center mt-4">
+            <Button asChild>
+              <Link to={`/journal/monthly/${getCurrentPeriodId('monthly')}`}>Create First Reflection</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Render reflections list
   return (
     <div className="w-full max-w-screen-xl mx-auto">
-      <ReflectionsList 
-        reflections={reflections}
-        type="monthly"
-        getStats={getMonthlyStats}
-      />
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Monthly Reflections</h2>
+        <div className="flex gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search reflections..."
+              className="pl-8 w-[200px]"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button asChild>
+            <Link to={`/journal/monthly/${getCurrentPeriodId('monthly')}`}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Month
+            </Link>
+          </Button>
+        </div>
+      </div>
+      
+      {filteredReflections.length === 0 && searchQuery ? (
+        <p className="text-center py-8 text-muted-foreground">
+          No reflections matching "{searchQuery}"
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {filteredReflections.map((reflection) => {
+            if (!reflection || !reflection.id) return null;
+            
+            const stats = getReflectionStats(reflection);
+            const dateRange = formatDateRange(reflection);
+            
+            return (
+              <ReflectionCard
+                key={reflection.id}
+                reflection={reflection}
+                type="monthly"
+                dateRange={dateRange}
+                stats={stats}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -11,7 +11,6 @@ export function useReflectionGenerator() {
   useEffect(() => {
     let isMounted = true;
     
-    // Generate reflections when component mounts
     const generateReflections = async () => {
       if (!isMounted) return;
       
@@ -24,17 +23,11 @@ export function useReflectionGenerator() {
           console.log(`Found ${trades.length} trades for reflection generation`);
           
           try {
-            // Dynamically import to avoid circular dependencies
-            const { generateMissingReflections } = await import('@/utils/reflectionGenerator');
+            // Import dynamically to avoid circular dependencies
+            const { generateMissingReflections } = await import('@/utils/journal/reflectionGenerator');
             await generateMissingReflections(trades);
             
             if (!isMounted) return;
-            
-            // Dispatch an event to notify the UI that reflections have been generated
-            const customEvent = new CustomEvent('journal-updated', { 
-              detail: { source: 'reflectionGenerator', success: true } 
-            });
-            window.dispatchEvent(customEvent);
             
             console.log('Reflections generation completed successfully');
             setIsComplete(true);
@@ -54,12 +47,6 @@ export function useReflectionGenerator() {
         setError(error instanceof Error ? error.message : 'Unknown error');
         
         toast.error('Failed to generate reflections. Please try again.');
-        
-        // Dispatch an event even when there's an error so UI can stop showing loading state
-        const customEvent = new CustomEvent('journal-updated', { 
-          detail: { source: 'reflectionGenerator', error: true } 
-        });
-        window.dispatchEvent(customEvent);
       } finally {
         if (isMounted) setIsGenerating(false);
       }
