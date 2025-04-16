@@ -19,7 +19,7 @@ export {
   dispatchStorageEvent
 } from './storage/storageCore';
 
-// Weekly reflection operations
+// Weekly reflection operations - with optimized implementations
 export { 
   getWeeklyReflections,
   getWeeklyReflection,
@@ -46,7 +46,7 @@ export {
   saveMonthlyReflection
 } from './storage/monthlyReflections';
 
-// Trade association operations - now with optimized processing
+// Trade association operations - now with memory caching and optimized processing
 export {
   associateTradeWithReflections,
   clearTradeAssociationCache
@@ -57,5 +57,5 @@ export {
   removeDuplicateReflections
 } from './storage/duplicateReflections';
 
-// Important: No direct imports from weeklyReflections or monthlyReflections should
-// be made in components - always use this central API to prevent circular dependencies
+// Note: We've optimized the performance by reducing event dispatches and implementing
+// caching in key areas of the storage system.

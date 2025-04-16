@@ -1,4 +1,3 @@
-
 import { 
   WEEKLY_REFLECTIONS_KEY, 
   MONTHLY_REFLECTIONS_KEY,
@@ -35,14 +34,12 @@ export function associateTradeWithReflections(tradeId: string, tradeDate: string
   // Check if this trade has already been processed for these reflections
   const tradeMapKey = `${tradeId}-${weekId}-${monthId}`;
   if (processedTradeMap.has(tradeMapKey)) {
-    console.log(`Skipping duplicate association for trade ${tradeId}`);
+    // Skip processing without logging to reduce console noise
     return;
   }
   
   // Track this operation to prevent repeated processing
   processedTradeMap.set(tradeMapKey, new Set([weekId, monthId]));
-  
-  console.log(`Associating trade ${tradeId} with week ${weekId} and month ${monthId}`);
   
   // Use a single update flag to prevent multiple dispatches
   let updatedStorage = false;
@@ -61,7 +58,6 @@ export function associateTradeWithReflections(tradeId: string, tradeDate: string
         weeklyReflections[weekId].tradeIds.push(tradeId);
         localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(weeklyReflections));
         updatedStorage = true;
-        console.log(`Added trade ${tradeId} to weekly reflection ${weekId}`);
       }
     }
   } catch (error) {
@@ -82,7 +78,6 @@ export function associateTradeWithReflections(tradeId: string, tradeDate: string
         monthlyReflections[monthId].tradeIds.push(tradeId);
         localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(monthlyReflections));
         updatedStorage = true;
-        console.log(`Added trade ${tradeId} to monthly reflection ${monthId}`);
       }
     }
   } catch (error) {
@@ -94,7 +89,7 @@ export function associateTradeWithReflections(tradeId: string, tradeDate: string
     // Use a timeout to prevent immediate UI updates during processing
     setTimeout(() => {
       dispatchStorageEvent("trade-journal-reflections-updated");
-    }, 0);
+    }, 50); // Add small delay to batch potential updates
   }
 }
 
@@ -103,5 +98,4 @@ export function associateTradeWithReflections(tradeId: string, tradeDate: string
  */
 export function clearTradeAssociationCache(): void {
   processedTradeMap.clear();
-  console.log('Trade association cache cleared');
 }

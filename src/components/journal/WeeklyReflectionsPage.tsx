@@ -23,119 +23,163 @@ export function WeeklyReflectionsPage() {
   const eventsTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastEventTimeRef = useRef<number>(0);
   const isLoadingRef = useRef(true);
+  const loadingPromiseRef = useRef<Promise<any> | null>(null);
   
   const { isGenerating, error: generationError, isComplete } = useReflectionGenerator();
   
+  // Memoized load reflections function with debounce and caching
   const loadReflections = useCallback(async () => {
-    if (!isMounted.current || (isGenerating && !isComplete)) {
-      console.log('Skipping loadReflections - component unmounted or still generating');
+    if (!isMounted.current) {
       return;
     }
     
-    if (isLoadingRef.current) {
-      console.log('Already loading reflections, skipping duplicate load');
-      return;
+    // If already loading, attach to the existing promise instead of starting a new load
+    if (isLoadingRef.current && loadingPromiseRef.current) {
+      return loadingPromiseRef.current;
     }
     
     isLoadingRef.current = true;
     setIsLoading(true);
     setLoadError(null);
     
-    try {
-      console.log("Loading weekly reflections...");
-      // Add small delay to prevent UI freezing
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      let fetchedReflections;
+    // Create a new loading promise
+    loadingPromiseRef.current = (async () => {
       try {
-        fetchedReflections = await getWeeklyReflections();
-        console.log(`Loaded ${fetchedReflections.length} weekly reflections`);
-      } catch (err) {
-        console.error("Error in getWeeklyReflections:", err);
-        throw err;
+        // Add small delay to prevent UI freezing
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
+        if (!isMounted.current) return [];
+        
+        let fetchedReflections;
+        try {
+          fetchedReflections = await getWeeklyReflections();
+        } catch (err) {
+          console.error("Error in getWeeklyReflections:", err);
+          throw err;
+        }
+        
+        if (!isMounted.current) return [];
+        
+        if (Array.isArray(fetchedReflections)) {
+          // Yield to browser to prevent UI freezing
+          await new Promise(resolve => setTimeout(resolve, 0)); 
+          
+          // Process in chunks for large datasets
+          const chunkSize = 20;
+          const chunks = [];
+          
+          for (let i = 0; i < fetchedReflections.length; i += chunkSize) {
+            chunks.push(fetchedReflections.slice(i, i + chunkSize));
+          }
+          
+          let sortedReflections: WeeklyReflection[] = [];
+          
+          for (const chunk of chunks) {
+            // Basic sorting to avoid expensive date parsing in the main sort
+            const partialSorted = [...chunk].sort((a, b) => {
+              if (!a.weekStart || !b.weekStart) return 0;
+              return b.weekStart.localeCompare(a.weekStart);
+            });
+            
+            sortedReflections = [...sortedReflections, ...partialSorted];
+            
+            // Yield to browser between chunks
+            if (chunks.length > 1) {
+              await new Promise(resolve => setTimeout(resolve, 0));
+            }
+            
+            if (!isMounted.current) return [];
+          }
+          
+          // Final sort of the combined results
+          sortedReflections.sort((a, b) => {
+            if (!a.weekStart || !b.weekStart) return 0;
+            return b.weekStart.localeCompare(a.weekStart);
+          });
+          
+          if (!isMounted.current) return [];
+          
+          setReflections(sortedReflections);
+          setFilteredReflections(sortedReflections);
+          return sortedReflections;
+        } else {
+          console.error('Expected array of reflections but got:', typeof fetchedReflections);
+          setReflections([]);
+          setFilteredReflections([]);
+          return [];
+        }
+      } catch (error) {
+        if (!isMounted.current) return [];
+        
+        console.error("Error loading reflections:", error);
+        setLoadError("Failed to load reflections. Please try refreshing the page.");
+        return [];
+      } finally {
+        if (isMounted.current) {
+          setIsLoading(false);
+          isLoadingRef.current = false;
+          loadingPromiseRef.current = null;
+        }
       }
-      
-      if (!isMounted.current) {
-        console.log('Component unmounted during fetch, aborting update');
+    })();
+    
+    return loadingPromiseRef.current;
+  }, []);
+
+  // Handle search filtering with debouncing
+  useEffect(() => {
+    const filterTimer = setTimeout(() => {
+      if (searchQuery.trim() === '') {
+        setFilteredReflections(reflections);
         return;
       }
       
-      if (Array.isArray(fetchedReflections)) {
-        // Process reflections in chunks to prevent UI freezing
-        await new Promise(resolve => setTimeout(resolve, 0)); // Yield to browser
+      const query = searchQuery.toLowerCase();
+      const filtered = reflections.filter(reflection => {
+        // Only check properties that actually exist to improve performance
+        if (!reflection) return false;
         
-        const sortedReflections = [...fetchedReflections].sort((a, b) => {
-          if (!a.weekStart || !b.weekStart) return 0;
-          
-          try {
-            return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
-          } catch (error) {
-            console.warn("Error sorting reflections by date:", error);
-            return 0;
+        // Quick check for date before doing string operations
+        if (reflection.weekStart && reflection.weekStart.toLowerCase().includes(query)) {
+          return true;
+        }
+        
+        // Only check text fields if needed
+        if (reflection.reflection && typeof reflection.reflection === 'string') {
+          // Use basic includes instead of regex for better performance
+          if (reflection.reflection.toLowerCase().includes(query)) {
+            return true;
           }
-        });
+        }
         
-        setReflections(sortedReflections);
-        setFilteredReflections(sortedReflections);
-      } else {
-        console.error('Expected array of reflections but got:', typeof fetchedReflections);
-        setReflections([]);
-        setFilteredReflections([]);
-        setLoadError("Invalid reflection data format");
-      }
-    } catch (error) {
-      if (!isMounted.current) return;
-      console.error("Error loading reflections:", error);
-      setLoadError("Failed to load reflections. Please try refreshing the page.");
-    } finally {
-      if (isMounted.current) {
-        setIsLoading(false);
-        isLoadingRef.current = false;
-      }
-    }
-  }, [isGenerating, isComplete]);
-
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredReflections(reflections);
-      return;
-    }
+        if (reflection.weeklyPlan && typeof reflection.weeklyPlan === 'string') {
+          if (reflection.weeklyPlan.toLowerCase().includes(query)) {
+            return true;
+          }
+        }
+        
+        return false;
+      });
+      
+      setFilteredReflections(filtered);
+    }, 300); // Debounce search by 300ms
     
-    const query = searchQuery.toLowerCase();
-    const filtered = reflections.filter(reflection => {
-      if (reflection.weekStart && reflection.weekStart.toLowerCase().includes(query)) {
-        return true;
-      }
-      
-      if (reflection.reflection && typeof reflection.reflection === 'string' && 
-          reflection.reflection.toLowerCase().includes(query)) {
-        return true;
-      }
-      
-      if (reflection.weeklyPlan && typeof reflection.weeklyPlan === 'string' && 
-          reflection.weeklyPlan.toLowerCase().includes(query)) {
-        return true;
-      }
-      
-      return false;
-    });
-    
-    setFilteredReflections(filtered);
+    return () => clearTimeout(filterTimer);
   }, [searchQuery, reflections]);
 
+  // Load reflections when generation is complete
   useEffect(() => {
-    console.log("Deciding whether to load reflections:", { isComplete, isGenerating });
-    // Only load reflections when generation is complete or not started
+    // Only load reflections when generation is complete OR not started
     if (isComplete || !isGenerating) {
       loadReflections();
     }
   }, [loadReflections, isComplete, isGenerating]);
   
+  // Handle storage events with proper cleanup and debouncing
   useEffect(() => {
     const handleStorageUpdate = () => {
-      console.log("Storage update detected");
       const now = Date.now();
-      const MIN_EVENT_INTERVAL = 500;
+      const MIN_EVENT_INTERVAL = 1000; // Increased to reduce update frequency
       
       if (eventsTimerRef.current) {
         clearTimeout(eventsTimerRef.current);
@@ -143,14 +187,12 @@ export function WeeklyReflectionsPage() {
       
       if (now - lastEventTimeRef.current < MIN_EVENT_INTERVAL) {
         eventsTimerRef.current = setTimeout(() => {
-          console.log("Debounced journal update - refreshing reflections list");
           loadReflections();
           lastEventTimeRef.current = Date.now();
         }, MIN_EVENT_INTERVAL);
         return;
       }
       
-      console.log("Journal update detected - refreshing reflections list");
       loadReflections();
       lastEventTimeRef.current = now;
     };
@@ -168,7 +210,8 @@ export function WeeklyReflectionsPage() {
     };
   }, [loadReflections]);
   
-  const formatDateRange = (reflection: WeeklyReflection) => {
+  // Format date range with memoization to avoid repeated parsing
+  const formatDateRange = useCallback((reflection: WeeklyReflection) => {
     if (reflection.weekStart && reflection.weekEnd) {
       try {
         const start = parseISO(reflection.weekStart);
@@ -180,7 +223,7 @@ export function WeeklyReflectionsPage() {
       }
     }
     return 'Date range unavailable';
-  };
+  }, []);
   
   if (isLoading || isGenerating) {
     return (

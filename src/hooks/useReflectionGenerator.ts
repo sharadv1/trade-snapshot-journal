@@ -22,7 +22,7 @@ export function useReflectionGenerator() {
   }, []);
 
   useEffect(() => {
-    if (hasAttemptedGeneration.current || !isMounted.current) return;
+    if (hasAttemptedGeneration.current || !isMounted.current || isComplete) return;
     
     hasAttemptedGeneration.current = true;
     
@@ -33,56 +33,46 @@ export function useReflectionGenerator() {
         setIsGenerating(true);
         setError(null);
         
-        // Add a small delay to avoid blocking UI
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const trades = getTradesWithMetrics();
-        if (trades.length > 0) {
-          console.log(`Found ${trades.length} trades for reflection generation`);
-          
+        // Get trades in a non-blocking way
+        generationTimeoutRef.current = setTimeout(async () => {
           try {
-            // Dynamically import to prevent initial load blocking
-            const { generateMissingReflections } = await import('@/utils/journal/reflectionGenerator');
-            await generateMissingReflections(trades);
-            
-            if (!isMounted.current) return;
-            
-            console.log('Reflections generation completed successfully');
-            setIsComplete(true);
+            const trades = getTradesWithMetrics();
+            if (trades.length > 0) {
+              // Dynamically import to prevent initial load blocking
+              const { generateMissingReflections } = await import('@/utils/journal/reflectionGenerator');
+              await generateMissingReflections(trades);
+              
+              if (isMounted.current) {
+                setIsComplete(true);
+                setIsGenerating(false);
+              }
+            } else {
+              if (isMounted.current) {
+                setIsComplete(true);
+                setIsGenerating(false);
+              }
+            }
           } catch (error) {
-            if (!isMounted.current) return;
-            console.error('Failed to generate reflections:', error);
-            throw error;
+            if (isMounted.current) {
+              console.error('Error in delayed reflection generation:', error);
+              setError(error instanceof Error ? error.message : 'Unknown error');
+              setIsGenerating(false);
+              toast.error('Failed to generate reflections. Please try again.');
+            }
           }
-        } else {
-          console.log('No trades found, skipping reflection generation');
-          if (isMounted.current) setIsComplete(true);
-        }
+        }, 500); // Short delay to let UI render first
       } catch (error) {
-        if (!isMounted.current) return;
-        
-        console.error('Error generating reflections:', error);
-        setError(error instanceof Error ? error.message : 'Unknown error');
-        
         if (isMounted.current) {
-          toast.error('Failed to generate reflections. Please try again.');
+          console.error('Error setting up reflection generation:', error);
+          setError(error instanceof Error ? error.message : 'Unknown error');
+          setIsGenerating(false);
         }
-      } finally {
-        if (isMounted.current) setIsGenerating(false);
       }
     };
     
-    // Delay reflection generation to prevent UI freezing on initial load
-    generationTimeoutRef.current = setTimeout(() => {
-      generateReflections();
-    }, 1500);
+    generateReflections();
     
-    return () => {
-      if (generationTimeoutRef.current) {
-        clearTimeout(generationTimeoutRef.current);
-      }
-    };
-  }, []);
+  }, [isComplete]);
 
   return { isGenerating, error, isComplete };
 }
