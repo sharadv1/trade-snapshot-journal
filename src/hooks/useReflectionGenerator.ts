@@ -1,103 +1,138 @@
 
 import { useEffect, useState, useRef } from 'react';
-import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { toast } from '@/utils/toast';
+
+// Cache for tracking generation attempts across component instances
+const generationState = {
+  hasGenerated: false,
+  inProgress: false,
+  lastAttempt: 0,
+  error: null as string | null
+};
 
 export function useReflectionGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   
+  // Refs for component lifecycle management
   const isMounted = useRef(true);
-  const hasAttemptedGeneration = useRef(false);
-  const generationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Clear any timeouts when unmounting
   useEffect(() => {
     return () => {
       isMounted.current = false;
-      if (generationTimeoutRef.current) {
-        clearTimeout(generationTimeoutRef.current);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
     };
   }, []);
 
   useEffect(() => {
-    // Skip if already attempted, unmounted, complete, or currently processing
-    if (hasAttemptedGeneration.current || !isMounted.current || 
-        isComplete || isProcessingRef.current) return;
+    // Skip if unmounted or already processing
+    if (!isMounted.current || isProcessingRef.current) return;
     
-    hasAttemptedGeneration.current = true;
+    // Prevent simultaneous generation attempts across components
+    if (generationState.inProgress) {
+      setIsGenerating(true);
+      return;
+    }
     
+    // Skip if already completed recently (within last 30 seconds)
+    const now = Date.now();
+    if (generationState.hasGenerated && (now - generationState.lastAttempt < 30000)) {
+      setIsComplete(true);
+      setIsGenerating(false);
+      return;
+    }
+    
+    // Begin generation process
     const generateReflections = async () => {
-      if (!isMounted.current) return;
-      
       try {
+        console.log('Starting reflection generation process');
         setIsGenerating(true);
         setError(null);
         isProcessingRef.current = true;
+        generationState.inProgress = true;
         
-        // Get trades in a non-blocking way with a timeout guard
-        generationTimeoutRef.current = setTimeout(async () => {
+        // Dynamically import trade operations with a timeout guard
+        timeoutRef.current = setTimeout(async () => {
           try {
-            // Prevent memory leaks if component unmounts during processing
-            if (!isMounted.current) {
-              isProcessingRef.current = false;
-              return;
-            }
+            const { getTradesWithMetrics } = await import('@/utils/storage/tradeOperations');
             
-            // Get trades with metrics without causing infinite loops
+            // Get trades safely
             const trades = getTradesWithMetrics();
             console.log(`Processing ${trades.length} trades for reflection generation`);
             
+            if (!isMounted.current) {
+              cleanupProcessing();
+              return;
+            }
+            
             if (trades.length > 0) {
-              // Dynamically import to prevent initial load blocking
+              // Dynamically import to prevent circular dependencies
               const { generateMissingReflections } = await import('@/utils/journal/reflectionGenerator');
               
               if (!isMounted.current) {
-                isProcessingRef.current = false;
+                cleanupProcessing();
                 return;
               }
               
               await generateMissingReflections(trades);
               
-              if (isMounted.current) {
-                setIsComplete(true);
-                setIsGenerating(false);
-              }
+              // Update completion state
+              updateCompleteState();
             } else {
-              if (isMounted.current) {
-                setIsComplete(true);
-                setIsGenerating(false);
-              }
+              console.log('No trades found for reflection generation');
+              updateCompleteState();
             }
-            
-            isProcessingRef.current = false;
           } catch (error) {
-            isProcessingRef.current = false;
-            
-            if (isMounted.current) {
-              console.error('Error in delayed reflection generation:', error);
-              setError(error instanceof Error ? error.message : 'Unknown error');
-              setIsGenerating(false);
-              toast.error('Failed to generate reflections. Please try again.');
-            }
+            handleError(error);
           }
-        }, 500); // Short delay to let UI render first
+        }, 300);
       } catch (error) {
-        isProcessingRef.current = false;
-        
-        if (isMounted.current) {
-          console.error('Error setting up reflection generation:', error);
-          setError(error instanceof Error ? error.message : 'Unknown error');
-          setIsGenerating(false);
-        }
+        handleError(error);
       }
     };
     
-    generateReflections();
+    // Helper functions
+    const cleanupProcessing = () => {
+      isProcessingRef.current = false;
+      generationState.inProgress = false;
+    };
     
-  }, [isComplete]);
+    const updateCompleteState = () => {
+      if (isMounted.current) {
+        generationState.hasGenerated = true;
+        generationState.lastAttempt = Date.now();
+        generationState.inProgress = false;
+        generationState.error = null;
+        setIsComplete(true);
+        setIsGenerating(false);
+      }
+      cleanupProcessing();
+    };
+    
+    const handleError = (error: any) => {
+      console.error('Error in reflection generation:', error);
+      
+      if (isMounted.current) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        generationState.error = errorMessage;
+        generationState.inProgress = false;
+        setError(errorMessage);
+        setIsGenerating(false);
+        toast.error('Failed to generate reflections. Please try again.');
+      }
+      
+      cleanupProcessing();
+    };
+    
+    // Start the generation process
+    generateReflections();
+  }, []);
 
   return { isGenerating, error, isComplete };
 }

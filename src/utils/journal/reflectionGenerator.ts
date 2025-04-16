@@ -11,6 +11,14 @@ import {
 import { generateUUID } from '../generateUUID';
 import { toast } from '../toast';
 
+// Generation state tracking to prevent multiple simultaneous generations
+const generationState = {
+  isGenerating: false,
+  lastGeneration: 0,
+  weekIdsGenerated: new Set<string>(),
+  monthIdsGenerated: new Set<string>()
+};
+
 /**
  * Generates a weekly reflection for a specific week based on trades
  */
@@ -23,11 +31,15 @@ export function generateWeeklyReflection(
   
   // Filter trades for this week
   const weekTrades = trades.filter(trade => {
-    if (trade.exitDate) {
+    if (!trade || !trade.exitDate) return false;
+    
+    try {
       const exitDate = new Date(trade.exitDate);
       return isWithinInterval(exitDate, { start: weekStart, end: weekEnd });
+    } catch (error) {
+      console.error('Error filtering trade for week:', error);
+      return false;
     }
-    return false;
   });
   
   const tradeIds = weekTrades.map(trade => trade.id);
@@ -70,11 +82,15 @@ export function generateMonthlyReflection(
   
   // Filter trades for this month
   const monthTrades = trades.filter(trade => {
-    if (trade.exitDate) {
+    if (!trade || !trade.exitDate) return false;
+    
+    try {
       const exitDate = new Date(trade.exitDate);
       return isWithinInterval(exitDate, { start: monthStart, end: monthEnd });
+    } catch (error) {
+      console.error('Error filtering trade for month:', error);
+      return false;
     }
-    return false;
   });
   
   const tradeIds = monthTrades.map(trade => trade.id);
@@ -105,8 +121,25 @@ export function generateMonthlyReflection(
 
 /**
  * Creates missing reflections for weeks and months with trades
+ * Optimized to prevent multiple simultaneous generations
  */
 export async function generateMissingReflections(trades: TradeWithMetrics[]): Promise<void> {
+  // Prevent multiple simultaneous generations
+  if (generationState.isGenerating) {
+    console.log('Generation already in progress, skipping');
+    return;
+  }
+  
+  // Throttle generation to once per 30 seconds
+  const now = Date.now();
+  if (now - generationState.lastGeneration < 30000) {
+    console.log('Generation attempted too recently, skipping');
+    return;
+  }
+  
+  generationState.isGenerating = true;
+  generationState.lastGeneration = now;
+  
   try {
     if (!trades || trades.length === 0) {
       console.log('No trades found, skipping reflection generation');
@@ -115,111 +148,133 @@ export async function generateMissingReflections(trades: TradeWithMetrics[]): Pr
     
     console.log(`Starting reflection generation for ${trades.length} trades`);
     
-    // Generate reflections for weeks with trades
-    await generateWeeklyReflectionsForTrades(trades);
+    // Import the storage functions asynchronously to avoid circular dependencies
+    const weeklyModule = await import('../journal/reflectionStorage');
+    const { getWeeklyReflection, addWeeklyReflection } = weeklyModule;
     
-    // Generate reflections for months with trades
-    await generateMonthlyReflectionsForTrades(trades);
+    const monthlyModule = await import('../journal/reflectionStorage'); 
+    const { getMonthlyReflection, addMonthlyReflection } = monthlyModule;
+    
+    // Process trades in batches to prevent UI freezing
+    await processTradesInBatches(trades, async (tradeBatch) => {
+      // Extract unique weeks from trades
+      const weekStartDates = new Set<string>();
+      const monthStartDates = new Set<string>();
+      
+      tradeBatch.forEach(trade => {
+        if (trade.exitDate) {
+          try {
+            const exitDate = new Date(trade.exitDate);
+            
+            // Get week
+            const weekStart = startOfWeek(exitDate, { weekStartsOn: 1 });
+            const weekId = format(weekStart, 'yyyy-MM-dd');
+            if (!generationState.weekIdsGenerated.has(weekId)) {
+              weekStartDates.add(weekId);
+            }
+            
+            // Get month
+            const monthStart = startOfMonth(exitDate);
+            const monthId = format(monthStart, 'yyyy-MM');
+            if (!generationState.monthIdsGenerated.has(monthId)) {
+              monthStartDates.add(monthId);
+            }
+          } catch (error) {
+            console.error('Error processing trade date:', error);
+          }
+        }
+      });
+      
+      // Process each week
+      for (const weekStartStr of weekStartDates) {
+        try {
+          // Check if this week was already processed
+          if (generationState.weekIdsGenerated.has(weekStartStr)) {
+            continue;
+          }
+          
+          const weekStart = new Date(weekStartStr);
+          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+          
+          // Check if reflection already exists
+          const existingReflection = await getWeeklyReflection(weekStartStr);
+          
+          if (!existingReflection) {
+            // Create new reflection
+            const newReflection = generateWeeklyReflection(weekStart, weekEnd, trades);
+            await addWeeklyReflection(newReflection);
+            generationState.weekIdsGenerated.add(weekStartStr);
+            console.log(`Created weekly reflection for ${weekStartStr}`);
+            
+            // Allow UI to breathe
+            await new Promise(resolve => setTimeout(resolve, 50));
+          } else {
+            generationState.weekIdsGenerated.add(weekStartStr);
+          }
+        } catch (error) {
+          console.error(`Error processing week ${weekStartStr}:`, error);
+        }
+      }
+      
+      // Process each month
+      for (const monthIdStr of monthStartDates) {
+        try {
+          // Check if this month was already processed
+          if (generationState.monthIdsGenerated.has(monthIdStr)) {
+            continue;
+          }
+          
+          const [year, month] = monthIdStr.split('-').map(num => parseInt(num));
+          const monthStart = new Date(year, month - 1, 1); // Month is 0-indexed in JS Date
+          const monthEnd = endOfMonth(monthStart);
+          
+          // Check if reflection already exists
+          const existingReflection = await getMonthlyReflection(monthIdStr);
+          
+          if (!existingReflection) {
+            // Create new reflection
+            const newReflection = generateMonthlyReflection(monthStart, monthEnd, trades);
+            await addMonthlyReflection(newReflection);
+            generationState.monthIdsGenerated.add(monthIdStr);
+            console.log(`Created monthly reflection for ${monthIdStr}`);
+            
+            // Allow UI to breathe
+            await new Promise(resolve => setTimeout(resolve, 50));
+          } else {
+            generationState.monthIdsGenerated.add(monthIdStr);
+          }
+        } catch (error) {
+          console.error(`Error processing month ${monthIdStr}:`, error);
+        }
+      }
+    });
     
     // Notify UI of completion
+    console.log('Reflection generation completed');
     window.dispatchEvent(new CustomEvent('journal-updated', { 
       detail: { source: 'reflectionGenerator', success: true } 
     }));
-    
-    console.log('Reflection generation completed');
   } catch (error) {
     console.error('Error generating reflections:', error);
     toast.error('Failed to generate reflections');
+  } finally {
+    generationState.isGenerating = false;
+  }
+}
+
+/**
+ * Process trades in smaller batches to prevent UI freezing
+ */
+async function processTradesInBatches(trades: TradeWithMetrics[], processor: (batch: TradeWithMetrics[]) => Promise<void>): Promise<void> {
+  const BATCH_SIZE = 10;
+  
+  for (let i = 0; i < trades.length; i += BATCH_SIZE) {
+    const batch = trades.slice(i, i + BATCH_SIZE);
+    await processor(batch);
     
-    // Notify UI even when there's an error
-    window.dispatchEvent(new CustomEvent('journal-updated', { 
-      detail: { source: 'reflectionGenerator', error: true } 
-    }));
-  }
-}
-
-/**
- * Generate weekly reflections for all weeks containing trades
- */
-async function generateWeeklyReflectionsForTrades(trades: TradeWithMetrics[]): Promise<void> {
-  // Get all unique weeks from trade dates
-  const weekStartDates = new Set<string>();
-  
-  trades.forEach(trade => {
-    if (trade.exitDate) {
-      const exitDate = new Date(trade.exitDate);
-      const weekStart = startOfWeek(exitDate, { weekStartsOn: 1 });
-      weekStartDates.add(format(weekStart, 'yyyy-MM-dd'));
-    }
-  });
-  
-  console.log(`Found ${weekStartDates.size} unique weeks with trades`);
-  
-  // Import the storage functions dynamically to avoid circular dependencies
-  const { getWeeklyReflection, addWeeklyReflection } = await import('../journal/reflectionStorage');
-  
-  // Process each week
-  for (const weekStartStr of weekStartDates) {
-    try {
-      const weekStart = new Date(weekStartStr);
-      const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-      const weekId = format(weekStart, 'yyyy-MM-dd');
-      
-      // Check if reflection already exists
-      const existingReflection = await getWeeklyReflection(weekId);
-      
-      if (!existingReflection) {
-        // Create new reflection
-        const newReflection = generateWeeklyReflection(weekStart, weekEnd, trades);
-        await addWeeklyReflection(newReflection);
-        console.log(`Created weekly reflection for ${weekId}`);
-      }
-    } catch (error) {
-      console.error(`Error processing week ${weekStartStr}:`, error);
-      // Continue with other weeks
-    }
-  }
-}
-
-/**
- * Generate monthly reflections for all months containing trades
- */
-async function generateMonthlyReflectionsForTrades(trades: TradeWithMetrics[]): Promise<void> {
-  // Get all unique months from trade dates
-  const monthStartDates = new Set<string>();
-  
-  trades.forEach(trade => {
-    if (trade.exitDate) {
-      const exitDate = new Date(trade.exitDate);
-      const monthStart = startOfMonth(exitDate);
-      monthStartDates.add(format(monthStart, 'yyyy-MM'));
-    }
-  });
-  
-  console.log(`Found ${monthStartDates.size} unique months with trades`);
-  
-  // Import the storage functions dynamically to avoid circular dependencies
-  const { getMonthlyReflection, addMonthlyReflection } = await import('../journal/reflectionStorage');
-  
-  // Process each month
-  for (const monthIdStr of monthStartDates) {
-    try {
-      const [year, month] = monthIdStr.split('-').map(num => parseInt(num));
-      const monthStart = new Date(year, month - 1, 1); // Month is 0-indexed in JS Date
-      const monthEnd = endOfMonth(monthStart);
-      
-      // Check if reflection already exists
-      const existingReflection = await getMonthlyReflection(monthIdStr);
-      
-      if (!existingReflection) {
-        // Create new reflection
-        const newReflection = generateMonthlyReflection(monthStart, monthEnd, trades);
-        await addMonthlyReflection(newReflection);
-        console.log(`Created monthly reflection for ${monthIdStr}`);
-      }
-    } catch (error) {
-      console.error(`Error processing month ${monthIdStr}:`, error);
-      // Continue with other months
+    // Allow UI thread to breathe between batches
+    if (i + BATCH_SIZE < trades.length) {
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
   }
 }
