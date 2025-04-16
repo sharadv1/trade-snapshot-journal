@@ -1,6 +1,5 @@
 
 import { useEffect, useState, useRef } from 'react';
-import { toast } from '@/utils/toast';
 
 // Global cache for tracking generation attempts across component instances
 const generationState = {
@@ -14,7 +13,7 @@ const generationState = {
 const reflectionCache = {
   timestamp: 0,
   isValid: false,
-  forceSkipPaths: ['/journal', '/journal/weekly', '/journal/monthly']
+  forceSkipPaths: ['/journal', '/journal/weekly', '/journal/monthly', '/journal/weekly/', '/journal/monthly/']
 };
 
 export function useReflectionGenerator() {
@@ -36,8 +35,11 @@ export function useReflectionGenerator() {
   useEffect(() => {
     const path = window.location.pathname;
     
+    // Check for detail pages (with path parameters)
+    const isDetailPage = path.match(/\/journal\/(weekly|monthly)\/[^\/]+$/i);
+    
     // Immediately mark as complete and skip all processing on journal pages
-    if (reflectionCache.forceSkipPaths.some(skipPath => path.startsWith(skipPath))) {
+    if (reflectionCache.forceSkipPaths.some(skipPath => path.startsWith(skipPath)) || isDetailPage) {
       console.log(`Skipping reflection generation on path: ${path}`);
       shouldForceSkip.current = true;
       setIsComplete(true);
@@ -51,7 +53,7 @@ export function useReflectionGenerator() {
         setIsComplete(true);
         setIsGenerating(false);
       }
-    }, 2000);
+    }, 1000); // Reduced from 2000ms to 1000ms for faster completion
     
     return () => clearTimeout(safetyTimer);
   }, []);
@@ -79,7 +81,10 @@ export function useReflectionGenerator() {
     
     // Re-check route on effect - route could have changed
     const currentPath = window.location.pathname;
-    if (reflectionCache.forceSkipPaths.some(skipPath => currentPath.startsWith(skipPath))) {
+    // Check for detail pages (with path parameters)
+    const isDetailPage = currentPath.match(/\/journal\/(weekly|monthly)\/[^\/]+$/i);
+    
+    if (reflectionCache.forceSkipPaths.some(skipPath => currentPath.startsWith(skipPath)) || isDetailPage) {
       console.log(`Route check: skipping reflection generation on path: ${currentPath}`);
       setIsComplete(true);
       setIsGenerating(false);
@@ -99,14 +104,14 @@ export function useReflectionGenerator() {
           generationState.hasGenerated = true;
           generationState.inProgress = false;
         }
-      }, 1500); // Reduced timeout to 1.5 seconds to prevent UI freezing
+      }, 1000); // Reduced timeout to 1 second to prevent UI freezing
       
       return;
     }
     
     // Check cache validity - to further reduce unnecessary processing
     const now = Date.now();
-    if (reflectionCache.isValid && (now - reflectionCache.timestamp < 60000)) {
+    if (reflectionCache.isValid && (now - reflectionCache.timestamp < 30000)) {
       console.log('Using cached generation state, skipping');
       setIsComplete(true);
       setIsGenerating(false);
@@ -122,8 +127,8 @@ export function useReflectionGenerator() {
     }
     
     // Limit the number of attempts to prevent infinite loops
-    if (attemptsRef.current > 1) { // Reduced max attempts to 1
-      console.log('Too many reflection generation attempts, stopping');
+    if (attemptsRef.current > 0) { // Only allow one attempt max per instance
+      console.log('Limiting reflection generation attempts to prevent loops');
       setIsGenerating(false);
       setIsComplete(true); // Mark as complete anyway to prevent UI blocking
       return;
@@ -136,7 +141,9 @@ export function useReflectionGenerator() {
       try {
         // Check one final time if path is a journal page
         const currentPathFinal = window.location.pathname;
-        if (reflectionCache.forceSkipPaths.some(skipPath => currentPathFinal.startsWith(skipPath))) {
+        const isDetailPageFinal = currentPathFinal.match(/\/journal\/(weekly|monthly)\/[^\/]+$/i);
+        
+        if (reflectionCache.forceSkipPaths.some(skipPath => currentPathFinal.startsWith(skipPath)) || isDetailPageFinal) {
           console.log(`Final check: skipping reflection generation on path: ${currentPathFinal}`);
           updateCompleteState();
           return;
@@ -154,7 +161,7 @@ export function useReflectionGenerator() {
             console.log('Forcing reflection generation completion after timeout');
             updateCompleteState();
           }
-        }, 2500);
+        }, 1500);
         
         // Dynamically import with a timeout guard
         timeoutRef.current = setTimeout(async () => {
@@ -167,7 +174,8 @@ export function useReflectionGenerator() {
             
             const { getTradesWithMetrics } = await import('@/utils/storage/tradeOperations');
             
-            // Get trades safely
+            // Get trades safely - if this function call is causing infinite loops,
+            // we'll catch it in the completionTimeout above
             const trades = getTradesWithMetrics();
             console.log(`Processing ${trades.length} trades for reflection generation`);
             
@@ -207,12 +215,12 @@ export function useReflectionGenerator() {
             console.error('Error in delayed reflection processing:', error);
             updateCompleteState(); // Still complete to prevent UI blocking
           }
-        }, 100);
+        }, 50);
       } catch (error) {
         console.error('Error in reflection generation setup:', error);
         updateCompleteState(); // Still complete to prevent UI blocking
       }
-    }, 50);
+    }, 10);
   }, [isGenerating]);
   
   // Helper functions

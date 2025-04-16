@@ -1,11 +1,12 @@
 
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { ArrowRight, Calendar, Check } from 'lucide-react';
 import { getGradeColorClass } from '@/utils/journal/reflectionUtils';
+import { useNavigate } from 'react-router-dom';
 
 export interface ReflectionCardProps {
   reflection: WeeklyReflection | MonthlyReflection;
@@ -25,7 +26,7 @@ export interface ReflectionCardProps {
   onDelete?: (reflectionId: string) => Promise<void>;
 }
 
-// Using memo to prevent unnecessary re-renders of reflection cards
+// Using memo with a custom comparison function to prevent unnecessary re-renders
 export const ReflectionCard = memo(({
   reflection,
   type,
@@ -33,14 +34,16 @@ export const ReflectionCard = memo(({
   stats,
   hasContent,
 }: ReflectionCardProps) => {
+  const navigate = useNavigate();
+  
   // Get grade
   const grade = reflection.grade;
   
   // Determine if reflection is profitable
   const isProfitable = stats.pnl > 0;
   
-  // Avoid stringifying the entire reflection content - only take a short preview
-  const getContentPreview = () => {
+  // Content preview with memoization
+  const contentPreview = useCallback(() => {
     if (!reflection.reflection || typeof reflection.reflection !== 'string') return '';
     
     try {
@@ -51,13 +54,29 @@ export const ReflectionCard = memo(({
       console.error('Error parsing reflection content:', e);
       return '';
     }
-  };
+  }, [reflection.reflection]);
+  
+  // Handle navigation with stopPropagation to prevent bubbling
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const reflectionId = type === 'weekly' 
+      ? (reflection as WeeklyReflection).weekId || reflection.id
+      : (reflection as MonthlyReflection).monthId || reflection.id;
+    
+    // Use timeout to prevent UI freezing during navigation
+    setTimeout(() => {
+      navigate(`/journal/${type}/${reflectionId}`);
+    }, 10);
+  }, [reflection, type, navigate]);
 
   return (
     <Card 
-      className={`hover:bg-accent/10 transition-colors ${
+      className={`hover:bg-accent/10 transition-colors cursor-pointer ${
         reflection.isPlaceholder ? 'border-dashed' : ''
       }`}
+      onClick={handleClick}
     >
       <div className="block p-4">
         <div className="flex justify-between items-center">
@@ -115,11 +134,21 @@ export const ReflectionCard = memo(({
         
         {reflection.reflection && (
           <div className="mt-3 text-sm text-muted-foreground line-clamp-2">
-            {getContentPreview()}
+            {contentPreview()}
           </div>
         )}
       </div>
     </Card>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison to prevent unnecessary re-renders
+  return (
+    prevProps.reflection.id === nextProps.reflection.id &&
+    prevProps.dateRange === nextProps.dateRange &&
+    prevProps.stats.pnl === nextProps.stats.pnl &&
+    prevProps.stats.rValue === nextProps.stats.rValue &&
+    prevProps.stats.tradeCount === nextProps.stats.tradeCount &&
+    prevProps.hasContent === nextProps.hasContent
   );
 });
 
