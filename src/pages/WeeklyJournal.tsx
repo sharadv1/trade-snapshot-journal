@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { format, startOfWeek, endOfWeek, addDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +16,7 @@ import { TradeDetailModal } from '@/components/TradeDetailModal';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { toast } from '@/utils/toast';
-import { getTradesForWeek } from '@/utils/tradeCalculations';
+import { getTradesForWeek, clearTradeCache } from '@/utils/tradeCalculations';
 
 const formatDate = (date: Date): string => format(date, 'MMMM dd, yyyy');
 
@@ -34,92 +33,154 @@ export function WeeklyJournal() {
   const [isTradeModalOpen, setIsTradeModalOpen] = useState<boolean>(false);
   const [tradesForWeek, setTradesForWeek] = useState<TradeWithMetrics[]>([]);
   
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
-  const weekId = format(weekStart, 'yyyy-MM-dd');
-  const dateRange = `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const loadingRef = useRef<boolean>(false);
+  const [isTradesLoading, setIsTradesLoading] = useState<boolean>(false);
+  const tradesLoadingRef = useRef<boolean>(false);
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMounted = useRef<boolean>(false);
   
-  const reflectionWordCount = countWords(reflection);
-  const planWordCount = countWords(weeklyPlan);
+  const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
+  const weekEnd = useMemo(() => endOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
+  const weekId = useMemo(() => format(weekStart, 'yyyy-MM-dd'), [weekStart]);
+  const dateRange = useMemo(() => `${formatDate(weekStart)} - ${formatDate(weekEnd)}`, [weekStart, weekEnd]);
   
-  const [isMounted, setIsMounted] = useState(false);
+  const reflectionWordCount = useMemo(() => countWords(reflection), [reflection]);
+  const planWordCount = useMemo(() => countWords(weeklyPlan), [weeklyPlan]);
   
   useEffect(() => {
-    setIsMounted(true);
+    isMounted.current = true;
+    
+    clearTradeCache();
+    
+    return () => {
+      isMounted.current = false;
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+    };
   }, []);
   
-  useEffect(() => {
-    const loadReflections = async () => {
-      try {
-        const reflections = await getWeeklyReflections();
-        
+  const loadReflections = useCallback(async () => {
+    if (loadingRef.current || !isMounted.current) return;
+    
+    try {
+      loadingRef.current = true;
+      setIsLoading(true);
+      
+      const reflections = await getWeeklyReflections();
+      
+      if (isMounted.current) {
         if (Array.isArray(reflections)) {
           setWeeklyReflections(reflections);
         } else {
           console.error('Expected array of reflections but got:', typeof reflections);
           setWeeklyReflections([]);
         }
-      } catch (error) {
-        console.error('Error loading reflections:', error);
-        setWeeklyReflections([]);
-      }
-    };
-    
-    loadReflections();
-  }, [weekId]);
-  
-  useEffect(() => {
-    const loadTrades = async () => {
-      try {
-        const trades = await getTradesForWeek(weekStart, weekEnd);
         
-        if (Array.isArray(trades)) {
-          setTradesForWeek(trades);
-        } else {
-          console.error('Expected array of trades but got:', typeof trades);
-          setTradesForWeek([]);
-        }
-      } catch (error) {
-        console.error('Error loading trades for week:', error);
-        setTradesForWeek([]);
+        setIsLoading(false);
+        loadingRef.current = false;
       }
-    };
+    } catch (error) {
+      console.error('Error loading reflections:', error);
+      
+      if (isMounted.current) {
+        setWeeklyReflections([]);
+        setIsLoading(false);
+        loadingRef.current = false;
+      }
+    }
+  }, []);
+  
+  const loadTradesForWeek = useCallback(async () => {
+    if (tradesLoadingRef.current || !isMounted.current) return;
     
-    loadTrades();
+    try {
+      tradesLoadingRef.current = true;
+      setIsTradesLoading(true);
+      
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+      
+      loadTimeoutRef.current = setTimeout(async () => {
+        try {
+          const trades = await getTradesForWeek(weekStart, weekEnd);
+          
+          if (isMounted.current) {
+            if (Array.isArray(trades)) {
+              setTradesForWeek(trades);
+            } else {
+              console.error('Expected array of trades but got:', typeof trades);
+              setTradesForWeek([]);
+            }
+            
+            setIsTradesLoading(false);
+            tradesLoadingRef.current = false;
+          }
+        } catch (error) {
+          console.error('Error in delayed trade loading:', error);
+          
+          if (isMounted.current) {
+            setTradesForWeek([]);
+            setIsTradesLoading(false);
+            tradesLoadingRef.current = false;
+          }
+        }
+      }, 300);
+    } catch (error) {
+      console.error('Error loading trades for week:', error);
+      
+      if (isMounted.current) {
+        setTradesForWeek([]);
+        setIsTradesLoading(false);
+        tradesLoadingRef.current = false;
+      }
+    }
   }, [weekStart, weekEnd]);
   
-  const handleDateChange = (date: Date | undefined) => {
+  useEffect(() => {
+    loadReflections();
+  }, [loadReflections]);
+  
+  useEffect(() => {
+    loadTradesForWeek();
+  }, [loadTradesForWeek]);
+  
+  const handleDateChange = useCallback((date: Date | undefined) => {
     if (date) {
       setCurrentDate(date);
     }
-  };
+  }, []);
   
-  const goToPreviousWeek = () => {
+  const goToPreviousWeek = useCallback(() => {
     const previousWeek = addDays(currentDate, -7);
     setCurrentDate(previousWeek);
-  };
+  }, [currentDate]);
   
-  const goToNextWeek = () => {
+  const goToNextWeek = useCallback(() => {
     const nextWeek = addDays(currentDate, 7);
     setCurrentDate(nextWeek);
-  };
+  }, [currentDate]);
   
-  const goToToday = () => {
+  const goToToday = useCallback(() => {
     setCurrentDate(new Date());
-  };
+  }, []);
   
-  const handleReflectionClick = (reflection: WeeklyReflection) => {
+  const handleReflectionClick = useCallback((reflection: WeeklyReflection) => {
     setSelectedReflection(reflection);
     setReflection(reflection.reflection || '');
     setWeeklyPlan(reflection.weeklyPlan || '');
-  };
+  }, []);
   
-  const handleTradeClick = (trade: TradeWithMetrics) => {
+  const handleTradeClick = useCallback((trade: TradeWithMetrics) => {
     setSelectedTrade(trade);
     setIsTradeModalOpen(true);
-  };
+  }, []);
   
-  const handleSaveReflection = async () => {
+  const handleSaveReflection = useCallback(async () => {
+    if (isSaving) return;
+    
     setIsSaving(true);
     
     const reflectionData = {
@@ -163,50 +224,55 @@ export function WeeklyJournal() {
         toast.success("Reflection saved successfully", { duration: 3000 });
       }
     } catch (error) {
-      setIsSaving(false);
+      console.error('Error saving reflection:', error);
       toast.error("Failed to save reflection", { duration: 3000 });
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [isSaving, weekId, weekStart, weekEnd, reflection, weeklyPlan, selectedReflection]);
   
-  const handleDeleteReflection = async () => {
+  const handleDeleteReflection = useCallback(async () => {
+    if (isSaving || !selectedReflection) return;
+    
     setIsSaving(true);
     
     try {
-      if (selectedReflection) {
-        await deleteWeeklyReflection(selectedReflection.id);
-        
-        setWeeklyReflections(prevReflections => {
-          if (!Array.isArray(prevReflections)) {
-            return [];
-          }
-          return prevReflections.filter(r => r.id !== selectedReflection.id);
-        });
-        
-        setSelectedReflection(null);
-        setReflection('');
-        setWeeklyPlan('');
-        
-        toast.success("Reflection deleted successfully", { duration: 3000 });
-      }
+      await deleteWeeklyReflection(selectedReflection.id);
+      
+      setWeeklyReflections(prevReflections => {
+        if (!Array.isArray(prevReflections)) {
+          return [];
+        }
+        return prevReflections.filter(r => r.id !== selectedReflection.id);
+      });
+      
+      setSelectedReflection(null);
+      setReflection('');
+      setWeeklyPlan('');
+      
+      toast.success("Reflection deleted successfully", { duration: 3000 });
     } catch (error) {
+      console.error('Error deleting reflection:', error);
       toast.error("Failed to delete reflection", { duration: 3000 });
     } finally {
       setIsSaving(false);
       setIsDeleteModalOpen(false);
     }
-  };
+  }, [isSaving, selectedReflection]);
   
-  const currentReflection = Array.isArray(weeklyReflections) ? 
-    weeklyReflections.find(r => r.weekId === weekId) : undefined;
+  const currentReflection = useMemo(() => {
+    return Array.isArray(weeklyReflections) ? 
+      weeklyReflections.find(r => r.weekId === weekId) : undefined;
+  }, [weeklyReflections, weekId]);
   
-  const hasExistingContent = currentReflection ? 
-    !!(currentReflection.reflection || currentReflection.weeklyPlan) : false;
+  const hasExistingContent = useMemo(() => {
+    return currentReflection ? 
+      !!(currentReflection.reflection || currentReflection.weeklyPlan) : false;
+  }, [currentReflection]);
   
-  const handleCreateNew = () => {
+  const handleCreateNew = useCallback(() => {
     navigate(`/journal/weekly/${weekId}`);
-  };
+  }, [navigate, weekId]);
   
   const totalPnL = Array.isArray(tradesForWeek) ? 
     tradesForWeek.reduce((sum, trade) => sum + (trade.metrics?.profitLoss || 0), 0) : 0;
@@ -214,7 +280,6 @@ export function WeeklyJournal() {
   const totalR = Array.isArray(tradesForWeek) ? 
     tradesForWeek.reduce((sum, trade) => sum + (trade.metrics?.rMultiple || 0), 0) : 0;
 
-  // Helper function for word count
   function countWords(text: string): number {
     if (!text || typeof text !== 'string') return 0;
     return text.trim().split(/\s+/).filter(word => word.length > 0).length;

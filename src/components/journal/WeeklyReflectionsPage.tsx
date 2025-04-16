@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections } from '@/utils/journal/reflectionStorage';
@@ -12,6 +11,12 @@ import { Input } from '@/components/ui/input';
 import { ReflectionCard } from './reflections/ReflectionCard';
 import { getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflectionUtils';
 
+const reflectionsCache = {
+  data: null as WeeklyReflection[] | null,
+  timestamp: 0,
+  isLoading: false
+};
+
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
   const [filteredReflections, setFilteredReflections] = useState<WeeklyReflection[]>([]);
@@ -21,114 +26,97 @@ export function WeeklyReflectionsPage() {
   
   const isMounted = useRef(true);
   const eventsTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastEventTimeRef = useRef<number>(0);
-  const isLoadingRef = useRef(true);
-  const loadingPromiseRef = useRef<Promise<any> | null>(null);
   
   const { isGenerating, error: generationError, isComplete } = useReflectionGenerator();
   
-  // Memoized load reflections function with debounce and caching
   const loadReflections = useCallback(async () => {
-    if (!isMounted.current) {
+    if (!isMounted.current) return;
+    
+    if (reflectionsCache.isLoading) {
+      console.log('Already loading reflections, skipping duplicate load');
       return;
     }
     
-    // If already loading, attach to the existing promise instead of starting a new load
-    if (isLoadingRef.current && loadingPromiseRef.current) {
-      return loadingPromiseRef.current;
+    const now = Date.now();
+    if (reflectionsCache.data && now - reflectionsCache.timestamp < 5000) {
+      console.log('Using cached reflections data');
+      setReflections(reflectionsCache.data);
+      setFilteredReflections(reflectionsCache.data);
+      setIsLoading(false);
+      return;
     }
     
-    isLoadingRef.current = true;
+    reflectionsCache.isLoading = true;
     setIsLoading(true);
     setLoadError(null);
     
-    // Create a new loading promise
-    loadingPromiseRef.current = (async () => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      if (!isMounted.current) {
+        reflectionsCache.isLoading = false;
+        return;
+      }
+      
+      let fetchedReflections;
       try {
-        // Add small delay to prevent UI freezing
-        await new Promise(resolve => setTimeout(resolve, 50));
+        fetchedReflections = await getWeeklyReflections();
+      } catch (err) {
+        console.error("Error in getWeeklyReflections:", err);
+        throw err;
+      }
+      
+      if (!isMounted.current) {
+        reflectionsCache.isLoading = false;
+        return;
+      }
+      
+      if (Array.isArray(fetchedReflections)) {
+        const sortedReflections = [...fetchedReflections].sort((a, b) => {
+          if (!a.weekStart || !b.weekStart) return 0;
+          return b.weekStart.localeCompare(a.weekStart);
+        });
         
-        if (!isMounted.current) return [];
+        reflectionsCache.data = sortedReflections;
+        reflectionsCache.timestamp = now;
         
-        let fetchedReflections;
-        try {
-          fetchedReflections = await getWeeklyReflections();
-        } catch (err) {
-          console.error("Error in getWeeklyReflections:", err);
-          throw err;
-        }
-        
-        if (!isMounted.current) return [];
-        
-        if (Array.isArray(fetchedReflections)) {
-          // Yield to browser to prevent UI freezing
-          await new Promise(resolve => setTimeout(resolve, 0)); 
-          
-          // Process in chunks for large datasets
-          const chunkSize = 20;
-          const chunks = [];
-          
-          for (let i = 0; i < fetchedReflections.length; i += chunkSize) {
-            chunks.push(fetchedReflections.slice(i, i + chunkSize));
-          }
-          
-          let sortedReflections: WeeklyReflection[] = [];
-          
-          for (const chunk of chunks) {
-            // Basic sorting to avoid expensive date parsing in the main sort
-            const partialSorted = [...chunk].sort((a, b) => {
-              if (!a.weekStart || !b.weekStart) return 0;
-              return b.weekStart.localeCompare(a.weekStart);
-            });
-            
-            sortedReflections = [...sortedReflections, ...partialSorted];
-            
-            // Yield to browser between chunks
-            if (chunks.length > 1) {
-              await new Promise(resolve => setTimeout(resolve, 0));
-            }
-            
-            if (!isMounted.current) return [];
-          }
-          
-          // Final sort of the combined results
-          sortedReflections.sort((a, b) => {
-            if (!a.weekStart || !b.weekStart) return 0;
-            return b.weekStart.localeCompare(a.weekStart);
-          });
-          
-          if (!isMounted.current) return [];
-          
+        if (isMounted.current) {
           setReflections(sortedReflections);
           setFilteredReflections(sortedReflections);
-          return sortedReflections;
-        } else {
-          console.error('Expected array of reflections but got:', typeof fetchedReflections);
+        }
+      } else {
+        console.error('Expected array of reflections but got:', typeof fetchedReflections);
+        
+        if (isMounted.current) {
           setReflections([]);
           setFilteredReflections([]);
-          return [];
-        }
-      } catch (error) {
-        if (!isMounted.current) return [];
-        
-        console.error("Error loading reflections:", error);
-        setLoadError("Failed to load reflections. Please try refreshing the page.");
-        return [];
-      } finally {
-        if (isMounted.current) {
-          setIsLoading(false);
-          isLoadingRef.current = false;
-          loadingPromiseRef.current = null;
         }
       }
-    })();
-    
-    return loadingPromiseRef.current;
+    } catch (error) {
+      console.error("Error loading reflections:", error);
+      
+      if (isMounted.current) {
+        setLoadError("Failed to load reflections. Please try refreshing the page.");
+      }
+    } finally {
+      reflectionsCache.isLoading = false;
+      
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
+    }
   }, []);
-
-  // Handle search filtering with debouncing
+  
   useEffect(() => {
-    const filterTimer = setTimeout(() => {
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+    
+    searchTimerRef.current = setTimeout(() => {
+      if (!isMounted.current) return;
+      
       if (searchQuery.trim() === '') {
         setFilteredReflections(reflections);
         return;
@@ -136,17 +124,13 @@ export function WeeklyReflectionsPage() {
       
       const query = searchQuery.toLowerCase();
       const filtered = reflections.filter(reflection => {
-        // Only check properties that actually exist to improve performance
         if (!reflection) return false;
         
-        // Quick check for date before doing string operations
         if (reflection.weekStart && reflection.weekStart.toLowerCase().includes(query)) {
           return true;
         }
         
-        // Only check text fields if needed
         if (reflection.reflection && typeof reflection.reflection === 'string') {
-          // Use basic includes instead of regex for better performance
           if (reflection.reflection.toLowerCase().includes(query)) {
             return true;
           }
@@ -162,24 +146,27 @@ export function WeeklyReflectionsPage() {
       });
       
       setFilteredReflections(filtered);
-    }, 300); // Debounce search by 300ms
+    }, 300);
     
-    return () => clearTimeout(filterTimer);
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+    };
   }, [searchQuery, reflections]);
-
-  // Load reflections when generation is complete
+  
   useEffect(() => {
-    // Only load reflections when generation is complete OR not started
     if (isComplete || !isGenerating) {
       loadReflections();
     }
   }, [loadReflections, isComplete, isGenerating]);
   
-  // Handle storage events with proper cleanup and debouncing
   useEffect(() => {
     const handleStorageUpdate = () => {
+      if (!isMounted.current) return;
+      
       const now = Date.now();
-      const MIN_EVENT_INTERVAL = 1000; // Increased to reduce update frequency
+      const MIN_EVENT_INTERVAL = 1000;
       
       if (eventsTimerRef.current) {
         clearTimeout(eventsTimerRef.current);
@@ -187,12 +174,16 @@ export function WeeklyReflectionsPage() {
       
       if (now - lastEventTimeRef.current < MIN_EVENT_INTERVAL) {
         eventsTimerRef.current = setTimeout(() => {
-          loadReflections();
+          if (isMounted.current) {
+            reflectionsCache.timestamp = 0;
+            loadReflections();
+          }
           lastEventTimeRef.current = Date.now();
         }, MIN_EVENT_INTERVAL);
         return;
       }
       
+      reflectionsCache.timestamp = 0;
       loadReflections();
       lastEventTimeRef.current = now;
     };
@@ -206,11 +197,14 @@ export function WeeklyReflectionsPage() {
         clearTimeout(eventsTimerRef.current);
       }
       
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+      
       window.removeEventListener('journal-updated', handleStorageUpdate);
     };
   }, [loadReflections]);
   
-  // Format date range with memoization to avoid repeated parsing
   const formatDateRange = useCallback((reflection: WeeklyReflection) => {
     if (reflection.weekStart && reflection.weekEnd) {
       try {
