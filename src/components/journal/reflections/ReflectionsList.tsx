@@ -80,7 +80,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
     }
   };
 
-  // Helper to get reflection ID (weekId or monthId)
+  // Helper to get reflection ID
   const getReflectionId = (reflection: WeeklyReflection | MonthlyReflection) => {
     if (type === 'weekly') {
       return (reflection as WeeklyReflection).weekId || reflection.id;
@@ -90,7 +90,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
   };
   
   // Function to handle reflection deletion
-  const handleDelete = (reflectionId: string) => {
+  const handleDelete = async (reflectionId: string) => {
     if (!reflectionId) {
       console.error('Cannot delete reflection with empty ID');
       toast.error('Failed to delete reflection: Invalid ID');
@@ -99,9 +99,9 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
     
     try {
       if (type === 'weekly') {
-        deleteWeeklyReflection(reflectionId);
+        await deleteWeeklyReflection(reflectionId);
       } else {
-        deleteMonthlyReflection(reflectionId);
+        await deleteMonthlyReflection(reflectionId);
       }
       toast.success(`${type === 'weekly' ? 'Weekly' : 'Monthly'} reflection deleted successfully`);
       

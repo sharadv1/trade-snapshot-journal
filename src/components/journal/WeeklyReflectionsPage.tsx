@@ -20,7 +20,7 @@ export function WeeklyReflectionsPage() {
   const processingWeekIds = useRef(new Set<string>());
   
   // Use the reflection generator hook to ensure reflections are created
-  useReflectionGenerator();
+  const { isGenerating, error: generationError } = useReflectionGenerator();
   
   // Function to download a weekly report
   const handleDownloadReport = useCallback((reflection: WeeklyReflection) => {
@@ -234,14 +234,14 @@ export function WeeklyReflectionsPage() {
   
   return (
     <div className="w-full max-w-screen-xl mx-auto">
-      {isLoading ? (
+      {isLoading || isGenerating ? (
         <div className="flex justify-center items-center py-12">
           <p className="text-muted-foreground">Loading reflections...</p>
         </div>
-      ) : loadError ? (
+      ) : loadError || generationError ? (
         <Card>
           <CardContent className="py-8">
-            <p className="text-center text-red-500">{loadError}</p>
+            <p className="text-center text-red-500">{loadError || generationError}</p>
             <div className="flex justify-center mt-4">
               <Button onClick={() => window.location.reload()}>Refresh Page</Button>
             </div>
