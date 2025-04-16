@@ -54,12 +54,12 @@ export const generateMissingReflections = async (trades: TradeWithMetrics[]): Pr
     });
     
     // Generate weekly reflections
-    const generatedWeeklyIds = new Set();
+    const generatedWeeklyIds = new Set<string>();
     await generateWeeklyReflections(currentDate, today, trades, weeklyReflectionsMap, generatedWeeklyIds);
     
     // Reset for monthly reflections
     currentDate = new Date(2025, 0, 1);
-    const generatedMonthlyIds = new Set();
+    const generatedMonthlyIds = new Set<string>();
     await generateMonthlyReflections(currentDate, today, trades, monthlyReflectionsMap, generatedMonthlyIds);
     
     console.log(`Generation complete. Created ${generatedWeeklyIds.size} weekly and ${generatedMonthlyIds.size} monthly reflections.`);
