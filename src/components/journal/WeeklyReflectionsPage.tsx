@@ -5,14 +5,15 @@ import { getWeeklyReflections } from '@/utils/journal/reflectionStorage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useReflectionGenerator } from '@/hooks/useReflectionGenerator';
-import { Loader2, Plus, Search } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Loader2, Plus, Search, RefreshCw } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { ReflectionCard } from './reflections/ReflectionCard';
 import { getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflectionUtils';
+import { toast } from '@/utils/toast';
 
-// Cache for reflections data
+// Improved cache for reflections data
 const reflectionsCache = {
   data: null as WeeklyReflection[] | null,
   timestamp: 0,
@@ -21,17 +22,20 @@ const reflectionsCache = {
 };
 
 export function WeeklyReflectionsPage() {
+  const navigate = useNavigate();
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
   const [filteredReflections, setFilteredReflections] = useState<WeeklyReflection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [forceReload, setForceReload] = useState(false);
   
   const isMounted = useRef(true);
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
   const loadAttemptRef = useRef(0);
   const lastLoadTimeRef = useRef<number>(0);
   
+  // Use the reflection generator hook to ensure reflections are created
   const { isGenerating, error: generationError, isComplete } = useReflectionGenerator();
   
   const loadReflections = useCallback(async () => {
@@ -51,8 +55,8 @@ export function WeeklyReflectionsPage() {
       return;
     }
     
-    // Check cache freshness
-    if (reflectionsCache.data && now - reflectionsCache.timestamp < 5000) {
+    // Check cache freshness (use cache for 10 seconds to improve performance)
+    if (reflectionsCache.data && now - reflectionsCache.timestamp < 10000 && !forceReload) {
       console.log('Using cached reflections data');
       setReflections(reflectionsCache.data);
       setFilteredReflections(reflectionsCache.data);
@@ -123,7 +127,7 @@ export function WeeklyReflectionsPage() {
         setIsLoading(false);
       }
     }
-  }, []);
+  }, [forceReload]);
   
   // Handle search filtering with debounce
   useEffect(() => {
@@ -197,6 +201,7 @@ export function WeeklyReflectionsPage() {
     };
     
     window.addEventListener('journal-updated', handleStorageUpdate);
+    window.addEventListener('reflections-generated', handleStorageUpdate);
     
     return () => {
       isMounted.current = false;
@@ -206,6 +211,7 @@ export function WeeklyReflectionsPage() {
       }
       
       window.removeEventListener('journal-updated', handleStorageUpdate);
+      window.removeEventListener('reflections-generated', handleStorageUpdate);
     };
   }, [loadReflections]);
   
@@ -223,6 +229,19 @@ export function WeeklyReflectionsPage() {
     }
     return 'Date range unavailable';
   }, []);
+
+  // Handle reflection click with navigation
+  const handleReflectionClick = useCallback((reflectionId: string) => {
+    // Navigate programmatically to prevent UI freezing
+    navigate(`/journal/weekly/${reflectionId}`);
+  }, [navigate]);
+  
+  // Force reload function
+  const handleForceReload = () => {
+    reflectionsCache.timestamp = 0; // Reset cache timestamp
+    setForceReload(prev => !prev);
+    toast.info("Refreshing reflections...");
+  };
   
   // Loading and error states
   if (isLoading || isGenerating) {
@@ -232,6 +251,14 @@ export function WeeklyReflectionsPage() {
         <p className="text-muted-foreground">
           {isGenerating ? 'Generating reflections...' : 'Loading reflections...'}
         </p>
+        <Button 
+          variant="outline" 
+          className="mt-4" 
+          onClick={handleForceReload}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh
+        </Button>
       </div>
     );
   }
@@ -242,10 +269,7 @@ export function WeeklyReflectionsPage() {
         <CardContent className="py-8">
           <p className="text-center text-red-500">{loadError || generationError || "An unknown error occurred"}</p>
           <div className="flex justify-center mt-4">
-            <Button onClick={() => {
-              reflectionsCache.timestamp = 0;
-              loadReflections();
-            }}>Retry Loading</Button>
+            <Button onClick={handleForceReload}>Retry Loading</Button>
           </div>
         </CardContent>
       </Card>
@@ -283,6 +307,10 @@ export function WeeklyReflectionsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <Button variant="outline" onClick={handleForceReload}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
           <Button asChild>
             <Link to={`/journal/weekly/${getCurrentPeriodId('weekly')}`}>
               <Plus className="mr-2 h-4 w-4" />
@@ -304,15 +332,21 @@ export function WeeklyReflectionsPage() {
             try {
               const stats = getReflectionStats(reflection);
               const dateRange = formatDateRange(reflection);
+              const reflectionId = reflection.weekId || reflection.id;
               
               return (
-                <ReflectionCard
-                  key={reflection.id}
-                  reflection={reflection}
-                  type="weekly"
-                  dateRange={dateRange}
-                  stats={stats}
-                />
+                <div 
+                  key={reflection.id} 
+                  onClick={() => handleReflectionClick(reflectionId)}
+                  className="cursor-pointer"
+                >
+                  <ReflectionCard
+                    reflection={reflection}
+                    type="weekly"
+                    dateRange={dateRange}
+                    stats={stats}
+                  />
+                </div>
               );
             } catch (error) {
               console.error("Error rendering reflection card:", error);

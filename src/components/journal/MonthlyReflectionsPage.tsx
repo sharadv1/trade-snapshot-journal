@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useReflectionGenerator } from '@/hooks/useReflectionGenerator';
 import { Loader2, Plus, Search, RefreshCw } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { ReflectionCard } from './reflections/ReflectionCard';
@@ -14,6 +14,7 @@ import { getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflecti
 import { toast } from '@/utils/toast';
 
 export function MonthlyReflectionsPage() {
+  const navigate = useNavigate();
   const [reflections, setReflections] = useState<MonthlyReflection[]>([]);
   const [filteredReflections, setFilteredReflections] = useState<MonthlyReflection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,13 +106,11 @@ export function MonthlyReflectionsPage() {
     // Register event listeners
     window.addEventListener('reflections-generated', handleReflectionsGenerated);
     window.addEventListener('journal-updated', handleReflectionsGenerated);
-    window.addEventListener('storage', handleReflectionsGenerated);
     
     return () => {
       // Clean up event listeners
       window.removeEventListener('reflections-generated', handleReflectionsGenerated);
       window.removeEventListener('journal-updated', handleReflectionsGenerated);
-      window.removeEventListener('storage', handleReflectionsGenerated);
     };
   }, [loadReflections]);
   
@@ -120,6 +119,12 @@ export function MonthlyReflectionsPage() {
     setForceReload(prev => !prev);
     toast.info("Refreshing reflections...");
   };
+
+  // Handle reflection click with navigation
+  const handleReflectionClick = useCallback((reflectionId: string) => {
+    // Navigate programmatically to prevent UI freezing
+    navigate(`/journal/monthly/${reflectionId}`);
+  }, [navigate]);
   
   // Format date range for display
   const formatDateRange = (reflection: MonthlyReflection) => {
@@ -235,15 +240,21 @@ export function MonthlyReflectionsPage() {
             
             const stats = getReflectionStats(reflection);
             const dateRange = formatDateRange(reflection);
+            const reflectionId = reflection.monthId || reflection.id;
             
             return (
-              <ReflectionCard
-                key={reflection.id}
-                reflection={reflection}
-                type="monthly"
-                dateRange={dateRange}
-                stats={stats}
-              />
+              <div 
+                key={reflection.id} 
+                onClick={() => handleReflectionClick(reflectionId)}
+                className="cursor-pointer"
+              >
+                <ReflectionCard
+                  reflection={reflection}
+                  type="monthly"
+                  dateRange={dateRange}
+                  stats={stats}
+                />
+              </div>
             );
           })}
         </div>

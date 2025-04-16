@@ -1,7 +1,6 @@
 
 import React, { memo } from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
 import { formatCurrency } from '@/utils/calculations/formatters';
@@ -34,15 +33,8 @@ export const ReflectionCard = memo(({
   stats,
   hasContent,
   reflectionWordCount,
-  planWordCount,
-  canDelete,
-  onDelete
+  planWordCount
 }: ReflectionCardProps) => {
-  // Get the reflection ID (weekId or monthId)
-  const id = type === 'weekly' 
-    ? (reflection as WeeklyReflection).weekId 
-    : (reflection as MonthlyReflection).monthId;
-  
   // Get grade
   const grade = reflection.grade;
   
@@ -51,14 +43,11 @@ export const ReflectionCard = memo(({
 
   return (
     <Card 
-      className={`cursor-pointer hover:bg-accent/10 transition-colors ${
+      className={`hover:bg-accent/10 transition-colors ${
         reflection.isPlaceholder ? 'border-dashed' : ''
       }`}
     >
-      <Link 
-        to={`/journal/${type}/${id}`}
-        className="block p-4"
-      >
+      <div className="block p-4">
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-base font-medium inline-flex items-center">
@@ -119,7 +108,7 @@ export const ReflectionCard = memo(({
               : ''}
           </div>
         )}
-      </Link>
+      </div>
     </Card>
   );
 });

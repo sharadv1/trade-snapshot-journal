@@ -10,6 +10,12 @@ const generationState = {
   error: null as string | null
 };
 
+// Cache to prevent redundant generation
+const reflectionCache = {
+  timestamp: 0,
+  isValid: false
+};
+
 export function useReflectionGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +27,20 @@ export function useReflectionGenerator() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const attemptsRef = useRef(0);
   const completionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Check if we should skip generation entirely
+  const shouldSkipGeneration = useRef(false);
+  
+  // Performance optimization: check if we're on a reflection detail page
+  useEffect(() => {
+    const path = window.location.pathname;
+    // Skip generation if we're on a specific reflection page
+    if (path.includes('/journal/weekly/') || path.includes('/journal/monthly/')) {
+      shouldSkipGeneration.current = true;
+      setIsComplete(true);
+      setIsGenerating(false);
+    }
+  }, []);
 
   // Clear any timeouts when unmounting
   useEffect(() => {
@@ -36,8 +56,13 @@ export function useReflectionGenerator() {
   }, []);
 
   useEffect(() => {
-    // Skip if unmounted or already processing
-    if (!isMounted.current || isProcessingRef.current) return;
+    // Skip if unmounted, already processing, or should be skipped
+    if (!isMounted.current || isProcessingRef.current || shouldSkipGeneration.current) {
+      if (shouldSkipGeneration.current) {
+        console.log('Skipping reflection generation on detail page');
+      }
+      return;
+    }
     
     // Prevent simultaneous generation attempts across components
     if (generationState.inProgress) {
@@ -57,8 +82,16 @@ export function useReflectionGenerator() {
       return;
     }
     
-    // Skip if already completed successfully recently (within last 30 seconds)
+    // Check cache validity - to further reduce unnecessary processing
     const now = Date.now();
+    if (reflectionCache.isValid && (now - reflectionCache.timestamp < 60000)) {
+      console.log('Using cached generation state, skipping');
+      setIsComplete(true);
+      setIsGenerating(false);
+      return;
+    }
+    
+    // Skip if already completed successfully recently
     if (generationState.hasGenerated && (now - generationState.lastAttempt < 30000)) {
       console.log('Using cached generation result from recent successful attempt');
       setIsComplete(true);
@@ -76,8 +109,8 @@ export function useReflectionGenerator() {
     
     attemptsRef.current++;
     
-    // Begin generation process
-    const generateReflections = async () => {
+    // Begin generation process with a slight delay to avoid UI blocking
+    setTimeout(async () => {
       try {
         console.log('Starting reflection generation process');
         setIsGenerating(true);
@@ -85,10 +118,10 @@ export function useReflectionGenerator() {
         isProcessingRef.current = true;
         generationState.inProgress = true;
         
-        // Dynamically import trade operations with a timeout guard
+        // Dynamically import with a timeout guard
         timeoutRef.current = setTimeout(async () => {
           try {
-            // Safety check to prevent further processing if component unmounted
+            // Safety check for unmounting
             if (!isMounted.current) {
               cleanupProcessing();
               return;
@@ -116,6 +149,10 @@ export function useReflectionGenerator() {
               
               await generateMissingReflections(trades);
               
+              // Update cache state
+              reflectionCache.isValid = true;
+              reflectionCache.timestamp = Date.now();
+              
               // Update completion state
               updateCompleteState();
             } else {
@@ -125,7 +162,7 @@ export function useReflectionGenerator() {
           } catch (error) {
             handleError(error);
           }
-        }, 300);
+        }, 100);
         
         // Add a safety timeout to force completion if generation gets stuck
         completionTimeoutRef.current = setTimeout(() => {
@@ -137,53 +174,54 @@ export function useReflectionGenerator() {
       } catch (error) {
         handleError(error);
       }
-    };
-    
-    // Helper functions
-    const cleanupProcessing = () => {
-      isProcessingRef.current = false;
+    }, 50); // Small delay before starting generation to avoid UI freezing
+  }, [isGenerating]);
+  
+  // Helper functions
+  const cleanupProcessing = () => {
+    isProcessingRef.current = false;
+    generationState.inProgress = false;
+    if (completionTimeoutRef.current) {
+      clearTimeout(completionTimeoutRef.current);
+    }
+  };
+  
+  const updateCompleteState = () => {
+    if (isMounted.current) {
+      generationState.hasGenerated = true;
+      generationState.lastAttempt = Date.now();
       generationState.inProgress = false;
-      if (completionTimeoutRef.current) {
-        clearTimeout(completionTimeoutRef.current);
-      }
-    };
-    
-    const updateCompleteState = () => {
-      if (isMounted.current) {
-        generationState.hasGenerated = true;
-        generationState.lastAttempt = Date.now();
-        generationState.inProgress = false;
-        generationState.error = null;
-        setIsComplete(true);
-        setIsGenerating(false);
-        
-        // Dispatch event to notify the system that reflections are ready
-        window.dispatchEvent(new CustomEvent('reflections-generated'));
-      }
-      cleanupProcessing();
-    };
-    
-    const handleError = (error: any) => {
-      console.error('Error in reflection generation:', error);
+      generationState.error = null;
+      setIsComplete(true);
+      setIsGenerating(false);
       
-      if (isMounted.current) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        generationState.error = errorMessage;
-        generationState.inProgress = false;
-        setError(errorMessage);
-        setIsGenerating(false);
+      // Dispatch event to notify the system that reflections are ready
+      window.dispatchEvent(new CustomEvent('reflections-generated'));
+    }
+    cleanupProcessing();
+  };
+  
+  const handleError = (error: any) => {
+    console.error('Error in reflection generation:', error);
+    
+    if (isMounted.current) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      generationState.error = errorMessage;
+      generationState.inProgress = false;
+      setError(errorMessage);
+      setIsGenerating(false);
+      
+      // Only show toast for actual errors, not timeouts or cancellations
+      if (errorMessage !== 'canceled' && !errorMessage.includes('timeout')) {
         toast.error('Failed to generate reflections. Please try again.');
-        
-        // Even on error, mark as complete so the UI can proceed
-        setIsComplete(true);
       }
       
-      cleanupProcessing();
-    };
+      // Even on error, mark as complete so the UI can proceed
+      setIsComplete(true);
+    }
     
-    // Start the generation process
-    generateReflections();
-  }, []);
+    cleanupProcessing();
+  };
 
   return { isGenerating, error, isComplete };
 }
