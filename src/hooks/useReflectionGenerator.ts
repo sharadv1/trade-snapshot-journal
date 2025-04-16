@@ -1,12 +1,18 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 
 export function useReflectionGenerator() {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     // Generate reflections when component mounts
     const generateReflections = async () => {
       try {
+        setIsGenerating(true);
+        setError(null);
+        
         const trades = getTradesWithMetrics();
         if (trades.length > 0) {
           console.log(`Found ${trades.length} trades for reflection generation`);
@@ -22,9 +28,13 @@ export function useReflectionGenerator() {
         }
       } catch (error) {
         console.error('Error generating reflections:', error);
+        setError(error instanceof Error ? error.message : 'Unknown error');
+        
         // Dispatch an event even when there's an error so UI can stop showing loading state
         const customEvent = new CustomEvent('journal-updated', { detail: { source: 'reflectionGenerator', error: true } });
         window.dispatchEvent(customEvent);
+      } finally {
+        setIsGenerating(false);
       }
     };
     
@@ -35,4 +45,6 @@ export function useReflectionGenerator() {
     
     return () => clearTimeout(timer);
   }, []);
+
+  return { isGenerating, error };
 }

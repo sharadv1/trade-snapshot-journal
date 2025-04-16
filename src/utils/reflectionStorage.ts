@@ -63,10 +63,9 @@ export const addWeeklyReflection = async (reflection: WeeklyReflection): Promise
         lastUpdated: new Date().toISOString()
       };
     } else {
-      // Add a new reflection with createdAt and lastUpdated
+      // Add a new reflection with lastUpdated
       const newReflection = {
         ...reflection,
-        createdAt: reflection.createdAt || new Date().toISOString(),
         lastUpdated: new Date().toISOString()
       };
       reflections.push(newReflection);
@@ -203,10 +202,9 @@ export const addMonthlyReflection = async (reflection: MonthlyReflection): Promi
         lastUpdated: new Date().toISOString()
       };
     } else {
-      // Add a new reflection with createdAt and lastUpdated
+      // Add a new reflection with lastUpdated
       const newReflection = {
         ...reflection,
-        createdAt: reflection.createdAt || new Date().toISOString(),
         lastUpdated: new Date().toISOString()
       };
       reflections.push(newReflection);
@@ -291,3 +289,4 @@ export const deleteMonthlyReflection = async (id: string): Promise<void> => {
     throw error;
   }
 };
+
