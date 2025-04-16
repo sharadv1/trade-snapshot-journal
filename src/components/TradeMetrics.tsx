@@ -46,6 +46,7 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
   
   if (!metrics) return null;
   
+  // Safely extract metrics with fallback values to prevent undefined errors
   const {
     profitLoss = 0,
     riskRewardRatio = 0,
@@ -59,14 +60,27 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
     capturedProfitPercent = 0
   } = metrics;
   
-  const rMultipleDisplay = rMultiple && !isNaN(rMultiple) ? rMultiple.toFixed(2) : 'N/A';
+  // Safely format rMultiple with validation
+  const rMultipleDisplay = (rMultiple !== undefined && rMultiple !== null && !isNaN(rMultiple)) ? 
+    rMultiple.toFixed(2) : 'N/A';
   
-  const formattedProfitLoss = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(profitLoss);
+  // Safely format profitLoss with validation
+  const formattedProfitLoss = (() => {
+    try {
+      if (profitLoss !== undefined && profitLoss !== null && !isNaN(profitLoss)) {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(profitLoss);
+      }
+      return '$0.00';
+    } catch (e) {
+      console.error("Error formatting profit/loss:", e);
+      return '$0.00';
+    }
+  })();
   
   const isProfit = profitLoss > 0;
   const isLoss = profitLoss < 0;
@@ -86,16 +100,27 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
     
     let missedValue = 0;
     if (trade.exitPrice && trade.targetReached === true && trade.targetReachedBeforeExit === false) {
-      const targetPrice = typeof trade.takeProfit === 'string' ? parseFloat(trade.takeProfit) : trade.takeProfit;
-      const exitPrice = typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice) : trade.exitPrice;
-      const quantity = typeof trade.quantity === 'string' ? parseFloat(trade.quantity.toString()) : trade.quantity;
-      const pointValue = trade.type === 'futures' && trade.contractDetails?.tickValue 
-        ? (typeof trade.contractDetails.tickValue === 'string' ? 
-            parseFloat(trade.contractDetails.tickValue) : 
-            trade.contractDetails.tickValue)
-        : 1;
-      const priceDiff = Math.abs(targetPrice - exitPrice);
-      missedValue = priceDiff * quantity * pointValue;
+      try {
+        const targetPrice = typeof trade.takeProfit === 'string' ? parseFloat(trade.takeProfit) : trade.takeProfit;
+        const exitPrice = typeof trade.exitPrice === 'string' ? parseFloat(trade.exitPrice) : trade.exitPrice;
+        const quantity = typeof trade.quantity === 'string' ? parseFloat(trade.quantity.toString()) : trade.quantity;
+        const pointValue = trade.type === 'futures' && trade.contractDetails?.tickValue 
+          ? (typeof trade.contractDetails.tickValue === 'string' ? 
+              parseFloat(trade.contractDetails.tickValue) : 
+              trade.contractDetails.tickValue)
+          : 1;
+        
+        // Safety check - ensure these are valid numbers
+        if (!isNaN(targetPrice) && !isNaN(exitPrice) && !isNaN(quantity) && !isNaN(pointValue)) {
+          // Account for direction (long vs short) when calculating price difference
+          const directionMultiplier = trade.direction === 'long' ? 1 : -1;
+          const priceDiff = Math.abs((targetPrice - exitPrice) * directionMultiplier);
+          missedValue = priceDiff * quantity * pointValue;
+        }
+      } catch (err) {
+        console.error("Error calculating missed value:", err);
+        missedValue = 0;
+      }
     }
     
     if (trade.targetReached === true) {
@@ -129,6 +154,14 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
         </>
       );
     }
+  };
+  
+  // Safe formatter function for numerical values
+  const formatMetricValue = (value: any, prefix = '$', decimals = 2) => {
+    if (value === undefined || value === null || isNaN(value)) {
+      return 'N/A';
+    }
+    return `${prefix}${value.toFixed(decimals)}`;
   };
   
   return (
@@ -190,7 +223,7 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
                   Current Risk
                 </p>
                 <p className="text-base">
-                  {riskedAmount ? `$${riskedAmount.toFixed(2)}` : 'N/A'}
+                  {formatMetricValue(riskedAmount)}
                 </p>
               </div>
               
@@ -200,7 +233,7 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
                   Initial Risk
                 </p>
                 <p className="text-base font-medium">
-                  {initialRiskedAmount ? `$${initialRiskedAmount.toFixed(2)}` : 'N/A'}
+                  {formatMetricValue(initialRiskedAmount)}
                 </p>
                 <p className="text-xs text-muted-foreground">Used for R-multiple calculation</p>
               </div>
@@ -211,7 +244,7 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
                   Potential Gain
                 </p>
                 <p className="text-base">
-                  {maxPotentialGain ? `$${maxPotentialGain.toFixed(2)}` : 'N/A'}
+                  {formatMetricValue(maxPotentialGain)}
                 </p>
               </div>
               
@@ -252,7 +285,7 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
                         Max Favorable
                       </p>
                       <p className="text-base">
-                        ${maxFavorableExcursion.toFixed(2)}
+                        {formatMetricValue(maxFavorableExcursion)}
                       </p>
                       {capturedProfitPercent > 0 && (
                         <p className="text-xs text-muted-foreground">
@@ -269,7 +302,7 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
                         Max Adverse ("Heat")
                       </p>
                       <p className="text-base">
-                        ${maxAdverseExcursion.toFixed(2)}
+                        {formatMetricValue(maxAdverseExcursion)}
                       </p>
                       {initialRiskedAmount > 0 && (
                         <p className="text-xs text-muted-foreground">
@@ -283,7 +316,7 @@ export function TradeMetrics({ trade, extended = false }: TradeMetricsProps) {
             )}
             
             <div className="mt-2 text-xs text-muted-foreground">
-              <p>{calculationExplanation}</p>
+              <p>{calculationExplanation || 'No calculation details available'}</p>
             </div>
           </div>
         </>

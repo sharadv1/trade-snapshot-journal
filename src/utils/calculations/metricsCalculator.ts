@@ -6,6 +6,7 @@ import { getContractPointValue } from './contractUtils';
 const FUTURES_CONTRACTS_KEY = 'futures_contracts';
 
 export const getTradeMetrics = (trade: Trade) => {
+  // Initialize with fallback values to prevent undefined errors
   let profitLoss = 0;
   let riskRewardRatio = 0;
   let rMultiple = 0;
@@ -42,7 +43,8 @@ export const getTradeMetrics = (trade: Trade) => {
 
   // Ensure trade.direction exists and is valid
   const direction = trade.direction || 'long';
-
+  
+  // Safety check for required fields
   if (!trade.entryPrice) {
     calculationExplanation += 'Entry price is missing. ';
     return {
@@ -92,6 +94,7 @@ export const getTradeMetrics = (trade: Trade) => {
         // Ensure we have an array before using find
         if (Array.isArray(storedContracts)) {
           return storedContracts.find((c: any) => 
+            c && c.symbol && trade.symbol && 
             c.symbol.toUpperCase() === trade.symbol.toUpperCase()
           );
         }
@@ -125,6 +128,13 @@ export const getTradeMetrics = (trade: Trade) => {
     }
   }
 
+  // Safely parse numeric values from trade data
+  const safeParseFloat = (value: any, defaultValue = 0): number => {
+    if (value === undefined || value === null) return defaultValue;
+    const parsed = parseFloat(String(value));
+    return isNaN(parsed) ? defaultValue : parsed;
+  };
+  
   const calculatePartialExits = () => {
     if (!trade.partialExits || trade.partialExits.length === 0) {
       return;
@@ -136,9 +146,9 @@ export const getTradeMetrics = (trade: Trade) => {
 
     trade.partialExits.forEach(exit => {
       if (exit.exitPrice && exit.quantity) {
-        const quantity = parseFloat(String(exit.quantity));
-        const exitPrice = parseFloat(String(exit.exitPrice));
-        const entryPrice = parseFloat(String(trade.entryPrice));
+        const quantity = safeParseFloat(exit.quantity);
+        const exitPrice = safeParseFloat(exit.exitPrice);
+        const entryPrice = safeParseFloat(trade.entryPrice);
 
         const tradeDirectionMultiplier = direction === 'long' ? 1 : -1;
         
@@ -164,10 +174,11 @@ export const getTradeMetrics = (trade: Trade) => {
   if (trade.partialExits && trade.partialExits.length > 0) {
     calculatePartialExits();
   } else if (trade.exitPrice && trade.quantity) {
-    const quantity = parseFloat(String(trade.quantity));
-    const entryPrice = parseFloat(String(trade.entryPrice));
-    const exitPrice = parseFloat(String(trade.exitPrice));
+    const quantity = safeParseFloat(trade.quantity);
+    const entryPrice = safeParseFloat(trade.entryPrice);
+    const exitPrice = safeParseFloat(trade.exitPrice);
 
+    // Calculate P&L properly accounting for direction
     const tradeDirectionMultiplier = direction === 'long' ? 1 : -1;
     
     // Calculate P&L with point value for futures
@@ -181,19 +192,36 @@ export const getTradeMetrics = (trade: Trade) => {
     latestExitDate = trade.exitDate;
   }
 
-  // For short positions, risk calculation needs to be inverted
-  // Calculate CURRENT risk per share/contract based on entry and stop loss
-  const stopLossValue = parseFloat(String(trade.stopLoss));
-  const entryValue = parseFloat(String(trade.entryPrice));
+  // Parse numeric values
+  const stopLossValue = safeParseFloat(trade.stopLoss);
+  const entryValue = safeParseFloat(trade.entryPrice);
   
-  // For long positions, stop < entry; for short positions, stop > entry
-  let riskedAmountPerUnit = Math.abs(entryValue - stopLossValue);
+  // Calculate risk based on direction
+  // For long: risk = entry - stop (if stop < entry)
+  // For short: risk = stop - entry (if stop > entry)
+  const isLong = direction === 'long';
+  let riskedAmountPerUnit = 0;
+  
+  if ((isLong && stopLossValue < entryValue) || (!isLong && stopLossValue > entryValue)) {
+    riskedAmountPerUnit = Math.abs(entryValue - stopLossValue);
+  } else {
+    // Handle invalid stop loss (e.g., stop above entry for long, or below entry for short)
+    riskedAmountPerUnit = 0;
+    calculationExplanation += `Warning: Stop loss (${stopLossValue}) is ${isLong ? 'above' : 'below'} entry price (${entryValue}) for a ${direction} position. `;
+  }
   
   // Calculate INITIAL risk per share/contract if available
   let initialRiskedAmountPerUnit = 0;
   if (trade.initialStopLoss) {
-    const initialStopValue = parseFloat(String(trade.initialStopLoss));
-    initialRiskedAmountPerUnit = Math.abs(entryValue - initialStopValue);
+    const initialStopValue = safeParseFloat(trade.initialStopLoss);
+    
+    if ((isLong && initialStopValue < entryValue) || (!isLong && initialStopValue > entryValue)) {
+      initialRiskedAmountPerUnit = Math.abs(entryValue - initialStopValue);
+    } else {
+      // Handle invalid initial stop loss
+      initialRiskedAmountPerUnit = 0;
+      calculationExplanation += `Warning: Initial stop loss (${initialStopValue}) is ${isLong ? 'above' : 'below'} entry price (${entryValue}) for a ${direction} position. `;
+    }
   } else {
     // If initialStopLoss is not available, use current stopLoss
     initialRiskedAmountPerUnit = riskedAmountPerUnit;
@@ -212,16 +240,26 @@ export const getTradeMetrics = (trade: Trade) => {
   }
   
   // Calculate actual risked amount (per unit * quantity)
-  const quantity = trade.quantity ? parseFloat(String(trade.quantity)) : 0;
+  const quantity = safeParseFloat(trade.quantity);
   riskedAmount = riskedAmountPerUnit * quantity;
   initialRiskedAmount = initialRiskedAmountPerUnit * quantity;
 
+  // Handle take profit calculations
   if (trade.takeProfit) {
-    const takeProfitValue = parseFloat(String(trade.takeProfit));
+    const takeProfitValue = safeParseFloat(trade.takeProfit);
     
-    // For long positions, TP > entry; for short positions, TP < entry
-    // Calculate the absolute difference regardless of direction
-    let maxGainPerUnit = Math.abs(takeProfitValue - entryValue);
+    // Calculate potential gain based on direction
+    // For long: gain = takeProfit - entry (if takeProfit > entry)
+    // For short: gain = entry - takeProfit (if takeProfit < entry)
+    let maxGainPerUnit = 0;
+    
+    if ((isLong && takeProfitValue > entryValue) || (!isLong && takeProfitValue < entryValue)) {
+      maxGainPerUnit = Math.abs(takeProfitValue - entryValue);
+    } else {
+      // Handle invalid take profit
+      maxGainPerUnit = 0;
+      calculationExplanation += `Warning: Take profit (${takeProfitValue}) is ${isLong ? 'below' : 'above'} entry price (${entryValue}) for a ${direction} position. `;
+    }
     
     // Apply contract multiplier for futures
     if (trade.type === 'futures') {
@@ -238,7 +276,7 @@ export const getTradeMetrics = (trade: Trade) => {
 
   // Calculate the maximum favorable and adverse excursions if they exist
   if (trade.maxFavorablePrice && trade.entryPrice) {
-    const maxFavPrice = parseFloat(String(trade.maxFavorablePrice));
+    const maxFavPrice = safeParseFloat(trade.maxFavorablePrice);
     
     // Calculate direction multiplier considering long vs short
     // For long: maxFavPrice > entryPrice is good
@@ -261,11 +299,14 @@ export const getTradeMetrics = (trade: Trade) => {
       const actualMove = (weightedExitPrice - entryValue) * directionMultiplier;
       const actualPL = actualMove * (trade.type === 'futures' ? pointValue : 1) * quantity;
       capturedProfitPercent = (actualPL / maxFavorableExcursion) * 100;
+      
+      // Ensure percentage is between 0 and 100
+      capturedProfitPercent = Math.max(0, Math.min(100, capturedProfitPercent));
     }
   }
   
   if (trade.maxAdversePrice && trade.entryPrice) {
-    const maxAdvPrice = parseFloat(String(trade.maxAdversePrice));
+    const maxAdvPrice = safeParseFloat(trade.maxAdversePrice);
     
     // Inverse of favorable - for long: price drop is adverse, for short: price rise is adverse
     const directionMultiplier = direction === 'long' ? -1 : 1;
@@ -366,6 +407,7 @@ export const getTradeMetrics = (trade: Trade) => {
     }
   }
 
+  // Return the calculated metrics
   return {
     profitLoss,
     riskRewardRatio,
