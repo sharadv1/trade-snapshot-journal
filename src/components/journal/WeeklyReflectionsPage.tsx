@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections } from '@/utils/journal/reflectionStorage';
@@ -21,23 +22,49 @@ export function WeeklyReflectionsPage() {
   const isMounted = useRef(true);
   const eventsTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastEventTimeRef = useRef<number>(0);
+  const isLoadingRef = useRef(true);
   
   const { isGenerating, error: generationError, isComplete } = useReflectionGenerator();
   
   const loadReflections = useCallback(async () => {
-    if (!isMounted.current || isGenerating) return;
+    if (!isMounted.current || (isGenerating && !isComplete)) {
+      console.log('Skipping loadReflections - component unmounted or still generating');
+      return;
+    }
     
+    if (isLoadingRef.current) {
+      console.log('Already loading reflections, skipping duplicate load');
+      return;
+    }
+    
+    isLoadingRef.current = true;
     setIsLoading(true);
     setLoadError(null);
     
     try {
       console.log("Loading weekly reflections...");
-      const fetchedReflections = await getWeeklyReflections();
+      // Add small delay to prevent UI freezing
+      await new Promise(resolve => setTimeout(resolve, 50));
       
-      if (!isMounted.current) return;
+      let fetchedReflections;
+      try {
+        fetchedReflections = await getWeeklyReflections();
+        console.log(`Loaded ${fetchedReflections.length} weekly reflections`);
+      } catch (err) {
+        console.error("Error in getWeeklyReflections:", err);
+        throw err;
+      }
+      
+      if (!isMounted.current) {
+        console.log('Component unmounted during fetch, aborting update');
+        return;
+      }
       
       if (Array.isArray(fetchedReflections)) {
-        const sortedReflections = fetchedReflections.sort((a, b) => {
+        // Process reflections in chunks to prevent UI freezing
+        await new Promise(resolve => setTimeout(resolve, 0)); // Yield to browser
+        
+        const sortedReflections = [...fetchedReflections].sort((a, b) => {
           if (!a.weekStart || !b.weekStart) return 0;
           
           try {
@@ -63,9 +90,10 @@ export function WeeklyReflectionsPage() {
     } finally {
       if (isMounted.current) {
         setIsLoading(false);
+        isLoadingRef.current = false;
       }
     }
-  }, [isGenerating]);
+  }, [isGenerating, isComplete]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -79,11 +107,13 @@ export function WeeklyReflectionsPage() {
         return true;
       }
       
-      if (reflection.reflection && reflection.reflection.toLowerCase().includes(query)) {
+      if (reflection.reflection && typeof reflection.reflection === 'string' && 
+          reflection.reflection.toLowerCase().includes(query)) {
         return true;
       }
       
-      if (reflection.weeklyPlan && reflection.weeklyPlan.toLowerCase().includes(query)) {
+      if (reflection.weeklyPlan && typeof reflection.weeklyPlan === 'string' && 
+          reflection.weeklyPlan.toLowerCase().includes(query)) {
         return true;
       }
       
@@ -94,6 +124,8 @@ export function WeeklyReflectionsPage() {
   }, [searchQuery, reflections]);
 
   useEffect(() => {
+    console.log("Deciding whether to load reflections:", { isComplete, isGenerating });
+    // Only load reflections when generation is complete or not started
     if (isComplete || !isGenerating) {
       loadReflections();
     }
@@ -101,6 +133,7 @@ export function WeeklyReflectionsPage() {
   
   useEffect(() => {
     const handleStorageUpdate = () => {
+      console.log("Storage update detected");
       const now = Date.now();
       const MIN_EVENT_INTERVAL = 500;
       

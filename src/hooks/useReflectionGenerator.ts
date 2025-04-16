@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from 'react';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
 import { toast } from '@/utils/toast';
@@ -9,10 +10,14 @@ export function useReflectionGenerator() {
   
   const isMounted = useRef(true);
   const hasAttemptedGeneration = useRef(false);
+  const generationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     return () => {
       isMounted.current = false;
+      if (generationTimeoutRef.current) {
+        clearTimeout(generationTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -28,11 +33,15 @@ export function useReflectionGenerator() {
         setIsGenerating(true);
         setError(null);
         
+        // Add a small delay to avoid blocking UI
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const trades = getTradesWithMetrics();
         if (trades.length > 0) {
           console.log(`Found ${trades.length} trades for reflection generation`);
           
           try {
+            // Dynamically import to prevent initial load blocking
             const { generateMissingReflections } = await import('@/utils/journal/reflectionGenerator');
             await generateMissingReflections(trades);
             
@@ -63,12 +72,15 @@ export function useReflectionGenerator() {
       }
     };
     
-    const timer = setTimeout(() => {
+    // Delay reflection generation to prevent UI freezing on initial load
+    generationTimeoutRef.current = setTimeout(() => {
       generateReflections();
-    }, 1000);
+    }, 1500);
     
     return () => {
-      clearTimeout(timer);
+      if (generationTimeoutRef.current) {
+        clearTimeout(generationTimeoutRef.current);
+      }
     };
   }, []);
 

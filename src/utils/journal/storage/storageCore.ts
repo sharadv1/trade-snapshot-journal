@@ -49,25 +49,22 @@ export function notifyJournalUpdate(source: string): void {
 }
 
 /**
- * Helper to actually dispatch events safely
+ * Helper to actually dispatch events safely, preventing redundancy
  */
 function dispatchJournalEvents(source: string): void {
   try {
+    // Only dispatch one type of event to reduce cascading updates
     window.dispatchEvent(new CustomEvent('journal-updated', { detail: { source } }));
     
-    // Only dispatch the storage event once - this is the most expensive
-    try {
-      window.dispatchEvent(new Event('storage'));
-    } catch (error) {
-      console.error('Error dispatching storage event:', error);
-    }
+    // Skip storage event as it's redundant and expensive
+    console.log(`Journal update dispatched for source: ${source}`);
   } catch (error) {
     console.error('Error dispatching journal update events:', error);
   }
 }
 
 /**
- * Dispatches storage events with rate limiting
+ * Dispatches storage events with rate limiting, using a more focused approach
  */
 export function dispatchStorageEvent(key: string): void {
   const now = Date.now();
@@ -79,18 +76,19 @@ export function dispatchStorageEvent(key: string): void {
   lastEventDispatchTime[key] = now;
   
   try {
-    // Only dispatch one type of event to reduce cascading updates
-    const customEvent = new CustomEvent('journal-updated', { detail: { key } });
-    window.dispatchEvent(customEvent);
-    
-    // Don't dispatch these redundant events which cause cascading updates
-    // window.dispatchEvent(new CustomEvent('journalUpdated', { detail: { key } }));
-    // window.dispatchEvent(new StorageEvent('storage', { key }));
+    // Use a small timeout to allow UI to breathe before dispatching
+    setTimeout(() => {
+      try {
+        const customEvent = new CustomEvent('journal-updated', { detail: { key } });
+        window.dispatchEvent(customEvent);
+        console.log(`Storage event dispatched for key: ${key}`);
+      } catch (err) {
+        console.error('Error in delayed event dispatch:', err);
+      }
+    }, 0);
   } catch (e) {
-    console.error('Error dispatching events:', e);
+    console.error('Error setting up event dispatch:', e);
   }
-  
-  console.log(`Storage event dispatched for key: ${key}`);
 }
 
 /**

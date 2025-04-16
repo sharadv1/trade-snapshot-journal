@@ -1,8 +1,10 @@
+
 import { 
   WEEKLY_REFLECTIONS_KEY, 
   MONTHLY_REFLECTIONS_KEY,
   dispatchStorageEvent, 
-  safeParse 
+  safeParse,
+  debugStorage
 } from './storageCore';
 
 // Keeping track of processed trades to prevent duplicate operations
@@ -33,18 +35,17 @@ export function associateTradeWithReflections(tradeId: string, tradeDate: string
   // Check if this trade has already been processed for these reflections
   const tradeMapKey = `${tradeId}-${weekId}-${monthId}`;
   if (processedTradeMap.has(tradeMapKey)) {
+    console.log(`Skipping duplicate association for trade ${tradeId}`);
     return;
   }
   
   // Track this operation to prevent repeated processing
-  if (!processedTradeMap.has(tradeMapKey)) {
-    processedTradeMap.set(tradeMapKey, new Set([weekId, monthId]));
-  }
+  processedTradeMap.set(tradeMapKey, new Set([weekId, monthId]));
   
   console.log(`Associating trade ${tradeId} with week ${weekId} and month ${monthId}`);
   
-  let updatedWeekly = false;
-  let updatedMonthly = false;
+  // Use a single update flag to prevent multiple dispatches
+  let updatedStorage = false;
   
   // Get weekly reflections
   try {
@@ -59,7 +60,7 @@ export function associateTradeWithReflections(tradeId: string, tradeDate: string
       if (!weeklyReflections[weekId].tradeIds.includes(tradeId)) {
         weeklyReflections[weekId].tradeIds.push(tradeId);
         localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(weeklyReflections));
-        updatedWeekly = true;
+        updatedStorage = true;
         console.log(`Added trade ${tradeId} to weekly reflection ${weekId}`);
       }
     }
@@ -80,7 +81,7 @@ export function associateTradeWithReflections(tradeId: string, tradeDate: string
       if (!monthlyReflections[monthId].tradeIds.includes(tradeId)) {
         monthlyReflections[monthId].tradeIds.push(tradeId);
         localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(monthlyReflections));
-        updatedMonthly = true;
+        updatedStorage = true;
         console.log(`Added trade ${tradeId} to monthly reflection ${monthId}`);
       }
     }
@@ -88,13 +89,12 @@ export function associateTradeWithReflections(tradeId: string, tradeDate: string
     console.error('Error associating trade with monthly reflection:', error);
   }
   
-  // Only dispatch events if we actually updated something
-  if (updatedWeekly) {
-    dispatchStorageEvent(WEEKLY_REFLECTIONS_KEY);
-  }
-  
-  if (updatedMonthly) {
-    dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
+  // Only dispatch events if we actually updated something and do it once at the end
+  if (updatedStorage) {
+    // Use a timeout to prevent immediate UI updates during processing
+    setTimeout(() => {
+      dispatchStorageEvent("trade-journal-reflections-updated");
+    }, 0);
   }
 }
 
@@ -103,4 +103,5 @@ export function associateTradeWithReflections(tradeId: string, tradeDate: string
  */
 export function clearTradeAssociationCache(): void {
   processedTradeMap.clear();
+  console.log('Trade association cache cleared');
 }

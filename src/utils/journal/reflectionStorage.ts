@@ -11,7 +11,12 @@
 
 // Core storage utilities - minimizing what we expose to prevent circular imports
 export { 
-  notifyJournalUpdate 
+  notifyJournalUpdate,
+  safeParse,
+  debugStorage,
+  WEEKLY_REFLECTIONS_KEY,
+  MONTHLY_REFLECTIONS_KEY,
+  dispatchStorageEvent
 } from './storage/storageCore';
 
 // Weekly reflection operations

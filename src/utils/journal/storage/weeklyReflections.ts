@@ -15,22 +15,34 @@ import { toast } from '@/utils/toast';
  */
 export async function getWeeklyReflections(): Promise<WeeklyReflection[]> {
   try {
+    debugStorage('Getting weekly reflections', WEEKLY_REFLECTIONS_KEY);
     const reflectionsJson = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
     
     if (!reflectionsJson) {
+      console.log('No weekly reflections found in storage');
       return [];
     }
     
-    const parsed = JSON.parse(reflectionsJson);
+    let parsed;
+    try {
+      parsed = JSON.parse(reflectionsJson);
+      console.log('Weekly reflections parsed from storage:', typeof parsed);
+    } catch (e) {
+      console.error('Failed to parse weekly reflections JSON:', e);
+      return [];
+    }
     
     // Handle both array and object formats
     if (Array.isArray(parsed)) {
       return parsed.filter(r => r && typeof r === 'object' && 'id' in r);
     } else if (parsed && typeof parsed === 'object') {
       // Convert object to array for consistency
-      return Object.values(parsed).filter(r => r && typeof r === 'object' && 'id' in r) as WeeklyReflection[];
+      const reflections = Object.values(parsed).filter(r => r && typeof r === 'object' && 'id' in r) as WeeklyReflection[];
+      console.log(`Converted ${reflections.length} weekly reflections from object to array`);
+      return reflections;
     }
     
+    console.log('Unknown format for weekly reflections, returning empty array');
     return [];
   } catch (error) {
     console.error('Error getting weekly reflections:', error);
