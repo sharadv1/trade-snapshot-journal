@@ -20,6 +20,7 @@ export function useReflectionGenerator() {
   const isProcessingRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const attemptsRef = useRef(0);
+  const completionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Clear any timeouts when unmounting
   useEffect(() => {
@@ -27,6 +28,9 @@ export function useReflectionGenerator() {
       isMounted.current = false;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
       }
     };
   }, []);
@@ -38,12 +42,25 @@ export function useReflectionGenerator() {
     // Prevent simultaneous generation attempts across components
     if (generationState.inProgress) {
       setIsGenerating(true);
+      
+      // Add a safety timeout to force completion if generation gets stuck
+      completionTimeoutRef.current = setTimeout(() => {
+        if (isMounted.current && isGenerating) {
+          console.log('Force completing reflection generation due to timeout');
+          setIsComplete(true);
+          setIsGenerating(false);
+          generationState.hasGenerated = true;
+          generationState.inProgress = false;
+        }
+      }, 5000); // Force completion after 5 seconds if stuck
+      
       return;
     }
     
-    // Skip if already completed recently (within last 30 seconds)
+    // Skip if already completed successfully recently (within last 30 seconds)
     const now = Date.now();
     if (generationState.hasGenerated && (now - generationState.lastAttempt < 30000)) {
+      console.log('Using cached generation result from recent successful attempt');
       setIsComplete(true);
       setIsGenerating(false);
       return;
@@ -109,6 +126,14 @@ export function useReflectionGenerator() {
             handleError(error);
           }
         }, 300);
+        
+        // Add a safety timeout to force completion if generation gets stuck
+        completionTimeoutRef.current = setTimeout(() => {
+          if (isMounted.current && isGenerating) {
+            console.log('Force completing reflection generation due to timeout');
+            updateCompleteState();
+          }
+        }, 8000); // Force completion after 8 seconds max
       } catch (error) {
         handleError(error);
       }
@@ -118,6 +143,9 @@ export function useReflectionGenerator() {
     const cleanupProcessing = () => {
       isProcessingRef.current = false;
       generationState.inProgress = false;
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+      }
     };
     
     const updateCompleteState = () => {
@@ -128,6 +156,9 @@ export function useReflectionGenerator() {
         generationState.error = null;
         setIsComplete(true);
         setIsGenerating(false);
+        
+        // Dispatch event to notify the system that reflections are ready
+        window.dispatchEvent(new CustomEvent('reflections-generated'));
       }
       cleanupProcessing();
     };
@@ -142,6 +173,9 @@ export function useReflectionGenerator() {
         setError(errorMessage);
         setIsGenerating(false);
         toast.error('Failed to generate reflections. Please try again.');
+        
+        // Even on error, mark as complete so the UI can proceed
+        setIsComplete(true);
       }
       
       cleanupProcessing();

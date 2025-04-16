@@ -5,12 +5,13 @@ import { getMonthlyReflections } from '@/utils/journal/reflectionStorage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useReflectionGenerator } from '@/hooks/useReflectionGenerator';
-import { Loader2, Plus, Search } from 'lucide-react';
+import { Loader2, Plus, Search, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { ReflectionCard } from './reflections/ReflectionCard';
 import { getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflectionUtils';
+import { toast } from '@/utils/toast';
 
 export function MonthlyReflectionsPage() {
   const [reflections, setReflections] = useState<MonthlyReflection[]>([]);
@@ -18,6 +19,7 @@ export function MonthlyReflectionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [forceReload, setForceReload] = useState(false);
   
   // Use the reflection generator hook to ensure reflections are created
   const { isGenerating, error: generationError, isComplete } = useReflectionGenerator();
@@ -44,6 +46,7 @@ export function MonthlyReflectionsPage() {
           }
         });
         
+        console.log(`Loaded ${sortedReflections.length} monthly reflections successfully`);
         setReflections(sortedReflections);
         setFilteredReflections(sortedReflections);
       } else {
@@ -85,30 +88,38 @@ export function MonthlyReflectionsPage() {
     setFilteredReflections(filtered);
   }, [searchQuery, reflections]);
 
-  // Initial load of reflections
+  // Initial load of reflections and after generation completes
   useEffect(() => {
     if (isComplete || !isGenerating) {
       loadReflections();
     }
-  }, [loadReflections, isComplete, isGenerating]);
+  }, [loadReflections, isComplete, isGenerating, forceReload]);
   
-  // Set up event listeners for storage updates
+  // Listen for reflections-generated events
   useEffect(() => {
-    const handleStorageUpdate = () => {
-      console.log("Journal update detected - refreshing reflections list");
+    const handleReflectionsGenerated = () => {
+      console.log("Reflections generation completed - reloading reflections list");
       loadReflections();
     };
     
     // Register event listeners
-    window.addEventListener('journal-updated', handleStorageUpdate);
-    window.addEventListener('storage', handleStorageUpdate);
+    window.addEventListener('reflections-generated', handleReflectionsGenerated);
+    window.addEventListener('journal-updated', handleReflectionsGenerated);
+    window.addEventListener('storage', handleReflectionsGenerated);
     
     return () => {
       // Clean up event listeners
-      window.removeEventListener('journal-updated', handleStorageUpdate);
-      window.removeEventListener('storage', handleStorageUpdate);
+      window.removeEventListener('reflections-generated', handleReflectionsGenerated);
+      window.removeEventListener('journal-updated', handleReflectionsGenerated);
+      window.removeEventListener('storage', handleReflectionsGenerated);
     };
   }, [loadReflections]);
+  
+  // Force reload function
+  const handleForceReload = () => {
+    setForceReload(prev => !prev);
+    toast.info("Refreshing reflections...");
+  };
   
   // Format date range for display
   const formatDateRange = (reflection: MonthlyReflection) => {
@@ -141,6 +152,15 @@ export function MonthlyReflectionsPage() {
         <p className="text-muted-foreground">
           {isGenerating ? 'Generating reflections...' : 'Loading reflections...'}
         </p>
+        {/* Add a button to force completion if stuck in this state for too long */}
+        <Button 
+          variant="outline" 
+          className="mt-4" 
+          onClick={handleForceReload}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh
+        </Button>
       </div>
     );
   }
@@ -152,7 +172,7 @@ export function MonthlyReflectionsPage() {
         <CardContent className="py-8">
           <p className="text-center text-red-500">{loadError || generationError || "An unknown error occurred"}</p>
           <div className="flex justify-center mt-4">
-            <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+            <Button onClick={handleForceReload}>Refresh Data</Button>
           </div>
         </CardContent>
       </Card>
@@ -191,6 +211,10 @@ export function MonthlyReflectionsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <Button variant="outline" onClick={handleForceReload}>
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Refresh
+          </Button>
           <Button asChild>
             <Link to={`/journal/monthly/${getCurrentPeriodId('monthly')}`}>
               <Plus className="mr-2 h-4 w-4" />
