@@ -7,18 +7,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useReflectionGenerator } from '@/hooks/useReflectionGenerator';
 import { Loader2, Plus, Search, RefreshCw } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { ReflectionCard } from './reflections/ReflectionCard';
 import { getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflectionUtils';
 import { toast } from '@/utils/toast';
 
-// Improved cache for reflections data
+// Global cache to prevent redundant data fetching
 const reflectionsCache = {
-  data: null as WeeklyReflection[] | null,
+  data: [] as WeeklyReflection[],
   timestamp: 0,
-  isLoading: false,
-  pendingRequests: 0
+  lastPath: ''
 };
 
 export function WeeklyReflectionsPage() {
@@ -31,226 +29,189 @@ export function WeeklyReflectionsPage() {
   const [forceReload, setForceReload] = useState(false);
   
   const isMounted = useRef(true);
-  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const loadAttemptRef = useRef(0);
-  const lastLoadTimeRef = useRef<number>(0);
+  const loadingRef = useRef(false);
   
-  // Use the reflection generator hook to ensure reflections are created
-  const { isGenerating, error: generationError, isComplete } = useReflectionGenerator();
+  // The generation process should be completely skipped on this page
+  const { isComplete } = useReflectionGenerator();
   
+  // Function to load reflections with caching
   const loadReflections = useCallback(async () => {
-    // Skip if component unmounted or we're already loading
-    if (!isMounted.current || reflectionsCache.isLoading) return;
-    
-    // Throttle loading attempts
-    const now = Date.now();
-    if (now - lastLoadTimeRef.current < 2000 && loadAttemptRef.current > 2) {
-      console.log('Too many loading attempts, throttling');
-      setTimeout(() => {
-        if (isMounted.current) {
-          loadAttemptRef.current = 0;
-          lastLoadTimeRef.current = Date.now();
-        }
-      }, 2000);
-      return;
-    }
-    
-    // Check cache freshness (use cache for 10 seconds to improve performance)
-    if (reflectionsCache.data && now - reflectionsCache.timestamp < 10000 && !forceReload) {
-      console.log('Using cached reflections data');
-      setReflections(reflectionsCache.data);
-      setFilteredReflections(reflectionsCache.data);
-      setIsLoading(false);
-      return;
-    }
+    if (loadingRef.current || !isMounted.current) return;
     
     try {
-      loadAttemptRef.current++;
-      lastLoadTimeRef.current = now;
-      reflectionsCache.isLoading = true;
-      reflectionsCache.pendingRequests++;
+      loadingRef.current = true;
       setIsLoading(true);
-      setLoadError(null);
       
-      console.log('Loading weekly reflections');
-      let fetchedReflections;
+      const now = Date.now();
+      const currentPath = window.location.pathname;
       
-      try {
-        fetchedReflections = await getWeeklyReflections();
-      } catch (err) {
-        console.error("Error in getWeeklyReflections:", err);
-        throw err;
-      }
-      
-      if (!isMounted.current) {
-        reflectionsCache.pendingRequests--;
-        if (reflectionsCache.pendingRequests === 0) {
-          reflectionsCache.isLoading = false;
-        }
+      // Use cache if available and not forcing reload
+      if (!forceReload && 
+          reflectionsCache.data.length > 0 && 
+          now - reflectionsCache.timestamp < 30000 &&
+          reflectionsCache.lastPath === currentPath) {
+        console.log('Using cached reflections data');
+        setReflections(reflectionsCache.data);
+        setFilteredReflections(reflectionsCache.data);
+        setIsLoading(false);
+        loadingRef.current = false;
         return;
       }
       
+      console.log("Loading weekly reflections...");
+      const fetchedReflections = await getWeeklyReflections();
+      
+      if (!isMounted.current) return;
+      
       if (Array.isArray(fetchedReflections)) {
-        const sortedReflections = [...fetchedReflections].sort((a, b) => {
+        // Sort reflections by date (most recent first)
+        const sortedReflections = fetchedReflections.sort((a, b) => {
           if (!a.weekStart || !b.weekStart) return 0;
-          return b.weekStart.localeCompare(a.weekStart);
+          
+          try {
+            return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
+          } catch (error) {
+            console.warn("Error sorting reflections by date:", error);
+            return 0;
+          }
         });
         
+        // Update cache
         reflectionsCache.data = sortedReflections;
         reflectionsCache.timestamp = now;
+        reflectionsCache.lastPath = currentPath;
         
-        if (isMounted.current) {
-          setReflections(sortedReflections);
-          setFilteredReflections(sortedReflections);
-        }
+        console.log(`Loaded ${sortedReflections.length} weekly reflections successfully`);
+        setReflections(sortedReflections);
+        setFilteredReflections(sortedReflections);
       } else {
         console.error('Expected array of reflections but got:', typeof fetchedReflections);
-        
-        if (isMounted.current) {
-          setReflections([]);
-          setFilteredReflections([]);
-        }
+        setReflections([]);
+        setFilteredReflections([]);
+        setLoadError("Invalid reflection data format");
       }
     } catch (error) {
       console.error("Error loading reflections:", error);
-      
-      if (isMounted.current) {
-        setLoadError("Failed to load reflections. Please try refreshing the page.");
-      }
+      setLoadError("Failed to load reflections. Please try refreshing the page.");
     } finally {
-      reflectionsCache.pendingRequests--;
-      if (reflectionsCache.pendingRequests === 0) {
-        reflectionsCache.isLoading = false;
-      }
-      
       if (isMounted.current) {
         setIsLoading(false);
+        loadingRef.current = false;
       }
     }
   }, [forceReload]);
-  
-  // Handle search filtering with debounce
+
+  // Handle search with simpler filtering
   useEffect(() => {
-    if (searchTimerRef.current) {
-      clearTimeout(searchTimerRef.current);
+    if (searchQuery.trim() === '') {
+      setFilteredReflections(reflections);
+      return;
     }
     
-    searchTimerRef.current = setTimeout(() => {
-      if (!isMounted.current) return;
+    const query = searchQuery.toLowerCase();
+    const filtered = reflections.filter(reflection => {
+      // Simple and efficient filtering
+      if (!reflection) return false;
       
-      if (searchQuery.trim() === '') {
-        setFilteredReflections(reflections);
-        return;
+      // Search in date
+      if (reflection.weekStart && reflection.weekStart.toLowerCase().includes(query)) {
+        return true;
       }
       
-      const query = searchQuery.toLowerCase();
-      const filtered = reflections.filter(reflection => {
-        if (!reflection) return false;
-        
-        if (reflection.weekStart && reflection.weekStart.toLowerCase().includes(query)) {
-          return true;
-        }
-        
-        if (reflection.reflection && typeof reflection.reflection === 'string') {
-          if (reflection.reflection.toLowerCase().includes(query)) {
-            return true;
-          }
-        }
-        
-        if (reflection.weeklyPlan && typeof reflection.weeklyPlan === 'string') {
-          if (reflection.weeklyPlan.toLowerCase().includes(query)) {
-            return true;
-          }
-        }
-        
-        return false;
-      });
+      // Search in content (only if string)
+      if (reflection.reflection && typeof reflection.reflection === 'string' && 
+          reflection.reflection.toLowerCase().includes(query)) {
+        return true;
+      }
       
-      setFilteredReflections(filtered);
-    }, 300);
+      return false;
+    });
     
-    return () => {
-      if (searchTimerRef.current) {
-        clearTimeout(searchTimerRef.current);
-      }
-    };
+    setFilteredReflections(filtered);
   }, [searchQuery, reflections]);
-  
-  // Load reflections when generation completes or when not generating
+
+  // Initial load and reload on generation complete
   useEffect(() => {
-    // Only load if generation is complete or not in progress
-    if (isComplete || !isGenerating) {
+    loadReflections();
+  }, [loadReflections, isComplete]);
+  
+  // Event listeners for storage updates
+  useEffect(() => {
+    const handleReflectionsGenerated = () => {
+      console.log("Reflections generation completed - reloading reflections list");
+      // Invalidate cache
+      reflectionsCache.timestamp = 0;
       loadReflections();
-    }
-  }, [loadReflections, isComplete, isGenerating]);
-  
-  // Handle storage updates
-  useEffect(() => {
-    const handleStorageUpdate = () => {
-      if (!isMounted.current) return;
-      
-      console.log('Journal updated event received');
-      reflectionsCache.timestamp = 0; // Invalidate cache
-      
-      // Slight delay to ensure all storage operations complete
-      setTimeout(() => {
-        if (isMounted.current) {
-          loadReflections();
-        }
-      }, 300);
     };
     
-    window.addEventListener('journal-updated', handleStorageUpdate);
-    window.addEventListener('reflections-generated', handleStorageUpdate);
+    // Register event listeners
+    window.addEventListener('reflections-generated', handleReflectionsGenerated);
+    window.addEventListener('journal-updated', handleReflectionsGenerated);
     
     return () => {
       isMounted.current = false;
-      
-      if (searchTimerRef.current) {
-        clearTimeout(searchTimerRef.current);
-      }
-      
-      window.removeEventListener('journal-updated', handleStorageUpdate);
-      window.removeEventListener('reflections-generated', handleStorageUpdate);
+      // Clean up event listeners
+      window.removeEventListener('reflections-generated', handleReflectionsGenerated);
+      window.removeEventListener('journal-updated', handleReflectionsGenerated);
     };
   }, [loadReflections]);
   
-  // Format date range for display
-  const formatDateRange = useCallback((reflection: WeeklyReflection) => {
-    if (reflection.weekStart && reflection.weekEnd) {
-      try {
-        const start = parseISO(reflection.weekStart);
-        const end = parseISO(reflection.weekEnd);
-        return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
-      } catch (error) {
-        console.error("Error formatting date range:", error);
-        return 'Invalid date range';
-      }
-    }
-    return 'Date range unavailable';
-  }, []);
-
-  // Handle reflection click with navigation
-  const handleReflectionClick = useCallback((reflectionId: string) => {
-    // Navigate programmatically to prevent UI freezing
-    navigate(`/journal/weekly/${reflectionId}`);
-  }, [navigate]);
-  
   // Force reload function
-  const handleForceReload = () => {
-    reflectionsCache.timestamp = 0; // Reset cache timestamp
+  const handleForceReload = useCallback(() => {
+    reflectionsCache.timestamp = 0; // Invalidate cache
     setForceReload(prev => !prev);
     toast.info("Refreshing reflections...");
-  };
+  }, []);
   
-  // Loading and error states
-  if (isLoading || isGenerating) {
+  // Handle reflection click BEFORE the navigation happens
+  // This avoids the UI freeze by preparing data before navigation
+  const handleReflectionClick = useCallback((reflectionId: string) => {
+    try {
+      // Prepare any data needed for the detail view 
+      // before navigating to avoid freezing
+      
+      // Use setTimeout to defer navigation to next tick
+      // This allows the UI to update before navigation
+      setTimeout(() => {
+        navigate(`/journal/weekly/${reflectionId}`);
+      }, 10);
+    } catch (error) {
+      console.error("Error during reflection navigation:", error);
+      toast.error("Navigation error. Please try again.");
+    }
+  }, [navigate]);
+  
+  // Format date range for display
+  const formatDateRange = useCallback((reflection: WeeklyReflection) => {
+    if (!reflection.weekStart || !reflection.weekEnd) {
+      return 'Date range unavailable';
+    }
+    
+    try {
+      const start = new Date(reflection.weekStart);
+      const end = new Date(reflection.weekEnd);
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return 'Invalid date range';
+      }
+      
+      const formatMonth = (date: Date) => date.toLocaleDateString('en-US', { month: 'short' });
+      const formatDay = (date: Date) => date.toLocaleDateString('en-US', { day: 'numeric' });
+      const formatYear = (date: Date) => date.toLocaleDateString('en-US', { year: 'numeric' });
+      
+      return `${formatMonth(start)} ${formatDay(start)} - ${formatMonth(end)} ${formatDay(end)}, ${formatYear(end)}`;
+    } catch (error) {
+      console.error("Error formatting date range:", error);
+      return 'Invalid date range';
+    }
+  }, []);
+  
+  // Render loading state
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12 flex-col">
         <Loader2 className="h-8 w-8 animate-spin mb-4" />
-        <p className="text-muted-foreground">
-          {isGenerating ? 'Generating reflections...' : 'Loading reflections...'}
-        </p>
+        <p className="text-muted-foreground">Loading reflections...</p>
         <Button 
           variant="outline" 
           className="mt-4" 
@@ -263,11 +224,12 @@ export function WeeklyReflectionsPage() {
     );
   }
   
-  if (loadError || generationError) {
+  // Render error state
+  if (loadError) {
     return (
       <Card>
         <CardContent className="py-8">
-          <p className="text-center text-red-500">{loadError || generationError || "An unknown error occurred"}</p>
+          <p className="text-center text-red-500">{loadError}</p>
           <div className="flex justify-center mt-4">
             <Button onClick={handleForceReload}>Retry Loading</Button>
           </div>
@@ -276,6 +238,7 @@ export function WeeklyReflectionsPage() {
     );
   }
   
+  // Render empty state
   if (reflections.length === 0) {
     return (
       <Card>
@@ -338,7 +301,7 @@ export function WeeklyReflectionsPage() {
                 <div 
                   key={reflection.id} 
                   onClick={() => handleReflectionClick(reflectionId)}
-                  className="cursor-pointer"
+                  className="cursor-pointer transition-opacity hover:opacity-95 active:opacity-90"
                 >
                   <ReflectionCard
                     reflection={reflection}

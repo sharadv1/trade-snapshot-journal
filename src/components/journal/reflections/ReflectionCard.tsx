@@ -32,14 +32,21 @@ export const ReflectionCard = memo(({
   dateRange,
   stats,
   hasContent,
-  reflectionWordCount,
-  planWordCount
 }: ReflectionCardProps) => {
   // Get grade
   const grade = reflection.grade;
   
   // Determine if reflection is profitable
   const isProfitable = stats.pnl > 0;
+  
+  // Avoid stringifying the entire reflection content - only take a short preview
+  const getContentPreview = () => {
+    if (!reflection.reflection || typeof reflection.reflection !== 'string') return '';
+    
+    // Extract plain text and limit to first 100 characters
+    const plainText = reflection.reflection.replace(/<[^>]*>/g, ' ').trim();
+    return plainText.length > 100 ? `${plainText.substring(0, 100)}...` : plainText;
+  };
 
   return (
     <Card 
@@ -103,9 +110,7 @@ export const ReflectionCard = memo(({
         
         {reflection.reflection && (
           <div className="mt-3 text-sm text-muted-foreground line-clamp-2">
-            {typeof reflection.reflection === 'string' 
-              ? reflection.reflection.replace(/<[^>]*>/g, ' ')
-              : ''}
+            {getContentPreview()}
           </div>
         )}
       </div>
