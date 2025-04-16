@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { toast } from '@/utils/toast';
-import { deleteWeeklyReflection, deleteMonthlyReflection } from '@/utils/journalStorage';
+import { deleteWeeklyReflection, deleteMonthlyReflection } from '@/utils/reflectionStorage';
 import { ReflectionCard } from './ReflectionCard';
 import { countWords, hasContent, getCurrentPeriodId } from './ReflectionUtility';
 
@@ -34,6 +34,10 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
         try {
           const start = new Date(weeklyReflection.weekStart);
           const end = new Date(weeklyReflection.weekEnd);
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            console.warn("Invalid date in reflection:", weeklyReflection);
+            return 'Invalid date range';
+          }
           return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
         } catch (error) {
           console.error("Error formatting date range:", error);
@@ -47,6 +51,10 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
         try {
           const start = new Date(monthlyReflection.monthStart);
           const end = new Date(monthlyReflection.monthEnd);
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            console.warn("Invalid date in reflection:", monthlyReflection);
+            return 'Invalid date range';
+          }
           return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
         } catch (error) {
           console.error("Error formatting date range:", error);
@@ -58,7 +66,11 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
           if (parts.length === 2) {
             const year = parseInt(parts[0], 10);
             const month = parseInt(parts[1], 10) - 1;
-            return format(new Date(year, month, 1), 'MMMM yyyy');
+            const date = new Date(year, month, 1);
+            if (isNaN(date.getTime())) {
+              return 'Invalid month';
+            }
+            return format(date, 'MMMM yyyy');
           }
         } catch (error) {
           console.error("Error parsing month ID:", error);
@@ -79,15 +91,26 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
   
   // Function to handle reflection deletion
   const handleDelete = (reflectionId: string) => {
-    if (type === 'weekly') {
-      deleteWeeklyReflection(reflectionId);
-    } else {
-      deleteMonthlyReflection(reflectionId);
+    if (!reflectionId) {
+      console.error('Cannot delete reflection with empty ID');
+      toast.error('Failed to delete reflection: Invalid ID');
+      return;
     }
-    toast.success(`${type === 'weekly' ? 'Weekly' : 'Monthly'} reflection deleted successfully`);
     
-    // Trigger UI updates
-    window.dispatchEvent(new CustomEvent('journal-updated'));
+    try {
+      if (type === 'weekly') {
+        deleteWeeklyReflection(reflectionId);
+      } else {
+        deleteMonthlyReflection(reflectionId);
+      }
+      toast.success(`${type === 'weekly' ? 'Weekly' : 'Monthly'} reflection deleted successfully`);
+      
+      // Trigger UI updates
+      window.dispatchEvent(new CustomEvent('journal-updated'));
+    } catch (error) {
+      console.error('Error deleting reflection:', error);
+      toast.error(`Failed to delete ${type} reflection`);
+    }
   };
   
   // Function to determine if a reflection is deletable (no associated trades)
@@ -124,6 +147,11 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {safeReflections.map((reflection) => {
+            if (!reflection || typeof reflection !== 'object') {
+              console.error('Invalid reflection object:', reflection);
+              return null;
+            }
+            
             try {
               const stats = getStats(reflection);
               const dateRange = formatDateRange(reflection);
@@ -134,11 +162,11 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
               
               if (type === 'weekly') {
                 const weeklyReflection = reflection as WeeklyReflection;
-                reflectionWordCount = countWords(weeklyReflection.reflection);
-                planWordCount = countWords(weeklyReflection.weeklyPlan);
+                reflectionWordCount = countWords(weeklyReflection.reflection || '');
+                planWordCount = countWords(weeklyReflection.weeklyPlan || '');
               } else {
                 const monthlyReflection = reflection as MonthlyReflection;
-                reflectionWordCount = countWords(monthlyReflection.reflection);
+                reflectionWordCount = countWords(monthlyReflection.reflection || '');
               }
               
               // Determine if reflection has content
@@ -149,9 +177,14 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
               
               const reflectionId = getReflectionId(reflection);
 
+              if (!reflectionId) {
+                console.warn('Reflection has no ID:', reflection);
+                return null;
+              }
+
               return (
                 <ReflectionCard
-                  key={reflectionId || reflection.id || `reflection-${Math.random()}`}
+                  key={reflectionId}
                   reflection={reflection}
                   type={type}
                   stats={stats}

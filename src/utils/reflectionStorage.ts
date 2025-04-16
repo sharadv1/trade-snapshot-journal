@@ -16,13 +16,19 @@ export const getWeeklyReflections = async (): Promise<WeeklyReflection[]> => {
       return [];
     }
     
-    const parsed = JSON.parse(reflectionsJson);
-    console.log('Parsed weekly reflections:', typeof parsed);
+    let parsed;
+    try {
+      parsed = JSON.parse(reflectionsJson);
+      console.log('Parsed weekly reflections:', typeof parsed);
+    } catch (e) {
+      console.error('Failed to parse weekly reflections JSON:', e);
+      return [];
+    }
     
     // Ensure we're returning an array
     if (Array.isArray(parsed)) {
       return parsed;
-    } else if (typeof parsed === 'object') {
+    } else if (typeof parsed === 'object' && parsed !== null) {
       // Convert object with reflection entries to array
       const reflections = Object.values(parsed).filter(Boolean) as WeeklyReflection[];
       console.log(`Converted ${reflections.length} weekly reflections from object to array`);
@@ -57,15 +63,29 @@ export const addWeeklyReflection = async (reflection: WeeklyReflection): Promise
         lastUpdated: new Date().toISOString()
       };
     } else {
-      // Add a new reflection - remove createdAt from the object literal
+      // Add a new reflection with createdAt and lastUpdated
       const newReflection = {
         ...reflection,
+        createdAt: reflection.createdAt || new Date().toISOString(),
         lastUpdated: new Date().toISOString()
       };
       reflections.push(newReflection);
     }
     
-    localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    // Convert array back to object format for storage
+    const reflectionsObject: Record<string, WeeklyReflection> = {};
+    reflections.forEach(r => {
+      const key = r.weekId || r.id;
+      if (key) {
+        reflectionsObject[key] = r;
+      }
+    });
+    
+    localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflectionsObject));
+    
+    // Dispatch events to notify of changes
+    window.dispatchEvent(new CustomEvent('journal-updated', { detail: { source: 'addWeeklyReflection' } }));
+    window.dispatchEvent(new Event('storage'));
   } catch (error) {
     console.error('Error adding weekly reflection:', error);
     throw error;
@@ -84,7 +104,20 @@ export const updateWeeklyReflection = async (reflection: WeeklyReflection): Prom
         lastUpdated: new Date().toISOString()
       };
       
-      localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+      // Convert array back to object format for storage
+      const reflectionsObject: Record<string, WeeklyReflection> = {};
+      reflections.forEach(r => {
+        const key = r.weekId || r.id;
+        if (key) {
+          reflectionsObject[key] = r;
+        }
+      });
+      
+      localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflectionsObject));
+      
+      // Dispatch events to notify of changes
+      window.dispatchEvent(new CustomEvent('journal-updated', { detail: { source: 'updateWeeklyReflection' } }));
+      window.dispatchEvent(new Event('storage'));
     } else {
       throw new Error('Reflection not found');
     }
@@ -99,7 +132,20 @@ export const deleteWeeklyReflection = async (id: string): Promise<void> => {
     const reflections = await getWeeklyReflections();
     const filteredReflections = reflections.filter(r => r.id !== id);
     
-    localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(filteredReflections));
+    // Convert array back to object format for storage
+    const reflectionsObject: Record<string, WeeklyReflection> = {};
+    filteredReflections.forEach(r => {
+      const key = r.weekId || r.id;
+      if (key) {
+        reflectionsObject[key] = r;
+      }
+    });
+    
+    localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(reflectionsObject));
+    
+    // Dispatch events to notify of changes
+    window.dispatchEvent(new CustomEvent('journal-updated', { detail: { source: 'deleteWeeklyReflection' } }));
+    window.dispatchEvent(new Event('storage'));
   } catch (error) {
     console.error('Error deleting weekly reflection:', error);
     throw error;
@@ -112,14 +158,22 @@ export const getMonthlyReflections = async (): Promise<MonthlyReflection[]> => {
     const reflectionsJson = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
     if (!reflectionsJson) return [];
     
-    const parsed = JSON.parse(reflectionsJson);
+    let parsed;
+    try {
+      parsed = JSON.parse(reflectionsJson);
+    } catch (e) {
+      console.error('Failed to parse monthly reflections JSON:', e);
+      return [];
+    }
     
     // Ensure we're returning an array
     if (Array.isArray(parsed)) {
       return parsed;
-    } else if (typeof parsed === 'object') {
+    } else if (typeof parsed === 'object' && parsed !== null) {
       // Convert object with reflection entries to array
-      return Object.values(parsed).filter(Boolean) as MonthlyReflection[];
+      const reflections = Object.values(parsed).filter(Boolean) as MonthlyReflection[];
+      console.log(`Converted ${reflections.length} monthly reflections from object to array`);
+      return reflections;
     }
     
     return [];
@@ -149,15 +203,29 @@ export const addMonthlyReflection = async (reflection: MonthlyReflection): Promi
         lastUpdated: new Date().toISOString()
       };
     } else {
-      // Add a new reflection - remove createdAt from the object literal
+      // Add a new reflection with createdAt and lastUpdated
       const newReflection = {
         ...reflection,
+        createdAt: reflection.createdAt || new Date().toISOString(),
         lastUpdated: new Date().toISOString()
       };
       reflections.push(newReflection);
     }
     
-    localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+    // Convert array back to object format for storage
+    const reflectionsObject: Record<string, MonthlyReflection> = {};
+    reflections.forEach(r => {
+      const key = r.monthId || r.id;
+      if (key) {
+        reflectionsObject[key] = r;
+      }
+    });
+    
+    localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflectionsObject));
+    
+    // Dispatch events to notify of changes
+    window.dispatchEvent(new CustomEvent('journal-updated', { detail: { source: 'addMonthlyReflection' } }));
+    window.dispatchEvent(new Event('storage'));
   } catch (error) {
     console.error('Error adding monthly reflection:', error);
     throw error;
@@ -176,7 +244,20 @@ export const updateMonthlyReflection = async (reflection: MonthlyReflection): Pr
         lastUpdated: new Date().toISOString()
       };
       
-      localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
+      // Convert array back to object format for storage
+      const reflectionsObject: Record<string, MonthlyReflection> = {};
+      reflections.forEach(r => {
+        const key = r.monthId || r.id;
+        if (key) {
+          reflectionsObject[key] = r;
+        }
+      });
+      
+      localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflectionsObject));
+      
+      // Dispatch events to notify of changes
+      window.dispatchEvent(new CustomEvent('journal-updated', { detail: { source: 'updateMonthlyReflection' } }));
+      window.dispatchEvent(new Event('storage'));
     } else {
       throw new Error('Reflection not found');
     }
@@ -191,7 +272,20 @@ export const deleteMonthlyReflection = async (id: string): Promise<void> => {
     const reflections = await getMonthlyReflections();
     const filteredReflections = reflections.filter(r => r.id !== id);
     
-    localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(filteredReflections));
+    // Convert array back to object format for storage
+    const reflectionsObject: Record<string, MonthlyReflection> = {};
+    filteredReflections.forEach(r => {
+      const key = r.monthId || r.id;
+      if (key) {
+        reflectionsObject[key] = r;
+      }
+    });
+    
+    localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflectionsObject));
+    
+    // Dispatch events to notify of changes
+    window.dispatchEvent(new CustomEvent('journal-updated', { detail: { source: 'deleteMonthlyReflection' } }));
+    window.dispatchEvent(new Event('storage'));
   } catch (error) {
     console.error('Error deleting monthly reflection:', error);
     throw error;

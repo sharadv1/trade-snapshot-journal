@@ -10,6 +10,7 @@ import { Download } from 'lucide-react';
 import { generatePDFReport } from '@/components/journal/ReportGenerator';
 import { toast } from '@/utils/toast';
 import { Card, CardContent } from '@/components/ui/card';
+import { useReflectionGenerator } from '@/hooks/useReflectionGenerator';
 
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
@@ -17,6 +18,9 @@ export function WeeklyReflectionsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const isMounted = useRef(true);
   const processingWeekIds = useRef(new Set<string>());
+  
+  // Use the reflection generator hook to ensure reflections are created
+  useReflectionGenerator();
   
   // Function to download a weekly report
   const handleDownloadReport = useCallback((reflection: WeeklyReflection) => {
@@ -32,9 +36,9 @@ export function WeeklyReflectionsPage() {
     getTradesForWeek(new Date(reflection.weekStart), new Date(reflection.weekEnd))
       .then(weekTrades => {
         // Calculate metrics
-        const totalPnL = weekTrades.reduce((sum, trade) => sum + (trade.metrics.profitLoss || 0), 0);
-        const totalR = weekTrades.reduce((sum, trade) => sum + (trade.metrics.rMultiple || 0), 0);
-        const winningTrades = weekTrades.filter(trade => (trade.metrics.profitLoss || 0) > 0);
+        const totalPnL = weekTrades.reduce((sum, trade) => sum + (trade.metrics?.profitLoss || 0), 0);
+        const totalR = weekTrades.reduce((sum, trade) => sum + (trade.metrics?.rMultiple || 0), 0);
+        const winningTrades = weekTrades.filter(trade => (trade.metrics?.profitLoss || 0) > 0);
         const winRate = weekTrades.length > 0 ? (winningTrades.length / weekTrades.length) * 100 : 0;
         
         // Format date range for the report
@@ -103,9 +107,20 @@ export function WeeklyReflectionsPage() {
             // Sort reflections by date (most recent first)
             const sortedReflections = reflectionsWithButtons.sort((a, b) => {
               if (!a.weekStart || !b.weekStart) return 0;
-              return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
+              
+              const dateA = new Date(a.weekStart);
+              const dateB = new Date(b.weekStart);
+              
+              // Check if dates are valid
+              if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+                console.warn("Invalid date encountered when sorting reflections");
+                return 0;
+              }
+              
+              return dateB.getTime() - dateA.getTime();
             });
             
+            console.log(`Sorted ${sortedReflections.length} reflections for display`);
             setReflections(sortedReflections);
           } else {
             console.error('Expected array of reflections but got:', typeof fetchedReflections);
@@ -165,13 +180,25 @@ export function WeeklyReflectionsPage() {
           // Sort by date (most recent first)
           const sortedReflections = updatedWithButtons.sort((a, b) => {
             if (!a.weekStart || !b.weekStart) return 0;
-            return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
+            
+            const dateA = new Date(a.weekStart);
+            const dateB = new Date(b.weekStart);
+            
+            if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+              console.warn("Invalid date encountered when sorting reflections");
+              return 0;
+            }
+            
+            return dateB.getTime() - dateA.getTime();
           });
           
+          console.log(`Refreshed with ${sortedReflections.length} reflections`);
           setReflections(sortedReflections);
+          setLoadError(null);
         })
         .catch(error => {
           console.error("Error refreshing reflections:", error);
+          setLoadError("Failed to refresh reflections. Please try again.");
         })
         .finally(() => {
           if (isMounted.current) {
@@ -197,12 +224,12 @@ export function WeeklyReflectionsPage() {
   
   // Get stats function for weekly reflections
   const getWeeklyStats = (reflection: WeeklyReflection) => {
-    return {
-      pnl: reflection.totalPnL || 0,
-      rValue: reflection.totalR || 0,
-      tradeCount: reflection.tradeIds?.length || 0,
-      hasContent: !!(reflection.reflection || reflection.weeklyPlan) && !reflection.isPlaceholder
-    };
+    const pnl = typeof reflection.totalPnL === 'number' ? reflection.totalPnL : 0;
+    const rValue = typeof reflection.totalR === 'number' ? reflection.totalR : 0;
+    const tradeCount = Array.isArray(reflection.tradeIds) ? reflection.tradeIds.length : 0;
+    const hasContent = !!(reflection.reflection || reflection.weeklyPlan) && !reflection.isPlaceholder;
+    
+    return { pnl, rValue, tradeCount, hasContent };
   };
   
   return (
@@ -220,12 +247,21 @@ export function WeeklyReflectionsPage() {
             </div>
           </CardContent>
         </Card>
-      ) : (
+      ) : reflections.length > 0 ? (
         <ReflectionsList 
           reflections={reflections}
           type="weekly"
           getStats={getWeeklyStats}
         />
+      ) : (
+        <Card>
+          <CardContent className="py-8">
+            <p className="text-center">No weekly reflections found. Start creating your trading journal!</p>
+            <div className="flex justify-center mt-4">
+              <Button onClick={() => window.location.href = '/journal/weekly/new-week'}>Create First Reflection</Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
