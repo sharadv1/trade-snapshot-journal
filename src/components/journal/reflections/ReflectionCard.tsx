@@ -56,7 +56,7 @@ export const ReflectionCard = memo(({
     }
   }, [reflection.reflection]);
   
-  // Handle navigation with improved performance using a deferred approach
+  // Ultra-optimized navigation handler to prevent UI freezing
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -70,19 +70,33 @@ export const ReflectionCard = memo(({
       return;
     }
     
-    // Show visual feedback immediately
-    const currentTarget = e.currentTarget;
-    if (currentTarget) {
-      currentTarget.classList.add('opacity-70');
+    // Apply visual feedback immediately
+    const card = e.currentTarget;
+    if (card) {
+      card.classList.add('opacity-80');
     }
     
-    // Use setTimeout with 0ms to push navigation to the next event loop cycle
-    // This allows the UI to update before the potentially heavy navigation occurs
-    setTimeout(() => {
-      const route = `/journal/${type}/${reflectionId}`;
+    // Prepare the route ahead of time
+    const route = `/journal/${type}/${reflectionId}`;
+    console.log(`Preparing to navigate to: ${route}`);
+    
+    // Use window.requestIdleCallback if available, or setTimeout as fallback
+    // This ensures navigation happens during an idle period, preventing UI freeze
+    const navigateWhenIdle = () => {
+      // Remove visual feedback before navigating
+      if (card) {
+        card.classList.remove('opacity-80');
+      }
       console.log(`Navigating to: ${route}`);
       navigate(route);
-    }, 0);
+    };
+    
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(() => navigateWhenIdle(), { timeout: 100 });
+    } else {
+      // Fallback to setTimeout with a minimal delay
+      setTimeout(navigateWhenIdle, 20);
+    }
   }, [reflection, type, navigate]);
 
   return (

@@ -163,24 +163,6 @@ export function WeeklyReflectionsPage() {
     toast.info("Refreshing reflections...");
   }, []);
   
-  // Handle reflection click BEFORE the navigation happens
-  // This avoids the UI freeze by preparing data before navigation
-  const handleReflectionClick = useCallback((reflectionId: string) => {
-    try {
-      // Prepare any data needed for the detail view 
-      // before navigating to avoid freezing
-      
-      // Use setTimeout to defer navigation to next tick
-      // This allows the UI to update before navigation
-      setTimeout(() => {
-        navigate(`/journal/weekly/${reflectionId}`);
-      }, 10);
-    } catch (error) {
-      console.error("Error during reflection navigation:", error);
-      toast.error("Navigation error. Please try again.");
-    }
-  }, [navigate]);
-  
   // Format date range for display
   const formatDateRange = useCallback((reflection: WeeklyReflection) => {
     if (!reflection.weekStart || !reflection.weekEnd) {
@@ -295,24 +277,19 @@ export function WeeklyReflectionsPage() {
             try {
               const stats = getReflectionStats(reflection);
               const dateRange = formatDateRange(reflection);
-              const reflectionId = reflection.weekId || reflection.id;
               
               return (
-                <div 
-                  key={reflection.id} 
-                  onClick={() => handleReflectionClick(reflectionId)}
-                  className="cursor-pointer transition-opacity hover:opacity-95 active:opacity-90"
-                >
-                  <ReflectionCard
-                    reflection={reflection}
-                    type="weekly"
-                    dateRange={dateRange}
-                    stats={stats}
-                  />
-                </div>
+                <ReflectionCard
+                  key={reflection.id}
+                  reflection={reflection}
+                  type="weekly"
+                  dateRange={dateRange}
+                  stats={stats}
+                  hasContent={stats.hasContent}
+                />
               );
             } catch (error) {
-              console.error("Error rendering reflection card:", error);
+              console.error("Error rendering reflection card:", error, reflection);
               return null;
             }
           }).filter(Boolean)}
