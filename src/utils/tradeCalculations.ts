@@ -1,4 +1,3 @@
-
 /**
  * Re-export all calculation functions from their modular structure
  * This file is kept for backward compatibility
@@ -20,6 +19,7 @@ const tradeCache = {
   trades: null as TradeWithMetrics[] | null,
   timestamp: 0,
   weekCache: new Map<string, TradeWithMetrics[]>(),
+  monthCache: new Map<string, TradeWithMetrics[]>(), // Add month cache
   lastCacheInvalidation: 0,
   lastFetch: 0,
   fetchLock: false,
@@ -93,11 +93,79 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
   }
 };
 
+/**
+ * Get trades for a specific month with enhanced caching
+ */
+export const getTradesForMonth = (monthStart: Date, monthEnd: Date): TradeWithMetrics[] => {
+  if (tradeCache.debugMode) {
+    console.log(`getTradesForMonth called for ${monthStart.toISOString()} to ${monthEnd.toISOString()}`);
+  }
+  
+  try {
+    // Validate inputs first to prevent issues
+    if (!monthStart || !monthEnd || !(monthStart instanceof Date) || !(monthEnd instanceof Date)) {
+      console.error('Invalid month parameters:', { monthStart, monthEnd });
+      return [];
+    }
+
+    // Create a cache key for this specific month request
+    const cacheKey = `${monthStart.toISOString()}_${monthEnd.toISOString()}`;
+
+    // Only get trades fresh each time - no caching or reuse
+    if (tradeCache.debugMode) console.log('Forcing fresh trade data fetch');
+    
+    const allTrades = getTradesWithMetrics();
+    tradeCache.trades = allTrades;
+    tradeCache.timestamp = Date.now();
+
+    // Ensure allTrades is an array
+    if (!Array.isArray(allTrades)) {
+      console.error('Expected array of trades but got:', typeof allTrades);
+      return [];
+    }
+    
+    if (tradeCache.debugMode) console.log(`Got ${allTrades.length} total trades, filtering for month`);
+    
+    // Filter trades for the month
+    const tradesForMonth = allTrades.filter(trade => {
+      if (!trade || !trade.exitDate) return false;
+      
+      try {
+        // Parse the exitDate correctly
+        const exitDate = new Date(trade.exitDate);
+        
+        // Check if the trade's exit date is within the specified month
+        const isInMonth = exitDate >= monthStart && exitDate <= monthEnd;
+        
+        if (tradeCache.debugMode && isInMonth) {
+          console.log(`Trade ${trade.id} (${trade.symbol}) is in the selected month`);
+        }
+        
+        return isInMonth;
+      } catch (e) {
+        console.error('Error parsing exit date:', e);
+        return false;
+      }
+    });
+    
+    // Store in month cache
+    tradeCache.monthCache.set(cacheKey, tradesForMonth);
+    
+    console.log(`Found ${tradesForMonth.length} trades for month ${monthStart.toISOString()} to ${monthEnd.toISOString()}`);
+    
+    return tradesForMonth;
+  } catch (error) {
+    console.error('Error getting trades for month:', error);
+    return [];
+  }
+};
+
 // Add a function to clear cache when needed (e.g., after trade updates)
 export const clearTradeCache = () => {
   tradeCache.trades = null;
   tradeCache.timestamp = 0;
   tradeCache.weekCache.clear();
+  tradeCache.monthCache.clear();
   tradeCache.lastCacheInvalidation = Date.now();
   tradeCache.fetchLock = false;
   console.log('Trade cache manually cleared');

@@ -1,16 +1,15 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ChevronLeft, ChevronRight, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Save, Loader2, ExternalLink } from 'lucide-react';
 import { MonthlyReflection, TradeWithMetrics } from '@/types';
 import { getMonthlyReflection, saveMonthlyReflection } from '@/utils/journal/reflectionStorage';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { toast } from '@/utils/toast';
 import { formatCurrency } from '@/utils/calculations/formatters';
-import { clearTradeCache } from '@/utils/tradeCalculations';
+import { clearTradeCache, getTradesForMonth } from '@/utils/tradeCalculations';
 import { 
   Select,
   SelectContent,
@@ -28,8 +27,8 @@ export function MonthlyJournal() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [monthlyReflection, setMonthlyReflection] = useState<MonthlyReflection | null>(null);
   const [tradesForMonth, setTradesForMonth] = useState<TradeWithMetrics[]>([]);
+  const [isLoadingTrades, setIsLoadingTrades] = useState<boolean>(false);
   
-  // Add mounted ref to prevent updates after unmount
   const isMountedRef = useRef(true);
   
   const backupRef = React.useRef<{reflection: string, grade: string}>({
@@ -37,14 +36,15 @@ export function MonthlyJournal() {
     grade: ''
   });
   
-  // Format the month for display
   const formattedMonth = monthId ? format(new Date(monthId), 'MMMM yyyy') : 'Unknown Month';
   
-  // Effect for component lifecycle
+  const currentDate = monthId ? new Date(monthId) : new Date();
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(currentDate);
+  
   useEffect(() => {
     isMountedRef.current = true;
     
-    // Clear trade cache on mount
     clearTradeCache();
     
     return () => {
@@ -52,7 +52,6 @@ export function MonthlyJournal() {
     };
   }, []);
   
-  // Navigate to previous/next month
   const goToPreviousMonth = useCallback(() => {
     if (!monthId || isSaving || isLoading) return;
     
@@ -60,7 +59,6 @@ export function MonthlyJournal() {
     date.setMonth(date.getMonth() - 1);
     const previousMonth = format(date, 'yyyy-MM');
     
-    // Clear cache before navigation
     clearTradeCache();
     
     navigate(`/journal/monthly/${previousMonth}`);
@@ -73,13 +71,11 @@ export function MonthlyJournal() {
     date.setMonth(date.getMonth() + 1);
     const nextMonth = format(date, 'yyyy-MM');
     
-    // Clear cache before navigation
     clearTradeCache();
     
     navigate(`/journal/monthly/${nextMonth}`);
   }, [navigate, monthId, isSaving, isLoading]);
   
-  // Load reflection data
   const loadReflection = useCallback(async () => {
     if (!monthId || !isMountedRef.current) return;
     
@@ -94,13 +90,11 @@ export function MonthlyJournal() {
         setReflection(reflectionData.reflection || '');
         setGrade(reflectionData.grade || '');
         
-        // Store backup
         backupRef.current = {
           reflection: reflectionData.reflection || '',
           grade: reflectionData.grade || ''
         };
       } else {
-        // Reset form for new reflection
         setMonthlyReflection(null);
         setReflection('');
         setGrade('');
@@ -118,12 +112,36 @@ export function MonthlyJournal() {
     }
   }, [monthId]);
   
-  // Initial load
+  const loadTrades = useCallback(() => {
+    if (!monthId || !isMountedRef.current) return;
+    
+    try {
+      setIsLoadingTrades(true);
+      console.log(`Loading trades for month ${monthStart.toISOString()} to ${monthEnd.toISOString()}`);
+      
+      clearTradeCache();
+      
+      const monthTrades = getTradesForMonth(monthStart, monthEnd);
+      
+      if (isMountedRef.current) {
+        console.log(`Found ${monthTrades.length} trades for month ${monthId}`);
+        setTradesForMonth(monthTrades);
+        setIsLoadingTrades(false);
+      }
+    } catch (error) {
+      console.error('Error loading trades for month:', error);
+      if (isMountedRef.current) {
+        setTradesForMonth([]);
+        setIsLoadingTrades(false);
+      }
+    }
+  }, [monthId, monthStart, monthEnd]);
+  
   useEffect(() => {
     loadReflection();
-  }, [loadReflection, monthId]);
+    loadTrades();
+  }, [loadReflection, loadTrades, monthId]);
   
-  // Save reflection
   const handleSave = useCallback(async () => {
     if (!monthId || isSaving || !isMountedRef.current) return;
     
@@ -136,10 +154,8 @@ export function MonthlyJournal() {
       
       toast.success('Monthly reflection saved successfully');
       
-      // Update backup after successful save
       backupRef.current = { reflection, grade };
       
-      // Reload to get updated data
       loadReflection();
     } catch (error) {
       console.error('Error saving monthly reflection:', error);
@@ -153,24 +169,24 @@ export function MonthlyJournal() {
     }
   }, [monthId, reflection, grade, isSaving, loadReflection]);
   
-  // Save and return to list
   const handleSaveAndReturn = useCallback(async () => {
     if (!isMountedRef.current) return;
     
     try {
       await handleSave();
       
-      // Clear cache before navigation
       clearTradeCache();
       
-      // Navigate back with React Router
       navigate('/journal/monthly');
     } catch (error) {
       console.error('Error in save and return:', error);
     }
   }, [handleSave, navigate]);
   
-  // Display loading state
+  const navigateToTradeDetails = useCallback((tradeId: string) => {
+    navigate(`/trade/${tradeId}`);
+  }, [navigate]);
+  
   if (isLoading) {
     return (
       <div className="container mx-auto py-12 flex justify-center items-center">
@@ -181,6 +197,32 @@ export function MonthlyJournal() {
       </div>
     );
   }
+  
+  const totalPnL = tradesForMonth.reduce((sum, trade) => 
+    sum + (trade.metrics?.profitLoss || 0), 0);
+  
+  const totalR = tradesForMonth.reduce((sum, trade) => 
+    sum + (trade.metrics?.rMultiple || 0), 0);
+  
+  const winCount = tradesForMonth.filter(trade => 
+    (trade.metrics?.profitLoss || 0) > 0).length;
+  
+  const lossCount = tradesForMonth.filter(trade => 
+    (trade.metrics?.profitLoss || 0) < 0).length;
+  
+  const winRate = tradesForMonth.length > 0 
+    ? (winCount / tradesForMonth.length) * 100 
+    : 0;
+  
+  const avgWin = winCount > 0 
+    ? tradesForMonth.filter(t => (t.metrics?.profitLoss || 0) > 0)
+        .reduce((sum, t) => sum + (t.metrics?.profitLoss || 0), 0) / winCount 
+    : 0;
+  
+  const avgLoss = lossCount > 0 
+    ? tradesForMonth.filter(t => (t.metrics?.profitLoss || 0) < 0)
+        .reduce((sum, t) => sum + (t.metrics?.profitLoss || 0), 0) / lossCount 
+    : 0;
   
   return (
     <div className="container mx-auto py-6 max-w-4xl">
@@ -228,6 +270,49 @@ export function MonthlyJournal() {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
+      
+      <Card className="p-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-4 text-center">
+          <div className="bg-card/60 rounded p-3">
+            <p className="text-xs text-muted-foreground mb-1">Total P&L</p>
+            <p className={`text-lg font-bold ${totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(totalPnL)}
+            </p>
+          </div>
+          
+          <div className="bg-card/60 rounded p-3">
+            <p className="text-xs text-muted-foreground mb-1">Total R</p>
+            <p className={`text-lg font-bold ${totalR >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {totalR.toFixed(2)}R
+            </p>
+          </div>
+          
+          <div className="bg-card/60 rounded p-3">
+            <p className="text-xs text-muted-foreground mb-1">Trades</p>
+            <p className="text-lg font-bold">{tradesForMonth.length}</p>
+          </div>
+          
+          <div className="bg-card/60 rounded p-3">
+            <p className="text-xs text-muted-foreground mb-1">Win Rate</p>
+            <p className="text-lg font-bold">{winRate.toFixed(1)}%</p>
+          </div>
+          
+          <div className="bg-card/60 rounded p-3">
+            <p className="text-xs text-muted-foreground mb-1">Win/Loss</p>
+            <p className="text-lg font-bold">{winCount}/{lossCount}</p>
+          </div>
+          
+          <div className="bg-card/60 rounded p-3">
+            <p className="text-xs text-muted-foreground mb-1">Avg Win</p>
+            <p className="text-lg font-bold text-green-600">{formatCurrency(avgWin)}</p>
+          </div>
+          
+          <div className="bg-card/60 rounded p-3">
+            <p className="text-xs text-muted-foreground mb-1">Avg Loss</p>
+            <p className="text-lg font-bold text-red-600">{formatCurrency(avgLoss)}</p>
+          </div>
+        </div>
+      </Card>
       
       <Card className="p-6 mb-6">
         <h2 className="text-2xl font-semibold mb-6">
@@ -284,6 +369,87 @@ export function MonthlyJournal() {
             </Button>
           </div>
         </div>
+      </Card>
+      
+      <Card className="p-6">
+        <h2 className="text-2xl font-semibold mb-6">
+          Trades for {formattedMonth}
+        </h2>
+        
+        {isLoadingTrades ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : tradesForMonth.length === 0 ? (
+          <p className="text-center text-muted-foreground py-6">
+            No trades found for this month.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-4">Symbol</th>
+                  <th className="text-left py-2 px-4">Direction</th>
+                  <th className="text-left py-2 px-4">Grade</th>
+                  <th className="text-left py-2 px-4">Entry Date</th>
+                  <th className="text-left py-2 px-4">Exit Date</th>
+                  <th className="text-right py-2 px-4">P&L</th>
+                  <th className="text-right py-2 px-4">R Value</th>
+                  <th className="text-right py-2 px-4">Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tradesForMonth.map(trade => (
+                  <tr key={trade.id} className="border-b hover:bg-accent/10 cursor-pointer" onClick={() => navigateToTradeDetails(trade.id)}>
+                    <td className="py-2 px-4">{trade.symbol}</td>
+                    <td className="py-2 px-4">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        trade.direction?.toUpperCase() === 'LONG' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {trade.direction}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4">
+                      {trade.grade && (
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          trade.grade.startsWith('A') ? 'bg-green-100 text-green-800' : 
+                          trade.grade.startsWith('B') ? 'bg-blue-100 text-blue-800' : 
+                          trade.grade.startsWith('C') ? 'bg-yellow-100 text-yellow-800' : 
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {trade.grade}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2 px-4">
+                      {trade.entryDate ? format(new Date(trade.entryDate), 'MMM d, yyyy') : '-'}
+                    </td>
+                    <td className="py-2 px-4">
+                      {trade.exitDate ? format(new Date(trade.exitDate), 'MMM d, yyyy') : '-'}
+                    </td>
+                    <td className={`py-2 px-4 text-right ${
+                      (trade.metrics?.profitLoss || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {formatCurrency(trade.metrics?.profitLoss || 0)}
+                    </td>
+                    <td className={`py-2 px-4 text-right ${
+                      (trade.metrics?.rMultiple || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {(trade.metrics?.rMultiple || 0) > 0 ? '+' : ''}
+                      {(trade.metrics?.rMultiple || 0).toFixed(2)}R
+                    </td>
+                    <td className="py-2 px-4 text-right">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );
