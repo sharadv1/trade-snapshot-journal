@@ -159,33 +159,6 @@ export function WeeklyReflectionsPage() {
     navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
   }, [navigate]);
   
-  // Helper function for navigation without page reload
-  const navigateTo = useCallback((path: string) => {
-    // Clear cache before navigating
-    clearTradeCache();
-    navigate(path);
-  }, [navigate]);
-  
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-12 flex-col">
-        <Loader2 className="h-8 w-8 animate-spin mb-4" />
-        <p className="text-muted-foreground">Loading reflections...</p>
-      </div>
-    );
-  }
-  
-  if (loadError) {
-    return (
-      <Card className="p-6">
-        <p className="text-center text-red-500">{loadError}</p>
-        <div className="flex justify-center mt-4">
-          <Button onClick={loadReflections}>Retry Loading</Button>
-        </div>
-      </Card>
-    );
-  }
-  
   return (
     <div className="w-full max-w-screen-xl mx-auto p-4">
       <div className="flex justify-between items-center mb-8">
@@ -204,7 +177,10 @@ export function WeeklyReflectionsPage() {
         <Button 
           variant="outline" 
           className="flex-1 py-6 rounded-md text-base"
-          onClick={() => navigateTo('/journal/monthly')}
+          onClick={() => {
+            clearTradeCache();
+            navigate('/journal/monthly');
+          }}
         >
           Monthly Reflections
         </Button>
@@ -213,7 +189,10 @@ export function WeeklyReflectionsPage() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold">Weekly Reflections</h2>
         <Button 
-          onClick={() => navigateTo(`/journal/weekly/${getCurrentPeriodId('weekly')}`)}
+          onClick={() => {
+            clearTradeCache();
+            navigate(`/journal/weekly/${getCurrentPeriodId('weekly')}`);
+          }}
           size="lg" 
           className="rounded-full h-12 w-12 p-0"
         >
@@ -228,7 +207,10 @@ export function WeeklyReflectionsPage() {
           <Button 
             size="lg" 
             className="mt-4"
-            onClick={() => navigateTo(`/journal/weekly/${getCurrentPeriodId('weekly')}`)}
+            onClick={() => {
+              clearTradeCache();
+              navigate(`/journal/weekly/${getCurrentPeriodId('weekly')}`);
+            }}
           >
             Create First Reflection
           </Button>
