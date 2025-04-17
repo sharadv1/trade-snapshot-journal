@@ -1,6 +1,6 @@
 import { WeeklyReflection, MonthlyReflection } from '@/types';
 import { generateUUID } from '@/utils/generateUUID';
-import { weeklyReflectionsKey, monthlyReflectionsKey } from './storage/storageCore';
+import { WEEKLY_REFLECTIONS_KEY, MONTHLY_REFLECTIONS_KEY } from './storage/storageCore';
 import { getAllWeeklyReflections, saveWeeklyReflection as saveWeeklyReflectionToStorage } from './storage/weeklyReflections'; 
 
 // Storage keys for backward compatibility
