@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -10,13 +10,8 @@ import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { toast } from '@/utils/toast';
 import { getTradesForWeek, clearTradeCache, preventTradeFetching, setTradeDebug } from '@/utils/tradeCalculations';
 import { formatCurrency } from '@/utils/calculations/formatters';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ReflectionMetrics } from '@/components/journal/reflections/ReflectionMetrics';
 
 export function WeeklyJournal() {
   const { weekId } = useParams<{ weekId: string }>();
@@ -247,16 +242,10 @@ export function WeeklyJournal() {
     ? (winCount / tradesForWeek.length) * 100 
     : 0;
   
-  const avgWin = winCount > 0 
-    ? tradesForWeek.filter(t => (t.metrics?.profitLoss || 0) > 0)
-        .reduce((sum, t) => sum + (t.metrics?.profitLoss || 0), 0) / winCount 
+  const avgRPerTrade = tradesForWeek.length > 0 
+    ? totalR / tradesForWeek.length 
     : 0;
-  
-  const avgLoss = lossCount > 0 
-    ? tradesForWeek.filter(t => (t.metrics?.profitLoss || 0) < 0)
-        .reduce((sum, t) => sum + (t.metrics?.profitLoss || 0), 0) / lossCount 
-    : 0;
-  
+
   const navigateToTradeDetails = useCallback((tradeId: string) => {
     navigate(`/trade/${tradeId}`);
   }, [navigate]);
@@ -316,47 +305,16 @@ export function WeeklyJournal() {
         </Button>
       </div>
       
-      <Card className="p-4 mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-4 text-center">
-          <div className="bg-card/60 rounded p-3">
-            <p className="text-xs text-muted-foreground mb-1">Total P&L</p>
-            <p className={`text-lg font-bold ${totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(totalPnL)}
-            </p>
-          </div>
-          
-          <div className="bg-card/60 rounded p-3">
-            <p className="text-xs text-muted-foreground mb-1">Total R</p>
-            <p className={`text-lg font-bold ${totalR >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {totalR.toFixed(2)}R
-            </p>
-          </div>
-          
-          <div className="bg-card/60 rounded p-3">
-            <p className="text-xs text-muted-foreground mb-1">Trades</p>
-            <p className="text-lg font-bold">{tradesForWeek.length}</p>
-          </div>
-          
-          <div className="bg-card/60 rounded p-3">
-            <p className="text-xs text-muted-foreground mb-1">Win Rate</p>
-            <p className="text-lg font-bold">{winRate.toFixed(1)}%</p>
-          </div>
-          
-          <div className="bg-card/60 rounded p-3">
-            <p className="text-xs text-muted-foreground mb-1">Win/Loss</p>
-            <p className="text-lg font-bold">{winCount}/{lossCount}</p>
-          </div>
-          
-          <div className="bg-card/60 rounded p-3">
-            <p className="text-xs text-muted-foreground mb-1">Avg Win</p>
-            <p className="text-lg font-bold text-green-600">{formatCurrency(avgWin)}</p>
-          </div>
-          
-          <div className="bg-card/60 rounded p-3">
-            <p className="text-xs text-muted-foreground mb-1">Avg Loss</p>
-            <p className="text-lg font-bold text-red-600">{formatCurrency(avgLoss)}</p>
-          </div>
-        </div>
+      <Card className="p-6 mb-6">
+        <ReflectionMetrics
+          tradeCount={tradesForWeek.length}
+          totalPnL={totalPnL}
+          totalR={totalR}
+          winCount={winCount}
+          lossCount={lossCount}
+          winRate={winRate}
+          avgRPerTrade={avgRPerTrade}
+        />
       </Card>
       
       <Card className="p-6 mb-6">
