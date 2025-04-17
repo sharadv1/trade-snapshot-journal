@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
@@ -9,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 import { getCurrentPeriodId, countWords } from '@/utils/journal/reflectionUtils';
 import { toast } from '@/utils/toast';
 import { clearTradeCache, preventTradeFetching } from '@/utils/tradeCalculations';
-import { ReflectionsList } from './reflections/ReflectionsList';
 import { ReflectionCard } from './reflections/ReflectionCard';
 
 export function WeeklyReflectionsPage() {
@@ -36,6 +36,7 @@ export function WeeklyReflectionsPage() {
       if (!isMountedRef.current) return;
       
       if (Array.isArray(fetchedReflections)) {
+        // Sort reflections by date, newest first
         const sortedReflections = fetchedReflections.sort((a, b) => {
           if (!a.weekStart || !b.weekStart) return 0;
           
@@ -128,7 +129,12 @@ export function WeeklyReflectionsPage() {
     try {
       const results = await removeDuplicateReflections();
       if (isMountedRef.current) {
-        toast.success(`Removed ${results.weeklyRemoved + results.monthlyRemoved} duplicate reflections`);
+        const totalRemoved = results.weeklyRemoved + results.monthlyRemoved;
+        if (totalRemoved > 0) {
+          toast.success(`Removed ${totalRemoved} duplicate reflections`);
+        } else {
+          toast.info("No duplicate reflections found");
+        }
         loadReflections();
       }
     } catch (error) {
@@ -188,7 +194,7 @@ export function WeeklyReflectionsPage() {
   return (
     <div className="w-full max-w-screen-xl mx-auto p-4">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">Weekly Reflections</h1>
+        <h1 className="text-2xl font-bold">Weekly Reflections</h1>
         <div className="flex gap-2">
           <Button onClick={handleRemoveDuplicates} variant="outline" className="gap-2">
             <Scissors size={18} />
@@ -238,7 +244,7 @@ export function WeeklyReflectionsPage() {
                   reflectionWordCount={reflectionWordCount}
                   planWordCount={planWordCount}
                   canDelete={stats.tradeCount === 0}
-                  onDelete={handleDeleteReflection}
+                  onDelete={stats.tradeCount === 0 ? handleDeleteReflection : undefined}
                   hasContent={stats.hasContent}
                 />
               </div>

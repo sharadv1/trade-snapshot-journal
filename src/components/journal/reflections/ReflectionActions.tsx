@@ -17,7 +17,7 @@ export const ReflectionActions = ({
   reflectionId 
 }: ReflectionActionsProps) => {
   const handleDelete = (e: React.MouseEvent) => {
-    if (onDelete) {
+    if (canDelete && onDelete) {
       e.preventDefault();
       e.stopPropagation();
       onDelete(reflectionId, e);
