@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -114,7 +113,9 @@ export function TradeForm({ initialTrade, isEditing = false, onSuccess, onError,
     if (!trade.entryPrice) errors.push('Entry price is required');
     if (!trade.quantity) errors.push('Quantity is required');
     if (!trade.entryDate) errors.push('Entry date is required');
-    if (!trade.stopLoss) errors.push('Initial stop loss is required');
+    
+    // Only check for initialStopLoss, not stopLoss
+    if (!trade.initialStopLoss && !trade.initialStopLoss) errors.push('Initial stop loss is required');
     
     setValidationErrors(errors);
     

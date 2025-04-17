@@ -1,4 +1,3 @@
-
 import { Trade } from '@/types';
 import { getContractPointValue } from './contractUtils';
 
@@ -64,8 +63,7 @@ export const getTradeMetrics = (trade: Trade) => {
     };
   }
 
-  // We'll check for initialStopLoss first, and only if that's missing, we'll check for stopLoss
-  // This way, we can still calculate metrics even if the current stop loss is missing
+  // Check if EITHER initialStopLoss OR stopLoss is present, prioritizing initialStopLoss
   if (!trade.initialStopLoss && !trade.stopLoss) {
     calculationExplanation += 'Both initial and current stop loss are missing. ';
     return {

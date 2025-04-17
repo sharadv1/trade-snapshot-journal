@@ -2,6 +2,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Trade, ContractDetails, TradeType, TRADE_TYPES } from '@/types';
 import { generateUUID } from '@/utils/generateUUID';
+import { normalizeTrade } from '@/utils/storage/tradeValidation';
+import { toast } from '@/utils/toast';
+import { addTrade, updateTrade } from '@/utils/tradeStorage';
 
 const DEFAULT_TRADE: Trade = {
   id: generateUUID(),
@@ -16,6 +19,7 @@ const DEFAULT_TRADE: Trade = {
   type: 'stock',
   strategy: '',
   stopLoss: 0,
+  initialStopLoss: 0,
   takeProfit: 0,
   fees: 0,
   notes: '',
@@ -113,12 +117,55 @@ export const useTradeForm = (initialTrade: Trade = DEFAULT_TRADE, isEditing = fa
     }));
   };
 
-  // Mock submit function for completeness
+  // Actual submit function that adds/updates trade
   const submitForm = (e: React.FormEvent, callback?: (tradeId: string) => void) => {
     e.preventDefault();
-    // In a real implementation, this would save the trade
-    if (callback) callback(trade.id);
-    return true;
+    
+    try {
+      // Prepare trade data - copy from current stopLoss to initialStopLoss if needed
+      let tradeToSave = { ...trade };
+      
+      // If initialStopLoss is not set but stopLoss is set, copy stopLoss to initialStopLoss
+      if ((!tradeToSave.initialStopLoss || tradeToSave.initialStopLoss === 0) && 
+          (tradeToSave.stopLoss && tradeToSave.stopLoss !== 0)) {
+        tradeToSave.initialStopLoss = tradeToSave.stopLoss;
+      }
+      
+      // If stopLoss is not set but initialStopLoss is set, copy initialStopLoss to stopLoss
+      if ((!tradeToSave.stopLoss || tradeToSave.stopLoss === 0) && 
+          (tradeToSave.initialStopLoss && tradeToSave.initialStopLoss !== 0)) {
+        tradeToSave.stopLoss = tradeToSave.initialStopLoss;
+      }
+      
+      const normalizedTrade = normalizeTrade(tradeToSave);
+      
+      if (ideaId) {
+        normalizedTrade.ideaId = ideaId;
+      }
+      
+      // Save or update the trade
+      if (isEditing) {
+        console.log('Updating trade:', normalizedTrade.id);
+        updateTrade(normalizedTrade);
+      } else {
+        console.log('Adding new trade with ID:', normalizedTrade.id);
+        addTrade(normalizedTrade);
+      }
+      
+      // Trigger an event to refresh trade lists
+      window.dispatchEvent(new Event('trades-updated'));
+      
+      // Execute callback if provided
+      if (callback) {
+        callback(normalizedTrade.id);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error submitting trade form:', error);
+      toast.error(`Failed to ${isEditing ? 'update' : 'add'} trade`);
+      return false;
+    }
   };
 
   return {
