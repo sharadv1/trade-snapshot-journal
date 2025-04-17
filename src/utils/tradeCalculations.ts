@@ -20,8 +20,6 @@ const tradeCache = {
   trades: null as TradeWithMetrics[] | null,
   timestamp: 0,
   weekCache: new Map<string, TradeWithMetrics[]>(),
-  currentRequest: null as string | null,
-  pendingRequests: new Set<string>(),
   lastCacheInvalidation: 0
 };
 
@@ -56,18 +54,21 @@ export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<
     // Create a cache key for this specific week request
     const cacheKey = `${weekStart.toISOString()}_${weekEnd.toISOString()}`;
     
-    // Force fresh data when explicitly requested for trade issues
-    // This helps fix the trade data display problems
-    tradeCache.trades = null;
+    // Check if we have cached results for this week
+    if (tradeCache.weekCache.has(cacheKey)) {
+      console.log(`Using cached trades for week ${cacheKey}`);
+      return tradeCache.weekCache.get(cacheKey) || [];
+    }
     
-    // Get all trades with metrics (always get fresh data to fix display issues)
-    const allTrades = getTradesWithMetrics();
-    
-    // Update cache
-    tradeCache.trades = allTrades;
-    tradeCache.timestamp = Date.now();
+    // If we don't have all trades yet or the cache is old, fetch them
+    if (!tradeCache.trades) {
+      console.log('Fetching fresh trade data');
+      tradeCache.trades = getTradesWithMetrics();
+      tradeCache.timestamp = Date.now();
+    }
     
     // Ensure allTrades is an array
+    const allTrades = tradeCache.trades || [];
     if (!Array.isArray(allTrades)) {
       console.error('Expected array of trades but got:', typeof allTrades);
       return [];
@@ -104,8 +105,6 @@ export const clearTradeCache = () => {
   tradeCache.trades = null;
   tradeCache.timestamp = 0;
   tradeCache.weekCache.clear();
-  tradeCache.currentRequest = null;
-  tradeCache.pendingRequests.clear();
   tradeCache.lastCacheInvalidation = Date.now();
   console.log('Trade cache manually cleared');
 };

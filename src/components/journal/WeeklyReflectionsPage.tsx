@@ -10,6 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getCurrentPeriodId } from '@/utils/journal/reflectionUtils';
 import { toast } from '@/utils/toast';
 import { ReflectionCard } from './ReflectionCard';
+import { clearTradeCache } from '@/utils/tradeCalculations';
 
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
@@ -53,6 +54,9 @@ export function WeeklyReflectionsPage() {
   }, []);
 
   useEffect(() => {
+    // Reset the trade cache when loading the reflections list
+    clearTradeCache();
+    
     loadReflections();
     
     const handleUpdate = () => {
@@ -98,6 +102,8 @@ export function WeeklyReflectionsPage() {
   }, [loadReflections]);
   
   const handleReflectionClick = useCallback((reflection: WeeklyReflection) => {
+    // Clear trade cache before navigating to ensure fresh data
+    clearTradeCache();
     navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
   }, [navigate]);
   

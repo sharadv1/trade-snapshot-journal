@@ -9,7 +9,7 @@ import { WeeklyReflection, TradeWithMetrics } from '@/types';
 import { getWeeklyReflection, saveWeeklyReflection } from '@/utils/journal/reflectionStorage';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { toast } from '@/utils/toast';
-import { getTradesForWeek } from '@/utils/tradeCalculations';
+import { getTradesForWeek, clearTradeCache } from '@/utils/tradeCalculations';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { 
   Select,
@@ -29,6 +29,7 @@ export function WeeklyJournal() {
   const [tradesForWeek, setTradesForWeek] = useState<TradeWithMetrics[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [weeklyReflection, setWeeklyReflection] = useState<WeeklyReflection | null>(null);
+  const [isLoadingTrades, setIsLoadingTrades] = useState<boolean>(false);
   
   const backupRef = useRef<{reflection: string, weeklyPlan: string, grade: string}>({
     reflection: '',
@@ -44,7 +45,7 @@ export function WeeklyJournal() {
   
   // Check if navigation should be disabled (prevent navigating to future weeks)
   const today = new Date();
-  const canNavigateForward = isBefore(weekStart, today);
+  const canNavigateForward = isBefore(weekStart, startOfWeek(today, { weekStartsOn: 1 }));
   
   // Navigate to previous/next week - memoized
   const goToPreviousWeek = useCallback(() => {
@@ -54,17 +55,11 @@ export function WeeklyJournal() {
   
   const goToNextWeek = useCallback(() => {
     // Only allow navigation if not going beyond current week
-    const nextWeek = addDays(weekStart, 7);
-    const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-    
-    // Allow navigation to current week or earlier
-    if (!isAfter(nextWeek, currentWeekStart)) {
+    if (canNavigateForward) {
+      const nextWeek = addDays(weekStart, 7);
       navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
-    } else {
-      // If trying to go to future, just go to current week
-      navigate(`/journal/weekly/${format(currentWeekStart, 'yyyy-MM-dd')}`);
     }
-  }, [navigate, weekStart]);
+  }, [navigate, weekStart, canNavigateForward]);
   
   // Load reflection data - memoized
   const loadReflection = useCallback(async () => {
@@ -103,11 +98,12 @@ export function WeeklyJournal() {
     }
   }, [weekId]);
   
-  // Load trades for the week - memoized
+  // Load trades for the week - memoized with loading state
   const loadTrades = useCallback(async () => {
     if (!weekId) return;
     
     try {
+      setIsLoadingTrades(true);
       console.log(`Loading trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
       const trades = await getTradesForWeek(weekStart, weekEnd);
       console.log(`Found ${trades.length} trades for week`);
@@ -115,22 +111,31 @@ export function WeeklyJournal() {
     } catch (error) {
       console.error('Error loading trades:', error);
       setTradesForWeek([]);
+    } finally {
+      setIsLoadingTrades(false);
     }
   }, [weekId, weekStart, weekEnd]);
   
   // Initial load
   useEffect(() => {
+    // Clear trade cache when component mounts to ensure fresh data
+    clearTradeCache();
+    
     loadReflection();
     loadTrades();
-  }, [loadReflection, loadTrades]);
-  
-  // Additional effect to reload trades when navigating between weeks
-  useEffect(() => {
-    if (weekId) {
-      console.log(`Week ID changed to ${weekId}, reloading trades`);
+    
+    // Add event listener for trade updates
+    const handleTradeUpdated = () => {
+      clearTradeCache();
       loadTrades();
-    }
-  }, [weekId, loadTrades]);
+    };
+    
+    window.addEventListener('trades-updated', handleTradeUpdated);
+    
+    return () => {
+      window.removeEventListener('trades-updated', handleTradeUpdated);
+    };
+  }, [loadReflection, loadTrades]);
   
   // Save reflection - memoized
   const handleSave = useCallback(async () => {
@@ -147,19 +152,22 @@ export function WeeklyJournal() {
       
       // Reload to get updated data
       loadReflection();
-      loadTrades(); // Also reload trades to ensure data is fresh
     } catch (error) {
       console.error('Error saving reflection:', error);
       toast.error('Failed to save reflection');
     } finally {
       setIsSaving(false);
     }
-  }, [weekId, reflection, grade, weeklyPlan, isSaving, loadReflection, loadTrades]);
+  }, [weekId, reflection, grade, weeklyPlan, isSaving, loadReflection]);
   
   // Save and return to list - memoized
   const handleSaveAndReturn = useCallback(async () => {
-    await handleSave();
-    navigate('/journal/weekly');
+    try {
+      await handleSave();
+      navigate('/journal/weekly');
+    } catch (error) {
+      console.error('Error in save and return:', error);
+    }
   }, [handleSave, navigate]);
   
   // Calculate statistics
@@ -336,7 +344,11 @@ export function WeeklyJournal() {
           Trades for {formattedDateRange}
         </h2>
         
-        {tradesForWeek.length === 0 ? (
+        {isLoadingTrades ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : tradesForWeek.length === 0 ? (
           <p className="text-center text-muted-foreground py-6">
             No trades found for this week.
           </p>
