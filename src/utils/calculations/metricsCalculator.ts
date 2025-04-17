@@ -64,8 +64,10 @@ export const getTradeMetrics = (trade: Trade) => {
     };
   }
 
-  if (!trade.stopLoss) {
-    calculationExplanation += 'Stop loss is missing. ';
+  // We'll check for initialStopLoss first, and only if that's missing, we'll check for stopLoss
+  // This way, we can still calculate metrics even if the current stop loss is missing
+  if (!trade.initialStopLoss && !trade.stopLoss) {
+    calculationExplanation += 'Both initial and current stop loss are missing. ';
     return {
       profitLoss,
       riskRewardRatio,
@@ -204,8 +206,11 @@ export const getTradeMetrics = (trade: Trade) => {
   }
 
   // Parse numeric values
-  const stopLossValue = safeParseFloat(trade.stopLoss);
   const entryValue = safeParseFloat(trade.entryPrice);
+  
+  // CHANGE: Prioritize initialStopLoss for calculations if available, otherwise fall back to stopLoss
+  const stopLossValue = trade.stopLoss ? safeParseFloat(trade.stopLoss) : 0;
+  const initialStopLossValue = trade.initialStopLoss ? safeParseFloat(trade.initialStopLoss) : stopLossValue;
   
   // Calculate risk based on direction - CRITICAL FOR SHORT POSITIONS
   const isLong = direction === 'long';
@@ -229,30 +234,30 @@ export const getTradeMetrics = (trade: Trade) => {
     }
   }
   
-  // Calculate INITIAL risk per share/contract if available
+  // Calculate INITIAL risk per share/contract using initialStopLoss (NEW APPROACH)
   let initialRiskedAmountPerUnit = 0;
-  if (trade.initialStopLoss) {
-    const initialStopValue = safeParseFloat(trade.initialStopLoss);
-    
+  
+  // IMPORTANT CHANGE: Always use initialStopLoss if available for R multiple calculations
+  if (initialStopLossValue) {
     if (isLong) {
       // For long: risk = entry - stop (if stop < entry)
-      if (initialStopValue < entryValue) {
-        initialRiskedAmountPerUnit = entryValue - initialStopValue;
+      if (initialStopLossValue < entryValue) {
+        initialRiskedAmountPerUnit = entryValue - initialStopLossValue;
       } else {
         initialRiskedAmountPerUnit = 0;
-        calculationExplanation += `Warning: Initial stop loss (${initialStopValue}) is above entry price (${entryValue}) for a long position. `;
+        calculationExplanation += `Warning: Initial stop loss (${initialStopLossValue}) is above entry price (${entryValue}) for a long position. `;
       }
     } else {
       // For short: risk = stop - entry (if stop > entry)
-      if (initialStopValue > entryValue) {
-        initialRiskedAmountPerUnit = initialStopValue - entryValue;
+      if (initialStopLossValue > entryValue) {
+        initialRiskedAmountPerUnit = initialStopLossValue - entryValue;
       } else {
         initialRiskedAmountPerUnit = 0;
-        calculationExplanation += `Warning: Initial stop loss (${initialStopValue}) is below entry price (${entryValue}) for a short position. `;
+        calculationExplanation += `Warning: Initial stop loss (${initialStopLossValue}) is below entry price (${entryValue}) for a short position. `;
       }
     }
   } else {
-    // If initialStopLoss is not available, use current stopLoss
+    // Only if initialStopLoss is not available, use current stopLoss
     initialRiskedAmountPerUnit = riskedAmountPerUnit;
   }
   
@@ -393,7 +398,8 @@ export const getTradeMetrics = (trade: Trade) => {
     
     calculationExplanation += 'Trade is still open. ';
   } else if (initialRiskedAmount > 0) {
-    // For closed trades, use initial risk for R-multiple calculation
+    // IMPORTANT CHANGE: Always use initialRiskedAmount for R-multiple calculations
+    // This ensures P&L calculations work even without an updated stop loss
     rMultiple = profitLoss / initialRiskedAmount;
   }
 
