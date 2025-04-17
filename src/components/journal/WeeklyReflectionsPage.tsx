@@ -6,7 +6,7 @@ import { removeDuplicateReflections } from '@/utils/journal/storage/duplicateRef
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader2, Plus, Scissors } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getCurrentPeriodId } from '@/utils/journal/reflectionUtils';
 import { toast } from '@/utils/toast';
 import { ReflectionCard } from './ReflectionCard';
@@ -152,10 +152,11 @@ export function WeeklyReflectionsPage() {
     }
   }, [loadReflections]);
   
-  // Helper function for navigation without page reload
+  // CRITICAL FIX: Use router's navigate without page reload
   const navigateTo = useCallback((path: string) => {
     // Clear cache before navigating
     clearTradeCache();
+    // Use navigate to avoid full page reload
     navigate(path);
   }, [navigate]);
   
@@ -163,6 +164,7 @@ export function WeeklyReflectionsPage() {
   const handleReflectionClick = useCallback((reflection: WeeklyReflection) => {
     // Clear cache before navigating to ensure fresh data
     clearTradeCache();
+    // Use navigate to avoid full page reload
     navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
   }, [navigate]);
   

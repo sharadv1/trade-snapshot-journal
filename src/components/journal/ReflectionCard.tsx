@@ -32,10 +32,11 @@ export const ReflectionCard = memo(function ReflectionCard({ reflection, onDelet
     
   const reflectionWordCount = countWords(reflection.reflection || '');
   const planWordCount = countWords(reflection.weeklyPlan || '');
+  
+  // Safely access trade data, ensuring we have default values to prevent NaN issues
   const tradeCount = Array.isArray(reflection.tradeIds) ? reflection.tradeIds.length : 0;
   const rValue = typeof reflection.totalR === 'number' ? reflection.totalR : 0;
   const totalPnL = typeof reflection.totalPnL === 'number' ? reflection.totalPnL : 0;
-  const weekId = reflection.weekId || reflection.id;
   
   // Memoize the delete handler to prevent unnecessary re-renders
   const handleDelete = useCallback((e: React.MouseEvent) => {

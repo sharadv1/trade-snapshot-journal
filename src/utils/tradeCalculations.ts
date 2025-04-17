@@ -41,7 +41,10 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
       return [];
     }
 
-    // Get fresh trades data
+    // Create a cache key for this specific week request
+    const cacheKey = `${weekStart.toISOString()}_${weekEnd.toISOString()}`;
+
+    // Only get trades fresh each time - no caching or reuse
     if (tradeCache.debugMode) console.log('Forcing fresh trade data fetch');
     
     const allTrades = getTradesWithMetrics();
@@ -78,8 +81,7 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
       }
     });
     
-    // Cache the results for this specific week
-    const cacheKey = `${weekStart.toISOString()}_${weekEnd.toISOString()}`;
+    // Store in week cache
     tradeCache.weekCache.set(cacheKey, tradesForWeek);
     
     console.log(`Found ${tradesForWeek.length} trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);

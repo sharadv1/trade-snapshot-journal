@@ -22,10 +22,13 @@ import { format } from 'date-fns';
 import { ThemeProvider } from '@/components/ui/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import AllTrades from '@/pages/AllTrades';
+import { clearTradeCache } from '@/utils/tradeCalculations';
 
 // Helper component to handle legacy route redirects
 const LegacyWeekRedirect = () => {
   const { weekId } = useParams();
+  // Clear cache before redirection to ensure fresh data
+  clearTradeCache();
   return <Navigate to={`/journal/weekly/${weekId}`} replace />;
 };
 
@@ -33,12 +36,16 @@ const LegacyWeekRedirect = () => {
 const CurrentWeekRedirect = () => {
   const today = new Date();
   const currentWeekId = format(today, 'yyyy-MM-dd');
+  // Clear cache before redirection to ensure fresh data
+  clearTradeCache();
   return <Navigate to={`/journal/weekly/${currentWeekId}`} replace />;
 };
 
 const CurrentMonthRedirect = () => {
   const today = new Date();
   const currentMonthId = format(today, 'yyyy-MM');
+  // Clear cache before redirection to ensure fresh data
+  clearTradeCache();
   return <Navigate to={`/journal/monthly/${currentMonthId}`} replace />;
 };
 

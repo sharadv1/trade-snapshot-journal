@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore, isAfter } from 'date-fns';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore } from 'date-fns';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ChevronLeft, ChevronRight, Save, Loader2 } from 'lucide-react';
@@ -19,9 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Safety flag to track first load completion
-let initialLoadCompleted = false;
-
 export function WeeklyJournal() {
   const { weekId } = useParams<{ weekId: string }>();
   const navigate = useNavigate();
@@ -37,8 +34,8 @@ export function WeeklyJournal() {
   // Critical mount/unmount tracking
   const isMountedRef = useRef(true);
   
-  // Track if the component has finished loading - important!
-  const hasLoadedRef = useRef(false);
+  // Track if we need to reload data or not
+  const needsReloadRef = useRef(true);
   
   // Backup for content
   const backupRef = useRef<{reflection: string, weeklyPlan: string, grade: string}>({
@@ -71,46 +68,26 @@ export function WeeklyJournal() {
     };
   }, []);
   
-  // First-time safety: disabling fetch prevention
+  // Critical component lifecycle management
   useEffect(() => {
-    console.log("WeeklyJournal mounted - enabling fetching");
-    // Always ensure fetching is enabled on component mount
-    preventTradeFetching(false);
+    console.log(`WeeklyJournal: Component mounted for week ${weekId}`);
     
-    return () => {
-      console.log("WeeklyJournal unmounted - enabling fetching");
-      // Ensure fetching is enabled when leaving
-      preventTradeFetching(false);
-    };
-  }, []);
-  
-  // Navigate to previous/next week - memoized
-  const goToPreviousWeek = useCallback(() => {
-    if (isSaving || isLoading) return; // Prevent navigation during loading
+    // Set the mounted flag (should always be true here)
+    isMountedRef.current = true;
     
-    const previousWeek = addDays(weekStart, -7);
-    
-    // Clear cache before navigation to ensure fresh data
+    // Always clear cache when loading a journal entry to ensure fresh data
+    console.log('Journal entry view - clearing trade cache');
     clearTradeCache();
     
-    // Navigate to the new week
-    navigate(`/journal/weekly/${format(previousWeek, 'yyyy-MM-dd')}`);
-  }, [navigate, weekStart, isSaving, isLoading]);
-  
-  const goToNextWeek = useCallback(() => {
-    if (isSaving || isLoading) return; // Prevent navigation during loading
+    // First-time safety: disabling fetch prevention
+    preventTradeFetching(false);
     
-    // Only allow navigation if not going beyond current week
-    if (canNavigateForward) {
-      const nextWeek = addDays(weekStart, 7);
-      
-      // Clear cache before navigation to ensure fresh data
-      clearTradeCache();
-      
-      // Navigate to the new week
-      navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
-    }
-  }, [navigate, weekStart, canNavigateForward, isSaving, isLoading]);
+    // Cleanup on unmount
+    return () => {
+      console.log('WeeklyJournal: Component unmounting');
+      isMountedRef.current = false;
+    };
+  }, [weekId]);
   
   // Load reflection data - memoized
   const loadReflection = useCallback(async () => {
@@ -155,7 +132,7 @@ export function WeeklyJournal() {
         setIsLoading(false);
         
         // Mark as loaded - important
-        hasLoadedRef.current = true;
+        needsReloadRef.current = false;
       }
     }
   }, [weekId]);
@@ -168,7 +145,7 @@ export function WeeklyJournal() {
       setIsLoadingTrades(true);
       console.log(`Loading trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
       
-      // CRITICAL FIX: Always clear cache first to ensure fresh data
+      // Clear cache first to ensure fresh data
       clearTradeCache();
       
       // Get trades for the week
@@ -191,42 +168,65 @@ export function WeeklyJournal() {
     }
   }, [weekId, weekStart, weekEnd]);
   
-  // Critical component lifecycle management
-  useEffect(() => {
-    console.log(`WeeklyJournal: Component mounted for week ${weekId}`);
-    
-    // Set the mounted flag (should always be true here)
-    isMountedRef.current = true;
-    
-    // Always clear cache when loading a journal entry to ensure fresh data
-    console.log('Journal entry view - clearing trade cache');
-    clearTradeCache();
-    initialLoadCompleted = true;
-    
-    // Load reflection data
-    loadReflection();
-    
-    // Load trades immediately after mounting - CRITICAL: moved after clearing cache
-    loadTrades();
-    
-    // Cleanup on unmount
-    return () => {
-      console.log('WeeklyJournal: Component unmounting');
-      isMountedRef.current = false;
-    };
-  }, [loadReflection, loadTrades, weekId]);
-  
   // Handle changes to weekId - reload data
   useEffect(() => {
-    if (weekId && isMountedRef.current) {
-      console.log(`WeeklyJournal: weekId changed to ${weekId}, reloading data`);
+    if (weekId && isMountedRef.current && needsReloadRef.current) {
+      console.log(`WeeklyJournal: loading initial data for ${weekId}`);
       
-      // Clear cache and reload data when weekId changes
+      // Clear cache and reload data
       clearTradeCache();
       loadReflection();
       loadTrades();
+    } else if (weekId && isMountedRef.current) {
+      // Only reload when the weekId changes after the initial load
+      const prevWeekId = weeklyReflection?.weekId || '';
+      if (weekId !== prevWeekId) {
+        console.log(`WeeklyJournal: weekId changed to ${weekId}, reloading data`);
+        
+        // Reset needs-reload flag
+        needsReloadRef.current = true;
+        
+        // Clear cache and reload data
+        clearTradeCache();
+        loadReflection();
+        loadTrades();
+      }
     }
-  }, [weekId, loadReflection, loadTrades]);
+  }, [weekId, loadReflection, loadTrades, weeklyReflection?.weekId]);
+  
+  // Navigate to previous/next week - memoized
+  const goToPreviousWeek = useCallback(() => {
+    if (isSaving || isLoading) return; // Prevent navigation during loading
+    
+    const previousWeek = addDays(weekStart, -7);
+    
+    // Clear cache before navigation
+    clearTradeCache();
+    
+    // IMPORTANT: Set needs-reload flag to true when navigating
+    needsReloadRef.current = true;
+    
+    // Navigate to the new week
+    navigate(`/journal/weekly/${format(previousWeek, 'yyyy-MM-dd')}`);
+  }, [navigate, weekStart, isSaving, isLoading]);
+  
+  const goToNextWeek = useCallback(() => {
+    if (isSaving || isLoading) return; // Prevent navigation during loading
+    
+    // Only allow navigation if not going beyond current week
+    if (canNavigateForward) {
+      const nextWeek = addDays(weekStart, 7);
+      
+      // Clear cache before navigation
+      clearTradeCache();
+      
+      // IMPORTANT: Set needs-reload flag to true when navigating
+      needsReloadRef.current = true;
+      
+      // Navigate to the new week
+      navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
+    }
+  }, [navigate, weekStart, canNavigateForward, isSaving, isLoading]);
   
   // Save reflection - memoized
   const handleSave = useCallback(async () => {
@@ -245,12 +245,10 @@ export function WeeklyJournal() {
       // Update backup after successful save
       backupRef.current = { reflection, weeklyPlan, grade };
       
-      // Reload to get updated data with short delay
-      setTimeout(() => {
-        if (isMountedRef.current) {
-          loadReflection();
-        }
-      }, 300);
+      // Reload to get updated data
+      needsReloadRef.current = true;
+      loadReflection();
+      loadTrades();
     } catch (error) {
       console.error('Error saving reflection:', error);
       if (isMountedRef.current) {
@@ -261,7 +259,7 @@ export function WeeklyJournal() {
         setIsSaving(false);
       }
     }
-  }, [weekId, reflection, grade, weeklyPlan, isSaving, loadReflection]);
+  }, [weekId, reflection, grade, weeklyPlan, isSaving, loadReflection, loadTrades]);
   
   // Save and return to list - memoized
   const handleSaveAndReturn = useCallback(async () => {
@@ -325,10 +323,7 @@ export function WeeklyJournal() {
       <div className="mb-6">
         <Button 
           variant="ghost" 
-          onClick={() => {
-            clearTradeCache();
-            navigate('/journal/weekly');
-          }}
+          onClick={() => navigate('/journal/weekly')}
           className="mb-2"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
