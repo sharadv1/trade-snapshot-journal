@@ -1,10 +1,9 @@
-
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import Analytics from '@/pages/Analytics';
 import TradeEntry from '@/pages/TradeEntry';
-import { TradeDetail } from '@/pages/TradeDetail'; // Changed to named import
+import { TradeDetail } from '@/pages/TradeDetail';
 import TradeEdit from '@/pages/TradeEdit';
 import Ideas from '@/pages/Ideas';
 import StrategyManagement from '@/pages/StrategyManagement';
@@ -20,6 +19,7 @@ import Lessons from '@/pages/Lessons';
 import { format } from 'date-fns';
 import { ThemeProvider } from '@/components/ui/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
+import AllTrades from '@/pages/AllTrades';
 
 // Helper component to handle legacy route redirects
 const LegacyWeekRedirect = () => {
@@ -50,7 +50,6 @@ function App() {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/trade/new" element={<TradeEntry />} />
             <Route path="/trade/:id" element={<TradeDetail />} />
-            {/* Supporting both URL patterns for edit: */}
             <Route path="/trade/:id/edit" element={<TradeEdit />} />
             <Route path="/trade/edit/:id" element={<TradeEdit />} />
             <Route path="/ideas" element={<Ideas />} />
@@ -58,27 +57,16 @@ function App() {
             <Route path="/symbols" element={<SymbolManagement />} />
             <Route path="/configs" element={<Configs />} />
             <Route path="/lessons" element={<Lessons />} />
+            <Route path="/trades" element={<AllTrades />} />
             
-            {/* Journal routes with nested structure */}
             <Route path="/journal" element={<JournalLayout />}>
-              {/* Default route redirects to weekly */}
               <Route index element={<Navigate to="/journal/weekly" replace />} />
-              
-              {/* Explicit weekly and monthly list views */}
               <Route path="weekly" element={<WeeklyReflectionsPage />} />
               <Route path="monthly" element={<MonthlyReflectionsPage />} />
-              
-              {/* Handle "new-week" and "new-month" routes */}
               <Route path="weekly/new-week" element={<CurrentWeekRedirect />} />
               <Route path="monthly/new-month" element={<CurrentMonthRedirect />} />
-              
-              {/* Weekly detail view */}
               <Route path="weekly/:weekId" element={<WeeklyJournal />} />
-              
-              {/* Monthly detail view */}
               <Route path="monthly/:monthId" element={<WeeklyJournal />} />
-              
-              {/* Legacy route for backward compatibility */}
               <Route path=":weekId" element={<LegacyWeekRedirect />} />
             </Route>
             
