@@ -22,13 +22,21 @@ export const ReflectionMetrics = ({
   winRate,
   avgRPerTrade 
 }: ReflectionMetricsProps) => {
-  // Calculate expected value using win rate and average win/loss
-  const expectedValue = calculateExpectedValue([{
-    metrics: {
-      profitLoss: totalPnL,
-    },
-    status: 'closed'
-  }]);
+  // Calculate expected value using the formula from dashboard:
+  // (Win Rate * Average Win) - (Loss Rate * Average Loss)
+  // Rather than passing an incomplete trade object, we'll calculate it directly
+  
+  const lossRate = tradeCount > 0 ? lossCount / tradeCount : 0;
+  
+  const avgWin = winCount > 0 
+    ? totalPnL > 0 ? totalPnL / winCount : 0
+    : 0;
+    
+  const avgLoss = lossCount > 0 
+    ? totalPnL < 0 ? Math.abs(totalPnL) / lossCount : 0
+    : 0;
+  
+  const expectedValue = (winRate / 100 * avgWin) - (lossRate * avgLoss);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
