@@ -1,10 +1,11 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
-import { removeDuplicateReflections } from '@/utils/journal/storage/duplicateReflections';
+import { removeDuplicateReflections, cleanupEmptyReflections } from '@/utils/journal/storage/duplicateReflections';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Loader2, Plus, Scissors } from 'lucide-react';
+import { Loader2, Plus, Scissors, Trash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentPeriodId, countWords } from '@/utils/journal/reflectionUtils';
 import { toast } from '@/utils/toast';
@@ -15,13 +16,14 @@ export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
   const navigate = useNavigate();
   
   const isMountedRef = useRef(true);
   const loadingRef = useRef(false);
   const hasLoadedRef = useRef(false);
   
-  const loadReflections = useCallback(async () => {
+  const loadReflections = useCallback(async (showToast = false) => {
     if (!isMountedRef.current || loadingRef.current) return;
     
     try {
@@ -49,6 +51,10 @@ export function WeeklyReflectionsPage() {
         console.log(`Loaded ${sortedReflections.length} weekly reflections successfully`);
         setReflections(sortedReflections);
         hasLoadedRef.current = true;
+        
+        if (showToast) {
+          toast.success("Reflections refreshed successfully");
+        }
       } else {
         console.error('Expected array of reflections but got:', typeof fetchedReflections);
         setReflections([]);
@@ -131,26 +137,50 @@ export function WeeklyReflectionsPage() {
   }, [loadReflections, reflections]);
   
   const handleRemoveDuplicates = useCallback(async () => {
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || isProcessingDuplicates) return;
     
     try {
+      setIsProcessingDuplicates(true);
+      console.log("Starting duplicate removal process...");
+      
+      // First, try to remove duplicates
       const results = await removeDuplicateReflections();
+      const totalRemoved = results.weeklyRemoved + results.monthlyRemoved;
+      
+      // Then cleanup any empty reflections
+      const emptyRemoved = await cleanupEmptyReflections();
+      
       if (isMountedRef.current) {
-        const totalRemoved = results.weeklyRemoved + results.monthlyRemoved;
-        if (totalRemoved > 0) {
-          toast.success(`Removed ${totalRemoved} duplicate reflections`);
+        if (totalRemoved > 0 || emptyRemoved > 0) {
+          let message = "";
+          if (totalRemoved > 0) {
+            message += `Removed ${totalRemoved} duplicate reflection${totalRemoved !== 1 ? 's' : ''}. `;
+          }
+          if (emptyRemoved > 0) {
+            message += `Cleaned up ${emptyRemoved} empty reflection${emptyRemoved !== 1 ? 's' : ''}.`;
+          }
+          toast.success(message);
+          
+          // Force storage clearing
+          clearTradeCache();
+          
+          // Force a reload with the reloaded flag
+          await loadReflections(true);
         } else {
-          toast.info("No duplicate reflections found");
+          toast.info("No duplicate or empty reflections found");
         }
-        loadReflections();
       }
     } catch (error) {
       console.error("Error removing duplicates:", error);
       if (isMountedRef.current) {
         toast.error("Failed to remove duplicates");
       }
+    } finally {
+      if (isMountedRef.current) {
+        setIsProcessingDuplicates(false);
+      }
     }
-  }, [loadReflections]);
+  }, [isProcessingDuplicates, loadReflections]);
   
   const navigateTo = useCallback((path: string) => {
     clearTradeCache();
@@ -197,7 +227,7 @@ export function WeeklyReflectionsPage() {
       <Card className="p-6">
         <p className="text-center text-red-500">{loadError}</p>
         <div className="flex justify-center mt-4">
-          <Button onClick={loadReflections}>Retry Loading</Button>
+          <Button onClick={() => loadReflections(true)}>Retry Loading</Button>
         </div>
       </Card>
     );
@@ -207,14 +237,32 @@ export function WeeklyReflectionsPage() {
     navigateTo(`/journal/weekly/${getCurrentPeriodId('weekly')}`);
   };
   
+  // Find duplicate reflections (different IDs with the same weekId)
+  const weekIdMap = new Map();
+  const hasDuplicates = reflections.some(r => {
+    if (!r.weekId) return false;
+    if (weekIdMap.has(r.weekId)) return true;
+    weekIdMap.set(r.weekId, true);
+    return false;
+  });
+  
   return (
     <div className="w-full max-w-screen-xl mx-auto p-4">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Weekly Reflections</h1>
         <div className="flex gap-2">
-          <Button onClick={handleRemoveDuplicates} variant="outline" className="gap-2">
-            <Scissors size={18} />
-            Remove Duplicates
+          <Button 
+            onClick={handleRemoveDuplicates} 
+            variant="outline" 
+            className={`gap-2 ${hasDuplicates ? 'border-red-300 text-red-600 hover:bg-red-50' : ''}`}
+            disabled={isProcessingDuplicates}
+          >
+            {isProcessingDuplicates ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Scissors size={18} />
+            )}
+            {hasDuplicates ? 'Duplicates Detected!' : 'Remove Duplicates'}
           </Button>
           <Button onClick={handleCreateReflection} className="rounded-full h-12 w-12 p-0">
             <Plus className="h-6 w-6" />
@@ -222,7 +270,7 @@ export function WeeklyReflectionsPage() {
           </Button>
         </div>
       </div>
-      
+
       {reflections.length === 0 ? (
         <Card className="p-12 text-center">
           <p className="text-xl text-muted-foreground">No weekly reflections found. Start creating your trading journal!</p>
@@ -246,11 +294,16 @@ export function WeeklyReflectionsPage() {
               `Week of ${new Date(reflection.weekStart).toLocaleDateString()}` : 
               'Unknown date range';
             
+            // Check if this is a duplicate reflection
+            const isDuplicate = reflections.some(
+              r => r.id !== reflection.id && r.weekId === reflection.weekId
+            );
+            
             return (
               <div 
                 key={reflection.id} 
                 onClick={() => navigateTo(`/journal/weekly/${reflection.weekId || reflection.id}`)} 
-                className="cursor-pointer"
+                className={`cursor-pointer ${isDuplicate ? 'border-l-4 border-l-red-500' : ''}`}
               >
                 <ReflectionCard 
                   reflection={reflection}
@@ -262,6 +315,7 @@ export function WeeklyReflectionsPage() {
                   canDelete={stats.tradeCount === 0}
                   onDelete={stats.tradeCount === 0 ? handleDeleteReflection : undefined}
                   hasContent={stats.hasContent}
+                  isDuplicate={isDuplicate}
                 />
               </div>
             );

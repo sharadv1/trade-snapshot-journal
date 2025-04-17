@@ -1,7 +1,7 @@
 
 import { useEffect, useRef } from 'react';
 import { createDefaultStrategiesIfNoneExist } from '@/utils/defaultStrategies';
-import { removeDuplicateReflections } from '@/utils/journal/storage/duplicateReflections';
+import { removeDuplicateReflections, cleanupEmptyReflections } from '@/utils/journal/storage/duplicateReflections';
 import { toast } from '@/utils/toast';
 
 export function useAppInitialization() {
@@ -21,10 +21,20 @@ export function useAppInitialization() {
         
         // Clean up duplicate reflections on app start (silently)
         try {
+          console.log('Running automatic cleanup of duplicate reflections');
           const { weeklyRemoved, monthlyRemoved } = await removeDuplicateReflections();
           
           if (weeklyRemoved > 0 || monthlyRemoved > 0) {
             console.log(`Removed ${weeklyRemoved} weekly and ${monthlyRemoved} monthly duplicate reflections on startup`);
+            
+            // Also clean up empty reflections
+            const emptyRemoved = await cleanupEmptyReflections();
+            if (emptyRemoved > 0) {
+              console.log(`Also removed ${emptyRemoved} empty reflections`);
+            }
+            
+            // Force storage event to update UI
+            window.dispatchEvent(new Event('storage'));
           }
         } catch (error) {
           console.error('Error removing duplicates during initialization:', error);
