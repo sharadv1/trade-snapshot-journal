@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -119,8 +120,6 @@ export function MonthlyJournal() {
       setIsLoadingTrades(true);
       console.log(`Loading trades for month ${monthStart.toISOString()} to ${monthEnd.toISOString()}`);
       
-      clearTradeCache();
-      
       const monthTrades = getTradesForMonth(monthStart, monthEnd);
       
       if (isMountedRef.current) {
@@ -138,8 +137,10 @@ export function MonthlyJournal() {
   }, [monthId, monthStart, monthEnd]);
   
   useEffect(() => {
-    loadReflection();
-    loadTrades();
+    if (monthId) {
+      loadReflection();
+      loadTrades();
+    }
   }, [loadReflection, loadTrades, monthId]);
   
   const handleSave = useCallback(async () => {

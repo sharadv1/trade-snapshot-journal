@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,9 +6,10 @@ import { Link } from 'react-router-dom';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { toast } from '@/utils/toast';
-import { deleteWeeklyReflection, deleteMonthlyReflection } from '@/utils/reflectionStorage';
+import { deleteWeeklyReflection, deleteMonthlyReflection } from '@/utils/journal/reflectionStorage';
 import { ReflectionCard } from './ReflectionCard';
-import { countWords, hasContent, getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflectionUtils';
+import { countWords, hasContent, getCurrentPeriodId } from '@/utils/journal/reflectionUtils';
+import { getTradesForWeek, getTradesForMonth, clearTradeCache } from '@/utils/tradeCalculations';
 
 export interface ReflectionsListProps {
   reflections: WeeklyReflection[] | MonthlyReflection[];
@@ -113,9 +113,26 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
     }
   };
   
+  // Function to calculate stats for each reflection
+  const calculateStats = (reflection: WeeklyReflection | MonthlyReflection) => {
+    // If we already have precomputed stats, use them
+    if (reflection.totalPnL !== undefined && reflection.totalR !== undefined && 
+        reflection.tradeIds !== undefined && Array.isArray(reflection.tradeIds)) {
+      return {
+        pnl: reflection.totalPnL || 0,
+        rValue: reflection.totalR || 0,
+        tradeCount: reflection.tradeIds?.length || 0,
+        hasContent: Boolean(reflection.reflection && reflection.reflection.trim().length > 0)
+      };
+    }
+    
+    // Otherwise, use the provided getStats function
+    return getStats(reflection);
+  };
+  
   // Function to determine if a reflection is deletable (no associated trades)
   const isDeletable = (reflection: WeeklyReflection | MonthlyReflection): boolean => {
-    const stats = getStats(reflection);
+    const stats = calculateStats(reflection);
     return stats.tradeCount === 0;
   };
 
@@ -182,7 +199,9 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                 return null;
               }
               
-              const stats = getStats(reflection);
+              const stats = calculateStats(reflection);
+              console.log(`Stats for ${reflectionId}:`, stats);
+              
               const dateRange = formatDateRange(reflection);
               
               // Calculate word counts

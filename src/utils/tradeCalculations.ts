@@ -1,3 +1,4 @@
+
 /**
  * Re-export all calculation functions from their modular structure
  * This file is kept for backward compatibility
@@ -19,11 +20,11 @@ const tradeCache = {
   trades: null as TradeWithMetrics[] | null,
   timestamp: 0,
   weekCache: new Map<string, TradeWithMetrics[]>(),
-  monthCache: new Map<string, TradeWithMetrics[]>(), // Add month cache
+  monthCache: new Map<string, TradeWithMetrics[]>(),
   lastCacheInvalidation: 0,
   lastFetch: 0,
   fetchLock: false,
-  debugMode: true  // Set to true by default to help debug
+  debugMode: true
 };
 
 /**
@@ -43,10 +44,16 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
 
     // Create a cache key for this specific week request
     const cacheKey = `${weekStart.toISOString()}_${weekEnd.toISOString()}`;
-
-    // Only get trades fresh each time - no caching or reuse
-    if (tradeCache.debugMode) console.log('Forcing fresh trade data fetch');
     
+    // Check if we already have this week's data cached
+    if (tradeCache.weekCache.has(cacheKey)) {
+      if (tradeCache.debugMode) {
+        console.log(`Using cached trades for week ${cacheKey}`);
+      }
+      return tradeCache.weekCache.get(cacheKey) || [];
+    }
+
+    // Always get fresh trades data to ensure accuracy
     const allTrades = getTradesWithMetrics();
     tradeCache.trades = allTrades;
     tradeCache.timestamp = Date.now();
@@ -110,10 +117,16 @@ export const getTradesForMonth = (monthStart: Date, monthEnd: Date): TradeWithMe
 
     // Create a cache key for this specific month request
     const cacheKey = `${monthStart.toISOString()}_${monthEnd.toISOString()}`;
-
-    // Only get trades fresh each time - no caching or reuse
-    if (tradeCache.debugMode) console.log('Forcing fresh trade data fetch');
     
+    // Check if we already have this month's data cached
+    if (tradeCache.monthCache.has(cacheKey)) {
+      if (tradeCache.debugMode) {
+        console.log(`Using cached trades for month ${cacheKey}`);
+      }
+      return tradeCache.monthCache.get(cacheKey) || [];
+    }
+
+    // Always get fresh trades data to ensure accuracy
     const allTrades = getTradesWithMetrics();
     tradeCache.trades = allTrades;
     tradeCache.timestamp = Date.now();
@@ -135,7 +148,7 @@ export const getTradesForMonth = (monthStart: Date, monthEnd: Date): TradeWithMe
         const exitDate = new Date(trade.exitDate);
         
         // Check if the trade's exit date is within the specified month
-        const isInMonth = exitDate >= monthStart && exitDate <= monthEnd;
+        const isInMonth = isWithinInterval(exitDate, { start: monthStart, end: monthEnd });
         
         if (tradeCache.debugMode && isInMonth) {
           console.log(`Trade ${trade.id} (${trade.symbol}) is in the selected month`);
