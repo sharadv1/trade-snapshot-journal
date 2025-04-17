@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { format, parseISO, startOfWeek, endOfWeek, addDays } from 'date-fns';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -6,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ChevronLeft, ChevronRight, Save } from 'lucide-react';
 import { WeeklyReflection, TradeWithMetrics } from '@/types';
-import { getWeeklyReflection, saveWeeklyReflection, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
+import { getWeeklyReflection, saveWeeklyReflection } from '@/utils/journal/reflectionStorage';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { toast } from '@/utils/toast';
 import { getTradesForWeek } from '@/utils/tradeCalculations';
@@ -42,18 +41,18 @@ export function WeeklyJournal() {
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const formattedDateRange = `${format(weekStart, 'MMM dd')} - ${format(weekEnd, 'MMM dd, yyyy')}`;
   
-  // Navigate to previous/next week
-  const goToPreviousWeek = () => {
+  // Navigate to previous/next week - memoized
+  const goToPreviousWeek = useCallback(() => {
     const previousWeek = addDays(weekStart, -7);
     navigate(`/journal/weekly/${format(previousWeek, 'yyyy-MM-dd')}`);
-  };
+  }, [navigate, weekStart]);
   
-  const goToNextWeek = () => {
+  const goToNextWeek = useCallback(() => {
     const nextWeek = addDays(weekStart, 7);
     navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
-  };
+  }, [navigate, weekStart]);
   
-  // Load reflection data
+  // Load reflection data - memoized
   const loadReflection = useCallback(async () => {
     if (!weekId) return;
     
@@ -90,7 +89,7 @@ export function WeeklyJournal() {
     }
   }, [weekId]);
   
-  // Load trades for the week
+  // Load trades for the week - memoized
   const loadTrades = useCallback(async () => {
     if (!weekId) return;
     
@@ -109,8 +108,8 @@ export function WeeklyJournal() {
     loadTrades();
   }, [loadReflection, loadTrades]);
   
-  // Save reflection
-  const handleSave = async () => {
+  // Save reflection - memoized
+  const handleSave = useCallback(async () => {
     if (!weekId || isSaving) return;
     
     setIsSaving(true);
@@ -130,13 +129,13 @@ export function WeeklyJournal() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [weekId, reflection, grade, weeklyPlan, isSaving, loadReflection]);
   
-  // Save and return to list
-  const handleSaveAndReturn = async () => {
+  // Save and return to list - memoized
+  const handleSaveAndReturn = useCallback(async () => {
     await handleSave();
     navigate('/journal/weekly');
-  };
+  }, [handleSave, navigate]);
   
   // Calculate statistics
   const totalPnL = tradesForWeek.reduce((sum, trade) => 

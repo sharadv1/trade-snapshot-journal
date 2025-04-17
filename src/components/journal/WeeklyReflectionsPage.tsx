@@ -17,7 +17,7 @@ export function WeeklyReflectionsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const navigate = useNavigate();
   
-  // Function to load reflections
+  // Function to load reflections - memoized to prevent unnecessary rerenders
   const loadReflections = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -78,8 +78,8 @@ export function WeeklyReflectionsPage() {
     };
   }, [loadReflections]);
   
-  // Handle reflection removal
-  const handleDeleteReflection = async (reflectionId: string, e: React.MouseEvent) => {
+  // Handle reflection removal - memoized to avoid recreation on each render
+  const handleDeleteReflection = useCallback(async (reflectionId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -91,10 +91,10 @@ export function WeeklyReflectionsPage() {
       console.error("Error deleting reflection:", error);
       toast.error("Failed to delete reflection");
     }
-  };
+  }, [loadReflections]);
   
-  // Handle reflection creation or editing
-  const handleRemoveDuplicates = () => {
+  // Handle reflection creation or editing - moved to a separate handler
+  const handleRemoveDuplicates = useCallback(() => {
     // This would connect to the duplicate removal logic
     try {
       const { removeDuplicateReflections } = require('@/utils/journal/reflectionStorage');
@@ -105,7 +105,12 @@ export function WeeklyReflectionsPage() {
       console.error("Error removing duplicates:", error);
       toast.error("Failed to remove duplicates");
     }
-  };
+  }, [loadReflections]);
+  
+  // Navigation handler - memoized to prevent recreation on each render
+  const handleReflectionClick = useCallback((reflection: WeeklyReflection) => {
+    navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
+  }, [navigate]);
   
   // Render loading state
   if (isLoading) {
@@ -173,11 +178,12 @@ export function WeeklyReflectionsPage() {
       ) : (
         <div className="space-y-4">
           {reflections.map((reflection) => (
-            <ReflectionCard 
-              key={reflection.id} 
-              reflection={reflection} 
-              onDelete={handleDeleteReflection}
-            />
+            <div key={reflection.id} onClick={() => handleReflectionClick(reflection)} className="cursor-pointer">
+              <ReflectionCard 
+                reflection={reflection} 
+                onDelete={handleDeleteReflection}
+              />
+            </div>
           ))}
         </div>
       )}
