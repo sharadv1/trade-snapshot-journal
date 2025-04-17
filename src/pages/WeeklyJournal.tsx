@@ -9,7 +9,7 @@ import { WeeklyReflection, TradeWithMetrics } from '@/types';
 import { getWeeklyReflection, saveWeeklyReflection } from '@/utils/journal/reflectionStorage';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { toast } from '@/utils/toast';
-import { getTradesForWeek, clearTradeCache, preventTradeFetching } from '@/utils/tradeCalculations';
+import { getTradesForWeek, clearTradeCache, preventTradeFetching, setTradeDebug } from '@/utils/tradeCalculations';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { 
   Select,
@@ -18,6 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+// Safety flag to track first load completion
+let initialLoadCompleted = false;
 
 export function WeeklyJournal() {
   const { weekId } = useParams<{ weekId: string }>();
@@ -31,12 +34,16 @@ export function WeeklyJournal() {
   const [weeklyReflection, setWeeklyReflection] = useState<WeeklyReflection | null>(null);
   const [isLoadingTrades, setIsLoadingTrades] = useState<boolean>(false);
   
-  // Add a mounted ref to prevent state updates after unmount
+  // Critical mount/unmount tracking
   const isMountedRef = useRef(true);
   
-  // Track if initial load is complete to prevent extra fetches
-  const initialLoadCompleteRef = useRef(false);
+  // Track if the component has finished loading - important!
+  const hasLoadedRef = useRef(false);
   
+  // Track if initial load should clear cache
+  const shouldClearCacheRef = useRef(!initialLoadCompleted);
+  
+  // Backup for content
   const backupRef = useRef<{reflection: string, weeklyPlan: string, grade: string}>({
     reflection: '',
     weeklyPlan: '',
@@ -53,6 +60,21 @@ export function WeeklyJournal() {
   const today = new Date();
   const canNavigateForward = isBefore(weekStart, startOfWeek(today, { weekStartsOn: 1 }));
   
+  // Turn off debug mode to reduce console noise
+  useEffect(() => {
+    setTradeDebug(false);
+  }, []);
+  
+  // First-time safety: disabling fetch prevention
+  useEffect(() => {
+    // Always ensure fetching is enabled on component mount
+    preventTradeFetching(false);
+    return () => {
+      // Ensure fetching is enabled when leaving
+      preventTradeFetching(false);
+    };
+  }, []);
+  
   // Navigate to previous/next week - memoized
   const goToPreviousWeek = useCallback(() => {
     if (isSaving || isLoading) return; // Prevent navigation during loading
@@ -62,17 +84,15 @@ export function WeeklyJournal() {
     // Prevent fetching during navigation to avoid loops
     preventTradeFetching(true);
     
-    // Small delay to ensure prevention is active
+    // Navigate to the new week
+    navigate(`/journal/weekly/${format(previousWeek, 'yyyy-MM-dd')}`);
+    
+    // Re-enable fetching after navigation with delay
     setTimeout(() => {
-      navigate(`/journal/weekly/${format(previousWeek, 'yyyy-MM-dd')}`);
-      
-      // Re-enable fetching after navigation (with delay)
-      setTimeout(() => {
-        if (isMountedRef.current) {
-          preventTradeFetching(false);
-        }
-      }, 500);
-    }, 0);
+      if (isMountedRef.current) {
+        preventTradeFetching(false);
+      }
+    }, 500);
   }, [navigate, weekStart, isSaving, isLoading]);
   
   const goToNextWeek = useCallback(() => {
@@ -85,17 +105,15 @@ export function WeeklyJournal() {
       // Prevent fetching during navigation to avoid loops
       preventTradeFetching(true);
       
-      // Small delay to ensure prevention is active
+      // Navigate to the new week
+      navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
+      
+      // Re-enable fetching after navigation with delay
       setTimeout(() => {
-        navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
-        
-        // Re-enable fetching after navigation (with delay)
-        setTimeout(() => {
-          if (isMountedRef.current) {
-            preventTradeFetching(false);
-          }
-        }, 500);
-      }, 0);
+        if (isMountedRef.current) {
+          preventTradeFetching(false);
+        }
+      }, 500);
     }
   }, [navigate, weekStart, canNavigateForward, isSaving, isLoading]);
   
@@ -105,6 +123,7 @@ export function WeeklyJournal() {
     
     try {
       setIsLoading(true);
+      
       // Use getWeeklyReflection instead of getWeeklyReflectionById
       const reflectionData = await getWeeklyReflection(weekId);
       
@@ -139,6 +158,9 @@ export function WeeklyJournal() {
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
+        
+        // Mark as loaded - important
+        hasLoadedRef.current = true;
       }
     }
   }, [weekId]);
@@ -151,13 +173,12 @@ export function WeeklyJournal() {
       setIsLoadingTrades(true);
       console.log(`Loading trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
       
-      // Changed to synchronous version
+      // Get trades for the week
       const trades = getTradesForWeek(weekStart, weekEnd);
       
       // Check if component is still mounted
       if (!isMountedRef.current) return;
       
-      console.log(`Found ${trades.length} trades for week`);
       setTradesForWeek(Array.isArray(trades) ? trades : []);
     } catch (error) {
       console.error('Error loading trades:', error);
@@ -171,58 +192,43 @@ export function WeeklyJournal() {
     }
   }, [weekId, weekStart, weekEnd, isLoadingTrades]);
   
-  // Cleanup on unmount
+  // Critical component lifecycle management
   useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-      preventTradeFetching(false); // Ensure fetching is enabled when leaving
-    };
-  }, []);
-  
-  // Initial load - with improvements to prevent infinite loops
-  useEffect(() => {
-    // Set the mounted flag (should be true here)
+    // Set the mounted flag (should always be true here)
     isMountedRef.current = true;
     
-    // Only clear cache on initial mount, not on re-renders or route changes
-    if (!initialLoadCompleteRef.current) {
+    // Enable fetching when component mounts
+    preventTradeFetching(false);
+    
+    // Only clear cache on first load of the app, not on subsequent route changes
+    if (shouldClearCacheRef.current) {
       console.log('Initial load - clearing trade cache');
       clearTradeCache();
-      initialLoadCompleteRef.current = true;
+      shouldClearCacheRef.current = false;
+      initialLoadCompleted = true;
     } else {
       console.log('Subsequent load - not clearing cache');
     }
     
-    // Load data
+    // Load reflection data
     loadReflection();
     
-    // Small delay before loading trades to prevent race conditions
+    // Load trades after reflection with a small delay
     const tradeLoadTimer = setTimeout(() => {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && !hasLoadedRef.current) {
         loadTrades();
       }
-    }, 100);
+    }, 300);
     
-    // Add event listener for trade updates
-    const handleTradeUpdated = () => {
-      console.log('Trade updated event received');
-      if (isMountedRef.current) {
-        // Use a small delay to prevent cascading updates
-        setTimeout(() => {
-          if (isMountedRef.current) {
-            loadTrades();
-          }
-        }, 300);
-      }
-    };
-    
-    window.addEventListener('trades-updated', handleTradeUpdated);
-    
+    // Cleanup on unmount
     return () => {
-      window.removeEventListener('trades-updated', handleTradeUpdated);
+      isMountedRef.current = false;
       clearTimeout(tradeLoadTimer);
+      
+      // Always enable fetching when component unmounts
+      preventTradeFetching(false);
     };
-  }, [loadReflection, loadTrades, weekId]); // Include weekId to reload when it changes
+  }, [loadReflection, loadTrades, weekId]);
   
   // Save reflection - memoized
   const handleSave = useCallback(async () => {
@@ -241,8 +247,12 @@ export function WeeklyJournal() {
       // Update backup after successful save
       backupRef.current = { reflection, weeklyPlan, grade };
       
-      // Reload to get updated data
-      loadReflection();
+      // Reload to get updated data with short delay
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          loadReflection();
+        }
+      }, 300);
     } catch (error) {
       console.error('Error saving reflection:', error);
       if (isMountedRef.current) {
@@ -265,15 +275,13 @@ export function WeeklyJournal() {
       // Prevent fetching during navigation
       preventTradeFetching(true);
       
-      // Small delay to ensure data is saved before navigation
+      // Navigate back to the list
+      navigate('/journal/weekly');
+      
+      // Re-enable fetching after navigation completes (with delay)
       setTimeout(() => {
-        navigate('/journal/weekly');
-        
-        // Re-enable fetching after navigation completes
-        setTimeout(() => {
-          preventTradeFetching(false);
-        }, 500);
-      }, 100);
+        preventTradeFetching(false);
+      }, 500);
     } catch (error) {
       console.error('Error in save and return:', error);
     }
@@ -320,14 +328,16 @@ export function WeeklyJournal() {
   
   return (
     <div className="container mx-auto py-6 max-w-4xl">
+      {/* Back button and header */}
       <div className="mb-6">
         <Button 
           variant="ghost" 
           asChild 
           className="mb-2"
           onClick={() => {
-            // Prevent fetching during navigation
+            // Safety: prevent fetching during navigation
             preventTradeFetching(true);
+            
             // Re-enable after delay
             setTimeout(() => preventTradeFetching(false), 500);
           }}
@@ -344,6 +354,7 @@ export function WeeklyJournal() {
         </div>
       </div>
       
+      {/* Week navigation */}
       <div className="flex justify-between items-center my-4">
         <Button 
           variant="outline" 
@@ -370,8 +381,10 @@ export function WeeklyJournal() {
         </Button>
       </div>
       
+      {/* Weekly Stats */}
       <Card className="p-4 mb-6">
         <div className="grid grid-cols-2 md:grid-cols-7 gap-4 text-center">
+          {/* Stats content */}
           <div className="bg-card/60 rounded p-3">
             <p className="text-xs text-muted-foreground mb-1">Total P&L</p>
             <p className={`text-lg font-bold ${totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -413,6 +426,7 @@ export function WeeklyJournal() {
         </div>
       </Card>
       
+      {/* Reflection form */}
       <Card className="p-6 mb-6">
         <h2 className="text-2xl font-semibold mb-6">
           Weekly Reflection - {formattedDateRange}
@@ -480,6 +494,7 @@ export function WeeklyJournal() {
         </div>
       </Card>
       
+      {/* Trades for the week */}
       <Card className="p-6">
         <h2 className="text-2xl font-semibold mb-6">
           Trades for {formattedDateRange}

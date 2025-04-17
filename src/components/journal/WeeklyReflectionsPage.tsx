@@ -69,17 +69,17 @@ export function WeeklyReflectionsPage() {
     // Set the mounted flag to true when mounting
     isMountedRef.current = true;
     
-    // Reset fetching prevention in case it was left on from previous actions
+    // Reset fetching prevention on mount
     preventTradeFetching(false);
     
-    // Reset the trade cache when loading the reflections list, but only once
+    // Reset the trade cache when loading the reflections list
     clearTradeCache();
     
     loadReflections();
     
     const handleUpdate = () => {
       if (isMountedRef.current) {
-        // Only clear cache when genuinely needed
+        // Clear cache when changes occur
         clearTradeCache();
         loadReflections();
       }
@@ -141,21 +141,17 @@ export function WeeklyReflectionsPage() {
   }, [loadReflections]);
   
   const handleReflectionClick = useCallback((reflection: WeeklyReflection) => {
-    // Clear trade cache before navigating to ensure fresh data
+    // Important: Clear cache and prevent fetching before navigating
     clearTradeCache();
-    
-    // Prevent trade fetching during navigation
     preventTradeFetching(true);
     
-    // Small delay to ensure cache is cleared before navigation
+    // Navigate to the reflection
+    navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
+    
+    // Re-enable fetching after navigation with delay
     setTimeout(() => {
-      navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
-      
-      // Re-enable fetching after navigation with a delay
-      setTimeout(() => {
-        preventTradeFetching(false);
-      }, 500);
-    }, 100);
+      preventTradeFetching(false);
+    }, 800);  // Longer delay to ensure page loads properly
   }, [navigate]);
   
   if (isLoading) {
@@ -197,13 +193,16 @@ export function WeeklyReflectionsPage() {
           className="flex-1 py-6 rounded-md text-base" 
           asChild
           onClick={() => {
-            // Prevent trade fetching during navigation
+            // Clear cache before navigation
+            clearTradeCache();
+            
+            // Prevent fetching during navigation
             preventTradeFetching(true);
             
-            // Re-enable after delay
+            // Re-enable after longer delay
             setTimeout(() => {
               preventTradeFetching(false);
-            }, 500);
+            }, 800);
           }}
         >
           <Link to="/journal/monthly">Monthly Reflections</Link>
@@ -214,15 +213,16 @@ export function WeeklyReflectionsPage() {
         <h2 className="text-3xl font-bold">Weekly Reflections</h2>
         <Button 
           onClick={() => {
-            clearTradeCache(); // Clear cache before creating new reflection
+            // Clear cache before creating new reflection
+            clearTradeCache(); 
             
-            // Prevent trade fetching during navigation
+            // Prevent fetching during navigation
             preventTradeFetching(true);
             
-            // Re-enable after delay
+            // Re-enable after longer delay
             setTimeout(() => {
               preventTradeFetching(false);
-            }, 500);
+            }, 800);
           }} 
           asChild 
           size="lg" 
@@ -243,9 +243,14 @@ export function WeeklyReflectionsPage() {
             className="mt-4" 
             asChild
             onClick={() => {
+              // Clear cache before navigation
               clearTradeCache();
+              
+              // Prevent fetching during navigation
               preventTradeFetching(true);
-              setTimeout(() => preventTradeFetching(false), 500);
+              
+              // Re-enable after longer delay
+              setTimeout(() => preventTradeFetching(false), 800);
             }}
           >
             <Link to={`/journal/weekly/${getCurrentPeriodId('weekly')}`}>Create First Reflection</Link>
