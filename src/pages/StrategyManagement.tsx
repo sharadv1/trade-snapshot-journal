@@ -107,11 +107,13 @@ const StrategyManagement: React.FC = () => {
     toast.success('Strategy deleted successfully');
   };
 
-  const handleCreateDefaultStrategy = async () => {
+  const handleCreateCustomStrategy = async () => {
+    const num = Math.floor(Math.random() * 100);
+    
     const newStrategy: Strategy = {
       id: generateUUID(),
-      name: '',
-      description: '',
+      name: `Custom Strategy ${num}`,
+      description: 'Your custom trading strategy',
       color: getRandomColor(),
       createdAt: new Date()
     };
@@ -119,6 +121,7 @@ const StrategyManagement: React.FC = () => {
     const updatedStrategies = [...strategies, newStrategy];
     await saveStrategies(updatedStrategies);
     setStrategies(updatedStrategies);
+    toast.success('Added new custom strategy');
   };
 
   const handleColorChange = (color: any) => {
@@ -139,7 +142,6 @@ const StrategyManagement: React.FC = () => {
       <h1 className="text-3xl font-bold mb-6">Strategy Management</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Add/Edit Strategy Form */}
         <Card className="border">
           <CardHeader>
             <CardTitle>{isEditing ? 'Edit Strategy' : 'Add New Strategy'}</CardTitle>
@@ -194,7 +196,6 @@ const StrategyManagement: React.FC = () => {
           </div>
         </Card>
 
-        {/* Strategy List */}
         <Card className="border">
           <CardHeader>
             <CardTitle>Current Strategies</CardTitle>
@@ -250,8 +251,8 @@ const StrategyManagement: React.FC = () => {
             </ScrollArea>
           </CardContent>
           <div className="p-6 flex justify-end">
-            <Button variant="outline" onClick={handleCreateDefaultStrategy}>
-              Create Default Strategy
+            <Button variant="outline" onClick={handleCreateCustomStrategy}>
+              Add Custom Strategy
             </Button>
           </div>
         </Card>

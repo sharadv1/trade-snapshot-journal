@@ -29,7 +29,8 @@ const DEFAULT_STRATEGIES: Omit<Strategy, 'id' | 'createdAt'>[] = [
   }
 ];
 
-// Create default strategies if none exist
+// This function will ONLY create default strategies if ABSOLUTELY NONE exist
+// It will never overwrite existing strategies
 export const createDefaultStrategiesIfNoneExist = async (): Promise<boolean> => {
   try {
     // Get existing strategies
@@ -37,7 +38,7 @@ export const createDefaultStrategiesIfNoneExist = async (): Promise<boolean> => 
     
     // If strategies already exist, do nothing
     if (existingStrategies.length > 0) {
-      console.log('Strategies already exist, not creating defaults');
+      console.log('Strategies already exist, preserving user strategies');
       return false;
     }
     

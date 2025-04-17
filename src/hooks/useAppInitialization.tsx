@@ -16,7 +16,8 @@ export function useAppInitialization() {
       try {
         console.log('Initializing app with default data if needed');
         
-        // Check and create default strategies if none exist
+        // Check if we need default strategies, but ONLY if none exist
+        // This is now very conservative and will not touch existing strategies
         await createDefaultStrategiesIfNoneExist();
         
         // Clean up duplicate reflections on app start (silently)
@@ -48,9 +49,11 @@ export function useAppInitialization() {
     
     initializeApp();
     
-    // Add event listener to detect storage changes
+    // Storage event listener - but make sure it doesn't mess with strategies
     const handleStorageEvent = () => {
       console.log('Storage changed, checking if strategies exist');
+      // This only creates default strategies if NONE exist
+      // It will not replace or modify existing ones
       createDefaultStrategiesIfNoneExist();
     };
     
