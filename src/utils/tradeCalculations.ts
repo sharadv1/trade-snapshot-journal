@@ -56,80 +56,45 @@ export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<
     // Create a cache key for this specific week request
     const cacheKey = `${weekStart.toISOString()}_${weekEnd.toISOString()}`;
     
-    // Prevent duplicate in-flight requests
-    if (tradeCache.pendingRequests.has(cacheKey)) {
-      console.log(`Request already in progress for week ${cacheKey}`);
-      return tradeCache.weekCache.get(cacheKey) || [];
-    }
+    // Force fresh data when explicitly requested for trade issues
+    // This helps fix the trade data display problems
+    tradeCache.trades = null;
     
-    // Check if we've already cached this specific week's data
-    if (tradeCache.weekCache.has(cacheKey)) {
-      const cachedResult = tradeCache.weekCache.get(cacheKey);
-      if (cachedResult) {
-        console.log(`Using cached data for week ${cacheKey}`);
-        return cachedResult;
-      }
-    }
+    // Get all trades with metrics (always get fresh data to fix display issues)
+    const allTrades = getTradesWithMetrics();
     
-    // If we're making this exact request already, return empty to prevent loop
-    if (tradeCache.currentRequest === cacheKey) {
-      console.log('Preventing recursive trade calculation for the same week');
+    // Update cache
+    tradeCache.trades = allTrades;
+    tradeCache.timestamp = Date.now();
+    
+    // Ensure allTrades is an array
+    if (!Array.isArray(allTrades)) {
+      console.error('Expected array of trades but got:', typeof allTrades);
       return [];
     }
     
-    // Track this request
-    tradeCache.currentRequest = cacheKey;
-    tradeCache.pendingRequests.add(cacheKey);
+    console.log(`Filtering ${allTrades.length} trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
     
-    try {
-      // Reuse cached trades if they were fetched in the last 10 seconds
-      const now = Date.now();
-      const cacheIsValid = tradeCache.trades !== null && (now - tradeCache.timestamp) < 10000;
+    // Filter trades for the week
+    const tradesForWeek = allTrades.filter(trade => {
+      if (!trade || !trade.exitDate) return false;
       
-      // Get all trades with metrics (use cache if valid)
-      const allTrades = cacheIsValid ? tradeCache.trades : getTradesWithMetrics();
-      
-      // Update cache if needed
-      if (!cacheIsValid && allTrades) {
-        tradeCache.trades = allTrades;
-        tradeCache.timestamp = now;
+      try {
+        const exitDate = new Date(trade.exitDate);
+        return isWithinInterval(exitDate, { start: weekStart, end: weekEnd });
+      } catch (e) {
+        console.error('Error parsing exit date:', e);
+        return false;
       }
-      
-      // Ensure allTrades is an array
-      if (!Array.isArray(allTrades)) {
-        console.error('Expected array of trades but got:', typeof allTrades);
-        return [];
-      }
-      
-      // Filter trades for the week
-      const tradesForWeek = allTrades.filter(trade => {
-        if (!trade || !trade.exitDate) return false;
-        
-        try {
-          const exitDate = new Date(trade.exitDate);
-          return isWithinInterval(exitDate, { start: weekStart, end: weekEnd });
-        } catch (e) {
-          console.error('Error parsing exit date:', e);
-          return false;
-        }
-      });
-      
-      // Cache the results for this specific week
-      tradeCache.weekCache.set(cacheKey, tradesForWeek);
-      console.log(`Loaded ${tradesForWeek.length} trades for week ${cacheKey}`);
-      
-      return tradesForWeek;
-    } finally {
-      // Always clean up request tracking
-      tradeCache.currentRequest = null;
-      tradeCache.pendingRequests.delete(cacheKey);
-    }
+    });
+    
+    // Cache the results for this specific week
+    tradeCache.weekCache.set(cacheKey, tradesForWeek);
+    console.log(`Loaded ${tradesForWeek.length} trades for week ${cacheKey}`);
+    
+    return tradesForWeek;
   } catch (error) {
     console.error('Error getting trades for week:', error);
-    // Remove from pending requests to allow retries
-    if (weekStart && weekEnd) {
-      tradeCache.pendingRequests.delete(`${weekStart.toISOString()}_${weekEnd.toISOString()}`);
-    }
     return [];
   }
 };

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { format, parseISO, startOfWeek, endOfWeek, addDays } from 'date-fns';
+import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore, isAfter } from 'date-fns';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,10 @@ export function WeeklyJournal() {
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const formattedDateRange = `${format(weekStart, 'MMM dd')} - ${format(weekEnd, 'MMM dd, yyyy')}`;
   
+  // Check if navigation should be disabled (prevent navigating to future weeks)
+  const today = new Date();
+  const canNavigateForward = isBefore(weekStart, today);
+  
   // Navigate to previous/next week - memoized
   const goToPreviousWeek = useCallback(() => {
     const previousWeek = addDays(weekStart, -7);
@@ -48,8 +53,17 @@ export function WeeklyJournal() {
   }, [navigate, weekStart]);
   
   const goToNextWeek = useCallback(() => {
+    // Only allow navigation if not going beyond current week
     const nextWeek = addDays(weekStart, 7);
-    navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
+    const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+    
+    // Allow navigation to current week or earlier
+    if (!isAfter(nextWeek, currentWeekStart)) {
+      navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
+    } else {
+      // If trying to go to future, just go to current week
+      navigate(`/journal/weekly/${format(currentWeekStart, 'yyyy-MM-dd')}`);
+    }
   }, [navigate, weekStart]);
   
   // Load reflection data - memoized
@@ -94,7 +108,9 @@ export function WeeklyJournal() {
     if (!weekId) return;
     
     try {
+      console.log(`Loading trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
       const trades = await getTradesForWeek(weekStart, weekEnd);
+      console.log(`Found ${trades.length} trades for week`);
       setTradesForWeek(Array.isArray(trades) ? trades : []);
     } catch (error) {
       console.error('Error loading trades:', error);
@@ -107,6 +123,14 @@ export function WeeklyJournal() {
     loadReflection();
     loadTrades();
   }, [loadReflection, loadTrades]);
+  
+  // Additional effect to reload trades when navigating between weeks
+  useEffect(() => {
+    if (weekId) {
+      console.log(`Week ID changed to ${weekId}, reloading trades`);
+      loadTrades();
+    }
+  }, [weekId, loadTrades]);
   
   // Save reflection - memoized
   const handleSave = useCallback(async () => {
@@ -123,13 +147,14 @@ export function WeeklyJournal() {
       
       // Reload to get updated data
       loadReflection();
+      loadTrades(); // Also reload trades to ensure data is fresh
     } catch (error) {
       console.error('Error saving reflection:', error);
       toast.error('Failed to save reflection');
     } finally {
       setIsSaving(false);
     }
-  }, [weekId, reflection, grade, weeklyPlan, isSaving, loadReflection]);
+  }, [weekId, reflection, grade, weeklyPlan, isSaving, loadReflection, loadTrades]);
   
   // Save and return to list - memoized
   const handleSaveAndReturn = useCallback(async () => {
@@ -199,6 +224,7 @@ export function WeeklyJournal() {
           size="icon" 
           onClick={goToNextWeek}
           className="rounded-full"
+          disabled={!canNavigateForward}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -334,7 +360,7 @@ export function WeeklyJournal() {
                     <td className="py-2 px-4">{trade.symbol}</td>
                     <td className="py-2 px-4">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        trade.direction.toUpperCase() === 'LONG' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        trade.direction?.toUpperCase() === 'LONG' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
                         {trade.direction}
                       </span>
