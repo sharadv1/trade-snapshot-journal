@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { formatCurrency } from '@/utils/calculations/formatters';
-import { calculateExpectedValue } from '@/pages/dashboard/dashboardUtils';
+import { calculateExpectedValue } from '@/utils/calculations/advancedMetrics';
 
 interface ReflectionMetricsProps {
   tradeCount: number;
