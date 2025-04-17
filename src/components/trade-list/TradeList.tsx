@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -24,10 +23,17 @@ interface TradeListProps {
   statusFilter?: 'open' | 'closed' | 'all';
   initialTrades?: TradeWithMetrics[];
   limit?: number;
+  itemsPerPage?: number;
   onTradeDeleted?: () => void;
 }
 
-export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeDeleted }: TradeListProps) {
+export function TradeList({ 
+  statusFilter = 'all', 
+  initialTrades, 
+  limit, 
+  itemsPerPage = 10, 
+  onTradeDeleted 
+}: TradeListProps) {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const dateParam = queryParams.get('date');
@@ -36,7 +42,6 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   const [refreshKey, setRefreshKey] = useState(0);
   const [accounts, setAccounts] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = limit || 10;
   
   // Load trades either from props or from storage
   useEffect(() => {

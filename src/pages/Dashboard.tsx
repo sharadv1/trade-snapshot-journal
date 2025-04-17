@@ -94,6 +94,7 @@ export default function Dashboard() {
         <h2 className="text-2xl font-bold mb-4">Recent Trades</h2>
         <TradeList 
           limit={10}
+          itemsPerPage={10}
         />
       </div>
     </div>

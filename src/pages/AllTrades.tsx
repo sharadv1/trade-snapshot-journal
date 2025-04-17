@@ -48,7 +48,7 @@ export default function AllTrades() {
       {isLoading ? (
         <div className="text-center py-4">Loading trades...</div>
       ) : (
-        <TradeList initialTrades={trades} />
+        <TradeList initialTrades={trades} itemsPerPage={50} />
       )}
     </div>
   );
