@@ -24,7 +24,7 @@ const tradeCache = {
   lastCacheInvalidation: 0,
   lastFetch: 0,
   fetchLock: false,
-  debugMode: true
+  debugMode: false
 };
 
 /**
@@ -53,12 +53,9 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
       return tradeCache.weekCache.get(cacheKey) || [];
     }
 
-    // Always get fresh trades data to ensure accuracy
+    // Get fresh trades data if not cached
     const allTrades = getTradesWithMetrics();
-    tradeCache.trades = allTrades;
-    tradeCache.timestamp = Date.now();
-
-    // Ensure allTrades is an array
+    
     if (!Array.isArray(allTrades)) {
       console.error('Expected array of trades but got:', typeof allTrades);
       return [];
@@ -66,7 +63,7 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
     
     if (tradeCache.debugMode) console.log(`Got ${allTrades.length} total trades, filtering for week`);
     
-    // Filter trades for the week - CRITICAL FIX: Make sure we're filtering correctly
+    // Filter trades for the week
     const tradesForWeek = allTrades.filter(trade => {
       if (!trade || !trade.exitDate) return false;
       
@@ -90,8 +87,6 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
     
     // Store in week cache
     tradeCache.weekCache.set(cacheKey, tradesForWeek);
-    
-    console.log(`Found ${tradesForWeek.length} trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
     
     return tradesForWeek;
   } catch (error) {
@@ -126,8 +121,10 @@ export const getTradesForMonth = (monthStart: Date, monthEnd: Date): TradeWithMe
       return tradeCache.monthCache.get(cacheKey) || [];
     }
 
-    // Always get fresh trades data to ensure accuracy
+    // Get fresh trades data
     const allTrades = getTradesWithMetrics();
+    
+    // Store in global cache for potential reuse
     tradeCache.trades = allTrades;
     tradeCache.timestamp = Date.now();
 
@@ -148,13 +145,7 @@ export const getTradesForMonth = (monthStart: Date, monthEnd: Date): TradeWithMe
         const exitDate = new Date(trade.exitDate);
         
         // Check if the trade's exit date is within the specified month
-        const isInMonth = isWithinInterval(exitDate, { start: monthStart, end: monthEnd });
-        
-        if (tradeCache.debugMode && isInMonth) {
-          console.log(`Trade ${trade.id} (${trade.symbol}) is in the selected month`);
-        }
-        
-        return isInMonth;
+        return isWithinInterval(exitDate, { start: monthStart, end: monthEnd });
       } catch (e) {
         console.error('Error parsing exit date:', e);
         return false;

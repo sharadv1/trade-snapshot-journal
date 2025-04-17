@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
@@ -217,12 +218,20 @@ export function WeeklyReflectionsPage() {
       ) : (
         <div className="space-y-4">
           {reflections.map((reflection) => {
+            // Calculate stats directly here
             const tradeCount = Array.isArray(reflection.tradeIds) ? reflection.tradeIds.length : 0;
             const rValue = typeof reflection.totalR === 'number' ? reflection.totalR : 0;
             const totalPnL = typeof reflection.totalPnL === 'number' ? reflection.totalPnL : 0;
+            
+            // Calculate content stats
             const reflectionWordCount = countWords(reflection.reflection || '');
             const planWordCount = countWords(reflection.weeklyPlan || '');
             const hasContent = Boolean(reflection.reflection && reflection.reflection.trim().length > 0);
+            
+            // Create dateRange string
+            const dateRange = reflection.weekStart ? 
+              `Week of ${new Date(reflection.weekStart).toLocaleDateString()}` : 
+              'Unknown date range';
             
             return (
               <div 
@@ -239,7 +248,7 @@ export function WeeklyReflectionsPage() {
                     tradeCount: tradeCount,
                     hasContent: hasContent
                   }}
-                  dateRange={`Week of ${reflection.weekStart ? new Date(reflection.weekStart).toLocaleDateString() : 'Unknown'}`}
+                  dateRange={dateRange}
                   reflectionWordCount={reflectionWordCount}
                   planWordCount={planWordCount}
                   canDelete={tradeCount === 0}

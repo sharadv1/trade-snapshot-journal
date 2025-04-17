@@ -1,12 +1,10 @@
 
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import { Calendar, Check, ExternalLink, Trash2 } from 'lucide-react';
-import { formatCurrency } from '@/utils/calculations/formatters';
+import React, { memo, useCallback } from 'react';
 import { WeeklyReflection, MonthlyReflection } from '@/types';
+import { formatCurrency } from '@/utils/calculations/formatters';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ExternalLink } from 'lucide-react';
 
 interface ReflectionCardProps {
   reflection: WeeklyReflection | MonthlyReflection;
@@ -21,11 +19,11 @@ interface ReflectionCardProps {
   reflectionWordCount: number;
   planWordCount: number;
   canDelete: boolean;
-  onDelete: (id: string, e?: React.MouseEvent) => void;
+  onDelete: (id: string, e: React.MouseEvent) => void;
   hasContent: boolean;
 }
 
-export function ReflectionCard({
+export const ReflectionCard = memo(function ReflectionCard({
   reflection,
   type,
   stats,
@@ -36,115 +34,76 @@ export function ReflectionCard({
   onDelete,
   hasContent
 }: ReflectionCardProps) {
-  const isProfitable = stats.pnl > 0;
-  const reflectionId = type === 'weekly' 
-    ? (reflection as WeeklyReflection).weekId || reflection.id 
-    : (reflection as MonthlyReflection).monthId || reflection.id;
-
-  const getGradeColor = (grade?: string) => {
-    if (!grade) return 'bg-gray-100 text-gray-800';
-    
-    if (grade.startsWith('A')) return 'bg-green-100 text-green-800';
-    if (grade.startsWith('B')) return 'bg-blue-100 text-blue-800';
-    if (grade.startsWith('C')) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
-  };
-
-  const handleDelete = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onDelete(reflection.id, e);
-  };
-
+  if (!reflection || !reflection.id) return null;
+  
+  // Safely access trade data, ensuring we have default values to prevent NaN issues
+  const tradeCount = stats.tradeCount || 0;
+  const rValue = stats.rValue || 0;
+  const totalPnL = stats.pnl || 0;
+  
+  // Memoize the delete handler to prevent unnecessary re-renders
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    if (onDelete) {
+      e.preventDefault();
+      e.stopPropagation();
+      onDelete(reflection.id, e);
+    }
+  }, [reflection.id, onDelete]);
+  
   return (
-    <Card 
-      className="hover:bg-muted/40 transition-colors cursor-pointer"
-    >
-      <CardContent className="p-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-base font-medium inline-flex items-center">
-              <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-              {dateRange}
-              
-              {reflection.grade && (
-                <Badge 
-                  variant="outline" 
-                  className={`${getGradeColor(reflection.grade)} ml-2`}
-                >
-                  {reflection.grade}
-                </Badge>
-              )}
-              
-              {hasContent && (
-                <Badge 
-                  variant="outline" 
-                  className="bg-green-100 text-green-800 ml-2"
-                >
-                  <Check className="h-3 w-3 mr-1" />
-                  Completed
-                </Badge>
-              )}
-            </h3>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {canDelete && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-red-500 hover:bg-red-50 hover:text-red-600 p-0 h-8 w-8"
-                onClick={handleDelete}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-            
-            <Link to={`/journal/${type}/${reflectionId}`}>
-              <Button variant="ghost" size="sm" className="p-0 h-8 w-8">
-                <ExternalLink className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </Link>
-          </div>
+    <Card className="p-6 hover:bg-accent/10 transition-colors">
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="text-xl font-medium">{dateRange}</h3>
+        <div className={`text-xl font-semibold ${totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {formatCurrency(totalPnL)}
+        </div>
+      </div>
+      
+      <div className="space-y-1 mb-3">
+        <div className="text-muted-foreground">
+          Trades: {tradeCount}
+        </div>
+        <div className="text-muted-foreground">
+          R-Value: <span className={rValue >= 0 ? 'text-green-600' : 'text-red-600'}>
+            {rValue > 0 ? '+' : ''}{rValue.toFixed(2)}R
+          </span>
+        </div>
+        <div className="text-muted-foreground">
+          Reflection: {reflectionWordCount} words
+          {type === 'weekly' && ` • Plan: ${planWordCount} words`}
+        </div>
+      </div>
+      
+      <div className="flex justify-between items-center mt-4">
+        <div>
+          {reflection.grade && (
+            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium inline-flex">
+              Grade: {reflection.grade}
+            </div>
+          )}
         </div>
         
-        <div className="flex flex-wrap gap-4 mt-4">
-          <div className={`text-sm ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
-            <span className="text-muted-foreground mr-1">P&L:</span>
-            <span className="font-medium">
-              {formatCurrency(stats.pnl)}
-            </span>
-          </div>
+        <div className="flex gap-3">
+          {canDelete && onDelete && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="text-red-500 border-red-200 hover:bg-red-50"
+              onClick={handleDelete}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2">
+                <path d="M3 6h18" />
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                <line x1="10" x2="10" y1="11" y2="17" />
+                <line x1="14" x2="14" y1="11" y2="17" />
+              </svg>
+            </Button>
+          )}
           
-          <div className={`text-sm ${stats.rValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            <span className="text-muted-foreground mr-1">R Value:</span>
-            <span className="font-medium">
-              {stats.rValue > 0 ? '+' : ''}{stats.rValue.toFixed(1)}R
-            </span>
-          </div>
-          
-          <div className="text-sm">
-            <span className="text-muted-foreground mr-1">Trades:</span>
-            <span className="font-medium">
-              {stats.tradeCount}
-            </span>
-          </div>
-          
-          <div className="text-sm">
-            <span className="text-muted-foreground mr-1">Words:</span>
-            <span className="font-medium">
-              {reflectionWordCount}
-              {type === 'weekly' && planWordCount > 0 && ` / ${planWordCount}`}
-            </span>
-          </div>
+          <ExternalLink className="h-5 w-5 text-muted-foreground" />
         </div>
-        
-        {reflection.reflection && (
-          <div className="mt-3 text-sm text-muted-foreground line-clamp-2">
-            {reflection.reflection.replace(/<[^>]*>/g, ' ')}
-          </div>
-        )}
-      </CardContent>
+      </div>
     </Card>
   );
-}
+});

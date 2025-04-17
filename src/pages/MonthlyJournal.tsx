@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -31,6 +30,8 @@ export function MonthlyJournal() {
   const [isLoadingTrades, setIsLoadingTrades] = useState<boolean>(false);
   
   const isMountedRef = useRef(true);
+  const monthIdRef = useRef<string | null>(null);
+  const loadingRef = useRef(false);
   
   const backupRef = React.useRef<{reflection: string, grade: string}>({
     reflection: '',
@@ -43,15 +44,27 @@ export function MonthlyJournal() {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   
+  const shouldLoadRef = useRef(true);
+  
   useEffect(() => {
     isMountedRef.current = true;
     
-    clearTradeCache();
+    if (shouldLoadRef.current) {
+      clearTradeCache();
+      shouldLoadRef.current = false;
+    }
     
     return () => {
       isMountedRef.current = false;
     };
   }, []);
+  
+  useEffect(() => {
+    if (monthId !== monthIdRef.current) {
+      monthIdRef.current = monthId;
+      shouldLoadRef.current = true;
+    }
+  }, [monthId]);
   
   const goToPreviousMonth = useCallback(() => {
     if (!monthId || isSaving || isLoading) return;
@@ -59,8 +72,6 @@ export function MonthlyJournal() {
     const date = new Date(monthId);
     date.setMonth(date.getMonth() - 1);
     const previousMonth = format(date, 'yyyy-MM');
-    
-    clearTradeCache();
     
     navigate(`/journal/monthly/${previousMonth}`);
   }, [navigate, monthId, isSaving, isLoading]);
@@ -72,21 +83,22 @@ export function MonthlyJournal() {
     date.setMonth(date.getMonth() + 1);
     const nextMonth = format(date, 'yyyy-MM');
     
-    clearTradeCache();
-    
     navigate(`/journal/monthly/${nextMonth}`);
   }, [navigate, monthId, isSaving, isLoading]);
   
   const loadReflection = useCallback(async () => {
-    if (!monthId || !isMountedRef.current) return;
+    if (!monthId || !isMountedRef.current || loadingRef.current) return;
     
     try {
+      loadingRef.current = true;
       setIsLoading(true);
+      console.log(`Loading monthly reflection for ${monthId}`);
       const reflectionData = await getMonthlyReflection(monthId);
       
       if (!isMountedRef.current) return;
       
       if (reflectionData) {
+        console.log(`Found reflection data for ${monthId}`);
         setMonthlyReflection(reflectionData);
         setReflection(reflectionData.reflection || '');
         setGrade(reflectionData.grade || '');
@@ -96,6 +108,7 @@ export function MonthlyJournal() {
           grade: reflectionData.grade || ''
         };
       } else {
+        console.log(`No reflection data found for ${monthId}, initializing empty`);
         setMonthlyReflection(null);
         setReflection('');
         setGrade('');
@@ -109,6 +122,7 @@ export function MonthlyJournal() {
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
+        loadingRef.current = false;
       }
     }
   }, [monthId]);
@@ -137,9 +151,10 @@ export function MonthlyJournal() {
   }, [monthId, monthStart, monthEnd]);
   
   useEffect(() => {
-    if (monthId) {
+    if (monthId && shouldLoadRef.current) {
       loadReflection();
       loadTrades();
+      shouldLoadRef.current = false;
     }
   }, [loadReflection, loadTrades, monthId]);
   
@@ -149,6 +164,7 @@ export function MonthlyJournal() {
     setIsSaving(true);
     
     try {
+      console.log(`Saving monthly reflection for ${monthId}`);
       await saveMonthlyReflection(monthId, reflection, grade);
       
       if (!isMountedRef.current) return;
@@ -157,6 +173,7 @@ export function MonthlyJournal() {
       
       backupRef.current = { reflection, grade };
       
+      shouldLoadRef.current = true;
       loadReflection();
     } catch (error) {
       console.error('Error saving monthly reflection:', error);
@@ -175,9 +192,6 @@ export function MonthlyJournal() {
     
     try {
       await handleSave();
-      
-      clearTradeCache();
-      
       navigate('/journal/monthly');
     } catch (error) {
       console.error('Error in save and return:', error);
@@ -231,7 +245,6 @@ export function MonthlyJournal() {
         <Button 
           variant="ghost" 
           onClick={() => {
-            clearTradeCache();
             navigate('/journal/monthly');
           }}
           className="mb-2"
