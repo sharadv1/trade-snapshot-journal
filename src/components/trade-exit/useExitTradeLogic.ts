@@ -18,7 +18,7 @@ export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) 
   };
 
   const [exitPrice, setExitPrice] = useState<number>(0);
-  const [exitQuantity, setExitQuantity] = useState<number>(0);
+  const [exitQuantity, setExitQuantity] = useState<number>(1); // Default to 1 instead of 0
   const [exitDate, setExitDate] = useState<string>(getCurrentCentralTime());
   const [fees, setFees] = useState<number | undefined>(undefined);
   const [notes, setNotes] = useState<string>('');
@@ -29,7 +29,9 @@ export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) 
   };
   
   const handleSetExitQuantity = (value: string | number) => {
-    setExitQuantity(typeof value === 'string' ? parseFloat(value) || 0 : value);
+    // Ensure we have a valid number greater than 0
+    const parsedValue = typeof value === 'string' ? parseFloat(value) : value;
+    setExitQuantity(isNaN(parsedValue) ? 0 : parsedValue);
   };
 
   const handleExitDateFocus = () => {
@@ -58,14 +60,18 @@ export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) 
     setIsSubmitting(true);
 
     try {
-      if (exitQuantity <= 0) {
-        toast.error("Exit quantity must be greater than zero.");
+      // Validate exit quantity
+      if (!exitQuantity || exitQuantity <= 0) {
+        toast.error("Exit quantity must be greater than zero");
+        console.error("Exit quantity validation failed:", exitQuantity);
         setIsSubmitting(false);
         return false;
       }
 
-      if (exitPrice <= 0) {
-        toast.error("Exit price must be greater than zero.");
+      // Validate exit price
+      if (!exitPrice || exitPrice <= 0) {
+        toast.error("Exit price must be greater than zero");
+        console.error("Exit price validation failed:", exitPrice);
         setIsSubmitting(false);
         return false;
       }
@@ -73,6 +79,7 @@ export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) 
       const latestTrade = getTradeById(trade.id);
       if (!latestTrade) {
         toast.error("Failed to retrieve latest trade data");
+        console.error("Failed to get trade by ID:", trade.id);
         setIsSubmitting(false);
         return false;
       }
@@ -169,7 +176,7 @@ export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) 
       }
       
       setExitPrice(0);
-      setExitQuantity(0);
+      setExitQuantity(1); // Reset to 1 instead of 0
       setExitDate(getCurrentCentralTime());
       setFees(undefined);
       setNotes('');

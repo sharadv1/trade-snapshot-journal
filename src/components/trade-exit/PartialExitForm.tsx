@@ -41,7 +41,7 @@ export function PartialExitForm({
     const value = e.target.value;
     
     if (value === '') {
-      setPartialQuantity(0);
+      setPartialQuantity(1); // Default to 1 instead of 0
       return;
     }
     
@@ -53,8 +53,9 @@ export function PartialExitForm({
       } else {
         const numValue = parseFloat(value);
         if (!isNaN(numValue)) {
-          // Ensure the value doesn't exceed remainingQuantity
-          setPartialQuantity(Math.min(numValue, remainingQuantity));
+          // Ensure the value doesn't exceed remainingQuantity and is at least 0.001
+          const validValue = Math.max(0.001, Math.min(numValue, remainingQuantity));
+          setPartialQuantity(validValue);
         }
       }
     }
@@ -113,9 +114,9 @@ export function PartialExitForm({
           id="partialQuantity"
           type="text"
           inputMode="decimal"
-          min="0.000000001"
+          min="0.001"
           max={remainingQuantity}
-          value={partialQuantity || ''}
+          value={partialQuantity || 1}
           onChange={handleQuantityChange}
           required
           disabled={isClosedTradeConversion} // Disable if this is a closed trade conversion
@@ -126,7 +127,7 @@ export function PartialExitForm({
           </p>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Supports small values (e.g. 0.000033432). Max: {remainingQuantity}
+            Minimum: 0.001. Max: {remainingQuantity}
           </p>
         )}
       </div>
@@ -140,11 +141,14 @@ export function PartialExitForm({
           id="partialExitPrice"
           type="text"
           inputMode="decimal"
-          min="0"
+          min="0.001"
           value={partialExitPrice || ''}
           onChange={handlePriceChange}
           required
         />
+        <p className="text-xs text-muted-foreground">
+          Exit price must be greater than zero
+        </p>
       </div>
 
       <div className="space-y-2">
