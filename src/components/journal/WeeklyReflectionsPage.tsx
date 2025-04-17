@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
@@ -11,7 +10,7 @@ import { getCurrentPeriodId, countWords } from '@/utils/journal/reflectionUtils'
 import { toast } from '@/utils/toast';
 import { clearTradeCache, preventTradeFetching } from '@/utils/tradeCalculations';
 import { ReflectionsList } from './reflections/ReflectionsList';
-import { ReflectionCard } from './journal/ReflectionCard';
+import { ReflectionCard } from './reflections/ReflectionCard';
 
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
@@ -145,9 +144,7 @@ export function WeeklyReflectionsPage() {
     navigate(path);
   }, [navigate]);
   
-  // Calculate stats for each reflection
   const getReflectionStats = (reflection: WeeklyReflection) => {
-    // Use stored values if available
     const tradeCount = Array.isArray(reflection.tradeIds) ? reflection.tradeIds.length : 0;
     const rValue = typeof reflection.totalR === 'number' ? reflection.totalR : 0;
     const totalPnL = typeof reflection.totalPnL === 'number' ? reflection.totalPnL : 0;
@@ -158,7 +155,7 @@ export function WeeklyReflectionsPage() {
       rValue: rValue,
       tradeCount: tradeCount,
       hasContent: hasContent,
-      winCount: 0,  // Default values that will be overridden if available
+      winCount: 0,
       lossCount: 0,
       winRate: 0
     };
@@ -218,14 +215,11 @@ export function WeeklyReflectionsPage() {
       ) : (
         <div className="space-y-4">
           {reflections.map((reflection) => {
-            // Calculate stats directly here
             const stats = getReflectionStats(reflection);
             
-            // Calculate content stats
             const reflectionWordCount = countWords(reflection.reflection || '');
             const planWordCount = countWords(reflection.weeklyPlan || '');
             
-            // Create dateRange string
             const dateRange = reflection.weekStart ? 
               `Week of ${new Date(reflection.weekStart).toLocaleDateString()}` : 
               'Unknown date range';
