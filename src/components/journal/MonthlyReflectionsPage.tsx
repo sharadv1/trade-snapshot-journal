@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { MonthlyReflection } from '@/types';
-import { getMonthlyReflections } from '@/utils/journal/reflectionStorage';
+import { getMonthlyReflections, deleteMonthlyReflection } from '@/utils/journal/reflectionStorage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useReflectionGenerator } from '@/hooks/useReflectionGenerator';
@@ -10,7 +9,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { ReflectionCard } from './reflections/ReflectionCard';
-import { getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflectionUtils';
+import { getCurrentPeriodId, getReflectionStats, countWords } from '@/utils/journal/reflectionUtils';
 import { toast } from '@/utils/toast';
 
 export function MonthlyReflectionsPage() {
@@ -22,10 +21,8 @@ export function MonthlyReflectionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [forceReload, setForceReload] = useState(false);
   
-  // Use the reflection generator hook to ensure reflections are created
   const { isGenerating, error: generationError, isComplete } = useReflectionGenerator();
   
-  // Function to load reflections
   const loadReflections = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
@@ -35,7 +32,6 @@ export function MonthlyReflectionsPage() {
       const fetchedReflections = await getMonthlyReflections();
       
       if (Array.isArray(fetchedReflections)) {
-        // Sort reflections by date (most recent first)
         const sortedReflections = fetchedReflections.sort((a, b) => {
           if (!a.monthStart || !b.monthStart) return 0;
           
@@ -64,7 +60,6 @@ export function MonthlyReflectionsPage() {
     }
   }, []);
 
-  // Handle search
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setFilteredReflections(reflections);
@@ -73,12 +68,10 @@ export function MonthlyReflectionsPage() {
     
     const query = searchQuery.toLowerCase();
     const filtered = reflections.filter(reflection => {
-      // Search in date
       if (reflection.monthStart && reflection.monthStart.toLowerCase().includes(query)) {
         return true;
       }
       
-      // Search in content
       if (reflection.reflection && reflection.reflection.toLowerCase().includes(query)) {
         return true;
       }
@@ -89,44 +82,47 @@ export function MonthlyReflectionsPage() {
     setFilteredReflections(filtered);
   }, [searchQuery, reflections]);
 
-  // Initial load of reflections and after generation completes
   useEffect(() => {
     if (isComplete || !isGenerating) {
       loadReflections();
     }
   }, [loadReflections, isComplete, isGenerating, forceReload]);
   
-  // Listen for reflections-generated events
   useEffect(() => {
     const handleReflectionsGenerated = () => {
       console.log("Reflections generation completed - reloading reflections list");
       loadReflections();
     };
     
-    // Register event listeners
     window.addEventListener('reflections-generated', handleReflectionsGenerated);
     window.addEventListener('journal-updated', handleReflectionsGenerated);
     
     return () => {
-      // Clean up event listeners
       window.removeEventListener('reflections-generated', handleReflectionsGenerated);
       window.removeEventListener('journal-updated', handleReflectionsGenerated);
     };
   }, [loadReflections]);
   
-  // Force reload function
   const handleForceReload = () => {
     setForceReload(prev => !prev);
     toast.info("Refreshing reflections...");
   };
 
-  // Handle reflection click with navigation
   const handleReflectionClick = useCallback((reflectionId: string) => {
-    // Navigate programmatically to prevent UI freezing
     navigate(`/journal/monthly/${reflectionId}`);
   }, [navigate]);
-  
-  // Format date range for display
+
+  const handleDeleteReflection = useCallback(async (reflectionId: string) => {
+    try {
+      await deleteMonthlyReflection(reflectionId);
+      toast.success("Monthly reflection deleted successfully");
+      loadReflections();
+    } catch (error) {
+      console.error("Error deleting reflection:", error);
+      toast.error("Failed to delete reflection");
+    }
+  }, [loadReflections]);
+
   const formatDateRange = (reflection: MonthlyReflection) => {
     if (reflection.monthStart && reflection.monthEnd) {
       try {
@@ -148,8 +144,7 @@ export function MonthlyReflectionsPage() {
     }
     return 'Date unavailable';
   };
-  
-  // Render loading state
+
   if (isLoading || isGenerating) {
     return (
       <div className="flex justify-center items-center py-12 flex-col">
@@ -157,7 +152,6 @@ export function MonthlyReflectionsPage() {
         <p className="text-muted-foreground">
           {isGenerating ? 'Generating reflections...' : 'Loading reflections...'}
         </p>
-        {/* Add a button to force completion if stuck in this state for too long */}
         <Button 
           variant="outline" 
           className="mt-4" 
@@ -169,8 +163,7 @@ export function MonthlyReflectionsPage() {
       </div>
     );
   }
-  
-  // Render error state
+
   if (loadError || generationError) {
     return (
       <Card>
@@ -183,8 +176,7 @@ export function MonthlyReflectionsPage() {
       </Card>
     );
   }
-  
-  // Render empty state
+
   if (reflections.length === 0) {
     return (
       <Card>
@@ -199,8 +191,7 @@ export function MonthlyReflectionsPage() {
       </Card>
     );
   }
-  
-  // Render reflections list
+
   return (
     <div className="w-full max-w-screen-xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -241,6 +232,10 @@ export function MonthlyReflectionsPage() {
             const stats = getReflectionStats(reflection);
             const dateRange = formatDateRange(reflection);
             const reflectionId = reflection.monthId || reflection.id;
+            const reflectionWordCount = countWords(reflection.reflection || '');
+            const planWordCount = 0;
+            const hasContent = Boolean(reflection.reflection && reflection.reflection.trim().length > 0);
+            const canDelete = stats.tradeCount === 0;
             
             return (
               <div 
@@ -253,6 +248,11 @@ export function MonthlyReflectionsPage() {
                   type="monthly"
                   dateRange={dateRange}
                   stats={stats}
+                  reflectionWordCount={reflectionWordCount}
+                  planWordCount={planWordCount}
+                  canDelete={canDelete}
+                  onDelete={handleDeleteReflection}
+                  hasContent={hasContent}
                 />
               </div>
             );

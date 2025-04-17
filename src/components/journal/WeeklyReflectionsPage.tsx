@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
@@ -7,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader2, Plus, Scissors } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentPeriodId } from '@/utils/journal/reflectionUtils';
+import { getCurrentPeriodId, countWords } from '@/utils/journal/reflectionUtils';
 import { toast } from '@/utils/toast';
-import { ReflectionCard } from './ReflectionCard';
+import { ReflectionCard } from './reflections/ReflectionCard';
 import { clearTradeCache, preventTradeFetching } from '@/utils/tradeCalculations';
 
 export function WeeklyReflectionsPage() {
@@ -18,18 +17,14 @@ export function WeeklyReflectionsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const navigate = useNavigate();
   
-  // Add mounted ref to prevent updates after unmount
   const isMountedRef = useRef(true);
   const loadingRef = useRef(false);
-  
-  // Track if we've already loaded reflections to avoid loop
   const hasLoadedRef = useRef(false);
   
   const loadReflections = useCallback(async () => {
     if (!isMountedRef.current || loadingRef.current) return;
     
     try {
-      // Set loading ref to prevent concurrent loads
       loadingRef.current = true;
       setIsLoading(true);
       setLoadError(null);
@@ -37,7 +32,6 @@ export function WeeklyReflectionsPage() {
       console.log("Loading weekly reflections...");
       const fetchedReflections = await getWeeklyReflections();
       
-      // Check if component is still mounted
       if (!isMountedRef.current) return;
       
       if (Array.isArray(fetchedReflections)) {
@@ -74,24 +68,18 @@ export function WeeklyReflectionsPage() {
   }, []);
 
   useEffect(() => {
-    // Set the mounted flag to true when mounting
     isMountedRef.current = true;
     hasLoadedRef.current = false;
     
-    // Reset fetching prevention on mount
     preventTradeFetching(false);
-    
-    // Reset the trade cache when loading the reflections list
     clearTradeCache();
     
-    // Load reflections ONLY if we haven't loaded them yet
     if (!hasLoadedRef.current) {
       loadReflections();
     }
     
     const handleUpdate = () => {
       if (isMountedRef.current && !loadingRef.current) {
-        // Clear cache when changes occur
         clearTradeCache();
         loadReflections();
       }
@@ -102,7 +90,6 @@ export function WeeklyReflectionsPage() {
     window.addEventListener('trades-updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     
-    // Cleanup function
     return () => {
       isMountedRef.current = false;
       window.removeEventListener('journal-updated', handleUpdate);
@@ -110,7 +97,6 @@ export function WeeklyReflectionsPage() {
       window.removeEventListener('trades-updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
       
-      // Ensure fetching is enabled when leaving
       preventTradeFetching(false);
     };
   }, [loadReflections]);
@@ -152,19 +138,13 @@ export function WeeklyReflectionsPage() {
     }
   }, [loadReflections]);
   
-  // CRITICAL FIX: Use router's navigate without page reload
   const navigateTo = useCallback((path: string) => {
-    // Clear cache before navigating
     clearTradeCache();
-    // Use navigate to avoid full page reload
     navigate(path);
   }, [navigate]);
   
-  // Handle clicking on a reflection card
   const handleReflectionClick = useCallback((reflection: WeeklyReflection) => {
-    // Clear cache before navigating to ensure fresh data
     clearTradeCache();
-    // Use navigate to avoid full page reload
     navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
   }, [navigate]);
   
@@ -236,18 +216,39 @@ export function WeeklyReflectionsPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {reflections.map((reflection) => (
-            <div 
-              key={reflection.id} 
-              onClick={() => handleReflectionClick(reflection)} 
-              className="cursor-pointer"
-            >
-              <ReflectionCard 
-                reflection={reflection} 
-                onDelete={handleDeleteReflection}
-              />
-            </div>
-          ))}
+          {reflections.map((reflection) => {
+            const tradeCount = Array.isArray(reflection.tradeIds) ? reflection.tradeIds.length : 0;
+            const rValue = typeof reflection.totalR === 'number' ? reflection.totalR : 0;
+            const totalPnL = typeof reflection.totalPnL === 'number' ? reflection.totalPnL : 0;
+            const reflectionWordCount = countWords(reflection.reflection || '');
+            const planWordCount = countWords(reflection.weeklyPlan || '');
+            const hasContent = Boolean(reflection.reflection && reflection.reflection.trim().length > 0);
+            
+            return (
+              <div 
+                key={reflection.id} 
+                onClick={() => handleReflectionClick(reflection)} 
+                className="cursor-pointer"
+              >
+                <ReflectionCard 
+                  reflection={reflection}
+                  type="weekly"
+                  stats={{
+                    pnl: totalPnL,
+                    rValue: rValue,
+                    tradeCount: tradeCount,
+                    hasContent: hasContent
+                  }}
+                  dateRange={`Week of ${reflection.weekStart ? new Date(reflection.weekStart).toLocaleDateString() : 'Unknown'}`}
+                  reflectionWordCount={reflectionWordCount}
+                  planWordCount={planWordCount}
+                  canDelete={tradeCount === 0}
+                  onDelete={handleDeleteReflection}
+                  hasContent={hasContent}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
