@@ -4,7 +4,7 @@ import { WeeklyReflection, MonthlyReflection } from '@/types';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Pencil } from 'lucide-react';
+import { ExternalLink, Pencil, Trash2 } from 'lucide-react';
 import { getTradesForWeek } from '@/utils/tradeCalculations';
 import { startOfWeek, endOfWeek, parseISO } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -72,10 +72,11 @@ export const ReflectionCard = memo(function ReflectionCard({
   const winCount = weeklyTrades.filter(trade => (trade.metrics?.profitLoss || 0) > 0).length;
   const lossCount = weeklyTrades.filter(trade => (trade.metrics?.profitLoss || 0) < 0).length;
   const winRate = tradeCount > 0 ? (winCount / tradeCount) * 100 : 0;
+  const avgRPerTrade = tradeCount > 0 ? totalR / tradeCount : 0;
   
   return (
     <Card className="p-6 hover:bg-accent/10 transition-colors">
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start mb-6">
         <div>
           <h3 className="text-xl font-medium mb-1">{dateRange}</h3>
           {reflection.grade && (
@@ -89,66 +90,67 @@ export const ReflectionCard = memo(function ReflectionCard({
         </div>
       </div>
       
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-        <div className="bg-accent/10 rounded-lg p-3 text-center">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+        <div className="bg-accent/10 rounded-lg p-3 text-center w-[140px]">
           <div className="text-sm text-muted-foreground mb-1">Trades</div>
           <div className="font-semibold">{tradeCount}</div>
         </div>
         
-        <div className="bg-accent/10 rounded-lg p-3 text-center">
-          <div className="text-sm text-muted-foreground mb-1">R-Multiple</div>
+        <div className="bg-accent/10 rounded-lg p-3 text-center w-[140px]">
+          <div className="text-sm text-muted-foreground mb-1">Total R</div>
           <div className={`font-semibold ${totalR >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {totalR > 0 ? '+' : ''}{totalR.toFixed(2)}R
           </div>
         </div>
         
-        <div className="bg-accent/10 rounded-lg p-3 text-center">
+        <div className="bg-accent/10 rounded-lg p-3 text-center w-[140px]">
+          <div className="text-sm text-muted-foreground mb-1">Avg R/Trade</div>
+          <div className={`font-semibold ${avgRPerTrade >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {avgRPerTrade > 0 ? '+' : ''}{avgRPerTrade.toFixed(2)}R
+          </div>
+        </div>
+        
+        <div className="bg-accent/10 rounded-lg p-3 text-center w-[140px]">
           <div className="text-sm text-muted-foreground mb-1">Win Rate</div>
           <div className="font-semibold">{winRate.toFixed(1)}%</div>
         </div>
         
-        <div className="bg-accent/10 rounded-lg p-3 text-center">
+        <div className="bg-accent/10 rounded-lg p-3 text-center w-[140px]">
           <div className="text-sm text-muted-foreground mb-1">W/L</div>
           <div className="font-semibold">{winCount}/{lossCount}</div>
         </div>
       </div>
       
-      <div className="text-sm text-muted-foreground mb-4">
-        {type === 'weekly' && `Plan: ${planWordCount} words • `}
-        Reflection: {reflectionWordCount} words
-      </div>
-      
-      <div className="flex justify-end items-center gap-2">
-        {canDelete && onDelete && (
+      <div className="flex justify-between items-center">
+        <div className="text-sm text-muted-foreground">
+          {type === 'weekly' && `Plan: ${planWordCount} words • `}
+          Reflection: {reflectionWordCount} words
+        </div>
+        
+        <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
-            size="sm"
-            className="text-red-500 border-red-200 hover:bg-red-50"
-            onClick={handleDelete}
+            size="sm" 
+            onClick={handleEdit}
+            className="gap-2"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2">
-              <path d="M3 6h18" />
-              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-              <line x1="10" x2="10" y1="11" y2="17" />
-              <line x1="14" x2="14" y1="11" y2="17" />
-            </svg>
+            <Pencil className="h-4 w-4" />
+            Edit
           </Button>
-        )}
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleEdit}
-          className="gap-2"
-        >
-          <Pencil className="h-4 w-4" />
-          Edit
-        </Button>
-        
-        <ExternalLink className="h-5 w-5 text-muted-foreground" />
+          
+          {canDelete && onDelete && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="text-red-500 border-red-200 hover:bg-red-50 gap-2"
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          )}
+        </div>
       </div>
     </Card>
   );
 });
-
