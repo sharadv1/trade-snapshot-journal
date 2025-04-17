@@ -36,7 +36,7 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
       console.error('Invalid week parameters:', { weekStart, weekEnd });
       return [];
     }
-    
+
     // Create a cache key for this specific week request
     const cacheKey = `${weekStart.toISOString()}_${weekEnd.toISOString()}`;
     
@@ -72,6 +72,7 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
       // If we don't have all trades yet or the cache is old, fetch them
       if (!tradeCache.trades || now - tradeCache.timestamp > 60000) {
         if (tradeCache.debugMode) console.log('Fetching fresh trade data');
+        // IMPORTANT FIX: Always get fresh trades to ensure we have the latest data
         tradeCache.trades = getTradesWithMetrics();
         tradeCache.timestamp = now;
       }
@@ -83,13 +84,21 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
         return [];
       }
       
-      // Filter trades for the week
+      // Filter trades for the week - CRITICAL FIX: Make sure we're filtering correctly
       const tradesForWeek = allTrades.filter(trade => {
         if (!trade || !trade.exitDate) return false;
         
         try {
+          // Parse the exitDate correctly
           const exitDate = new Date(trade.exitDate);
-          return isWithinInterval(exitDate, { start: weekStart, end: weekEnd });
+          
+          // Add more debugging to see what's happening
+          const isInWeek = isWithinInterval(exitDate, { start: weekStart, end: weekEnd });
+          if (tradeCache.debugMode) {
+            console.log(`Trade ${trade.id} exitDate: ${exitDate.toISOString()}, week: ${weekStart.toISOString()} to ${weekEnd.toISOString()}, isInWeek: ${isInWeek}`);
+          }
+          
+          return isInWeek;
         } catch (e) {
           console.error('Error parsing exit date:', e);
           return false;
@@ -99,9 +108,7 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
       // Cache the results for this specific week
       tradeCache.weekCache.set(cacheKey, tradesForWeek);
       
-      if (tradeCache.debugMode) {
-        console.log(`Found ${tradesForWeek.length} trades for week`);
-      }
+      console.log(`Found ${tradesForWeek.length} trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
       
       return tradesForWeek;
     } finally {

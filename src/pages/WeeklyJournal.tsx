@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore, isAfter } from 'date-fns';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -60,9 +59,10 @@ export function WeeklyJournal() {
   const today = new Date();
   const canNavigateForward = isBefore(weekStart, startOfWeek(today, { weekStartsOn: 1 }));
   
-  // Turn off debug mode to reduce console noise
+  // Turn on debug mode for troubleshooting trade loading
   useEffect(() => {
-    setTradeDebug(false);
+    setTradeDebug(true);
+    return () => setTradeDebug(false);
   }, []);
   
   // First-time safety: disabling fetch prevention
@@ -165,13 +165,16 @@ export function WeeklyJournal() {
     }
   }, [weekId]);
   
-  // Load trades for the week - memoized with loading state
+  // Load trades for the week - MODIFIED for reliability
   const loadTrades = useCallback(() => {
-    if (!weekId || !isMountedRef.current || isLoadingTrades) return;
+    if (!weekId || !isMountedRef.current) return;
     
     try {
       setIsLoadingTrades(true);
       console.log(`Loading trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
+      
+      // IMPORTANT FIX: Clear cache first to ensure fresh data
+      clearTradeCache();
       
       // Get trades for the week
       const trades = getTradesForWeek(weekStart, weekEnd);
@@ -179,6 +182,7 @@ export function WeeklyJournal() {
       // Check if component is still mounted
       if (!isMountedRef.current) return;
       
+      console.log(`Loaded ${trades.length} trades for journal week`);
       setTradesForWeek(Array.isArray(trades) ? trades : []);
     } catch (error) {
       console.error('Error loading trades:', error);
@@ -190,7 +194,7 @@ export function WeeklyJournal() {
         setIsLoadingTrades(false);
       }
     }
-  }, [weekId, weekStart, weekEnd, isLoadingTrades]);
+  }, [weekId, weekStart, weekEnd]);
   
   // Critical component lifecycle management
   useEffect(() => {
@@ -200,30 +204,21 @@ export function WeeklyJournal() {
     // Enable fetching when component mounts
     preventTradeFetching(false);
     
-    // Only clear cache on first load of the app, not on subsequent route changes
-    if (shouldClearCacheRef.current) {
-      console.log('Initial load - clearing trade cache');
-      clearTradeCache();
-      shouldClearCacheRef.current = false;
-      initialLoadCompleted = true;
-    } else {
-      console.log('Subsequent load - not clearing cache');
-    }
+    // Always clear cache when loading a journal entry to ensure fresh data
+    console.log('Journal entry view - clearing trade cache');
+    clearTradeCache();
+    shouldClearCacheRef.current = false;
+    initialLoadCompleted = true;
     
     // Load reflection data
     loadReflection();
     
-    // Load trades after reflection with a small delay
-    const tradeLoadTimer = setTimeout(() => {
-      if (isMountedRef.current && !hasLoadedRef.current) {
-        loadTrades();
-      }
-    }, 300);
+    // Load trades immediately after mounting
+    loadTrades();
     
     // Cleanup on unmount
     return () => {
       isMountedRef.current = false;
-      clearTimeout(tradeLoadTimer);
       
       // Always enable fetching when component unmounts
       preventTradeFetching(false);
