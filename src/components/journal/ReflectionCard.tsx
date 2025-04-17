@@ -15,6 +15,9 @@ interface ReflectionCardProps {
     rValue: number;
     tradeCount: number;
     hasContent: boolean;
+    winCount?: number;
+    lossCount?: number;
+    winRate?: number;
   };
   dateRange: string;
   reflectionWordCount: number;
@@ -41,10 +44,7 @@ export const ReflectionCard = memo(function ReflectionCard({
     // Let parent click handler navigate instead
   }, []);
 
-  const { pnl, rValue, tradeCount, hasContent: hasContentStat } = stats;
-  const winCount = reflection.winCount || 0;
-  const lossCount = reflection.lossCount || 0;
-  const winRate = reflection.winRate || 0;
+  const { pnl, rValue, tradeCount, hasContent: hasContentStat, winCount = 0, lossCount = 0, winRate = 0 } = stats;
   const avgRPerTrade = tradeCount > 0 ? rValue / tradeCount : 0;
 
   return (
