@@ -18,7 +18,12 @@ export const addTrade = async (trade: Trade): Promise<string> => {
   
   // Add the trade
   trades.push(trade);
-  await saveTrades(trades);
+  const saveResult = await saveTrades(trades);
+  
+  if (!saveResult) {
+    console.error('Failed to save trades after adding new trade');
+    throw new Error('Failed to save trade');
+  }
   
   // Trigger storage events
   dispatchStorageEvents();
@@ -55,7 +60,12 @@ export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
     
     // Update the trade
     trades[index] = updatedTrade;
-    await saveTrades(trades);
+    const saveResult = await saveTrades(trades);
+    
+    if (!saveResult) {
+      console.error('Failed to save trades after updating trade');
+      throw new Error('Failed to update trade');
+    }
     
     // Trigger storage events
     dispatchStorageEvents();
@@ -76,13 +86,18 @@ export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
     // If trade not found in local array but likely exists in storage,
     // try to refetch trades and try again (to handle stale data)
     console.log('Attempting to refetch trades and retry update');
-    const refreshedTrades = await getTrades(); // Remove the argument here - this was causing the error
+    const refreshedTrades = await getTrades();
     const refreshedIndex = refreshedTrades.findIndex(trade => trade.id === updatedTrade.id);
     
     if (refreshedIndex !== -1) {
       // Trade found after refresh, proceed with update
       refreshedTrades[refreshedIndex] = updatedTrade;
-      await saveTrades(refreshedTrades);
+      const saveResult = await saveTrades(refreshedTrades);
+      
+      if (!saveResult) {
+        console.error('Failed to save trades after updating trade (in retry)');
+        throw new Error('Failed to update trade in retry');
+      }
       
       // Trigger events
       dispatchStorageEvents();
@@ -92,6 +107,7 @@ export const updateTrade = async (updatedTrade: Trade): Promise<void> => {
       console.log('Trade updated successfully after refresh:', updatedTrade.id);
     } else {
       console.error('Trade still not found after refresh, cannot update:', updatedTrade.id);
+      throw new Error('Trade not found for update');
     }
   }
 };
@@ -105,10 +121,15 @@ export const deleteTrade = async (tradeId: string): Promise<void> => {
   // If lengths are the same, no trade was found/deleted
   if (filteredTrades.length === trades.length) {
     console.error('Trade not found for deletion:', tradeId);
-    return;
+    throw new Error('Trade not found for deletion');
   }
   
-  await saveTrades(filteredTrades);
+  const saveResult = await saveTrades(filteredTrades);
+  
+  if (!saveResult) {
+    console.error('Failed to save trades after deleting trade');
+    throw new Error('Failed to delete trade');
+  }
   
   // Trigger storage events
   dispatchStorageEvents();

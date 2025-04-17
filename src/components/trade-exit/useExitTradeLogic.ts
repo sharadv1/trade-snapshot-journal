@@ -48,26 +48,33 @@ export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) 
   };
 
   const handleSubmit = useCallback(async () => {
-    if (isSubmitting) return;
+    console.log("Exit trade handleSubmit called with values:", { exitPrice, exitQuantity, exitDate });
+    
+    if (isSubmitting) {
+      console.log("Submit already in progress, ignoring duplicate submit");
+      return false;
+    }
+    
     setIsSubmitting(true);
 
-    if (exitQuantity <= 0) {
-      toast.error("Exit quantity must be greater than zero.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (exitPrice <= 0) {
-      toast.error("Exit price must be greater than zero.");
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
+      if (exitQuantity <= 0) {
+        toast.error("Exit quantity must be greater than zero.");
+        setIsSubmitting(false);
+        return false;
+      }
+
+      if (exitPrice <= 0) {
+        toast.error("Exit price must be greater than zero.");
+        setIsSubmitting(false);
+        return false;
+      }
+
       const latestTrade = getTradeById(trade.id);
       if (!latestTrade) {
         toast.error("Failed to retrieve latest trade data");
-        return;
+        setIsSubmitting(false);
+        return false;
       }
 
       const newPartialExit = {
@@ -80,6 +87,8 @@ export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) 
         date: exitDate,
         price: exitPrice
       };
+
+      console.log("Creating new partial exit:", newPartialExit);
 
       const updatedPartialExits = [...(latestTrade.partialExits || []), newPartialExit];
 
@@ -153,7 +162,11 @@ export const useExitTradeLogic = ({ trade, onSuccess }: UseExitTradeLogicProps) 
       }));
 
       toast.success("Partial exit added successfully");
-      onSuccess();
+      
+      if (onSuccess && typeof onSuccess === 'function') {
+        console.log("Calling onSuccess callback");
+        onSuccess();
+      }
       
       setExitPrice(0);
       setExitQuantity(0);

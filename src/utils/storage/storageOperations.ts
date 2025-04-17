@@ -46,11 +46,11 @@ export const getTradesSync = (): Trade[] => {
 };
 
 // Enhanced save trades function with better error handling
-export const saveTrades = async (trades: Trade[]): Promise<void> => {
+export const saveTrades = async (trades: Trade[]): Promise<boolean> => {
   if (!trades || !Array.isArray(trades)) {
     console.error('Invalid trades data:', trades);
     toast.error('Invalid trade data format');
-    return;
+    return false;
   }
   
   // Ensure all trades have required fields to prevent rendering errors
@@ -63,7 +63,7 @@ export const saveTrades = async (trades: Trade[]): Promise<void> => {
     
     if (!saved) {
       toast.error('Could not save to local storage. Storage might be full or disabled.');
-      return;
+      return false;
     }
     
     console.log(`Saved ${validatedTrades.length} trades to local storage`);
@@ -94,9 +94,11 @@ export const saveTrades = async (trades: Trade[]): Promise<void> => {
     // Dispatch events to notify other components
     dispatchStorageEvents();
     
+    return true;
   } catch (error) {
     console.error('Error saving trades to localStorage:', error);
     toast.error('Failed to save trades');
+    return false;
   }
 };
 

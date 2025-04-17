@@ -32,7 +32,13 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
     handleNotesChange,
     handleFeesChange,
     handleSubmit
-  } = useExitTradeLogic({ trade, onSuccess: onUpdate });
+  } = useExitTradeLogic({ 
+    trade, 
+    onSuccess: () => {
+      console.log("Exit success callback fired");
+      onUpdate();
+    }
+  });
 
   const [updateSuccess, setUpdateSuccess] = useState(false);
   
@@ -58,7 +64,8 @@ export function ExitTradeForm({ trade, onClose, onUpdate, remainingQuantity: pro
 
   const handleSubmitPartialExit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Recording partial exit');
+    console.log('Recording partial exit with quantity:', exitQuantity, 'at price:', exitPrice);
+    
     try {
       const success = await handleSubmit();
       if (success) {
