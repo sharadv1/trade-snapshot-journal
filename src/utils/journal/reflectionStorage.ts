@@ -3,10 +3,6 @@ import { generateUUID } from '@/utils/generateUUID';
 import { WEEKLY_REFLECTIONS_KEY, MONTHLY_REFLECTIONS_KEY } from './storage/storageCore';
 import { getAllWeeklyReflections, saveWeeklyReflection as saveWeeklyReflectionToStorage } from './storage/weeklyReflections'; 
 
-// Storage keys for backward compatibility
-const WEEKLY_REFLECTIONS_KEY = 'trade-journal-weekly-reflections';
-const MONTHLY_REFLECTIONS_KEY = 'trade-journal-monthly-reflections';
-
 // Memory cache to avoid excessive localStorage reads
 const reflectionCache = {
   weekly: null as WeeklyReflection[] | null,
