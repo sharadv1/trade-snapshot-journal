@@ -49,10 +49,17 @@ export default function Dashboard() {
     };
     
     window.addEventListener('trades-updated', handleTradesUpdated);
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'trade-journal-trades') {
+        console.log("Dashboard: Storage event for trades detected");
+        loadTrades();
+      }
+    });
     
     // Cleanup
     return () => {
       window.removeEventListener('trades-updated', handleTradesUpdated);
+      window.removeEventListener('storage', handleTradesUpdated);
     };
   }, []);
   
@@ -86,7 +93,6 @@ export default function Dashboard() {
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Recent Trades</h2>
         <TradeList 
-          initialTrades={trades.slice(0, 10)} 
           limit={10}
         />
       </div>

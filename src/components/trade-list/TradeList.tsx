@@ -38,6 +38,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = limit || 10;
   
+  // Load trades either from props or from storage
   useEffect(() => {
     const loadTrades = () => {
       if (!initialTrades) {
@@ -46,6 +47,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
         console.log(`Loaded ${allTrades.length} trades in TradeList`);
         setTrades(allTrades);
       } else {
+        console.log(`Setting ${initialTrades.length} trades from props`);
         setTrades(initialTrades);
       }
       
@@ -55,6 +57,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
     
     loadTrades();
     
+    // Set up event listeners for storage changes
     if (!initialTrades) {
       const handleStorageChange = (event: StorageEvent | Event) => {
         if (
@@ -103,17 +106,19 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   } = useTradeList({
     statusFilter,
     initialTrades: trades,
-    limit: undefined, // Remove limit from useTradeList to get all trades
+    limit: undefined, // Don't limit in useTradeList to get all trades for pagination
     dateParam
   });
   
-  // Calculate pagination values
-  const totalPages = Math.ceil(filteredTrades.length / itemsPerPage);
+  // Calculate total pages
+  const totalPages = Math.max(1, Math.ceil(filteredTrades.length / itemsPerPage));
   
-  // Get current page items - crucial for pagination to work properly
+  // Get current page items
   const currentItems = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredTrades.slice(startIndex, startIndex + itemsPerPage);
+    const endIndex = startIndex + itemsPerPage;
+    console.log(`Paginating: showing items ${startIndex} to ${endIndex} of ${filteredTrades.length}`);
+    return filteredTrades.slice(startIndex, endIndex);
   }, [filteredTrades, currentPage, itemsPerPage]);
   
   // Reset to page 1 when filters change
@@ -235,7 +240,6 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
               }}
             />
             
-            {/* Always show pagination if we have multiple pages */}
             {totalPages > 1 && (
               <div className="mt-4">
                 <Pagination>
@@ -282,7 +286,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
           </>
         )}
         
-        {/* For Dashboard: Show the "View All" button below pagination if we have limited view and more trades than the limit */}
+        {/* For Dashboard: Show the "View All" button if we're displaying a limited view and there are more trades */}
         {limit && filteredTrades.length > limit && (
           <div className="mt-4 text-center">
             <Button variant="outline" asChild>
