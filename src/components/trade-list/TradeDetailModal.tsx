@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -8,16 +9,17 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { getTradeById } from '@/utils/tradeStorage';
+import { getTradeById } from '@/utils/storage/tradeOperations';
 import { Trade } from '@/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { calculateTradeMetrics } from '@/utils/calculations';
+import { Link } from 'react-router-dom';
 
 interface TradeDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  tradeId?: string;
+  tradeId?: string | null;
 }
 
 export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
@@ -27,23 +29,57 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
 }) => {
   const [trade, setTrade] = useState<Trade | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    let isMounted = true;
+    
     if (isOpen && tradeId) {
       setLoading(true);
+      setError(null);
       
       try {
+        // Attempt to fetch trade
+        console.log(`Attempting to load trade with ID: ${tradeId}, retry: ${retryCount}`);
         const fetchedTrade = getTradeById(tradeId);
-        setTrade(fetchedTrade || null);
-      } catch (error) {
-        console.error('Error fetching trade:', error);
-      } finally {
-        setLoading(false);
+        
+        if (isMounted) {
+          if (fetchedTrade) {
+            setTrade(fetchedTrade);
+            setLoading(false);
+          } else {
+            // If trade not found and we haven't exceeded retry attempts, schedule a retry
+            if (retryCount < 2) {
+              console.log(`Retry ${retryCount + 1} scheduled for trade ID: ${tradeId}`);
+              setTimeout(() => {
+                if (isMounted) {
+                  setRetryCount(prev => prev + 1);
+                }
+              }, 300);
+            } else {
+              setError(`Trade with ID ${tradeId} could not be found`);
+              setLoading(false);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching trade:', err);
+        if (isMounted) {
+          setError('Failed to load trade details');
+          setLoading(false);
+        }
       }
     } else {
       setTrade(null);
+      setError(null);
+      setRetryCount(0);
     }
-  }, [isOpen, tradeId]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, tradeId, retryCount]);
 
   const metrics = trade ? calculateTradeMetrics(trade) : null;
   
@@ -54,9 +90,29 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
+        ) : error ? (
+          <div className="p-6 text-center">
+            <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-4">{error}</p>
+            <p className="text-muted-foreground mb-6">
+              The trade may have been deleted or there might be a data synchronization issue.
+            </p>
+            <div className="flex justify-center gap-4">
+              <Button variant="outline" onClick={onClose}>
+                Close
+              </Button>
+              <Button asChild>
+                <Link to="/trades">View All Trades</Link>
+              </Button>
+            </div>
+          </div>
         ) : !trade ? (
           <div className="p-6 text-center">
-            <p>Trade not found</p>
+            <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-4">Trade not found</p>
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
           </div>
         ) : (
           <>
@@ -127,9 +183,12 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
               )}
             </div>
             
-            <DialogFooter>
+            <DialogFooter className="flex gap-2">
               <Button variant="outline" onClick={onClose}>
                 Close
+              </Button>
+              <Button asChild>
+                <Link to={`/trade/${trade.id}`}>View Details</Link>
               </Button>
             </DialogFooter>
           </>

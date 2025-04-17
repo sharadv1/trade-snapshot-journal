@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -15,7 +16,8 @@ import {
   PaginationItem, 
   PaginationLink, 
   PaginationNext, 
-  PaginationPrevious
+  PaginationPrevious,
+  PaginationEllipsis
 } from '@/components/ui/pagination';
 
 interface TradeListProps {
@@ -101,14 +103,14 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
   } = useTradeList({
     statusFilter,
     initialTrades: trades,
-    limit,
+    limit: undefined, // Remove limit from useTradeList to get all trades
     dateParam
   });
   
   // Calculate pagination values
   const totalPages = Math.ceil(filteredTrades.length / itemsPerPage);
   
-  // Get current page items
+  // Get current page items - crucial for pagination to work properly
   const currentItems = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredTrades.slice(startIndex, startIndex + itemsPerPage);
@@ -233,7 +235,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
               }}
             />
             
-            {/* Show pagination if we have multiple pages */}
+            {/* Always show pagination if we have multiple pages */}
             {totalPages > 1 && (
               <div className="mt-4">
                 <Pagination>
@@ -250,7 +252,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
                     {getPageNumbers().map((page, index) => (
                       page === null ? (
                         <PaginationItem key={`ellipsis-${index}`}>
-                          <span className="px-4 py-2">...</span>
+                          <PaginationEllipsis />
                         </PaginationItem>
                       ) : (
                         <PaginationItem key={`page-${page}`}>
@@ -280,7 +282,7 @@ export function TradeList({ statusFilter = 'all', initialTrades, limit, onTradeD
           </>
         )}
         
-        {/* For Dashboard: Show the "View All" button below pagination if we have limited view */}
+        {/* For Dashboard: Show the "View All" button below pagination if we have limited view and more trades than the limit */}
         {limit && filteredTrades.length > limit && (
           <div className="mt-4 text-center">
             <Button variant="outline" asChild>

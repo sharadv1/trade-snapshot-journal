@@ -120,23 +120,44 @@ export const deleteTrade = async (tradeId: string): Promise<void> => {
   console.log('Trade deleted successfully:', tradeId);
 };
 
-// Get a single trade by ID
+// Get a single trade by ID - with improved error handling and retries
 export const getTradeById = (tradeId: string): Trade | undefined => {
   console.log('storage/tradeOperations.getTradeById called with ID:', tradeId);
-  const trades = getTradesSync();
-  
-  if (!Array.isArray(trades)) {
-    console.error('Invalid trades data format returned by getTradesSync, expected array but got:', typeof trades);
+  try {
+    const trades = getTradesSync();
+    
+    if (!Array.isArray(trades)) {
+      console.error('Invalid trades data format returned by getTradesSync, expected array but got:', typeof trades);
+      return undefined;
+    }
+    
+    console.log(`Searching for trade ${tradeId} among ${trades.length} trades`);
+    
+    // First try direct ID match
+    const trade = trades.find(trade => trade.id === tradeId);
+    
+    if (trade) {
+      return trade;
+    }
+    
+    // If not found, try case-insensitive match (in case of ID format differences)
+    const tradeIdLower = tradeId.toLowerCase();
+    const tradeCaseInsensitive = trades.find(trade => 
+      trade.id.toLowerCase() === tradeIdLower
+    );
+    
+    if (tradeCaseInsensitive) {
+      console.log('Found trade with case-insensitive ID match');
+      return tradeCaseInsensitive;
+    }
+    
+    // Still not found
+    console.error('Trade not found with ID:', tradeId);
+    return undefined;
+  } catch (error) {
+    console.error('Error in getTradeById:', error);
     return undefined;
   }
-  
-  const trade = trades.find(trade => trade.id === tradeId);
-  
-  if (!trade) {
-    console.error('Trade not found with ID:', tradeId);
-  }
-  
-  return trade;
 };
 
 // Get trades with metrics calculated
