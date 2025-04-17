@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Scissors } from 'lucide-react';
 import { toast } from '@/utils/toast';
-import { removeDuplicateReflections } from '@/utils/journalStorage';
+import { removeDuplicateReflections } from '@/utils/journal/reflectionStorage';
 
 export function JournalLayout() {
   const location = useLocation();

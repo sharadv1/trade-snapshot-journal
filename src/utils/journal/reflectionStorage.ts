@@ -1,15 +1,12 @@
 
 /**
- * Reflection Storage API - Re-exports from modular storage system
+ * Reflection Storage API - Stable version
  * 
- * This file serves as the main entry point for reflection storage operations
- * and re-exports all the necessary functions from the modular storage system.
- * 
- * This approach keeps the API consistent while allowing for better modularization
- * and performance optimization.
+ * This file maintains the original stable API for reflections storage
+ * to ensure backward compatibility with existing journal functionality.
  */
 
-// Core storage utilities - minimizing what we expose to prevent circular imports
+// Re-export all the storage utilities from their original locations
 export { 
   notifyJournalUpdate,
   safeParse,
@@ -19,7 +16,7 @@ export {
   dispatchStorageEvent
 } from './storage/storageCore';
 
-// Weekly reflection operations - with optimized implementations
+// Direct re-exports of the original functions to maintain compatibility
 export { 
   getWeeklyReflections,
   getWeeklyReflection,
@@ -34,7 +31,6 @@ export {
   getWeeklyReflectionsForMonth
 } from './storage/weeklyReflections';
 
-// Monthly reflection operations
 export { 
   getMonthlyReflections,
   getMonthlyReflection,
@@ -47,16 +43,16 @@ export {
   saveMonthlyReflection
 } from './storage/monthlyReflections';
 
-// Trade association operations - now with memory caching and optimized processing
-export {
-  associateTradeWithReflections,
-  clearTradeAssociationCache
+export { 
+  associateTradeWithReflections
 } from './storage/tradeAssociations';
 
-// Duplicate removal utilities
-export {
-  removeDuplicateReflections
-} from './storage/duplicateReflections';
+// Export a compatible version of the duplicate removal utility
+export const removeDuplicateReflections = async () => {
+  const { removeDuplicateReflections } = await import('./storage/duplicateReflections');
+  return removeDuplicateReflections();
+};
 
-// Note: We've optimized the performance by reducing event dispatches and implementing
-// caching in key areas of the storage system.
+// Import old APIs and re-export with consistent names
+export * from './storage/weeklyReflections';
+export * from './storage/monthlyReflections';
