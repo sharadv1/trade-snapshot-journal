@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import Analytics from '@/pages/Analytics';
 import TradeEntry from '@/pages/TradeEntry';
