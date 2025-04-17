@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink, Pencil } from 'lucide-react';
 import { getTradesForWeek } from '@/utils/tradeCalculations';
 import { startOfWeek, endOfWeek, parseISO } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 interface ReflectionCardProps {
   reflection: WeeklyReflection | MonthlyReflection;
@@ -21,7 +22,7 @@ interface ReflectionCardProps {
   reflectionWordCount: number;
   planWordCount: number;
   canDelete: boolean;
-  onDelete: (id: string, e: React.MouseEvent) => void;
+  onDelete?: (id: string, e: React.MouseEvent) => void;
   hasContent: boolean;
 }
 
@@ -36,6 +37,8 @@ export const ReflectionCard = memo(function ReflectionCard({
   onDelete,
   hasContent
 }: ReflectionCardProps) {
+  const navigate = useNavigate();
+
   if (!reflection || !reflection.id) return null;
   
   const handleDelete = useCallback((e: React.MouseEvent) => {
@@ -45,6 +48,14 @@ export const ReflectionCard = memo(function ReflectionCard({
       onDelete(reflection.id, e);
     }
   }, [reflection.id, onDelete]);
+
+  const handleEdit = useCallback(() => {
+    if (type === 'weekly') {
+      navigate(`/journal/weekly/${reflection.id}`);
+    } else {
+      navigate(`/journal/monthly/${reflection.id}`);
+    }
+  }, [navigate, reflection.id, type]);
 
   // Get the actual trades for the week
   let weeklyTrades = [];
@@ -79,24 +90,24 @@ export const ReflectionCard = memo(function ReflectionCard({
       </div>
       
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-        <div className="bg-accent/10 rounded-lg p-3">
+        <div className="bg-accent/10 rounded-lg p-3 text-center">
           <div className="text-sm text-muted-foreground mb-1">Trades</div>
           <div className="font-semibold">{tradeCount}</div>
         </div>
         
-        <div className="bg-accent/10 rounded-lg p-3">
+        <div className="bg-accent/10 rounded-lg p-3 text-center">
           <div className="text-sm text-muted-foreground mb-1">R-Multiple</div>
           <div className={`font-semibold ${totalR >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {totalR > 0 ? '+' : ''}{totalR.toFixed(2)}R
           </div>
         </div>
         
-        <div className="bg-accent/10 rounded-lg p-3">
+        <div className="bg-accent/10 rounded-lg p-3 text-center">
           <div className="text-sm text-muted-foreground mb-1">Win Rate</div>
           <div className="font-semibold">{winRate.toFixed(1)}%</div>
         </div>
         
-        <div className="bg-accent/10 rounded-lg p-3">
+        <div className="bg-accent/10 rounded-lg p-3 text-center">
           <div className="text-sm text-muted-foreground mb-1">W/L</div>
           <div className="font-semibold">{winCount}/{lossCount}</div>
         </div>
@@ -125,8 +136,14 @@ export const ReflectionCard = memo(function ReflectionCard({
           </Button>
         )}
         
-        <Button variant="outline" size="sm">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleEdit}
+          className="gap-2"
+        >
           <Pencil className="h-4 w-4" />
+          Edit
         </Button>
         
         <ExternalLink className="h-5 w-5 text-muted-foreground" />
