@@ -1,14 +1,12 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { WeeklyReflection } from '@/types';
-import { getWeeklyReflections } from '@/utils/journal/reflectionStorage';
+import { getWeeklyReflections, deleteWeeklyReflection, removeDuplicateReflections } from '@/utils/journal/reflectionStorage';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader2, Plus, Scissors } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getCurrentPeriodId } from '@/utils/journal/reflectionUtils';
 import { toast } from '@/utils/toast';
-import { deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
 import { ReflectionCard } from './ReflectionCard';
 
 export function WeeklyReflectionsPage() {
@@ -17,7 +15,6 @@ export function WeeklyReflectionsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const navigate = useNavigate();
   
-  // Function to load reflections - memoized to prevent unnecessary rerenders
   const loadReflections = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -27,7 +24,6 @@ export function WeeklyReflectionsPage() {
       const fetchedReflections = await getWeeklyReflections();
       
       if (Array.isArray(fetchedReflections)) {
-        // Sort reflections by date (most recent first)
         const sortedReflections = fetchedReflections.sort((a, b) => {
           if (!a.weekStart || !b.weekStart) return 0;
           
@@ -54,23 +50,19 @@ export function WeeklyReflectionsPage() {
     }
   }, []);
 
-  // Initial load and reload on event
   useEffect(() => {
     loadReflections();
     
-    // Listen for updates to reflections
     const handleUpdate = () => {
       loadReflections();
     };
     
-    // Register event listeners
     window.addEventListener('journal-updated', handleUpdate);
     window.addEventListener('journalUpdated', handleUpdate);
     window.addEventListener('trades-updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     
     return () => {
-      // Clean up event listeners
       window.removeEventListener('journal-updated', handleUpdate);
       window.removeEventListener('journalUpdated', handleUpdate);
       window.removeEventListener('trades-updated', handleUpdate);
@@ -78,7 +70,6 @@ export function WeeklyReflectionsPage() {
     };
   }, [loadReflections]);
   
-  // Handle reflection removal - memoized to avoid recreation on each render
   const handleDeleteReflection = useCallback(async (reflectionId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -93,12 +84,9 @@ export function WeeklyReflectionsPage() {
     }
   }, [loadReflections]);
   
-  // Handle reflection creation or editing - moved to a separate handler
   const handleRemoveDuplicates = useCallback(async () => {
-    // This would connect to the duplicate removal logic
     try {
-      const { removeDuplicates } = await import('@/utils/journal/storage/duplicateReflections');
-      const results = await removeDuplicates();
+      const results = await removeDuplicateReflections();
       toast.success(`Removed ${results.weeklyRemoved + results.monthlyRemoved} duplicate reflections`);
       loadReflections();
     } catch (error) {
@@ -107,12 +95,10 @@ export function WeeklyReflectionsPage() {
     }
   }, [loadReflections]);
   
-  // Navigation handler - memoized to prevent recreation on each render
   const handleReflectionClick = useCallback((reflection: WeeklyReflection) => {
     navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
   }, [navigate]);
   
-  // Render loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12 flex-col">
@@ -122,7 +108,6 @@ export function WeeklyReflectionsPage() {
     );
   }
   
-  // Render error state
   if (loadError) {
     return (
       <Card className="p-6">
@@ -134,7 +119,6 @@ export function WeeklyReflectionsPage() {
     );
   }
   
-  // Main content with reflections list
   return (
     <div className="w-full max-w-screen-xl mx-auto p-4">
       <div className="flex justify-between items-center mb-8">

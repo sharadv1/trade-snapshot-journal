@@ -50,13 +50,13 @@ export async function removeDuplicateReflections() {
     // If there are duplicates, save the clean data
     if (weeklyRemoved > 0) {
       for (const reflection of weeklyMap.values()) {
-        saveWeeklyReflectionObject(reflection);
+        await saveWeeklyReflectionObject(reflection);
       }
     }
     
     if (monthlyRemoved > 0) {
       for (const reflection of monthlyMap.values()) {
-        saveMonthlyReflectionObject(reflection);
+        await saveMonthlyReflectionObject(reflection);
       }
     }
     

@@ -1,4 +1,3 @@
-
 import { WeeklyReflection } from '@/types';
 import { generateUUID } from '@/utils/generateUUID';
 import { 
@@ -145,50 +144,6 @@ export async function deleteWeeklyReflection(id: string): Promise<void> {
   } catch (error) {
     console.error('Error deleting weekly reflection:', error);
     throw error;
-  }
-}
-
-/**
- * Get all weekly reflections as an object keyed by weekId
- */
-export function getAllWeeklyReflections() {
-  try {
-    console.log('[JOURNAL STORAGE] Getting ALL weekly reflections for key "trade-journal-weekly-reflections"');
-    const reflectionsJson = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
-    
-    if (!reflectionsJson) {
-      console.log('No weekly reflections found in local storage');
-      return {};
-    }
-    
-    console.log('Data:', reflectionsJson.substring(0, 100) + '...');
-    
-    try {
-      const data = JSON.parse(reflectionsJson);
-      return data || {};
-    } catch (e) {
-      console.error('Failed to parse weekly reflections JSON:', e);
-      return {};
-    }
-  } catch (error) {
-    console.error('Error getting all weekly reflections:', error);
-    return {};
-  }
-}
-
-/**
- * Check if a weekly reflection exists by its weekId
- */
-export function weeklyReflectionExists(weekId: string): boolean {
-  if (!weekId) return false;
-  const reflectionsJson = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
-  if (!reflectionsJson) return false;
-  
-  try {
-    const reflections = JSON.parse(reflectionsJson);
-    return !!reflections[weekId];
-  } catch {
-    return false;
   }
 }
 

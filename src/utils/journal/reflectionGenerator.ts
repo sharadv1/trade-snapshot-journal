@@ -1,4 +1,3 @@
-
 import { TradeWithMetrics, WeeklyReflection, MonthlyReflection } from '@/types';
 import { 
   startOfWeek, 
@@ -149,11 +148,7 @@ export async function generateMissingReflections(trades: TradeWithMetrics[]): Pr
     console.log(`Starting reflection generation for ${trades.length} trades`);
     
     // Import the storage functions asynchronously to avoid circular dependencies
-    const weeklyModule = await import('../journal/reflectionStorage');
-    const { getWeeklyReflection, addWeeklyReflection } = weeklyModule;
-    
-    const monthlyModule = await import('../journal/reflectionStorage'); 
-    const { getMonthlyReflection, addMonthlyReflection } = monthlyModule;
+    const { saveWeeklyReflectionObject, saveMonthlyReflectionObject } = await import('../journal/reflectionStorage');
     
     // Process trades in batches to prevent UI freezing
     await processTradesInBatches(trades, async (tradeBatch) => {
@@ -202,7 +197,7 @@ export async function generateMissingReflections(trades: TradeWithMetrics[]): Pr
           if (!existingReflection) {
             // Create new reflection
             const newReflection = generateWeeklyReflection(weekStart, weekEnd, trades);
-            await addWeeklyReflection(newReflection);
+            await saveWeeklyReflectionObject(newReflection);
             generationState.weekIdsGenerated.add(weekStartStr);
             console.log(`Created weekly reflection for ${weekStartStr}`);
             
@@ -234,7 +229,7 @@ export async function generateMissingReflections(trades: TradeWithMetrics[]): Pr
           if (!existingReflection) {
             // Create new reflection
             const newReflection = generateMonthlyReflection(monthStart, monthEnd, trades);
-            await addMonthlyReflection(newReflection);
+            await saveMonthlyReflectionObject(newReflection);
             generationState.monthIdsGenerated.add(monthIdStr);
             console.log(`Created monthly reflection for ${monthIdStr}`);
             

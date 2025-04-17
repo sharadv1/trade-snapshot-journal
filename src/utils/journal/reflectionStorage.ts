@@ -3,6 +3,27 @@ import { WeeklyReflection, MonthlyReflection } from '@/types';
 import { generateUUID } from '@/utils/generateUUID';
 import { startOfWeek, endOfWeek, addDays, format } from 'date-fns';
 
+// Export functions to get all reflections
+export const getWeeklyReflections = async (): Promise<WeeklyReflection[]> => {
+  try {
+    const { getWeeklyReflections: getWeeklyReflectionsImpl } = await import('@/utils/journal/storage/weeklyReflections');
+    return await getWeeklyReflectionsImpl();
+  } catch (error) {
+    console.error("Error getting weekly reflections:", error);
+    return [];
+  }
+};
+
+export const getMonthlyReflections = async (): Promise<MonthlyReflection[]> => {
+  try {
+    const { getMonthlyReflections: getMonthlyReflectionsImpl } = await import('@/utils/journal/storage/monthlyReflections');
+    return await getMonthlyReflectionsImpl();
+  } catch (error) {
+    console.error("Error getting monthly reflections:", error);
+    return [];
+  }
+};
+
 export const saveWeeklyReflection = async (
   weekId: string,
   reflection: string, 
@@ -28,13 +49,12 @@ export const saveWeeklyReflection = async (
       reflection,
       grade,
       weeklyPlan,
-      createdAt: new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
     };
     
-    // Use the custom reflectionStorage
-    const { addWeeklyReflection } = await import('@/utils/journal/storage/weeklyReflections');
-    await addWeeklyReflection(reflectionObj);
+    // Use the weekly reflections storage
+    const { saveWeeklyReflection: saveWeeklyReflectionImpl } = await import('@/utils/journal/storage/weeklyReflections');
+    await saveWeeklyReflectionImpl(weekId, reflection, grade, weeklyPlan);
     
     // Dispatch event to notify changes
     window.dispatchEvent(new CustomEvent('journal-updated'));
@@ -48,9 +68,9 @@ export const saveWeeklyReflection = async (
 
 export const getWeeklyReflection = async (weekId: string): Promise<WeeklyReflection | null> => {
   try {
-    // Use the custom reflectionStorage
-    const { getWeeklyReflectionByWeekId } = await import('@/utils/journal/storage/weeklyReflections');
-    return await getWeeklyReflectionByWeekId(weekId);
+    // Use the weekly reflections storage
+    const { getWeeklyReflection: getWeeklyReflectionImpl } = await import('@/utils/journal/storage/weeklyReflections');
+    return await getWeeklyReflectionImpl(weekId);
   } catch (error) {
     console.error("Error getting weekly reflection:", error);
     throw error;
@@ -59,9 +79,9 @@ export const getWeeklyReflection = async (weekId: string): Promise<WeeklyReflect
 
 export const deleteWeeklyReflection = async (id: string): Promise<void> => {
   try {
-    // Use the custom reflectionStorage
-    const { deleteWeeklyReflectionById } = await import('@/utils/journal/storage/weeklyReflections');
-    await deleteWeeklyReflectionById(id);
+    // Use the weekly reflections storage
+    const { deleteWeeklyReflection: deleteWeeklyReflectionImpl } = await import('@/utils/journal/storage/weeklyReflections');
+    await deleteWeeklyReflectionImpl(id);
     
     // Dispatch event to notify changes
     window.dispatchEvent(new CustomEvent('journal-updated'));
@@ -97,13 +117,12 @@ export const saveMonthlyReflection = async (
       monthEnd: monthEndISO,
       reflection,
       grade,
-      createdAt: new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
     };
     
-    // Use the custom reflectionStorage
-    const { addMonthlyReflection } = await import('@/utils/journal/storage/monthlyReflections');
-    await addMonthlyReflection(reflectionObj);
+    // Use the monthly reflections storage
+    const { saveMonthlyReflection: saveMonthlyReflectionImpl } = await import('@/utils/journal/storage/monthlyReflections');
+    await saveMonthlyReflectionImpl(monthId, reflection, grade);
     
     // Dispatch event to notify changes
     window.dispatchEvent(new CustomEvent('journal-updated'));
@@ -117,9 +136,9 @@ export const saveMonthlyReflection = async (
 
 export const getMonthlyReflection = async (monthId: string): Promise<MonthlyReflection | null> => {
   try {
-    // Use the custom reflectionStorage
-    const { getMonthlyReflectionByMonthId } = await import('@/utils/journal/storage/monthlyReflections');
-    return await getMonthlyReflectionByMonthId(monthId);
+    // Use the monthly reflections storage
+    const { getMonthlyReflection: getMonthlyReflectionImpl } = await import('@/utils/journal/storage/monthlyReflections');
+    return await getMonthlyReflectionImpl(monthId);
   } catch (error) {
     console.error("Error getting monthly reflection:", error);
     throw error;
@@ -128,9 +147,9 @@ export const getMonthlyReflection = async (monthId: string): Promise<MonthlyRefl
 
 export const deleteMonthlyReflection = async (id: string): Promise<void> => {
   try {
-    // Use the custom reflectionStorage
-    const { deleteMonthlyReflectionById } = await import('@/utils/journal/storage/monthlyReflections');
-    await deleteMonthlyReflectionById(id);
+    // Use the monthly reflections storage
+    const { deleteMonthlyReflection: deleteMonthlyReflectionImpl } = await import('@/utils/journal/storage/monthlyReflections');
+    await deleteMonthlyReflectionImpl(id);
     
     // Dispatch event to notify changes
     window.dispatchEvent(new CustomEvent('journal-updated'));
@@ -140,10 +159,30 @@ export const deleteMonthlyReflection = async (id: string): Promise<void> => {
   }
 };
 
-export const removeDuplicateReflections = () => {
+export const saveWeeklyReflectionObject = async (reflection: WeeklyReflection): Promise<void> => {
   try {
-    const { removeDuplicates } = require('@/utils/journal/storage/duplicateReflections');
-    return removeDuplicates();
+    const { saveWeeklyReflectionObject: saveWeeklyReflectionObjectImpl } = await import('@/utils/journal/storage/weeklyReflections');
+    await saveWeeklyReflectionObjectImpl(reflection);
+  } catch (error) {
+    console.error("Error saving weekly reflection object:", error);
+    throw error;
+  }
+};
+
+export const saveMonthlyReflectionObject = async (reflection: MonthlyReflection): Promise<void> => {
+  try {
+    const { saveMonthlyReflectionObject: saveMonthlyReflectionObjectImpl } = await import('@/utils/journal/storage/monthlyReflections');
+    await saveMonthlyReflectionObjectImpl(reflection);
+  } catch (error) {
+    console.error("Error saving monthly reflection object:", error);
+    throw error;
+  }
+};
+
+export const removeDuplicateReflections = async () => {
+  try {
+    const { removeDuplicateReflections: removeDuplicatesImpl } = await import('@/utils/journal/storage/duplicateReflections');
+    return await removeDuplicatesImpl();
   } catch (error) {
     console.error("Error removing duplicate reflections:", error);
     throw error;

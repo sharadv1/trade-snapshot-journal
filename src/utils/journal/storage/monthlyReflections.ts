@@ -1,4 +1,3 @@
-
 import { MonthlyReflection } from '@/types';
 import { generateUUID } from '@/utils/generateUUID';
 import { 
@@ -50,6 +49,11 @@ export async function getMonthlyReflection(monthId: string): Promise<MonthlyRefl
     return null;
   }
 }
+
+/**
+ * Alias for compatibility
+ */
+export const getMonthlyReflectionByMonthId = getMonthlyReflection;
 
 /**
  * Add or update a monthly reflection
@@ -134,48 +138,9 @@ export async function deleteMonthlyReflection(id: string): Promise<void> {
 }
 
 /**
- * Get all monthly reflections as an object keyed by monthId
+ * Alias for compatibility
  */
-export function getAllMonthlyReflections() {
-  try {
-    console.log('[JOURNAL STORAGE] Getting ALL monthly reflections for key "trade-journal-monthly-reflections"');
-    const reflectionsJson = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
-    
-    if (!reflectionsJson) {
-      console.log('No monthly reflections found in local storage');
-      return {};
-    }
-    
-    console.log('Data:', reflectionsJson.substring(0, 100) + '...');
-    
-    try {
-      const data = JSON.parse(reflectionsJson);
-      return data || {};
-    } catch (e) {
-      console.error('Failed to parse monthly reflections JSON:', e);
-      return {};
-    }
-  } catch (error) {
-    console.error('Error getting all monthly reflections:', error);
-    return {};
-  }
-}
-
-/**
- * Check if a monthly reflection exists
- */
-export function monthlyReflectionExists(monthId: string): boolean {
-  if (!monthId) return false;
-  const reflectionsJson = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
-  if (!reflectionsJson) return false;
-  
-  try {
-    const reflections = JSON.parse(reflectionsJson);
-    return !!reflections[monthId];
-  } catch {
-    return false;
-  }
-}
+export const deleteMonthlyReflectionById = deleteMonthlyReflection;
 
 /**
  * Save a monthly reflection object directly
@@ -299,5 +264,49 @@ export function saveMonthlyReflection(monthId: string, reflection: string, grade
   } catch (error) {
     console.error('Error in saveMonthlyReflection:', error);
     toast.error('Failed to save monthly reflection');
+  }
+}
+
+/**
+ * Get all monthly reflections as an object keyed by monthId
+ */
+export function getAllMonthlyReflections() {
+  try {
+    console.log('[JOURNAL STORAGE] Getting ALL monthly reflections for key "trade-journal-monthly-reflections"');
+    const reflectionsJson = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
+    
+    if (!reflectionsJson) {
+      console.log('No monthly reflections found in local storage');
+      return {};
+    }
+    
+    console.log('Data:', reflectionsJson.substring(0, 100) + '...');
+    
+    try {
+      const data = JSON.parse(reflectionsJson);
+      return data || {};
+    } catch (e) {
+      console.error('Failed to parse monthly reflections JSON:', e);
+      return {};
+    }
+  } catch (error) {
+    console.error('Error getting all monthly reflections:', error);
+    return {};
+  }
+}
+
+/**
+ * Check if a monthly reflection exists
+ */
+export function monthlyReflectionExists(monthId: string): boolean {
+  if (!monthId) return false;
+  const reflectionsJson = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
+  if (!reflectionsJson) return false;
+  
+  try {
+    const reflections = JSON.parse(reflectionsJson);
+    return !!reflections[monthId];
+  } catch {
+    return false;
   }
 }
