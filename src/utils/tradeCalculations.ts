@@ -21,14 +21,15 @@ const tradeCache = {
   timestamp: 0,
   weekCache: new Map<string, TradeWithMetrics[]>(),
   lastCacheInvalidation: 0,
-  currentlyFetching: false
+  currentlyFetching: false,
+  preventFetching: false
 };
 
-// Clear cache when necessary
+// Clear cache when necessary, but not too frequently
 const checkAndInvalidateCache = () => {
   const now = Date.now();
-  // Invalidate the cache every 30 seconds to ensure fresh data
-  if (now - tradeCache.lastCacheInvalidation > 30000) {
+  // Invalidate the cache every 60 seconds to ensure fresh data while preventing rapid loops
+  if (now - tradeCache.lastCacheInvalidation > 60000) {
     tradeCache.trades = null;
     tradeCache.timestamp = 0;
     tradeCache.weekCache.clear();
@@ -49,7 +50,15 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
       return [];
     }
     
-    // Periodically invalidate cache to ensure fresh data
+    // Early return if fetching is temporarily disabled to prevent loops
+    if (tradeCache.preventFetching) {
+      console.log('Fetch prevention active, returning cached or empty data');
+      // Try to return cached data if available
+      const cacheKey = `${weekStart.toISOString()}_${weekEnd.toISOString()}`;
+      return tradeCache.weekCache.get(cacheKey) || [];
+    }
+    
+    // Periodically invalidate cache to ensure fresh data, but not too frequently
     checkAndInvalidateCache();
     
     // Create a cache key for this specific week request
@@ -123,4 +132,10 @@ export const clearTradeCache = () => {
   tradeCache.lastCacheInvalidation = Date.now();
   tradeCache.currentlyFetching = false;
   console.log('Trade cache manually cleared');
+};
+
+// Add a function to temporarily prevent fetching during navigation
+export const preventTradeFetching = (prevent: boolean) => {
+  tradeCache.preventFetching = prevent;
+  console.log(`Trade fetching prevention ${prevent ? 'enabled' : 'disabled'}`);
 };
