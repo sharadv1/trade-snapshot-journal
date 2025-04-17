@@ -12,6 +12,40 @@ export async function removeDuplicateReflections() {
   try {
     // Process weekly reflections - using weekId as the unique identifier
     const weeklyReflections = await getWeeklyReflections();
+    
+    // Special handling for April 7th duplicates
+    const april7Duplicates = weeklyReflections.filter(r => {
+      if (!r.weekStart) return false;
+      try {
+        const date = new Date(r.weekStart);
+        // Check if it's an April 7 entry
+        return date.getMonth() === 3 && date.getDate() === 7;
+      } catch (e) {
+        return false;
+      }
+    });
+    
+    if (april7Duplicates.length > 1) {
+      console.log(`Found ${april7Duplicates.length} April 7 duplicates:`, april7Duplicates);
+      // Sort by lastUpdated date, most recent first
+      april7Duplicates.sort((a, b) => {
+        const dateA = a.lastUpdated ? new Date(a.lastUpdated).getTime() : 0;
+        const dateB = b.lastUpdated ? new Date(b.lastUpdated).getTime() : 0;
+        return dateB - dateA;
+      });
+      
+      // Keep the first one, delete the rest
+      const keepReflection = april7Duplicates[0];
+      console.log(`Keeping April 7 reflection: ${keepReflection.id}`);
+      
+      // Delete all other April 7 reflections
+      for (let i = 1; i < april7Duplicates.length; i++) {
+        console.log(`Deleting duplicate April 7 reflection: ${april7Duplicates[i].id}`);
+        await deleteWeeklyReflection(april7Duplicates[i].id);
+      }
+    }
+    
+    // Continue with normal processing for other duplicates
     const weeklyMap = new Map();
     let weeklyDuplicates = [];
     
