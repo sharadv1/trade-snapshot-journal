@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore, isAfter } from 'date-fns';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -39,9 +40,6 @@ export function WeeklyJournal() {
   // Track if the component has finished loading - important!
   const hasLoadedRef = useRef(false);
   
-  // Track if initial load should clear cache
-  const shouldClearCacheRef = useRef(!initialLoadCompleted);
-  
   // Backup for content
   const backupRef = useRef<{reflection: string, weeklyPlan: string, grade: string}>({
     reflection: '',
@@ -59,17 +57,28 @@ export function WeeklyJournal() {
   const today = new Date();
   const canNavigateForward = isBefore(weekStart, startOfWeek(today, { weekStartsOn: 1 }));
   
-  // Turn on debug mode for troubleshooting trade loading
+  // Turn on debug mode for troubleshooting trade loading - IMPORTANT FIX
   useEffect(() => {
+    console.log("Enabling trade debug mode");
     setTradeDebug(true);
-    return () => setTradeDebug(false);
+    
+    // Clear cache on first mount
+    clearTradeCache();
+    
+    return () => {
+      console.log("Disabling trade debug mode");
+      setTradeDebug(false);
+    };
   }, []);
   
   // First-time safety: disabling fetch prevention
   useEffect(() => {
+    console.log("WeeklyJournal mounted - enabling fetching");
     // Always ensure fetching is enabled on component mount
     preventTradeFetching(false);
+    
     return () => {
+      console.log("WeeklyJournal unmounted - enabling fetching");
       // Ensure fetching is enabled when leaving
       preventTradeFetching(false);
     };
@@ -81,18 +90,11 @@ export function WeeklyJournal() {
     
     const previousWeek = addDays(weekStart, -7);
     
-    // Prevent fetching during navigation to avoid loops
-    preventTradeFetching(true);
+    // Clear cache before navigation to ensure fresh data
+    clearTradeCache();
     
     // Navigate to the new week
     navigate(`/journal/weekly/${format(previousWeek, 'yyyy-MM-dd')}`);
-    
-    // Re-enable fetching after navigation with delay
-    setTimeout(() => {
-      if (isMountedRef.current) {
-        preventTradeFetching(false);
-      }
-    }, 500);
   }, [navigate, weekStart, isSaving, isLoading]);
   
   const goToNextWeek = useCallback(() => {
@@ -102,18 +104,11 @@ export function WeeklyJournal() {
     if (canNavigateForward) {
       const nextWeek = addDays(weekStart, 7);
       
-      // Prevent fetching during navigation to avoid loops
-      preventTradeFetching(true);
+      // Clear cache before navigation to ensure fresh data
+      clearTradeCache();
       
       // Navigate to the new week
       navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
-      
-      // Re-enable fetching after navigation with delay
-      setTimeout(() => {
-        if (isMountedRef.current) {
-          preventTradeFetching(false);
-        }
-      }, 500);
     }
   }, [navigate, weekStart, canNavigateForward, isSaving, isLoading]);
   
@@ -165,7 +160,7 @@ export function WeeklyJournal() {
     }
   }, [weekId]);
   
-  // Load trades for the week - MODIFIED for reliability
+  // Load trades for the week - CRITICAL FIX
   const loadTrades = useCallback(() => {
     if (!weekId || !isMountedRef.current) return;
     
@@ -173,7 +168,7 @@ export function WeeklyJournal() {
       setIsLoadingTrades(true);
       console.log(`Loading trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
       
-      // IMPORTANT FIX: Clear cache first to ensure fresh data
+      // CRITICAL FIX: Always clear cache first to ensure fresh data
       clearTradeCache();
       
       // Get trades for the week
@@ -198,32 +193,40 @@ export function WeeklyJournal() {
   
   // Critical component lifecycle management
   useEffect(() => {
+    console.log(`WeeklyJournal: Component mounted for week ${weekId}`);
+    
     // Set the mounted flag (should always be true here)
     isMountedRef.current = true;
-    
-    // Enable fetching when component mounts
-    preventTradeFetching(false);
     
     // Always clear cache when loading a journal entry to ensure fresh data
     console.log('Journal entry view - clearing trade cache');
     clearTradeCache();
-    shouldClearCacheRef.current = false;
     initialLoadCompleted = true;
     
     // Load reflection data
     loadReflection();
     
-    // Load trades immediately after mounting
+    // Load trades immediately after mounting - CRITICAL: moved after clearing cache
     loadTrades();
     
     // Cleanup on unmount
     return () => {
+      console.log('WeeklyJournal: Component unmounting');
       isMountedRef.current = false;
-      
-      // Always enable fetching when component unmounts
-      preventTradeFetching(false);
     };
   }, [loadReflection, loadTrades, weekId]);
+  
+  // Handle changes to weekId - reload data
+  useEffect(() => {
+    if (weekId && isMountedRef.current) {
+      console.log(`WeeklyJournal: weekId changed to ${weekId}, reloading data`);
+      
+      // Clear cache and reload data when weekId changes
+      clearTradeCache();
+      loadReflection();
+      loadTrades();
+    }
+  }, [weekId, loadReflection, loadTrades]);
   
   // Save reflection - memoized
   const handleSave = useCallback(async () => {
@@ -267,16 +270,11 @@ export function WeeklyJournal() {
     try {
       await handleSave();
       
-      // Prevent fetching during navigation
-      preventTradeFetching(true);
+      // Clear cache before navigation
+      clearTradeCache();
       
       // Navigate back to the list
       navigate('/journal/weekly');
-      
-      // Re-enable fetching after navigation completes (with delay)
-      setTimeout(() => {
-        preventTradeFetching(false);
-      }, 500);
     } catch (error) {
       console.error('Error in save and return:', error);
     }
@@ -327,20 +325,14 @@ export function WeeklyJournal() {
       <div className="mb-6">
         <Button 
           variant="ghost" 
-          asChild 
-          className="mb-2"
           onClick={() => {
-            // Safety: prevent fetching during navigation
-            preventTradeFetching(true);
-            
-            // Re-enable after delay
-            setTimeout(() => preventTradeFetching(false), 500);
+            clearTradeCache();
+            navigate('/journal/weekly');
           }}
+          className="mb-2"
         >
-          <Link to="/journal/weekly">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Journal
-          </Link>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Journal
         </Button>
         
         <div className="flex flex-col">

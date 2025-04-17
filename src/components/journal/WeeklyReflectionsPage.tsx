@@ -153,19 +153,17 @@ export function WeeklyReflectionsPage() {
   }, [loadReflections]);
   
   const handleReflectionClick = useCallback((reflection: WeeklyReflection) => {
-    // Important: Clear cache before navigating
-    preventTradeFetching(true);
-    
-    // Use a timeout to navigate - this helps break the rendering cycle
-    setTimeout(() => {
-      // Navigate to the reflection
-      navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
-      
-      // Re-enable fetching after navigation with delay
-      setTimeout(() => {
-        preventTradeFetching(false);
-      }, 1000);  // Longer delay to ensure page loads properly
-    }, 0);
+    // FIX: Use programmatic navigation instead of direct link
+    // Clear cache before navigating to ensure fresh data
+    clearTradeCache();
+    navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
+  }, [navigate]);
+  
+  // Helper function for navigation without page reload
+  const navigateTo = useCallback((path: string) => {
+    // Clear cache before navigating
+    clearTradeCache();
+    navigate(path);
   }, [navigate]);
   
   if (isLoading) {
@@ -202,24 +200,11 @@ export function WeeklyReflectionsPage() {
         <Button variant="default" className="flex-1 py-6 rounded-md text-base">
           Weekly Reflections
         </Button>
-        {/* Use pure button for now to avoid Link reload issues */}
+        {/* FIX: Use onClick instead of Link to avoid full page reload */}
         <Button 
           variant="outline" 
           className="flex-1 py-6 rounded-md text-base"
-          onClick={() => {
-            // Prevent fetching during navigation
-            preventTradeFetching(true);
-            
-            // Use timeout to navigate after current render cycle
-            setTimeout(() => {
-              navigate('/journal/monthly');
-              
-              // Re-enable after longer delay
-              setTimeout(() => {
-                preventTradeFetching(false);
-              }, 1000);
-            }, 0);
-          }}
+          onClick={() => navigateTo('/journal/monthly')}
         >
           Monthly Reflections
         </Button>
@@ -228,20 +213,7 @@ export function WeeklyReflectionsPage() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold">Weekly Reflections</h2>
         <Button 
-          onClick={() => {
-            // Prevent fetching during navigation
-            preventTradeFetching(true);
-            
-            // Use timeout to navigate after current render cycle
-            setTimeout(() => {
-              navigate(`/journal/weekly/${getCurrentPeriodId('weekly')}`);
-              
-              // Re-enable after longer delay
-              setTimeout(() => {
-                preventTradeFetching(false);
-              }, 1000);
-            }, 0);
-          }}
+          onClick={() => navigateTo(`/journal/weekly/${getCurrentPeriodId('weekly')}`)}
           size="lg" 
           className="rounded-full h-12 w-12 p-0"
         >
@@ -256,20 +228,7 @@ export function WeeklyReflectionsPage() {
           <Button 
             size="lg" 
             className="mt-4"
-            onClick={() => {
-              // Prevent fetching during navigation
-              preventTradeFetching(true);
-              
-              // Use timeout to navigate after current render cycle
-              setTimeout(() => {
-                navigate(`/journal/weekly/${getCurrentPeriodId('weekly')}`);
-                
-                // Re-enable after longer delay
-                setTimeout(() => {
-                  preventTradeFetching(false);
-                }, 1000);
-              }, 0);
-            }}
+            onClick={() => navigateTo(`/journal/weekly/${getCurrentPeriodId('weekly')}`)}
           >
             Create First Reflection
           </Button>

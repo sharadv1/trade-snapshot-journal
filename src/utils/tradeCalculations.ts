@@ -23,13 +23,17 @@ const tradeCache = {
   lastCacheInvalidation: 0,
   lastFetch: 0,
   fetchLock: false,
-  debugMode: false
+  debugMode: true  // Set to true by default to help debug
 };
 
 /**
  * Get trades for a specific week with enhanced caching
  */
 export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetrics[] => {
+  if (tradeCache.debugMode) {
+    console.log(`getTradesForWeek called for ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
+  }
+  
   try {
     // Validate inputs first to prevent issues
     if (!weekStart || !weekEnd || !(weekStart instanceof Date) || !(weekEnd instanceof Date)) {
@@ -40,89 +44,52 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
     // Create a cache key for this specific week request
     const cacheKey = `${weekStart.toISOString()}_${weekEnd.toISOString()}`;
     
-    // Check if we've fetched too recently (prevent rapid loops)
-    const now = Date.now();
-    if (now - tradeCache.lastFetch < 300 && tradeCache.fetchLock) {
-      if (tradeCache.debugMode) console.log('Throttling fetch requests - using cached data');
-      
-      // Return cached data if available
-      const cachedTrades = tradeCache.weekCache.get(cacheKey);
-      return cachedTrades || [];
-    }
+    // ALWAYS clear the cache and reload fresh data - this fixes the main issue
+    if (tradeCache.debugMode) console.log('Forcing fresh trade data fetch');
     
-    // Update fetch timestamp
-    tradeCache.lastFetch = now;
-    
-    // Check if we have cached results for this week
-    if (tradeCache.weekCache.has(cacheKey)) {
-      if (tradeCache.debugMode) console.log(`Using cached trades for week ${cacheKey}`);
-      return tradeCache.weekCache.get(cacheKey) || [];
-    }
-    
-    // Set lock to prevent concurrent fetches
-    if (tradeCache.fetchLock) {
-      if (tradeCache.debugMode) console.log('Fetch lock active, returning empty array');
+    // Get fresh trades data
+    const allTrades = getTradesWithMetrics();
+    tradeCache.trades = allTrades;
+    tradeCache.timestamp = Date.now();
+
+    // Ensure allTrades is an array
+    if (!Array.isArray(allTrades)) {
+      console.error('Expected array of trades but got:', typeof allTrades);
       return [];
     }
     
-    // Acquire lock
-    tradeCache.fetchLock = true;
+    if (tradeCache.debugMode) console.log(`Got ${allTrades.length} total trades, filtering for week`);
     
-    try {
-      // If we don't have all trades yet or the cache is old, fetch them
-      if (!tradeCache.trades || now - tradeCache.timestamp > 60000) {
-        if (tradeCache.debugMode) console.log('Fetching fresh trade data');
-        // IMPORTANT FIX: Always get fresh trades to ensure we have the latest data
-        tradeCache.trades = getTradesWithMetrics();
-        tradeCache.timestamp = now;
-      }
+    // Filter trades for the week - CRITICAL FIX: Make sure we're filtering correctly
+    const tradesForWeek = allTrades.filter(trade => {
+      if (!trade || !trade.exitDate) return false;
       
-      // Ensure allTrades is an array
-      const allTrades = tradeCache.trades || [];
-      if (!Array.isArray(allTrades)) {
-        console.error('Expected array of trades but got:', typeof allTrades);
-        return [];
-      }
-      
-      // Filter trades for the week - CRITICAL FIX: Make sure we're filtering correctly
-      const tradesForWeek = allTrades.filter(trade => {
-        if (!trade || !trade.exitDate) return false;
+      try {
+        // Parse the exitDate correctly
+        const exitDate = new Date(trade.exitDate);
         
-        try {
-          // Parse the exitDate correctly
-          const exitDate = new Date(trade.exitDate);
-          
-          // Add more debugging to see what's happening
-          const isInWeek = isWithinInterval(exitDate, { start: weekStart, end: weekEnd });
-          if (tradeCache.debugMode) {
-            console.log(`Trade ${trade.id} exitDate: ${exitDate.toISOString()}, week: ${weekStart.toISOString()} to ${weekEnd.toISOString()}, isInWeek: ${isInWeek}`);
-          }
-          
-          return isInWeek;
-        } catch (e) {
-          console.error('Error parsing exit date:', e);
-          return false;
+        // Check if the trade's exit date is within the specified week
+        const isInWeek = isWithinInterval(exitDate, { start: weekStart, end: weekEnd });
+        
+        if (tradeCache.debugMode && isInWeek) {
+          console.log(`Trade ${trade.id} (${trade.symbol}) is in the selected week`);
         }
-      });
-      
-      // Cache the results for this specific week
-      tradeCache.weekCache.set(cacheKey, tradesForWeek);
-      
-      console.log(`Found ${tradesForWeek.length} trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
-      
-      return tradesForWeek;
-    } finally {
-      // Release lock after a small delay to prevent rapid re-execution
-      setTimeout(() => {
-        tradeCache.fetchLock = false;
-      }, 300);
-    }
+        
+        return isInWeek;
+      } catch (e) {
+        console.error('Error parsing exit date:', e);
+        return false;
+      }
+    });
+    
+    // Cache the results for this specific week
+    tradeCache.weekCache.set(cacheKey, tradesForWeek);
+    
+    console.log(`Found ${tradesForWeek.length} trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
+    
+    return tradesForWeek;
   } catch (error) {
     console.error('Error getting trades for week:', error);
-    // Release lock in case of error
-    setTimeout(() => {
-      tradeCache.fetchLock = false;
-    }, 300);
     return [];
   }
 };
@@ -139,11 +106,8 @@ export const clearTradeCache = () => {
 
 // Add a function to temporarily prevent fetching during navigation
 export const preventTradeFetching = (prevent: boolean) => {
-  // Only log when changing the state to reduce noise
-  if (tradeCache.fetchLock !== prevent) {
-    console.log(`Trade fetching prevention ${prevent ? 'enabled' : 'disabled'}`);
-    tradeCache.fetchLock = prevent;
-  }
+  tradeCache.fetchLock = prevent;
+  console.log(`Trade fetching prevention ${prevent ? 'enabled' : 'disabled'}`);
 };
 
 // Set debug mode
