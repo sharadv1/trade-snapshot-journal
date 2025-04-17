@@ -11,6 +11,7 @@ import { getCurrentPeriodId, countWords } from '@/utils/journal/reflectionUtils'
 import { toast } from '@/utils/toast';
 import { clearTradeCache, preventTradeFetching } from '@/utils/tradeCalculations';
 import { ReflectionsList } from './reflections/ReflectionsList';
+import { ReflectionCard } from './journal/ReflectionCard';
 
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
