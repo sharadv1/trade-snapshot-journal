@@ -85,7 +85,12 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
   };
   
   // Function to handle reflection deletion
-  const handleDelete = async (reflectionId: string) => {
+  const handleDelete = async (reflectionId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     if (!reflectionId) {
       console.error('Cannot delete reflection with empty ID');
       toast.error('Failed to delete reflection: Invalid ID');

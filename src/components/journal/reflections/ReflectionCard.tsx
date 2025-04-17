@@ -21,7 +21,7 @@ interface ReflectionCardProps {
   reflectionWordCount: number;
   planWordCount: number;
   canDelete: boolean;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, e?: React.MouseEvent) => void;
   hasContent: boolean;
 }
 
@@ -53,7 +53,7 @@ export function ReflectionCard({
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onDelete(reflection.id);
+    onDelete(reflection.id, e);
   };
 
   return (
