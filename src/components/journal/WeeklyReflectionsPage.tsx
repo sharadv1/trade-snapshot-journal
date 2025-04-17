@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
 import { removeDuplicateReflections } from '@/utils/journal/storage/duplicateReflections';
@@ -18,13 +18,19 @@ export function WeeklyReflectionsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const navigate = useNavigate();
   
-  // Add mounted ref to prevent state updates after unmount
-  const isMountedRef = React.useRef(true);
+  // Add mounted ref to prevent updates after unmount
+  const isMountedRef = useRef(true);
+  const loadingRef = useRef(false);
+  
+  // Track if we've already loaded reflections to avoid loop
+  const hasLoadedRef = useRef(false);
   
   const loadReflections = useCallback(async () => {
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || loadingRef.current) return;
     
     try {
+      // Set loading ref to prevent concurrent loads
+      loadingRef.current = true;
       setIsLoading(true);
       setLoadError(null);
       
@@ -48,6 +54,7 @@ export function WeeklyReflectionsPage() {
         
         console.log(`Loaded ${sortedReflections.length} weekly reflections successfully`);
         setReflections(sortedReflections);
+        hasLoadedRef.current = true;
       } else {
         console.error('Expected array of reflections but got:', typeof fetchedReflections);
         setReflections([]);
@@ -61,6 +68,7 @@ export function WeeklyReflectionsPage() {
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
+        loadingRef.current = false;
       }
     }
   }, []);
@@ -68,6 +76,7 @@ export function WeeklyReflectionsPage() {
   useEffect(() => {
     // Set the mounted flag to true when mounting
     isMountedRef.current = true;
+    hasLoadedRef.current = false;
     
     // Reset fetching prevention on mount
     preventTradeFetching(false);
@@ -75,10 +84,13 @@ export function WeeklyReflectionsPage() {
     // Reset the trade cache when loading the reflections list
     clearTradeCache();
     
-    loadReflections();
+    // Load reflections ONLY if we haven't loaded them yet
+    if (!hasLoadedRef.current) {
+      loadReflections();
+    }
     
     const handleUpdate = () => {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && !loadingRef.current) {
         // Clear cache when changes occur
         clearTradeCache();
         loadReflections();
@@ -141,17 +153,19 @@ export function WeeklyReflectionsPage() {
   }, [loadReflections]);
   
   const handleReflectionClick = useCallback((reflection: WeeklyReflection) => {
-    // Important: Clear cache and prevent fetching before navigating
-    clearTradeCache();
+    // Important: Clear cache before navigating
     preventTradeFetching(true);
     
-    // Navigate to the reflection
-    navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
-    
-    // Re-enable fetching after navigation with delay
+    // Use a timeout to navigate - this helps break the rendering cycle
     setTimeout(() => {
-      preventTradeFetching(false);
-    }, 800);  // Longer delay to ensure page loads properly
+      // Navigate to the reflection
+      navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
+      
+      // Re-enable fetching after navigation with delay
+      setTimeout(() => {
+        preventTradeFetching(false);
+      }, 1000);  // Longer delay to ensure page loads properly
+    }, 0);
   }, [navigate]);
   
   if (isLoading) {
@@ -188,24 +202,26 @@ export function WeeklyReflectionsPage() {
         <Button variant="default" className="flex-1 py-6 rounded-md text-base">
           Weekly Reflections
         </Button>
+        {/* Use pure button for now to avoid Link reload issues */}
         <Button 
           variant="outline" 
-          className="flex-1 py-6 rounded-md text-base" 
-          asChild
+          className="flex-1 py-6 rounded-md text-base"
           onClick={() => {
-            // Clear cache before navigation
-            clearTradeCache();
-            
             // Prevent fetching during navigation
             preventTradeFetching(true);
             
-            // Re-enable after longer delay
+            // Use timeout to navigate after current render cycle
             setTimeout(() => {
-              preventTradeFetching(false);
-            }, 800);
+              navigate('/journal/monthly');
+              
+              // Re-enable after longer delay
+              setTimeout(() => {
+                preventTradeFetching(false);
+              }, 1000);
+            }, 0);
           }}
         >
-          <Link to="/journal/monthly">Monthly Reflections</Link>
+          Monthly Reflections
         </Button>
       </div>
       
@@ -213,25 +229,24 @@ export function WeeklyReflectionsPage() {
         <h2 className="text-3xl font-bold">Weekly Reflections</h2>
         <Button 
           onClick={() => {
-            // Clear cache before creating new reflection
-            clearTradeCache(); 
-            
             // Prevent fetching during navigation
             preventTradeFetching(true);
             
-            // Re-enable after longer delay
+            // Use timeout to navigate after current render cycle
             setTimeout(() => {
-              preventTradeFetching(false);
-            }, 800);
-          }} 
-          asChild 
+              navigate(`/journal/weekly/${getCurrentPeriodId('weekly')}`);
+              
+              // Re-enable after longer delay
+              setTimeout(() => {
+                preventTradeFetching(false);
+              }, 1000);
+            }, 0);
+          }}
           size="lg" 
           className="rounded-full h-12 w-12 p-0"
         >
-          <Link to={`/journal/weekly/${getCurrentPeriodId('weekly')}`}>
-            <Plus className="h-6 w-6" />
-            <span className="sr-only">New Week</span>
-          </Link>
+          <Plus className="h-6 w-6" />
+          <span className="sr-only">New Week</span>
         </Button>
       </div>
       
@@ -240,26 +255,33 @@ export function WeeklyReflectionsPage() {
           <p className="text-xl text-muted-foreground">No weekly reflections found. Start creating your trading journal!</p>
           <Button 
             size="lg" 
-            className="mt-4" 
-            asChild
+            className="mt-4"
             onClick={() => {
-              // Clear cache before navigation
-              clearTradeCache();
-              
               // Prevent fetching during navigation
               preventTradeFetching(true);
               
-              // Re-enable after longer delay
-              setTimeout(() => preventTradeFetching(false), 800);
+              // Use timeout to navigate after current render cycle
+              setTimeout(() => {
+                navigate(`/journal/weekly/${getCurrentPeriodId('weekly')}`);
+                
+                // Re-enable after longer delay
+                setTimeout(() => {
+                  preventTradeFetching(false);
+                }, 1000);
+              }, 0);
             }}
           >
-            <Link to={`/journal/weekly/${getCurrentPeriodId('weekly')}`}>Create First Reflection</Link>
+            Create First Reflection
           </Button>
         </Card>
       ) : (
         <div className="space-y-4">
           {reflections.map((reflection) => (
-            <div key={reflection.id} onClick={() => handleReflectionClick(reflection)} className="cursor-pointer">
+            <div 
+              key={reflection.id} 
+              onClick={() => handleReflectionClick(reflection)} 
+              className="cursor-pointer"
+            >
               <ReflectionCard 
                 reflection={reflection} 
                 onDelete={handleDeleteReflection}
