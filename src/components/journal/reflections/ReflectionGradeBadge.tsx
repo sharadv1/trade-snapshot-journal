@@ -10,8 +10,8 @@ export const ReflectionGradeBadge = ({ grade }: ReflectionGradeBadgeProps) => {
   if (!grade) return null;
 
   return (
-    <div className="inline-flex bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+    <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
       Grade: {grade}
-    </div>
+    </Badge>
   );
 };
