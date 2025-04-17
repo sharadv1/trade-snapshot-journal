@@ -5,6 +5,8 @@ import { formatCurrency } from '@/utils/calculations/formatters';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
+import { getTradesForWeek } from '@/utils/tradeCalculations';
+import { startOfWeek, endOfWeek, parseISO } from 'date-fns';
 
 interface ReflectionCardProps {
   reflection: WeeklyReflection | MonthlyReflection;
@@ -36,12 +38,6 @@ export const ReflectionCard = memo(function ReflectionCard({
 }: ReflectionCardProps) {
   if (!reflection || !reflection.id) return null;
   
-  // Safely access trade data, ensuring we have default values to prevent NaN issues
-  const tradeCount = stats.tradeCount || 0;
-  const rValue = stats.rValue || 0;
-  const totalPnL = stats.pnl || 0;
-  
-  // Memoize the delete handler to prevent unnecessary re-renders
   const handleDelete = useCallback((e: React.MouseEvent) => {
     if (onDelete) {
       e.preventDefault();
@@ -49,7 +45,20 @@ export const ReflectionCard = memo(function ReflectionCard({
       onDelete(reflection.id, e);
     }
   }, [reflection.id, onDelete]);
-  
+
+  // Get the actual trades for the week
+  let weeklyTrades = [];
+  if (type === 'weekly' && (reflection as WeeklyReflection).weekStart) {
+    const weekStart = startOfWeek(parseISO((reflection as WeeklyReflection).weekStart), { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+    weeklyTrades = getTradesForWeek(weekStart, weekEnd);
+  }
+
+  // Calculate actual metrics from trades
+  const totalPnL = weeklyTrades.reduce((sum, trade) => sum + (trade.metrics?.profitLoss || 0), 0);
+  const totalR = weeklyTrades.reduce((sum, trade) => sum + (trade.metrics?.rMultiple || 0), 0);
+  const tradeCount = weeklyTrades.length;
+
   return (
     <Card className="p-6 hover:bg-accent/10 transition-colors">
       <div className="flex justify-between items-start mb-2">
@@ -64,8 +73,8 @@ export const ReflectionCard = memo(function ReflectionCard({
           Trades: {tradeCount}
         </div>
         <div className="text-muted-foreground">
-          R-Value: <span className={rValue >= 0 ? 'text-green-600' : 'text-red-600'}>
-            {rValue > 0 ? '+' : ''}{rValue.toFixed(2)}R
+          R-Value: <span className={totalR >= 0 ? 'text-green-600' : 'text-red-600'}>
+            {totalR > 0 ? '+' : ''}{totalR.toFixed(2)}R
           </span>
         </div>
         <div className="text-muted-foreground">
