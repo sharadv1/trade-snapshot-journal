@@ -20,7 +20,8 @@ const tradeCache = {
   trades: null as TradeWithMetrics[] | null,
   timestamp: 0,
   weekCache: new Map<string, TradeWithMetrics[]>(),
-  lastCacheInvalidation: 0
+  lastCacheInvalidation: 0,
+  currentlyFetching: false
 };
 
 // Clear cache when necessary
@@ -40,7 +41,7 @@ const checkAndInvalidateCache = () => {
  * Get trades for a specific week with enhanced caching
  * Optimized to prevent redundant calculations and infinite loops
  */
-export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<TradeWithMetrics[]> => {
+export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetrics[] => {
   try {
     // Validate inputs first to prevent issues
     if (!weekStart || !weekEnd || !(weekStart instanceof Date) || !(weekEnd instanceof Date)) {
@@ -60,42 +61,56 @@ export const getTradesForWeek = async (weekStart: Date, weekEnd: Date): Promise<
       return tradeCache.weekCache.get(cacheKey) || [];
     }
     
-    // If we don't have all trades yet or the cache is old, fetch them
-    if (!tradeCache.trades) {
-      console.log('Fetching fresh trade data');
-      tradeCache.trades = getTradesWithMetrics();
-      tradeCache.timestamp = Date.now();
-    }
-    
-    // Ensure allTrades is an array
-    const allTrades = tradeCache.trades || [];
-    if (!Array.isArray(allTrades)) {
-      console.error('Expected array of trades but got:', typeof allTrades);
+    // Prevent concurrent fetches
+    if (tradeCache.currentlyFetching) {
+      console.log('Already fetching trade data, returning empty array to prevent loop');
       return [];
     }
     
-    console.log(`Filtering ${allTrades.length} trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
+    tradeCache.currentlyFetching = true;
     
-    // Filter trades for the week
-    const tradesForWeek = allTrades.filter(trade => {
-      if (!trade || !trade.exitDate) return false;
-      
-      try {
-        const exitDate = new Date(trade.exitDate);
-        return isWithinInterval(exitDate, { start: weekStart, end: weekEnd });
-      } catch (e) {
-        console.error('Error parsing exit date:', e);
-        return false;
+    try {
+      // If we don't have all trades yet or the cache is old, fetch them
+      if (!tradeCache.trades) {
+        console.log('Fetching fresh trade data');
+        tradeCache.trades = getTradesWithMetrics();
+        tradeCache.timestamp = Date.now();
       }
-    });
-    
-    // Cache the results for this specific week
-    tradeCache.weekCache.set(cacheKey, tradesForWeek);
-    console.log(`Loaded ${tradesForWeek.length} trades for week ${cacheKey}`);
-    
-    return tradesForWeek;
+      
+      // Ensure allTrades is an array
+      const allTrades = tradeCache.trades || [];
+      if (!Array.isArray(allTrades)) {
+        console.error('Expected array of trades but got:', typeof allTrades);
+        return [];
+      }
+      
+      console.log(`Filtering ${allTrades.length} trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
+      
+      // Filter trades for the week
+      const tradesForWeek = allTrades.filter(trade => {
+        if (!trade || !trade.exitDate) return false;
+        
+        try {
+          const exitDate = new Date(trade.exitDate);
+          return isWithinInterval(exitDate, { start: weekStart, end: weekEnd });
+        } catch (e) {
+          console.error('Error parsing exit date:', e);
+          return false;
+        }
+      });
+      
+      // Cache the results for this specific week
+      tradeCache.weekCache.set(cacheKey, tradesForWeek);
+      console.log(`Loaded ${tradesForWeek.length} trades for week ${cacheKey}`);
+      
+      return tradesForWeek;
+    } finally {
+      // Always reset the fetching flag to prevent deadlocks
+      tradeCache.currentlyFetching = false;
+    }
   } catch (error) {
     console.error('Error getting trades for week:', error);
+    tradeCache.currentlyFetching = false;
     return [];
   }
 };
@@ -106,5 +121,6 @@ export const clearTradeCache = () => {
   tradeCache.timestamp = 0;
   tradeCache.weekCache.clear();
   tradeCache.lastCacheInvalidation = Date.now();
+  tradeCache.currentlyFetching = false;
   console.log('Trade cache manually cleared');
 };

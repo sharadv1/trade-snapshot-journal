@@ -4,7 +4,7 @@ import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore, isAfter } 
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ChevronLeft, ChevronRight, Save } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Save, Loader2 } from 'lucide-react';
 import { WeeklyReflection, TradeWithMetrics } from '@/types';
 import { getWeeklyReflection, saveWeeklyReflection } from '@/utils/journal/reflectionStorage';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
@@ -49,17 +49,21 @@ export function WeeklyJournal() {
   
   // Navigate to previous/next week - memoized
   const goToPreviousWeek = useCallback(() => {
+    if (isSaving || isLoading) return; // Prevent navigation during loading
+    
     const previousWeek = addDays(weekStart, -7);
     navigate(`/journal/weekly/${format(previousWeek, 'yyyy-MM-dd')}`);
-  }, [navigate, weekStart]);
+  }, [navigate, weekStart, isSaving, isLoading]);
   
   const goToNextWeek = useCallback(() => {
+    if (isSaving || isLoading) return; // Prevent navigation during loading
+    
     // Only allow navigation if not going beyond current week
     if (canNavigateForward) {
       const nextWeek = addDays(weekStart, 7);
       navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
     }
-  }, [navigate, weekStart, canNavigateForward]);
+  }, [navigate, weekStart, canNavigateForward, isSaving, isLoading]);
   
   // Load reflection data - memoized
   const loadReflection = useCallback(async () => {
@@ -99,13 +103,14 @@ export function WeeklyJournal() {
   }, [weekId]);
   
   // Load trades for the week - memoized with loading state
-  const loadTrades = useCallback(async () => {
+  const loadTrades = useCallback(() => {
     if (!weekId) return;
     
     try {
       setIsLoadingTrades(true);
       console.log(`Loading trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
-      const trades = await getTradesForWeek(weekStart, weekEnd);
+      // Changed to synchronous version
+      const trades = getTradesForWeek(weekStart, weekEnd);
       console.log(`Found ${trades.length} trades for week`);
       setTradesForWeek(Array.isArray(trades) ? trades : []);
     } catch (error) {
@@ -197,6 +202,18 @@ export function WeeklyJournal() {
         .reduce((sum, t) => sum + (t.metrics?.profitLoss || 0), 0) / lossCount 
     : 0;
   
+  // Display loading state if still loading
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-12 flex justify-center items-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading weekly journal...</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="container mx-auto py-6 max-w-4xl">
       <div className="mb-6">
@@ -219,6 +236,7 @@ export function WeeklyJournal() {
           size="icon" 
           onClick={goToPreviousWeek}
           className="rounded-full"
+          disabled={isSaving}
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -232,7 +250,7 @@ export function WeeklyJournal() {
           size="icon" 
           onClick={goToNextWeek}
           className="rounded-full"
-          disabled={!canNavigateForward}
+          disabled={!canNavigateForward || isSaving}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -332,8 +350,17 @@ export function WeeklyJournal() {
               onClick={handleSaveAndReturn}
               disabled={isSaving}
             >
-              <Save className="mr-2 h-4 w-4" />
-              Save & Return to List
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save & Return to List
+                </>
+              )}
             </Button>
           </div>
         </div>
@@ -346,7 +373,7 @@ export function WeeklyJournal() {
         
         {isLoadingTrades ? (
           <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : tradesForWeek.length === 0 ? (
           <p className="text-center text-muted-foreground py-6">

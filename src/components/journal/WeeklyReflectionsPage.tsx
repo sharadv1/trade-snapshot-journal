@@ -60,6 +60,7 @@ export function WeeklyReflectionsPage() {
     loadReflections();
     
     const handleUpdate = () => {
+      clearTradeCache(); // Clear cache on any update event
       loadReflections();
     };
     
@@ -104,7 +105,10 @@ export function WeeklyReflectionsPage() {
   const handleReflectionClick = useCallback((reflection: WeeklyReflection) => {
     // Clear trade cache before navigating to ensure fresh data
     clearTradeCache();
-    navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
+    // Small delay to ensure cache is cleared before navigation
+    setTimeout(() => {
+      navigate(`/journal/weekly/${reflection.weekId || reflection.id}`);
+    }, 0);
   }, [navigate]);
   
   if (isLoading) {
@@ -148,7 +152,9 @@ export function WeeklyReflectionsPage() {
       
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold">Weekly Reflections</h2>
-        <Button asChild size="lg" className="rounded-full h-12 w-12 p-0">
+        <Button onClick={() => {
+          clearTradeCache(); // Clear cache before creating new reflection
+        }} asChild size="lg" className="rounded-full h-12 w-12 p-0">
           <Link to={`/journal/weekly/${getCurrentPeriodId('weekly')}`}>
             <Plus className="h-6 w-6" />
             <span className="sr-only">New Week</span>
@@ -163,6 +169,7 @@ export function WeeklyReflectionsPage() {
             size="lg" 
             className="mt-4" 
             asChild
+            onClick={() => clearTradeCache()}
           >
             <Link to={`/journal/weekly/${getCurrentPeriodId('weekly')}`}>Create First Reflection</Link>
           </Button>
