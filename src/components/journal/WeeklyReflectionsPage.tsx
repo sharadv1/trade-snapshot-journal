@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
@@ -9,7 +8,7 @@ import { Loader2, Plus, Scissors } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentPeriodId, countWords } from '@/utils/journal/reflectionUtils';
 import { toast } from '@/utils/toast';
-import { clearTradeCache, preventTradeFetching } from '@/utils/tradeCalculations';
+import { clearTradeCache, preventTradeFetching, getTradesForWeek } from '@/utils/tradeCalculations';
 import { ReflectionCard } from './reflections/ReflectionCard';
 
 export function WeeklyReflectionsPage() {
@@ -36,7 +35,6 @@ export function WeeklyReflectionsPage() {
       if (!isMountedRef.current) return;
       
       if (Array.isArray(fetchedReflections)) {
-        // Sort reflections by date, newest first
         const sortedReflections = fetchedReflections.sort((a, b) => {
           if (!a.weekStart || !b.weekStart) return 0;
           
@@ -110,6 +108,15 @@ export function WeeklyReflectionsPage() {
     e.stopPropagation();
     
     try {
+      const stats = getReflectionStats(
+        reflections.find(r => r.id === reflectionId) as WeeklyReflection
+      );
+      
+      if (stats.tradeCount > 0) {
+        toast.error("Cannot delete a reflection with associated trades");
+        return;
+      }
+      
       await deleteWeeklyReflection(reflectionId);
       if (isMountedRef.current) {
         toast.success("Reflection deleted successfully");
@@ -121,7 +128,7 @@ export function WeeklyReflectionsPage() {
         toast.error("Failed to delete reflection");
       }
     }
-  }, [loadReflections]);
+  }, [loadReflections, reflections]);
   
   const handleRemoveDuplicates = useCallback(async () => {
     if (!isMountedRef.current) return;
@@ -151,19 +158,28 @@ export function WeeklyReflectionsPage() {
   }, [navigate]);
   
   const getReflectionStats = (reflection: WeeklyReflection) => {
-    const tradeCount = Array.isArray(reflection.tradeIds) ? reflection.tradeIds.length : 0;
-    const rValue = typeof reflection.totalR === 'number' ? reflection.totalR : 0;
-    const totalPnL = typeof reflection.totalPnL === 'number' ? reflection.totalPnL : 0;
-    const hasContent = Boolean(reflection.reflection && reflection.reflection.trim().length > 0);
+    const weekStart = reflection.weekStart ? new Date(reflection.weekStart) : null;
+    const weekEnd = reflection.weekEnd ? new Date(reflection.weekEnd) : null;
+    
+    const trades = weekStart && weekEnd 
+      ? getTradesForWeek(weekStart, weekEnd) 
+      : [];
+    
+    const tradeCount = trades.length;
+    const totalPnL = trades.reduce((sum, trade) => sum + (trade.metrics?.profitLoss || 0), 0);
+    const totalR = trades.reduce((sum, trade) => sum + (trade.metrics?.rMultiple || 0), 0);
+    const winCount = trades.filter(trade => (trade.metrics?.profitLoss || 0) > 0).length;
+    const lossCount = trades.filter(trade => (trade.metrics?.profitLoss || 0) < 0).length;
+    const winRate = tradeCount > 0 ? (winCount / tradeCount) * 100 : 0;
     
     return {
       pnl: totalPnL,
-      rValue: rValue,
+      rValue: totalR,
       tradeCount: tradeCount,
-      hasContent: hasContent,
-      winCount: 0,
-      lossCount: 0,
-      winRate: 0
+      hasContent: Boolean(reflection.reflection && reflection.reflection.trim().length > 0),
+      winCount: winCount,
+      lossCount: lossCount,
+      winRate: winRate
     };
   };
   
