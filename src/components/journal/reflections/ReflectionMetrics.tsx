@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { formatCurrency } from '@/utils/calculations/formatters';
+import { calculateExpectedValue } from '@/pages/dashboard/dashboardUtils';
 
 interface ReflectionMetricsProps {
   tradeCount: number;
@@ -21,6 +22,14 @@ export const ReflectionMetrics = ({
   winRate,
   avgRPerTrade 
 }: ReflectionMetricsProps) => {
+  // Calculate expected value using win rate and average win/loss
+  const expectedValue = calculateExpectedValue([{
+    metrics: {
+      profitLoss: totalPnL,
+    },
+    status: 'closed'
+  }]);
+
   return (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
       <div className="bg-accent/10 rounded-lg p-3 text-center w-[140px]">
@@ -37,8 +46,8 @@ export const ReflectionMetrics = ({
       
       <div className="bg-accent/10 rounded-lg p-3 text-center w-[140px]">
         <div className="text-sm text-muted-foreground mb-1">Expected Value</div>
-        <div className={`font-semibold ${avgRPerTrade >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          {avgRPerTrade > 0 ? '+' : ''}{avgRPerTrade.toFixed(2)}R
+        <div className={`font-semibold ${expectedValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {formatCurrency(expectedValue)}
         </div>
       </div>
       
