@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import { WeeklyReflection } from '@/types';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { Card } from '@/components/ui/card';
@@ -37,11 +37,14 @@ export const ReflectionCard = memo(function ReflectionCard({ reflection, onDelet
   const totalPnL = typeof reflection.totalPnL === 'number' ? reflection.totalPnL : 0;
   const weekId = reflection.weekId || reflection.id;
   
-  const handleDelete = (e: React.MouseEvent) => {
+  // Memoize the delete handler to prevent unnecessary re-renders
+  const handleDelete = useCallback((e: React.MouseEvent) => {
     if (onDelete) {
+      e.preventDefault();
+      e.stopPropagation();
       onDelete(reflection.id, e);
     }
-  };
+  }, [reflection.id, onDelete]);
   
   return (
     <Card className="p-6 hover:bg-accent/10 transition-colors">

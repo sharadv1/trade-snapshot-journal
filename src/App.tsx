@@ -12,6 +12,7 @@ import NotFound from '@/pages/NotFound';
 import { Layout } from '@/components/layout/Layout';
 import SymbolManagement from '@/pages/SymbolManagement';
 import { WeeklyJournal } from '@/pages/WeeklyJournal';
+import { MonthlyJournal } from '@/pages/MonthlyJournal';
 import { JournalLayout } from '@/components/journal/JournalLayout';
 import { WeeklyReflectionsPage } from '@/components/journal/WeeklyReflectionsPage';
 import { MonthlyReflectionsPage } from '@/components/journal/MonthlyReflectionsPage';
@@ -67,7 +68,7 @@ function App() {
               <Route path="weekly/new-week" element={<CurrentWeekRedirect />} />
               <Route path="monthly/new-month" element={<CurrentMonthRedirect />} />
               <Route path="weekly/:weekId" element={<WeeklyJournal />} />
-              <Route path="monthly/:monthId" element={<WeeklyJournal />} />
+              <Route path="monthly/:monthId" element={<MonthlyJournal />} />
               <Route path=":weekId" element={<LegacyWeekRedirect />} />
             </Route>
             

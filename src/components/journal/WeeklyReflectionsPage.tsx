@@ -94,11 +94,11 @@ export function WeeklyReflectionsPage() {
   }, [loadReflections]);
   
   // Handle reflection creation or editing - moved to a separate handler
-  const handleRemoveDuplicates = useCallback(() => {
+  const handleRemoveDuplicates = useCallback(async () => {
     // This would connect to the duplicate removal logic
     try {
-      const { removeDuplicateReflections } = require('@/utils/journal/reflectionStorage');
-      const results = removeDuplicateReflections();
+      const { removeDuplicates } = await import('@/utils/journal/storage/duplicateReflections');
+      const results = await removeDuplicates();
       toast.success(`Removed ${results.weeklyRemoved + results.monthlyRemoved} duplicate reflections`);
       loadReflections();
     } catch (error) {
