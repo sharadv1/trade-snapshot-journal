@@ -57,7 +57,7 @@ export function WeeklyJournal() {
   const today = new Date();
   const canNavigateForward = isBefore(weekStart, startOfWeek(today, { weekStartsOn: 1 }));
   
-  // Turn on debug mode for troubleshooting trade loading - IMPORTANT FIX
+  // Turn on debug mode for troubleshooting trade loading
   useEffect(() => {
     console.log("Enabling trade debug mode");
     setTradeDebug(true);
@@ -160,7 +160,7 @@ export function WeeklyJournal() {
     }
   }, [weekId]);
   
-  // Load trades for the week - CRITICAL FIX
+  // Load trades for the week
   const loadTrades = useCallback(() => {
     if (!weekId || !isMountedRef.current) return;
     

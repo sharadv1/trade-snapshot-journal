@@ -41,13 +41,9 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
       return [];
     }
 
-    // Create a cache key for this specific week request
-    const cacheKey = `${weekStart.toISOString()}_${weekEnd.toISOString()}`;
-    
-    // ALWAYS clear the cache and reload fresh data - this fixes the main issue
+    // Get fresh trades data
     if (tradeCache.debugMode) console.log('Forcing fresh trade data fetch');
     
-    // Get fresh trades data
     const allTrades = getTradesWithMetrics();
     tradeCache.trades = allTrades;
     tradeCache.timestamp = Date.now();
@@ -83,6 +79,7 @@ export const getTradesForWeek = (weekStart: Date, weekEnd: Date): TradeWithMetri
     });
     
     // Cache the results for this specific week
+    const cacheKey = `${weekStart.toISOString()}_${weekEnd.toISOString()}`;
     tradeCache.weekCache.set(cacheKey, tradesForWeek);
     
     console.log(`Found ${tradesForWeek.length} trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
