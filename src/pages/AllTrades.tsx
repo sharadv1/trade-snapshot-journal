@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TradeList } from '@/components/trade-list/TradeList';
+import { TradeList } from '@/components/TradeList';
 
 export default function AllTrades() {
   return (
