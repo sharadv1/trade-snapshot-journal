@@ -1,6 +1,8 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { WeeklyReflection } from '@/types';
-import { getWeeklyReflections, deleteWeeklyReflection, removeDuplicateReflections } from '@/utils/journal/reflectionStorage';
+import { getWeeklyReflections, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
+import { removeDuplicateReflections } from '@/utils/journal/storage/duplicateReflections';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader2, Plus, Scissors } from 'lucide-react';

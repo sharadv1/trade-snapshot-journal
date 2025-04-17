@@ -1,3 +1,4 @@
+
 import { TradeWithMetrics, WeeklyReflection, MonthlyReflection } from '@/types';
 import { 
   startOfWeek, 
@@ -149,6 +150,7 @@ export async function generateMissingReflections(trades: TradeWithMetrics[]): Pr
     
     // Import the storage functions asynchronously to avoid circular dependencies
     const { saveWeeklyReflectionObject, saveMonthlyReflectionObject } = await import('../journal/reflectionStorage');
+    const { getWeeklyReflection, getMonthlyReflection } = await import('../journal/reflectionStorage');
     
     // Process trades in batches to prevent UI freezing
     await processTradesInBatches(trades, async (tradeBatch) => {

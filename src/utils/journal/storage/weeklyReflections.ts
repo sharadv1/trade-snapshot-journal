@@ -1,3 +1,4 @@
+
 import { WeeklyReflection } from '@/types';
 import { generateUUID } from '@/utils/generateUUID';
 import { 
@@ -251,6 +252,35 @@ export function saveWeeklyReflection(weekId: string, reflection: string, grade?:
   } catch (error) {
     console.error('Error in saveWeeklyReflection:', error);
     toast.error('Failed to save weekly reflection');
+  }
+}
+
+/**
+ * Get all weekly reflections as an object
+ * Used by getWeeklyReflectionsForMonth
+ */
+export function getAllWeeklyReflections() {
+  try {
+    console.log('[JOURNAL STORAGE] Getting ALL weekly reflections for key "trade-journal-weekly-reflections"');
+    const reflectionsJson = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
+    
+    if (!reflectionsJson) {
+      console.log('No weekly reflections found in local storage');
+      return {};
+    }
+    
+    console.log('Data:', reflectionsJson.substring(0, 100) + '...');
+    
+    try {
+      const data = JSON.parse(reflectionsJson);
+      return data || {};
+    } catch (e) {
+      console.error('Failed to parse weekly reflections JSON:', e);
+      return {};
+    }
+  } catch (error) {
+    console.error('Error getting all weekly reflections:', error);
+    return {};
   }
 }
 
