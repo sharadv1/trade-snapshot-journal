@@ -1,17 +1,30 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ChevronLeft, ChevronRight, Save, Loader2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Save, Loader2, ExternalLink, Trash } from 'lucide-react';
 import { WeeklyReflection, TradeWithMetrics } from '@/types';
-import { getWeeklyReflection, saveWeeklyReflection } from '@/utils/journal/reflectionStorage';
+import { getWeeklyReflection, saveWeeklyReflection, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { toast } from '@/utils/toast';
 import { getTradesForWeek, clearTradeCache, preventTradeFetching, setTradeDebug } from '@/utils/tradeCalculations';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReflectionMetrics } from '@/components/journal/reflections/ReflectionMetrics';
+import { removeDuplicateReflections } from '@/utils/journal/storage/duplicateReflections';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export function WeeklyJournal() {
   const { weekId } = useParams<{ weekId: string }>();
@@ -24,6 +37,8 @@ export function WeeklyJournal() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [weeklyReflection, setWeeklyReflection] = useState<WeeklyReflection | null>(null);
   const [isLoadingTrades, setIsLoadingTrades] = useState<boolean>(false);
+  const [isProcessingDuplicates, setIsProcessingDuplicates] = useState<boolean>(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   
   const isMountedRef = useRef(true);
   const needsReloadRef = useRef(true);
@@ -183,6 +198,62 @@ export function WeeklyJournal() {
     }
   }, [navigate, weekStart, canNavigateForward, isSaving, isLoading]);
   
+  const handleDeleteReflection = useCallback(async () => {
+    if (!weeklyReflection || !weeklyReflection.id || !isMountedRef.current) return;
+    
+    try {
+      setIsSaving(true);
+      await deleteWeeklyReflection(weeklyReflection.id);
+      
+      if (!isMountedRef.current) return;
+      
+      setWeeklyReflection(null);
+      setReflection('');
+      setWeeklyPlan('');
+      setGrade('');
+      backupRef.current = { reflection: '', weeklyPlan: '', grade: '' };
+      
+      toast.success('Reflection deleted successfully');
+      
+      // Close the dialog
+      setDeleteDialogOpen(false);
+      
+      // Navigate back to the list
+      navigate('/journal/weekly');
+    } catch (error) {
+      console.error('Error deleting reflection:', error);
+      if (isMountedRef.current) {
+        toast.error('Failed to delete reflection');
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
+  }, [weeklyReflection, navigate]);
+  
+  const handleCleanupDuplicates = useCallback(async () => {
+    if (isProcessingDuplicates) return;
+    
+    try {
+      setIsProcessingDuplicates(true);
+      const { weeklyRemoved } = await removeDuplicateReflections();
+      
+      if (weeklyRemoved > 0) {
+        toast.success(`Removed ${weeklyRemoved} duplicate weekly reflections`);
+        // Reload after cleanup
+        loadReflection();
+      } else {
+        toast.info('No duplicate reflections found');
+      }
+    } catch (error) {
+      console.error('Error cleaning up duplicates:', error);
+      toast.error('Failed to cleanup duplicate reflections');
+    } finally {
+      setIsProcessingDuplicates(false);
+    }
+  }, [isProcessingDuplicates, loadReflection]);
+  
   const handleSave = useCallback(async () => {
     if (!weekId || isSaving || !isMountedRef.current) return;
     
@@ -318,9 +389,57 @@ export function WeeklyJournal() {
       </Card>
       
       <Card className="p-6 mb-6">
-        <h2 className="text-2xl font-semibold mb-6">
-          Weekly Reflection - {formattedDateRange}
-        </h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-semibold">
+            Weekly Reflection - {formattedDateRange}
+          </h2>
+          
+          <div className="flex space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleCleanupDuplicates} 
+              disabled={isProcessingDuplicates}
+            >
+              {isProcessingDuplicates ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cleaning...
+                </>
+              ) : (
+                'Clean Duplicates'
+              )}
+            </Button>
+            
+            {weeklyReflection && (
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50">
+                    <Trash className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Reflection</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this weekly reflection? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDeleteReflection}
+                      className="bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        </div>
         
         <div className="space-y-6">
           <div>
