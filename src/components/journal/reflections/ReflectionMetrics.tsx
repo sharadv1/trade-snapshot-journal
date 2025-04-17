@@ -36,7 +36,7 @@ export const ReflectionMetrics = ({
       </div>
       
       <div className="bg-accent/10 rounded-lg p-3 text-center w-[140px]">
-        <div className="text-sm text-muted-foreground mb-1">Avg R/Trade</div>
+        <div className="text-sm text-muted-foreground mb-1">Expectancy</div>
         <div className={`font-semibold ${avgRPerTrade >= 0 ? 'text-green-600' : 'text-red-600'}`}>
           {avgRPerTrade > 0 ? '+' : ''}{avgRPerTrade.toFixed(2)}R
         </div>
@@ -48,8 +48,10 @@ export const ReflectionMetrics = ({
       </div>
       
       <div className="bg-accent/10 rounded-lg p-3 text-center w-[140px]">
-        <div className="text-sm text-muted-foreground mb-1">W/L</div>
-        <div className="font-semibold">{winCount}/{lossCount}</div>
+        <div className="text-sm text-muted-foreground mb-1">P&L</div>
+        <div className={`font-semibold ${totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {formatCurrency(totalPnL)}
+        </div>
       </div>
     </div>
   );
