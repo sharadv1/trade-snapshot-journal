@@ -286,9 +286,6 @@ export function WeeklyReflectionsPage() {
           {reflections.map((reflection) => {
             const stats = getReflectionStats(reflection);
             
-            const reflectionWordCount = countWords(reflection.reflection || '');
-            const planWordCount = countWords(reflection.weeklyPlan || '');
-            
             const dateRange = reflection.weekStart ? 
               `Week of ${new Date(reflection.weekStart).toLocaleDateString()}` : 
               'Unknown date range';
@@ -309,12 +306,12 @@ export function WeeklyReflectionsPage() {
                   type="weekly"
                   stats={stats}
                   dateRange={dateRange}
-                  reflectionWordCount={reflectionWordCount}
-                  planWordCount={planWordCount}
                   canDelete={stats.tradeCount === 0}
                   onDelete={stats.tradeCount === 0 ? handleDeleteReflection : undefined}
                   hasContent={stats.hasContent}
                   isDuplicate={isDuplicate}
+                  showWordCounts={false}
+                  showGrade={false}
                 />
               </div>
             );
