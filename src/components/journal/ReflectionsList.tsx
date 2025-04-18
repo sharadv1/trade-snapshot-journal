@@ -1,20 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { 
   format, 
-  startOfWeek, 
-  endOfWeek, 
   parseISO, 
   isSameMonth, 
   isSameYear 
 } from 'date-fns';
 import { WeeklyReflection, MonthlyReflection } from '@/types';
-import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { ReflectionDeleteDialog } from './reflections/ReflectionDeleteDialog';
-import { ReflectionCard } from './reflections/ReflectionCard';
 import { Check, Filter, Calendar, Plus, ArrowRight, Download } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import {
@@ -227,26 +223,6 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
                       <h3 className="text-base font-medium inline-flex items-center">
                         <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                         {formattedDate}
-                        
-                        {reflection.grade && (
-                          <Badge 
-                            variant="outline" 
-                            className={getGradeColor(reflection.grade)}
-                            style={{ marginLeft: '8px' }}
-                          >
-                            {reflection.grade}
-                          </Badge>
-                        )}
-                        
-                        {stats.hasContent && (
-                          <Badge 
-                            variant="outline" 
-                            className="bg-green-100 text-green-800 ml-2"
-                          >
-                            <Check className="h-3 w-3 mr-1" />
-                            Completed
-                          </Badge>
-                        )}
                       </h3>
                     </div>
                     
