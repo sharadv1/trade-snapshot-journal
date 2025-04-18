@@ -1,8 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { MonthlyReflection, WeeklyReflection } from '@/types';
 import { formatCurrency } from '@/utils/calculations/formatters';
 import { ArrowRight } from 'lucide-react';
@@ -25,7 +24,6 @@ export function ReflectionCardSimple({
   pnl,
   rValue,
   tradeCount,
-  grade,
   hasContent
 }: ReflectionCardSimpleProps) {
   // Get the reflection ID (weekId or monthId)
@@ -35,16 +33,6 @@ export function ReflectionCardSimple({
   
   // Determine if reflection is profitable
   const isProfitable = pnl > 0;
-  
-  // Get grade color class
-  const getGradeColor = (grade?: string) => {
-    if (!grade) return 'bg-gray-100 text-gray-800';
-    
-    if (grade.startsWith('A')) return 'bg-green-100 text-green-800';
-    if (grade.startsWith('B')) return 'bg-blue-100 text-blue-800';
-    if (grade.startsWith('C')) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
-  };
 
   return (
     <Card 
@@ -57,23 +45,6 @@ export function ReflectionCardSimple({
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-base font-medium">{dateRange}</h3>
-            
-            <div className="flex flex-wrap gap-2 mt-2">
-              {grade && (
-                <Badge 
-                  variant="outline" 
-                  className={getGradeColor(grade)}
-                >
-                  {grade}
-                </Badge>
-              )}
-              
-              {hasContent && (
-                <Badge variant="outline" className="bg-green-100 text-green-800">
-                  Completed
-                </Badge>
-              )}
-            </div>
           </div>
           
           <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -105,3 +76,4 @@ export function ReflectionCardSimple({
     </Card>
   );
 }
+
