@@ -1,18 +1,31 @@
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertTriangle } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { MonthlyReflection, WeeklyReflection } from '@/types';
-import { format, parseISO } from 'date-fns';
-import { toast } from '@/utils/toast';
-import { deleteWeeklyReflection, deleteMonthlyReflection } from '@/utils/journal/reflectionStorage';
+import { useNavigate } from 'react-router-dom';
+import { 
+  format, 
+  startOfWeek, 
+  endOfWeek, 
+  parseISO, 
+  isSameMonth, 
+  isSameYear 
+} from 'date-fns';
+import { WeeklyReflection, MonthlyReflection } from '@/types';
+import { formatCurrency } from '@/utils/calculations/formatters';
+import { ReflectionDeleteDialog } from './ReflectionDeleteDialog';
 import { ReflectionCard } from './ReflectionCard';
-import { countWords, hasContent, getCurrentPeriodId } from '@/utils/journal/reflectionUtils';
-import { getTradesForWeek, getTradesForMonth, clearTradeCache } from '@/utils/tradeCalculations';
+import { Check, Filter, Calendar, Plus, ArrowRight, Download } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-export interface ReflectionsListProps {
+interface ReflectionsListProps {
   reflections: WeeklyReflection[] | MonthlyReflection[];
   type: 'weekly' | 'monthly';
   getStats: (reflection: WeeklyReflection | MonthlyReflection) => {
@@ -24,230 +37,252 @@ export interface ReflectionsListProps {
 }
 
 export function ReflectionsList({ reflections, type, getStats }: ReflectionsListProps) {
-  // Ensure reflections is an array
-  const safeReflections = Array.isArray(reflections) ? reflections : [];
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [reflectionToDelete, setReflectionToDelete] = useState<WeeklyReflection | MonthlyReflection | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedReflection, setSelectedReflection] = useState<WeeklyReflection | MonthlyReflection | null>(null);
+  const navigate = useNavigate();
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  // Function to format date ranges for display
-  const formatDateRange = (reflection: WeeklyReflection | MonthlyReflection) => {
+  const handleReflectionClick = (reflection: WeeklyReflection | MonthlyReflection) => {
     if (type === 'weekly') {
-      const weeklyReflection = reflection as WeeklyReflection;
-      if (weeklyReflection.weekStart && weeklyReflection.weekEnd) {
-        try {
-          const start = new Date(weeklyReflection.weekStart);
-          const end = new Date(weeklyReflection.weekEnd);
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-            console.warn("Invalid date in reflection:", weeklyReflection);
-            return 'Invalid date range';
-          }
-          return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
-        } catch (error) {
-          console.error("Error formatting date range:", error);
-          return 'Invalid date range';
-        }
-      }
-      return 'Date range unavailable';
+      navigate(`/journal/weekly/${(reflection as WeeklyReflection).weekId}`);
     } else {
-      const monthlyReflection = reflection as MonthlyReflection;
-      if (monthlyReflection.monthStart && monthlyReflection.monthEnd) {
-        try {
-          const start = new Date(monthlyReflection.monthStart);
-          const end = new Date(monthlyReflection.monthEnd);
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-            console.warn("Invalid date in reflection:", monthlyReflection);
-            return 'Invalid date range';
-          }
-          return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
-        } catch (error) {
-          console.error("Error formatting date range:", error);
-          return 'Invalid date range';
-        }
-      } else if (monthlyReflection.monthId) {
-        try {
-          const date = new Date(parseInt(monthlyReflection.monthId.split('-')[0]), 
-                               parseInt(monthlyReflection.monthId.split('-')[1]) - 1, 1);
-          if (!isNaN(date.getTime())) {
-            return format(date, 'MMMM yyyy');
-          }
-        } catch (error) {
-          console.error("Error parsing month ID:", error);
-        }
-      }
-      return 'Date unavailable';
-    }
-  };
-
-  // Helper to get reflection ID
-  const getReflectionId = (reflection: WeeklyReflection | MonthlyReflection) => {
-    if (type === 'weekly') {
-      return (reflection as WeeklyReflection).weekId || reflection.id;
-    } else {
-      return (reflection as MonthlyReflection).monthId || reflection.id;
+      navigate(`/journal/monthly/${(reflection as MonthlyReflection).monthId}`);
     }
   };
   
-  // Function to handle reflection deletion
-  const handleDelete = async (reflectionId: string, e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+  const handleNewReflectionClick = () => {
+    if (type === 'weekly') {
+      navigate('/journal/weekly/new-week');
+    } else {
+      navigate('/journal/monthly/new-month');
     }
-    
-    if (!reflectionId) {
-      console.error('Cannot delete reflection with empty ID');
-      toast.error('Failed to delete reflection: Invalid ID');
-      return;
-    }
-    
-    try {
-      if (type === 'weekly') {
-        await deleteWeeklyReflection(reflectionId);
-      } else {
-        await deleteMonthlyReflection(reflectionId);
-      }
-      toast.success(`${type === 'weekly' ? 'Weekly' : 'Monthly'} reflection deleted successfully`);
+  };
+  
+  const handleOpenDeleteDialog = (reflection: WeeklyReflection | MonthlyReflection) => {
+    setReflectionToDelete(reflection);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const handleCloseDeleteDialog = () => {
+    setIsDeleteDialogOpen(false);
+    setReflectionToDelete(null);
+  };
+  
+  const handleReflectionDeleted = () => {
+    handleCloseDeleteDialog();
+  };
+  
+  const handleDeleteReflection = (id: string) => {
+    // Implement delete logic here
+  };
+  
+  const getFormattedDate = (reflection: WeeklyReflection | MonthlyReflection): string => {
+    if (type === 'weekly') {
+      const weekStart = (reflection as WeeklyReflection).weekStart;
+      const weekEnd = (reflection as WeeklyReflection).weekEnd;
       
-      // Trigger UI updates
-      window.dispatchEvent(new CustomEvent('journal-updated'));
-    } catch (error) {
-      console.error('Error deleting reflection:', error);
-      toast.error(`Failed to delete ${type} reflection`);
+      if (!weekStart || !weekEnd) return 'Unknown week';
+      
+      const start = parseISO(weekStart);
+      const end = parseISO(weekEnd);
+      
+      return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+    } else {
+      const monthId = (reflection as MonthlyReflection).monthId;
+      if (!monthId) return 'Unknown month';
+      
+      const date = parseISO(monthId);
+      return format(date, 'MMMM yyyy');
     }
   };
-  
-  // Function to calculate stats for each reflection
-  const calculateStats = (reflection: WeeklyReflection | MonthlyReflection) => {
-    // If we already have precomputed stats, use them
-    if (reflection.totalPnL !== undefined && reflection.totalR !== undefined && 
-        reflection.tradeIds !== undefined && Array.isArray(reflection.tradeIds)) {
-      return {
-        pnl: reflection.totalPnL || 0,
-        rValue: reflection.totalR || 0,
-        tradeCount: reflection.tradeIds?.length || 0,
-        hasContent: Boolean(reflection.reflection && reflection.reflection.trim().length > 0)
-      };
+
+  const filteredReflections = reflections.filter(reflection => {
+    const formattedDate = getFormattedDate(reflection).toLowerCase();
+    const searchText = searchQuery.toLowerCase();
+    
+    if (searchText && !formattedDate.includes(searchText)) {
+      return false;
     }
     
-    // Otherwise, use the provided getStats function
-    return getStats(reflection);
-  };
-  
-  // Function to determine if a reflection is deletable (no associated trades)
-  const isDeletable = (reflection: WeeklyReflection | MonthlyReflection): boolean => {
-    const stats = calculateStats(reflection);
-    return stats.tradeCount === 0;
-  };
-
-  console.log(`Rendering ${safeReflections.length} ${type} reflections`);
-
-  // Check if there's any invalid data in the reflections
-  const hasInvalidData = safeReflections.some(r => !r.id || (type === 'weekly' && !(r as WeeklyReflection).weekId) || 
-                                            (type === 'monthly' && !(r as MonthlyReflection).monthId));
-  
-  // Show warning if invalid data is detected
-  if (hasInvalidData) {
-    console.warn("Invalid reflection data detected:", safeReflections.filter(r => !r.id || 
-      (type === 'weekly' && !(r as WeeklyReflection).weekId) || 
-      (type === 'monthly' && !(r as MonthlyReflection).monthId)));
-  }
+    if (selectedMonth !== null) {
+      let reflectionDate;
+      if (type === 'weekly') {
+        const weekStart = (reflection as WeeklyReflection).weekStart;
+        if (!weekStart) return false;
+        reflectionDate = parseISO(weekStart);
+      } else {
+        const monthId = (reflection as MonthlyReflection).monthId;
+        if (!monthId) return false;
+        reflectionDate = parseISO(monthId);
+      }
+      
+      if (!isSameMonth(reflectionDate, new Date(2000, selectedMonth, 1))) {
+        return false;
+      }
+    }
+    
+    if (selectedYear !== null) {
+      let reflectionDate;
+      if (type === 'weekly') {
+        const weekStart = (reflection as WeeklyReflection).weekStart;
+        if (!weekStart) return false;
+        reflectionDate = parseISO(weekStart);
+      } else {
+        const monthId = (reflection as MonthlyReflection).monthId;
+        if (!monthId) return false;
+        reflectionDate = parseISO(monthId);
+      }
+      
+      if (!isSameYear(reflectionDate, new Date(selectedYear, 0, 1))) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
 
   return (
     <div className="w-full max-w-screen-xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">
-          {type === 'weekly' ? 'Weekly' : 'Monthly'} Reflections
-        </h2>
-        <div className="w-[200px]"></div>
-        <Button asChild>
-          <Link to={`/journal/${type}/${getCurrentPeriodId(type)}`}>
-            <Plus className="mr-2 h-4 w-4" />
-            New {type === 'weekly' ? 'Week' : 'Month'}
-          </Link>
+        <div className="flex items-center space-x-2">
+          <Input
+            type="text"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="max-w-xs"
+          />
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setSelectedMonth(null)}>
+                Clear Month Filter
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {[...Array(12)].map((_, i) => (
+                <DropdownMenuItem key={i} onClick={() => setSelectedMonth(i)}>
+                  {format(new Date(2000, i, 1), 'MMMM')}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setSelectedYear(null)}>
+                Clear Year Filter
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {[...Array(5)].map((_, i) => {
+                const year = new Date().getFullYear() - i;
+                return (
+                  <DropdownMenuItem key={year} onClick={() => setSelectedYear(year)}>
+                    {year}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        
+        <Button variant="outline" size="sm" onClick={handleNewReflectionClick}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add New
         </Button>
       </div>
-
-      {hasInvalidData && (
-        <Card className="mb-4 border-amber-300 bg-amber-50">
-          <CardContent className="py-3 flex items-center">
-            <AlertTriangle className="h-5 w-5 text-amber-500 mr-2" />
-            <p className="text-amber-700">
-              Some reflections contain invalid data. This may affect display and functionality.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {safeReflections.length === 0 ? (
-        <Card>
-          <CardContent className="py-8">
-            <p className="text-center text-muted-foreground">
-              No {type} reflections yet. Create your first one!
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {safeReflections.map((reflection) => {
-            if (!reflection || typeof reflection !== 'object') {
-              console.error('Invalid reflection object:', reflection);
-              return null;
-            }
+      
+      <div className="grid grid-cols-1 gap-4">
+        {filteredReflections.length > 0 ? (
+          filteredReflections.map((reflection) => {
+            const stats = getStats(reflection);
+            const formattedDate = getFormattedDate(reflection);
+            const isProfitable = stats.pnl > 0;
             
-            try {
-              const reflectionId = getReflectionId(reflection);
-              
-              if (!reflectionId) {
-                console.warn('Reflection has no ID:', reflection);
-                return null;
-              }
-              
-              const stats = calculateStats(reflection);
-              console.log(`Stats for ${reflectionId}:`, stats);
-              
-              const dateRange = formatDateRange(reflection);
-              
-              // Calculate word counts
-              let reflectionWordCount = 0;
-              let planWordCount = 0;
-              
-              if (type === 'weekly') {
-                const weeklyReflection = reflection as WeeklyReflection;
-                reflectionWordCount = countWords(weeklyReflection.reflection || '');
-                planWordCount = countWords(weeklyReflection.weeklyPlan || '');
-              } else {
-                const monthlyReflection = reflection as MonthlyReflection;
-                reflectionWordCount = countWords(monthlyReflection.reflection || '');
-              }
-              
-              // Determine if reflection can be deleted
-              const canDelete = isDeletable(reflection);
-
-              return (
-                <ReflectionCard
-                  key={reflectionId}
-                  reflection={reflection}
-                  type={type}
-                  stats={stats}
-                  dateRange={dateRange}
-                  reflectionWordCount={reflectionWordCount}
-                  planWordCount={planWordCount}
-                  canDelete={canDelete}
-                  onDelete={handleDelete}
-                  hasContent={stats.hasContent}
-                />
-              );
-            } catch (error) {
-              console.error("Error rendering reflection card:", error, reflection);
-              return (
-                <Card key={`error-${Math.random()}`} className="border-red-300 bg-red-50">
-                  <CardContent className="py-3">
-                    <p className="text-red-700">Error displaying this reflection</p>
-                  </CardContent>
-                </Card>
-              );
-            }
-          }).filter(Boolean)}
-        </div>
-      )}
+            return (
+              <Card 
+                key={reflection.id} 
+                className={`cursor-pointer hover:bg-muted/40 transition-colors ${
+                  reflection.isPlaceholder ? 'border-dashed' : ''
+                }`}
+                onClick={() => handleReflectionClick(reflection)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-base font-medium inline-flex items-center">
+                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                        {formattedDate}
+                      </h3>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {reflection.actions && reflection.actions}
+                      
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-4 mt-4">
+                    <div className={`text-sm ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className="text-muted-foreground mr-1">P&L:</span>
+                      <span className="font-medium">
+                        {formatCurrency(stats.pnl)}
+                      </span>
+                    </div>
+                    
+                    <div className={`text-sm ${stats.rValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className="text-muted-foreground mr-1">R Value:</span>
+                      <span className="font-medium">
+                        {stats.rValue > 0 ? '+' : ''}{stats.rValue.toFixed(1)}R
+                      </span>
+                    </div>
+                    
+                    <div className="text-sm">
+                      <span className="text-muted-foreground mr-1">Trades:</span>
+                      <span className="font-medium">
+                        {stats.tradeCount}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {reflection.reflection && (
+                    <div className="mt-3 text-sm text-muted-foreground line-clamp-2">
+                      {reflection.reflection.replace(/<[^>]*>/g, ' ')}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })
+        ) : (
+          <div className="text-center py-16 border border-dashed rounded-md">
+            <h3 className="text-xl font-semibold mb-2">No Reflections Found</h3>
+            <p className="text-muted-foreground">
+              It seems like there are no reflections matching your criteria.
+            </p>
+          </div>
+        )}
+      </div>
+      
+      <ReflectionDeleteDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        reflection={selectedReflection}
+        onReflectionDeleted={handleReflectionDeleted}
+        type={type}
+        onConfirm={() => {
+          if (selectedReflection) {
+            handleDeleteReflection(selectedReflection.id);
+          }
+        }}
+      />
     </div>
   );
 }
+
