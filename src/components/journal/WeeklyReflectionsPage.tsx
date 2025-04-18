@@ -247,7 +247,7 @@ export function WeeklyReflectionsPage() {
   });
   
   return (
-    <div className="w-full max-w-screen-xl mx-auto p-4">
+    <div className="container mx-auto py-6 max-w-screen-xl px-4">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Weekly Reflections</h1>
         <div className="flex gap-2">

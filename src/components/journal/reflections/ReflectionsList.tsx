@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -150,7 +151,7 @@ export function ReflectionsList({ reflections, type, getStats }: ReflectionsList
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-screen-xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">
           {type === 'weekly' ? 'Weekly' : 'Monthly'} Reflections
