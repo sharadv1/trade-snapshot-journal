@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { CumulativePnLChart } from '@/components/CumulativePnLChart';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
@@ -55,7 +54,7 @@ export default function Analytics() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto py-6 px-4 space-y-8">
+    <div className="container mx-auto py-6 px-4 max-w-screen-2xl">
       <div className="flex items-center justify-between mb-2 gap-4">
         <h1 className="text-3xl font-bold tracking-tight">
           Trading Analytics

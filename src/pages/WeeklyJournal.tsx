@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -333,7 +332,7 @@ export function WeeklyJournal() {
   }
   
   return (
-    <div className="container mx-auto py-6 max-w-4xl">
+    <div className="container mx-auto py-6 max-w-screen-xl px-4">
       <div className="mb-6">
         <Button 
           variant="ghost" 
