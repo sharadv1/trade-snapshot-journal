@@ -17,17 +17,19 @@ export default function Analytics() {
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const allTrades = getTradesWithMetrics();
   
-  // Filter trades by selected accounts
+  // Filter trades by selected accounts - ensure proper handling of undefined/null values
   const trades = selectedAccounts.length > 0
     ? allTrades.filter(trade => trade.account && selectedAccounts.includes(trade.account))
     : allTrades;
 
-  // Get unique accounts - ensure we have proper array initialization
-  const accounts = Array.from(new Set(
-    allTrades
-      .filter(trade => trade.account)
-      .map(trade => trade.account || 'Unassigned')
-  )).sort() || [];
+  // Get unique accounts with safer handling
+  const accounts = allTrades && allTrades.length > 0 
+    ? Array.from(new Set(
+        allTrades
+          .filter(trade => trade.account && typeof trade.account === 'string')
+          .map(trade => trade.account || 'Unassigned')
+      )).sort() 
+    : [];
 
   // Count trades by timeframe for display purposes
   const timeframeCount = trades.reduce((acc, trade) => {
