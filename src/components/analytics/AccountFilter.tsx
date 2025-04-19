@@ -22,7 +22,10 @@ interface AccountFilterProps {
   onChange: (accounts: string[]) => void;
 }
 
-export function AccountFilter({ accounts, selectedAccounts, onChange }: AccountFilterProps) {
+export function AccountFilter({ accounts = [], selectedAccounts = [], onChange }: AccountFilterProps) {
+  // Ensure accounts is always an array, even if undefined is passed
+  const safeAccounts = Array.isArray(accounts) ? accounts : [];
+  
   const toggleAccount = (account: string) => {
     if (selectedAccounts.includes(account)) {
       onChange(selectedAccounts.filter(a => a !== account));
@@ -52,7 +55,7 @@ export function AccountFilter({ accounts, selectedAccounts, onChange }: AccountF
           <Command>
             <CommandEmpty>No accounts found.</CommandEmpty>
             <CommandGroup>
-              {accounts.map((account) => (
+              {safeAccounts.map((account) => (
                 <CommandItem
                   key={account}
                   onSelect={() => toggleAccount(account)}

@@ -22,12 +22,12 @@ export default function Analytics() {
     ? allTrades.filter(trade => trade.account && selectedAccounts.includes(trade.account))
     : allTrades;
 
-  // Get unique accounts
+  // Get unique accounts - ensure we have proper array initialization
   const accounts = Array.from(new Set(
     allTrades
+      .filter(trade => trade.account)
       .map(trade => trade.account || 'Unassigned')
-      .filter(Boolean)
-  )).sort();
+  )).sort() || [];
 
   // Count trades by timeframe for display purposes
   const timeframeCount = trades.reduce((acc, trade) => {
