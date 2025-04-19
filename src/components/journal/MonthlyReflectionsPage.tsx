@@ -232,8 +232,6 @@ export function MonthlyReflectionsPage() {
             const stats = getReflectionStats(reflection);
             const dateRange = formatDateRange(reflection);
             const reflectionId = reflection.monthId || reflection.id;
-            const reflectionWordCount = countWords(reflection.reflection || '');
-            const planWordCount = 0;
             const hasContent = Boolean(reflection.reflection && reflection.reflection.trim().length > 0);
             const canDelete = stats.tradeCount === 0;
             
@@ -248,8 +246,6 @@ export function MonthlyReflectionsPage() {
                   type="monthly"
                   dateRange={dateRange}
                   stats={stats}
-                  reflectionWordCount={reflectionWordCount}
-                  planWordCount={planWordCount}
                   canDelete={canDelete}
                   onDelete={handleDeleteReflection}
                   hasContent={hasContent}
