@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -30,9 +30,17 @@ export function AccountFilter({
   // Add state to track if popover is open
   const [open, setOpen] = useState(false);
   
-  // Ensure accounts and selectedAccounts are always arrays
-  const safeAccounts = Array.isArray(accounts) ? accounts : [];
-  const safeSelectedAccounts = Array.isArray(selectedAccounts) ? selectedAccounts : [];
+  // Create local state for accounts and selected accounts to prevent rendering with undefined
+  const [safeAccounts, setSafeAccounts] = useState<string[]>([]);
+  const [safeSelectedAccounts, setSafeSelectedAccounts] = useState<string[]>([]);
+  
+  // Initialize and validate local state whenever props change
+  useEffect(() => {
+    // Ensure accounts is an array
+    setSafeAccounts(Array.isArray(accounts) ? [...accounts] : []);
+    // Ensure selectedAccounts is an array
+    setSafeSelectedAccounts(Array.isArray(selectedAccounts) ? [...selectedAccounts] : []);
+  }, [accounts, selectedAccounts]);
 
   const toggleAccount = (account: string) => {
     if (safeSelectedAccounts.includes(account)) {
@@ -46,7 +54,7 @@ export function AccountFilter({
     onChange([]);
   };
 
-  // Handle empty states more gracefully
+  // If no accounts are available, show a disabled button
   if (!Array.isArray(accounts) || accounts.length === 0) {
     return (
       <Button variant="outline" size="sm" className="h-8" disabled>
@@ -69,12 +77,11 @@ export function AccountFilter({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[200px] p-0" align="start">
-          {/* Always render Command and required children, but conditionally render items */}
-          <Command>
-            <CommandEmpty>No accounts found.</CommandEmpty>
-            <CommandGroup>
-              {safeAccounts.length > 0 ? (
-                safeAccounts.map((account) => (
+          {safeAccounts.length > 0 ? (
+            <Command>
+              <CommandEmpty>No accounts found.</CommandEmpty>
+              <CommandGroup>
+                {safeAccounts.map((account) => (
                   <CommandItem
                     key={account}
                     onSelect={() => toggleAccount(account)}
@@ -90,14 +97,14 @@ export function AccountFilter({
                     </div>
                     {account}
                   </CommandItem>
-                ))
-              ) : (
-                <CommandItem disabled className="opacity-50">
-                  No accounts available
-                </CommandItem>
-              )}
-            </CommandGroup>
-          </Command>
+                ))}
+              </CommandGroup>
+            </Command>
+          ) : (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No accounts available
+            </div>
+          )}
         </PopoverContent>
       </Popover>
       {safeSelectedAccounts.length > 0 && (

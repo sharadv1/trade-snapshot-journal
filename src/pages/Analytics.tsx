@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useMemo } from 'react';
 import { CumulativePnLChart } from '@/components/CumulativePnLChart';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
 import { Button } from '@/components/ui/button';
@@ -14,61 +15,102 @@ import { AccountFilter } from '@/components/analytics/AccountFilter';
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
-  const [allTrades, setAllTrades] = useState([]);
+  const [allTrades, setAllTrades] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<string[]>([]);
   
   useEffect(() => {
     try {
-      const loadedTrades = getTradesWithMetrics() || [];
-      setAllTrades(loadedTrades);
+      // Get trades and set defaults if not returned
+      const loadedTrades = getTradesWithMetrics();
+      // Safely handle the loaded trades by ensuring it's an array
+      const safeTrades = Array.isArray(loadedTrades) ? loadedTrades : [];
+      setAllTrades(safeTrades);
       
+      // Extract accounts with multiple safety checks
       const accountSet = new Set<string>();
-      if (Array.isArray(loadedTrades)) {
-        loadedTrades.forEach(trade => {
-          if (trade && trade.account && typeof trade.account === 'string') {
+      
+      // Only iterate if we have valid trades
+      if (safeTrades.length > 0) {
+        safeTrades.forEach(trade => {
+          // Only add if trade and trade.account are valid
+          if (trade && typeof trade === 'object' && trade.account && typeof trade.account === 'string') {
             accountSet.add(trade.account);
           }
         });
       }
       
-      setAccounts(Array.from(accountSet).sort());
+      // Convert to array and sort
+      const accountArray = Array.from(accountSet);
+      setAccounts(accountArray.sort());
+      
+      // Log for debugging
+      console.log(`Loaded ${safeTrades.length} trades with ${accountArray.length} unique accounts`);
     } catch (error) {
       console.error('Error loading trades:', error);
+      // Set safe defaults in case of error
       setAllTrades([]);
       setAccounts([]);
     }
   }, [refreshKey]);
   
-  const trades = selectedAccounts.length > 0
-    ? allTrades.filter(trade => trade && trade.account && selectedAccounts.includes(trade.account))
-    : allTrades;
+  // Filter trades by selected accounts
+  const trades = useMemo(() => {
+    if (!Array.isArray(allTrades)) return [];
+    if (!Array.isArray(selectedAccounts) || selectedAccounts.length === 0) return allTrades;
+    
+    return allTrades.filter(trade => 
+      trade && 
+      typeof trade === 'object' && 
+      trade.account && 
+      typeof trade.account === 'string' &&
+      selectedAccounts.includes(trade.account)
+    );
+  }, [allTrades, selectedAccounts]);
 
-  const timeframeCount = trades.reduce((acc, trade) => {
-    if (trade?.timeframe) {
-      const tf = trade.timeframe.toLowerCase();
-      acc[tf] = (acc[tf] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
+  // Calculate timeframe statistics
+  const timeframeCount = useMemo(() => {
+    if (!Array.isArray(trades)) return {};
+    
+    return trades.reduce((acc, trade) => {
+      if (trade && trade.timeframe && typeof trade.timeframe === 'string') {
+        const tf = trade.timeframe.toLowerCase();
+        acc[tf] = (acc[tf] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+  }, [trades]);
 
   const timeframeFormats = {
     '15m': ['15m', 'm15'],
     '1h': ['1h', 'h1']
   };
   
-  const has15mTrades = trades.some(trade => 
-    trade?.timeframe && 
-    timeframeFormats['15m'].some(format => 
-      trade.timeframe?.toLowerCase() === format
-    )
-  );
+  // Check for specific timeframe trades
+  const has15mTrades = useMemo(() => {
+    if (!Array.isArray(trades)) return false;
+    
+    return trades.some(trade => 
+      trade && 
+      trade.timeframe && 
+      typeof trade.timeframe === 'string' &&
+      timeframeFormats['15m'].some(format => 
+        trade.timeframe?.toLowerCase() === format
+      )
+    );
+  }, [trades]);
   
-  const has1hTrades = trades.some(trade => 
-    trade?.timeframe && 
-    timeframeFormats['1h'].some(format => 
-      trade.timeframe?.toLowerCase() === format
-    )
-  );
+  const has1hTrades = useMemo(() => {
+    if (!Array.isArray(trades)) return false;
+    
+    return trades.some(trade => 
+      trade && 
+      trade.timeframe && 
+      typeof trade.timeframe === 'string' &&
+      timeframeFormats['1h'].some(format => 
+        trade.timeframe?.toLowerCase() === format
+      )
+    );
+  }, [trades]);
 
   const handleAddDummyTrades = () => {
     addDummyTrades();
@@ -80,6 +122,16 @@ export default function Analytics() {
     setRefreshKey(prev => prev + 1);
   };
 
+  // Debug output to help troubleshooting
+  useEffect(() => {
+    console.log('Current state:', {
+      allTradesCount: Array.isArray(allTrades) ? allTrades.length : 'not an array',
+      accountsCount: Array.isArray(accounts) ? accounts.length : 'not an array',
+      selectedAccountsCount: Array.isArray(selectedAccounts) ? selectedAccounts.length : 'not an array',
+      filteredTradesCount: Array.isArray(trades) ? trades.length : 'not an array'
+    });
+  }, [allTrades, accounts, selectedAccounts, trades]);
+
   return (
     <div className="container mx-auto py-6 px-4 max-w-screen-2xl">
       <div className="flex items-center justify-between mb-2 gap-4 flex-wrap">
@@ -87,15 +139,16 @@ export default function Analytics() {
           Trading Analytics
         </h1>
         <div className="flex items-center gap-2 flex-wrap">
-          {Array.isArray(accounts) && accounts.length > 0 && (
+          {/* Only render account filter if there are accounts */}
+          {Array.isArray(accounts) && accounts.length > 0 ? (
             <AccountFilter
               accounts={accounts}
               selectedAccounts={selectedAccounts}
               onChange={setSelectedAccounts}
             />
-          )}
+          ) : null}
           <DataTransferControls onImportComplete={handleRefresh} />
-          {trades.length === 0 && (
+          {Array.isArray(trades) && trades.length === 0 && (
             <Button variant="outline" onClick={handleAddDummyTrades}>
               Load Sample Data
             </Button>
@@ -103,7 +156,7 @@ export default function Analytics() {
         </div>
       </div>
       
-      {trades.length > 0 ? (
+      {Array.isArray(trades) && trades.length > 0 ? (
         <div className="space-y-8">          
           <div className="w-full">
             <h2 className="text-2xl font-bold tracking-tight mb-4">
