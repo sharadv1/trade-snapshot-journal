@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -23,6 +23,9 @@ interface AccountFilterProps {
 }
 
 export function AccountFilter({ accounts = [], selectedAccounts = [], onChange }: AccountFilterProps) {
+  // Add state to track if popover is open
+  const [open, setOpen] = useState(false);
+  
   // Ensure accounts and selectedAccounts are always arrays
   const safeAccounts = Array.isArray(accounts) ? accounts : [];
   const safeSelectedAccounts = Array.isArray(selectedAccounts) ? selectedAccounts : [];
@@ -41,7 +44,7 @@ export function AccountFilter({ accounts = [], selectedAccounts = [], onChange }
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Popover>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className="h-8">
             Account Filter
@@ -53,7 +56,6 @@ export function AccountFilter({ accounts = [], selectedAccounts = [], onChange }
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[200px] p-0" align="start">
-          {/* Ensure Command always receives valid props */}
           <Command>
             <CommandEmpty>No accounts found.</CommandEmpty>
             <CommandGroup>
