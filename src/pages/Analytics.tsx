@@ -18,28 +18,34 @@ export default function Analytics() {
   const [allTrades, setAllTrades] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<string[]>([]);
   
+  // Load trades and extract accounts
   useEffect(() => {
     try {
-      // Get trades and set defaults if not returned
-      const loadedTrades = getTradesWithMetrics();
-      // Safely handle the loaded trades by ensuring it's an array
+      // Get trades with safe fallback
+      const loadedTrades = getTradesWithMetrics() || [];
+      
+      // Ensure we have an array of trades (additional safety)
       const safeTrades = Array.isArray(loadedTrades) ? loadedTrades : [];
       setAllTrades(safeTrades);
       
-      // Extract accounts with multiple safety checks
+      // Extract unique accounts with safety checks
       const accountSet = new Set<string>();
       
-      // Only iterate if we have valid trades
+      // Only process if we have valid trades
       if (safeTrades.length > 0) {
         safeTrades.forEach(trade => {
           // Only add if trade and trade.account are valid
-          if (trade && typeof trade === 'object' && trade.account && typeof trade.account === 'string') {
+          if (trade && 
+              typeof trade === 'object' && 
+              trade.account && 
+              typeof trade.account === 'string' && 
+              trade.account.trim() !== '') {
             accountSet.add(trade.account);
           }
         });
       }
       
-      // Convert to array and sort
+      // Convert to array, ensure it's not empty, and sort
       const accountArray = Array.from(accountSet);
       setAccounts(accountArray.sort());
       
@@ -47,17 +53,20 @@ export default function Analytics() {
       console.log(`Loaded ${safeTrades.length} trades with ${accountArray.length} unique accounts`);
     } catch (error) {
       console.error('Error loading trades:', error);
-      // Set safe defaults in case of error
+      // Set safe defaults
       setAllTrades([]);
       setAccounts([]);
     }
   }, [refreshKey]);
   
-  // Filter trades by selected accounts
+  // Filter trades by selected accounts (with additional validation)
   const trades = useMemo(() => {
+    // Additional safety checks
     if (!Array.isArray(allTrades)) return [];
-    if (!Array.isArray(selectedAccounts) || selectedAccounts.length === 0) return allTrades;
+    if (!Array.isArray(selectedAccounts)) return allTrades;
+    if (selectedAccounts.length === 0) return allTrades;
     
+    // Safe filtering with type checking
     return allTrades.filter(trade => 
       trade && 
       typeof trade === 'object' && 
@@ -122,6 +131,17 @@ export default function Analytics() {
     setRefreshKey(prev => prev + 1);
   };
 
+  // Handle account filter changes
+  const handleAccountFilterChange = (selected: string[]) => {
+    // Add safety checks
+    if (!Array.isArray(selected)) {
+      console.error('Invalid selected accounts format:', selected);
+      setSelectedAccounts([]);
+      return;
+    }
+    setSelectedAccounts(selected);
+  };
+
   // Debug output to help troubleshooting
   useEffect(() => {
     console.log('Current state:', {
@@ -144,7 +164,7 @@ export default function Analytics() {
             <AccountFilter
               accounts={accounts}
               selectedAccounts={selectedAccounts}
-              onChange={setSelectedAccounts}
+              onChange={handleAccountFilterChange}
             />
           ) : null}
           <DataTransferControls onImportComplete={handleRefresh} />

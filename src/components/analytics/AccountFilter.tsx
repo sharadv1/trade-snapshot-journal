@@ -27,10 +27,7 @@ export function AccountFilter({
   selectedAccounts = [], 
   onChange 
 }: AccountFilterProps) {
-  // Add state to track if popover is open
   const [open, setOpen] = useState(false);
-  
-  // Create local state for accounts and selected accounts to prevent rendering with undefined
   const [safeAccounts, setSafeAccounts] = useState<string[]>([]);
   const [safeSelectedAccounts, setSafeSelectedAccounts] = useState<string[]>([]);
   
@@ -63,6 +60,40 @@ export function AccountFilter({
     );
   }
 
+  // Special rendering to avoid undefined children in Command component
+  const renderCommandContent = () => {
+    // Only render CommandGroup with items if there are accounts
+    if (safeAccounts.length === 0) {
+      return (
+        <div className="p-2 text-center text-sm text-muted-foreground">
+          No accounts available
+        </div>
+      );
+    }
+
+    return (
+      <CommandGroup>
+        {safeAccounts.map((account) => (
+          <CommandItem
+            key={account}
+            onSelect={() => toggleAccount(account)}
+            className="cursor-pointer"
+          >
+            <div className={cn(
+              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+              safeSelectedAccounts.includes(account) ? "bg-primary text-primary-foreground" : "opacity-50"
+            )}>
+              {safeSelectedAccounts.includes(account) && (
+                <Check className={cn("h-4 w-4")} />
+              )}
+            </div>
+            {account}
+          </CommandItem>
+        ))}
+      </CommandGroup>
+    );
+  };
+
   return (
     <div className="flex flex-wrap gap-2">
       <Popover open={open} onOpenChange={setOpen}>
@@ -77,34 +108,10 @@ export function AccountFilter({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[200px] p-0" align="start">
-          {safeAccounts.length > 0 ? (
-            <Command>
-              <CommandEmpty>No accounts found.</CommandEmpty>
-              <CommandGroup>
-                {safeAccounts.map((account) => (
-                  <CommandItem
-                    key={account}
-                    onSelect={() => toggleAccount(account)}
-                    className="cursor-pointer"
-                  >
-                    <div className={cn(
-                      "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                      safeSelectedAccounts.includes(account) ? "bg-primary text-primary-foreground" : "opacity-50"
-                    )}>
-                      {safeSelectedAccounts.includes(account) && (
-                        <Check className={cn("h-4 w-4")} />
-                      )}
-                    </div>
-                    {account}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </Command>
-          ) : (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              No accounts available
-            </div>
-          )}
+          <Command>
+            <CommandEmpty>No accounts found.</CommandEmpty>
+            {renderCommandContent()}
+          </Command>
         </PopoverContent>
       </Popover>
       {safeSelectedAccounts.length > 0 && (
