@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { CumulativePnLChart } from '@/components/CumulativePnLChart';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
@@ -9,10 +10,24 @@ import { DataTransferControls } from '@/components/DataTransferControls';
 import { DayOfWeekPerformanceTable } from '@/components/DayOfWeekPerformanceTable';
 import { AccountPerformanceTable } from '@/components/AccountPerformanceTable';
 import { StrategyPerformanceTable } from '@/components/StrategyPerformanceTable';
+import { AccountFilter } from '@/components/analytics/AccountFilter';
 
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
-  const trades = getTradesWithMetrics();
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+  const allTrades = getTradesWithMetrics();
+  
+  // Filter trades by selected accounts
+  const trades = selectedAccounts.length > 0
+    ? allTrades.filter(trade => trade.account && selectedAccounts.includes(trade.account))
+    : allTrades;
+
+  // Get unique accounts
+  const accounts = Array.from(new Set(
+    allTrades
+      .map(trade => trade.account || 'Unassigned')
+      .filter(Boolean)
+  )).sort();
 
   // Count trades by timeframe for display purposes
   const timeframeCount = trades.reduce((acc, trade) => {
@@ -55,11 +70,16 @@ export default function Analytics() {
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-screen-2xl">
-      <div className="flex items-center justify-between mb-2 gap-4">
+      <div className="flex items-center justify-between mb-2 gap-4 flex-wrap">
         <h1 className="text-3xl font-bold tracking-tight">
           Trading Analytics
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <AccountFilter
+            accounts={accounts}
+            selectedAccounts={selectedAccounts}
+            onChange={setSelectedAccounts}
+          />
           <DataTransferControls onImportComplete={handleRefresh} />
           {trades.length === 0 && (
             <Button variant="outline" onClick={handleAddDummyTrades}>
