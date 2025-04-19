@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { CumulativePnLChart } from '@/components/CumulativePnLChart';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
@@ -18,19 +17,19 @@ export default function Analytics() {
   const [allTrades, setAllTrades] = useState([]);
   const [accounts, setAccounts] = useState<string[]>([]);
   
-  // Load trades and extract account data on mount and when refreshKey changes
   useEffect(() => {
     try {
       const loadedTrades = getTradesWithMetrics() || [];
       setAllTrades(loadedTrades);
       
-      // Extract unique accounts from trades
       const accountSet = new Set<string>();
-      loadedTrades.forEach(trade => {
-        if (trade.account && typeof trade.account === 'string') {
-          accountSet.add(trade.account);
-        }
-      });
+      if (Array.isArray(loadedTrades)) {
+        loadedTrades.forEach(trade => {
+          if (trade && trade.account && typeof trade.account === 'string') {
+            accountSet.add(trade.account);
+          }
+        });
+      }
       
       setAccounts(Array.from(accountSet).sort());
     } catch (error) {
@@ -40,12 +39,10 @@ export default function Analytics() {
     }
   }, [refreshKey]);
   
-  // Filter trades by selected accounts - ensure proper handling of undefined/null values
   const trades = selectedAccounts.length > 0
-    ? allTrades.filter(trade => trade.account && selectedAccounts.includes(trade.account))
+    ? allTrades.filter(trade => trade && trade.account && selectedAccounts.includes(trade.account))
     : allTrades;
 
-  // Count trades by timeframe for display purposes
   const timeframeCount = trades.reduce((acc, trade) => {
     if (trade?.timeframe) {
       const tf = trade.timeframe.toLowerCase();
@@ -54,7 +51,6 @@ export default function Analytics() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Check for timeframes in various formats
   const timeframeFormats = {
     '15m': ['15m', 'm15'],
     '1h': ['1h', 'h1']
@@ -91,8 +87,7 @@ export default function Analytics() {
           Trading Analytics
         </h1>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Only render AccountFilter if there are accounts */}
-          {accounts.length > 0 && (
+          {Array.isArray(accounts) && accounts.length > 0 && (
             <AccountFilter
               accounts={accounts}
               selectedAccounts={selectedAccounts}
