@@ -28,7 +28,7 @@ export function useTradeList({
   // State for filters and sorting
   const [sortField, setSortField] = useState<string>('entryDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [strategyFilter, setStrategyFilter] = useState<string>('all');
+  const [strategyFilter, setStrategyFilter] = useState<string[]>([]);
   const [accountFilter, setAccountFilter] = useState<string>('all');
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
   const [tradeStatus, setTradeStatus] = useState<'open' | 'closed' | 'all'>(statusFilter);
@@ -139,7 +139,7 @@ export function useTradeList({
   
   // Apply filters and sorting
   const filteredTrades = useMemo(() => {
-    console.log(`Filtering ${trades.length} trades with status: ${tradeStatus}, strategy: ${strategyFilter}, account: ${accountFilter}, result: ${resultFilter}`);
+    console.log(`Filtering ${trades.length} trades with status: ${tradeStatus}, strategies: ${strategyFilter.join(',')}, account: ${accountFilter}, result: ${resultFilter}`);
     
     let filteredResults = [...trades];
     
@@ -190,9 +190,11 @@ export function useTradeList({
       }
     }
     
-    // Filter by strategy
-    if (strategyFilter !== 'all') {
-      filteredResults = filteredResults.filter(trade => trade.strategy === strategyFilter);
+    // Filter by multiple strategies
+    if (strategyFilter.length > 0) {
+      filteredResults = filteredResults.filter(trade => 
+        trade.strategy && strategyFilter.includes(trade.strategy)
+      );
     }
 
     // Filter by account
@@ -270,7 +272,7 @@ export function useTradeList({
   };
   
   // Check if any filters are applied
-  const hasFilters = strategyFilter !== 'all' || 
+  const hasFilters = strategyFilter.length > 0 || 
     accountFilter !== 'all' ||
     resultFilter !== 'all' || 
     dateParam !== null ||
@@ -278,7 +280,7 @@ export function useTradeList({
   
   // Reset filters
   const resetFilters = () => {
-    setStrategyFilter('all');
+    setStrategyFilter([]);
     setAccountFilter('all');
     setResultFilter('all');
     clearDateFilter();

@@ -17,6 +17,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { 
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import { cn } from '@/lib/utils';
+import { Check } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { getStrategyById } from '@/utils/strategyStorage';
 
 interface TradeListHeaderProps {
   totalOpenRisk: number;
@@ -25,8 +35,8 @@ interface TradeListHeaderProps {
   hasFilters: boolean;
   resetFilters: () => void;
   availableStrategies: string[];
-  strategyFilter: string;
-  setStrategyFilter: (strategy: string) => void;
+  strategyFilter: string[];
+  setStrategyFilter: (strategy: string[]) => void;
   availableAccounts?: string[];
   accountFilter?: string;
   setAccountFilter?: (account: string) => void;
@@ -62,6 +72,28 @@ export function TradeListHeader({
   clearDateFilter
 }: TradeListHeaderProps) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [strategyPopoverOpen, setStrategyPopoverOpen] = useState(false);
+
+  // Helper function to get strategy name from ID
+  const getStrategyName = (strategyId: string): string => {
+    if (strategyId === 'all') return 'All Strategies';
+    const strategy = getStrategyById(strategyId);
+    return strategy ? strategy.name : strategyId;
+  };
+
+  // Toggle a strategy in the multi-select filter
+  const toggleStrategy = (strategyId: string) => {
+    if (strategyFilter.includes(strategyId)) {
+      setStrategyFilter(strategyFilter.filter(id => id !== strategyId));
+    } else {
+      setStrategyFilter([...strategyFilter, strategyId]);
+    }
+  };
+
+  // Clear all selected strategies
+  const clearStrategies = () => {
+    setStrategyFilter([]);
+  };
 
   return (
     <div className="flex flex-col w-full gap-4">
@@ -101,22 +133,66 @@ export function TradeListHeader({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-medium">Strategy</h4>
-                  <Select
-                    value={strategyFilter}
-                    onValueChange={setStrategyFilter}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Strategies" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Strategies</SelectItem>
-                      {availableStrategies.map((strategy) => (
-                        <SelectItem key={strategy} value={strategy}>
-                          {strategy}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={strategyPopoverOpen} onOpenChange={setStrategyPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-between"
+                        role="combobox"
+                      >
+                        {strategyFilter.length === 0 
+                          ? "All Strategies" 
+                          : strategyFilter.length === 1 
+                            ? getStrategyName(strategyFilter[0])
+                            : `${strategyFilter.length} strategies selected`
+                        }
+                        {strategyFilter.length > 0 && (
+                          <Badge variant="secondary" className="ml-2">
+                            {strategyFilter.length}
+                          </Badge>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandEmpty>No strategies found.</CommandEmpty>
+                        <CommandGroup>
+                          {availableStrategies.map((strategyId) => {
+                            const strategyName = getStrategyName(strategyId);
+                            return (
+                              <CommandItem
+                                key={strategyId}
+                                onSelect={() => toggleStrategy(strategyId)}
+                                className="cursor-pointer"
+                              >
+                                <div className={cn(
+                                  "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                  strategyFilter.includes(strategyId) ? "bg-primary text-primary-foreground" : "opacity-50"
+                                )}>
+                                  {strategyFilter.includes(strategyId) && (
+                                    <Check className={cn("h-4 w-4")} />
+                                  )}
+                                </div>
+                                {strategyName}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </Command>
+                      {strategyFilter.length > 0 && (
+                        <div className="p-2 border-t">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={clearStrategies}
+                            className="w-full text-xs"
+                          >
+                            Clear selection
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 
                 {availableAccounts.length > 0 && (
