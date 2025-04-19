@@ -15,7 +15,16 @@ import { AccountFilter } from '@/components/analytics/AccountFilter';
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
-  const allTrades = getTradesWithMetrics();
+  
+  // Get trades safely with proper error handling
+  const allTrades = (() => {
+    try {
+      return getTradesWithMetrics() || [];
+    } catch (error) {
+      console.error('Error loading trades:', error);
+      return [];
+    }
+  })();
   
   // Filter trades by selected accounts - ensure proper handling of undefined/null values
   const trades = selectedAccounts.length > 0
@@ -23,17 +32,28 @@ export default function Analytics() {
     : allTrades;
 
   // Get unique accounts with safer handling
-  const accounts = allTrades && allTrades.length > 0 
-    ? Array.from(new Set(
-        allTrades
-          .filter(trade => trade.account && typeof trade.account === 'string')
-          .map(trade => trade.account || 'Unassigned')
-      )).sort() 
-    : [];
+  const accounts = (() => {
+    try {
+      if (!Array.isArray(allTrades) || allTrades.length === 0) return [];
+      
+      const accountSet = new Set<string>();
+      
+      allTrades.forEach(trade => {
+        if (trade.account && typeof trade.account === 'string') {
+          accountSet.add(trade.account);
+        }
+      });
+      
+      return Array.from(accountSet).sort();
+    } catch (error) {
+      console.error('Error processing accounts:', error);
+      return [];
+    }
+  })();
 
   // Count trades by timeframe for display purposes
   const timeframeCount = trades.reduce((acc, trade) => {
-    if (trade.timeframe) {
+    if (trade?.timeframe) {
       const tf = trade.timeframe.toLowerCase();
       acc[tf] = (acc[tf] || 0) + 1;
     }
@@ -47,14 +67,14 @@ export default function Analytics() {
   };
   
   const has15mTrades = trades.some(trade => 
-    trade.timeframe && 
+    trade?.timeframe && 
     timeframeFormats['15m'].some(format => 
       trade.timeframe?.toLowerCase() === format
     )
   );
   
   const has1hTrades = trades.some(trade => 
-    trade.timeframe && 
+    trade?.timeframe && 
     timeframeFormats['1h'].some(format => 
       trade.timeframe?.toLowerCase() === format
     )
@@ -78,7 +98,7 @@ export default function Analytics() {
         </h1>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Only render AccountFilter if there are accounts */}
-          {accounts.length > 0 && (
+          {Array.isArray(accounts) && accounts.length > 0 && (
             <AccountFilter
               accounts={accounts}
               selectedAccounts={selectedAccounts}
