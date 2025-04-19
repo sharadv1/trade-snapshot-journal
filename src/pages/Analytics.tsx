@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CumulativePnLChart } from '@/components/CumulativePnLChart';
 import { getTradesWithMetrics } from '@/utils/tradeStorage';
 import { Button } from '@/components/ui/button';
@@ -15,41 +15,35 @@ import { AccountFilter } from '@/components/analytics/AccountFilter';
 export default function Analytics() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+  const [allTrades, setAllTrades] = useState([]);
+  const [accounts, setAccounts] = useState<string[]>([]);
   
-  // Get trades safely with proper error handling
-  const allTrades = (() => {
+  // Load trades and extract account data on mount and when refreshKey changes
+  useEffect(() => {
     try {
-      return getTradesWithMetrics() || [];
-    } catch (error) {
-      console.error('Error loading trades:', error);
-      return [];
-    }
-  })();
-  
-  // Filter trades by selected accounts - ensure proper handling of undefined/null values
-  const trades = selectedAccounts.length > 0
-    ? allTrades.filter(trade => trade.account && selectedAccounts.includes(trade.account))
-    : allTrades;
-
-  // Get unique accounts with safer handling
-  const accounts = (() => {
-    try {
-      if (!Array.isArray(allTrades) || allTrades.length === 0) return [];
+      const loadedTrades = getTradesWithMetrics() || [];
+      setAllTrades(loadedTrades);
       
+      // Extract unique accounts from trades
       const accountSet = new Set<string>();
-      
-      allTrades.forEach(trade => {
+      loadedTrades.forEach(trade => {
         if (trade.account && typeof trade.account === 'string') {
           accountSet.add(trade.account);
         }
       });
       
-      return Array.from(accountSet).sort();
+      setAccounts(Array.from(accountSet).sort());
     } catch (error) {
-      console.error('Error processing accounts:', error);
-      return [];
+      console.error('Error loading trades:', error);
+      setAllTrades([]);
+      setAccounts([]);
     }
-  })();
+  }, [refreshKey]);
+  
+  // Filter trades by selected accounts - ensure proper handling of undefined/null values
+  const trades = selectedAccounts.length > 0
+    ? allTrades.filter(trade => trade.account && selectedAccounts.includes(trade.account))
+    : allTrades;
 
   // Count trades by timeframe for display purposes
   const timeframeCount = trades.reduce((acc, trade) => {
@@ -98,7 +92,7 @@ export default function Analytics() {
         </h1>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Only render AccountFilter if there are accounts */}
-          {Array.isArray(accounts) && accounts.length > 0 && (
+          {accounts.length > 0 && (
             <AccountFilter
               accounts={accounts}
               selectedAccounts={selectedAccounts}

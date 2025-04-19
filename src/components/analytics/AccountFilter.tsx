@@ -69,7 +69,7 @@ export function AccountFilter({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[200px] p-0" align="start">
-          {Array.isArray(safeAccounts) && safeAccounts.length > 0 ? (
+          {safeAccounts.length > 0 ? (
             <Command>
               <CommandEmpty>No accounts found.</CommandEmpty>
               <CommandGroup>
