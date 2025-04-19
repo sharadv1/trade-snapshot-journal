@@ -22,7 +22,11 @@ interface AccountFilterProps {
   onChange: (accounts: string[]) => void;
 }
 
-export function AccountFilter({ accounts = [], selectedAccounts = [], onChange }: AccountFilterProps) {
+export function AccountFilter({ 
+  accounts = [], 
+  selectedAccounts = [], 
+  onChange 
+}: AccountFilterProps) {
   // Add state to track if popover is open
   const [open, setOpen] = useState(false);
   
@@ -42,6 +46,15 @@ export function AccountFilter({ accounts = [], selectedAccounts = [], onChange }
     onChange([]);
   };
 
+  // Handle empty states more gracefully
+  if (!Array.isArray(accounts) || accounts.length === 0) {
+    return (
+      <Button variant="outline" size="sm" className="h-8" disabled>
+        No accounts available
+      </Button>
+    );
+  }
+
   return (
     <div className="flex flex-wrap gap-2">
       <Popover open={open} onOpenChange={setOpen}>
@@ -59,27 +72,23 @@ export function AccountFilter({ accounts = [], selectedAccounts = [], onChange }
           <Command>
             <CommandEmpty>No accounts found.</CommandEmpty>
             <CommandGroup>
-              {safeAccounts.length > 0 ? (
-                safeAccounts.map((account) => (
-                  <CommandItem
-                    key={account}
-                    onSelect={() => toggleAccount(account)}
-                    className="cursor-pointer"
-                  >
-                    <div className={cn(
-                      "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                      safeSelectedAccounts.includes(account) ? "bg-primary text-primary-foreground" : "opacity-50"
-                    )}>
-                      {safeSelectedAccounts.includes(account) && (
-                        <Check className={cn("h-4 w-4")} />
-                      )}
-                    </div>
-                    {account}
-                  </CommandItem>
-                ))
-              ) : (
-                <CommandItem disabled>No accounts available</CommandItem>
-              )}
+              {safeAccounts.map((account) => (
+                <CommandItem
+                  key={account}
+                  onSelect={() => toggleAccount(account)}
+                  className="cursor-pointer"
+                >
+                  <div className={cn(
+                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                    safeSelectedAccounts.includes(account) ? "bg-primary text-primary-foreground" : "opacity-50"
+                  )}>
+                    {safeSelectedAccounts.includes(account) && (
+                      <Check className={cn("h-4 w-4")} />
+                    )}
+                  </div>
+                  {account}
+                </CommandItem>
+              ))}
             </CommandGroup>
           </Command>
         </PopoverContent>

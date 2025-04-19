@@ -77,11 +77,14 @@ export default function Analytics() {
           Trading Analytics
         </h1>
         <div className="flex items-center gap-2 flex-wrap">
-          <AccountFilter
-            accounts={accounts}
-            selectedAccounts={selectedAccounts}
-            onChange={setSelectedAccounts}
-          />
+          {/* Only render AccountFilter if there are accounts */}
+          {accounts.length > 0 && (
+            <AccountFilter
+              accounts={accounts}
+              selectedAccounts={selectedAccounts}
+              onChange={setSelectedAccounts}
+            />
+          )}
           <DataTransferControls onImportComplete={handleRefresh} />
           {trades.length === 0 && (
             <Button variant="outline" onClick={handleAddDummyTrades}>
