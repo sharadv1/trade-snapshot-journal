@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore } from 'date-fns';
+import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore, isAfter } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,6 @@ export function WeeklyJournal() {
   const formattedDateRange = `${format(weekStart, 'MMM dd')} - ${format(weekEnd, 'MMM dd, yyyy')}`;
   
   const today = new Date();
-  const canNavigateForward = isBefore(weekStart, startOfWeek(today, { weekStartsOn: 1 }));
   
   useEffect(() => {
     console.log("Enabling trade debug mode");
@@ -186,16 +185,14 @@ export function WeeklyJournal() {
   const goToNextWeek = useCallback(() => {
     if (isSaving || isLoading) return;
     
-    if (canNavigateForward) {
-      const nextWeek = addDays(weekStart, 7);
-      
-      clearTradeCache();
-      
-      needsReloadRef.current = true;
-      
-      navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
-    }
-  }, [navigate, weekStart, canNavigateForward, isSaving, isLoading]);
+    const nextWeek = addDays(weekStart, 7);
+    
+    clearTradeCache();
+    
+    needsReloadRef.current = true;
+    
+    navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
+  }, [navigate, weekStart, isSaving, isLoading]);
   
   const handleDeleteReflection = useCallback(async () => {
     if (!weeklyReflection || !weeklyReflection.id || !isMountedRef.current) return;
@@ -214,10 +211,8 @@ export function WeeklyJournal() {
       
       toast.success('Reflection deleted successfully');
       
-      // Close the dialog
       setDeleteDialogOpen(false);
       
-      // Navigate back to the list
       navigate('/journal/weekly');
     } catch (error) {
       console.error('Error deleting reflection:', error);
@@ -240,7 +235,6 @@ export function WeeklyJournal() {
       
       if (weeklyRemoved > 0) {
         toast.success(`Removed ${weeklyRemoved} duplicate weekly reflections`);
-        // Reload after cleanup
         loadReflection();
       } else {
         toast.info('No duplicate reflections found');
@@ -320,6 +314,8 @@ export function WeeklyJournal() {
     navigate(`/trade/${tradeId}`);
   }, [navigate]);
   
+  const isFutureWeek = isAfter(weekStart, today);
+  
   if (isLoading) {
     return (
       <div className="container mx-auto py-12 flex justify-center items-center">
@@ -346,6 +342,11 @@ export function WeeklyJournal() {
         <div className="flex flex-col">
           <h1 className="text-3xl font-bold">Weekly Journal</h1>
           <p className="text-muted-foreground">Reflect on your trading week.</p>
+          {isFutureWeek && (
+            <p className="text-sm text-blue-600 mt-1">
+              This is a future week - use it for planning your upcoming trades.
+            </p>
+          )}
         </div>
       </div>
       
@@ -369,7 +370,7 @@ export function WeeklyJournal() {
           size="icon" 
           onClick={goToNextWeek}
           className="rounded-full"
-          disabled={!canNavigateForward || isSaving || isLoading}
+          disabled={isSaving || isLoading}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>

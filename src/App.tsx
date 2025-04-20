@@ -18,7 +18,7 @@ import { WeeklyReflectionsPage } from '@/components/journal/WeeklyReflectionsPag
 import { MonthlyReflectionsPage } from '@/components/journal/MonthlyReflectionsPage';
 import Configs from '@/pages/Configs';
 import Lessons from '@/pages/Lessons';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { ThemeProvider } from '@/components/ui/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import AllTrades from '@/pages/AllTrades';
@@ -35,7 +35,11 @@ const LegacyWeekRedirect = () => {
 // Helper component to handle new week/month redirects to current date
 const CurrentWeekRedirect = () => {
   const today = new Date();
-  const currentWeekId = format(today, 'yyyy-MM-dd');
+  // For weekly reflection, we can use the start date of current week and optionally add days
+  // to make sure we're working with the current week, not previous week
+  const nextWeek = addDays(today, 1); // Add 1 day to ensure we're in the current week
+  const currentWeekId = format(nextWeek, 'yyyy-MM-dd');
+  
   // Clear cache before redirection to ensure fresh data
   clearTradeCache();
   return <Navigate to={`/journal/weekly/${currentWeekId}`} replace />;

@@ -10,6 +10,7 @@ import { getCurrentPeriodId, countWords } from '@/utils/journal/reflectionUtils'
 import { toast } from '@/utils/toast';
 import { clearTradeCache, preventTradeFetching, getTradesForWeek } from '@/utils/tradeCalculations';
 import { ReflectionCard } from './reflections/ReflectionCard';
+import { format, addDays } from 'date-fns';
 
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
@@ -17,28 +18,28 @@ export function WeeklyReflectionsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
   const navigate = useNavigate();
-  
+
   const isMountedRef = useRef(true);
   const loadingRef = useRef(false);
   const hasLoadedRef = useRef(false);
-  
+
   const loadReflections = useCallback(async (showToast = false) => {
     if (!isMountedRef.current || loadingRef.current) return;
-    
+
     try {
       loadingRef.current = true;
       setIsLoading(true);
       setLoadError(null);
-      
+
       console.log("Loading weekly reflections...");
       const fetchedReflections = await getWeeklyReflections();
-      
+
       if (!isMountedRef.current) return;
-      
+
       if (Array.isArray(fetchedReflections)) {
         const sortedReflections = fetchedReflections.sort((a, b) => {
           if (!a.weekStart || !b.weekStart) return 0;
-          
+
           try {
             return new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime();
           } catch (error) {
@@ -46,11 +47,11 @@ export function WeeklyReflectionsPage() {
             return 0;
           }
         });
-        
+
         console.log(`Loaded ${sortedReflections.length} weekly reflections successfully`);
         setReflections(sortedReflections);
         hasLoadedRef.current = true;
-        
+
         if (showToast) {
           toast.success("Reflections refreshed successfully");
         }
@@ -75,53 +76,53 @@ export function WeeklyReflectionsPage() {
   useEffect(() => {
     isMountedRef.current = true;
     hasLoadedRef.current = false;
-    
+
     preventTradeFetching(false);
     clearTradeCache();
-    
+
     if (!hasLoadedRef.current) {
       loadReflections();
     }
-    
+
     const handleUpdate = () => {
       if (isMountedRef.current && !loadingRef.current) {
         clearTradeCache();
         loadReflections();
       }
     };
-    
+
     window.addEventListener('journal-updated', handleUpdate);
     window.addEventListener('journalUpdated', handleUpdate);
     window.addEventListener('trades-updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
-    
+
     return () => {
       isMountedRef.current = false;
       window.removeEventListener('journal-updated', handleUpdate);
       window.removeEventListener('journalUpdated', handleUpdate);
       window.removeEventListener('trades-updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
-      
+
       preventTradeFetching(false);
     };
   }, [loadReflections]);
-  
+
   const handleDeleteReflection = useCallback(async (reflectionId: string, e: React.MouseEvent) => {
     if (!isMountedRef.current) return;
-    
+
     e.preventDefault();
     e.stopPropagation();
-    
+
     try {
       const stats = getReflectionStats(
         reflections.find(r => r.id === reflectionId) as WeeklyReflection
       );
-      
+
       if (stats.tradeCount > 0) {
         toast.error("Cannot delete a reflection with associated trades");
         return;
       }
-      
+
       await deleteWeeklyReflection(reflectionId);
       if (isMountedRef.current) {
         toast.success("Reflection deleted successfully");
@@ -134,21 +135,21 @@ export function WeeklyReflectionsPage() {
       }
     }
   }, [loadReflections, reflections]);
-  
+
   const handleRemoveDuplicates = useCallback(async () => {
     if (!isMountedRef.current || isProcessingDuplicates) return;
-    
+
     try {
       setIsProcessingDuplicates(true);
       console.log("Starting duplicate removal process...");
-      
+
       // First, try to remove duplicates
       const results = await removeDuplicateReflections();
       const totalRemoved = results.weeklyRemoved + results.monthlyRemoved;
-      
+
       // Then cleanup any empty reflections
       const emptyRemoved = await cleanupEmptyReflections();
-      
+
       if (isMountedRef.current) {
         if (totalRemoved > 0 || emptyRemoved > 0) {
           let message = "";
@@ -159,10 +160,10 @@ export function WeeklyReflectionsPage() {
             message += `Cleaned up ${emptyRemoved} empty reflection${emptyRemoved !== 1 ? 's' : ''}.`;
           }
           toast.success(message);
-          
+
           // Force storage clearing
           clearTradeCache();
-          
+
           // Force a reload with the reloaded flag
           await loadReflections(true);
         } else {
@@ -180,27 +181,27 @@ export function WeeklyReflectionsPage() {
       }
     }
   }, [isProcessingDuplicates, loadReflections]);
-  
+
   const navigateTo = useCallback((path: string) => {
     clearTradeCache();
     navigate(path);
   }, [navigate]);
-  
+
   const getReflectionStats = (reflection: WeeklyReflection) => {
     const weekStart = reflection.weekStart ? new Date(reflection.weekStart) : null;
     const weekEnd = reflection.weekEnd ? new Date(reflection.weekEnd) : null;
-    
-    const trades = weekStart && weekEnd 
-      ? getTradesForWeek(weekStart, weekEnd) 
+
+    const trades = weekStart && weekEnd
+      ? getTradesForWeek(weekStart, weekEnd)
       : [];
-    
+
     const tradeCount = trades.length;
     const totalPnL = trades.reduce((sum, trade) => sum + (trade.metrics?.profitLoss || 0), 0);
     const totalR = trades.reduce((sum, trade) => sum + (trade.metrics?.rMultiple || 0), 0);
     const winCount = trades.filter(trade => (trade.metrics?.profitLoss || 0) > 0).length;
     const lossCount = trades.filter(trade => (trade.metrics?.profitLoss || 0) < 0).length;
     const winRate = tradeCount > 0 ? (winCount / tradeCount) * 100 : 0;
-    
+
     return {
       pnl: totalPnL,
       rValue: totalR,
@@ -211,7 +212,7 @@ export function WeeklyReflectionsPage() {
       winRate: winRate
     };
   };
-  
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12 flex-col">
@@ -220,7 +221,7 @@ export function WeeklyReflectionsPage() {
       </div>
     );
   }
-  
+
   if (loadError) {
     return (
       <Card className="p-6">
@@ -231,11 +232,17 @@ export function WeeklyReflectionsPage() {
       </Card>
     );
   }
-  
+
   const handleCreateReflection = () => {
-    navigateTo(`/journal/weekly/${getCurrentPeriodId('weekly')}`);
+    // Ensure we're creating for the current or future week, not past week
+    const today = new Date();
+    const nextWeek = addDays(today, 1); // Add 1 day to ensure we're in the current week
+    const currentWeekId = format(nextWeek, 'yyyy-MM-dd');
+
+    clearTradeCache();
+    navigateTo(`/journal/weekly/${currentWeekId}`);
   };
-  
+
   // Find duplicate reflections (different IDs with the same weekId)
   const weekIdMap = new Map();
   const hasDuplicates = reflections.some(r => {
@@ -244,15 +251,15 @@ export function WeeklyReflectionsPage() {
     weekIdMap.set(r.weekId, true);
     return false;
   });
-  
+
   return (
     <div className="container mx-auto py-6 max-w-screen-xl px-4">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Weekly Reflections</h1>
         <div className="flex gap-2">
-          <Button 
-            onClick={handleRemoveDuplicates} 
-            variant="outline" 
+          <Button
+            onClick={handleRemoveDuplicates}
+            variant="outline"
             className={`gap-2 ${hasDuplicates ? 'border-red-300 text-red-600 hover:bg-red-50' : ''}`}
             disabled={isProcessingDuplicates}
           >
@@ -273,8 +280,8 @@ export function WeeklyReflectionsPage() {
       {reflections.length === 0 ? (
         <Card className="p-12 text-center">
           <p className="text-xl text-muted-foreground">No weekly reflections found. Start creating your trading journal!</p>
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="mt-4"
             onClick={handleCreateReflection}
           >
@@ -285,23 +292,23 @@ export function WeeklyReflectionsPage() {
         <div className="space-y-4">
           {reflections.map((reflection) => {
             const stats = getReflectionStats(reflection);
-            
-            const dateRange = reflection.weekStart ? 
-              `Week of ${new Date(reflection.weekStart).toLocaleDateString()}` : 
+
+            const dateRange = reflection.weekStart ?
+              `Week of ${new Date(reflection.weekStart).toLocaleDateString()}` :
               'Unknown date range';
-            
+
             // Check if this is a duplicate reflection
             const isDuplicate = reflections.some(
               r => r.id !== reflection.id && r.weekId === reflection.weekId
             );
-            
+
             return (
-              <div 
-                key={reflection.id} 
-                onClick={() => navigateTo(`/journal/weekly/${reflection.weekId || reflection.id}`)} 
+              <div
+                key={reflection.id}
+                onClick={() => navigateTo(`/journal/weekly/${reflection.weekId || reflection.id}`)}
                 className={`cursor-pointer ${isDuplicate ? 'border-l-4 border-l-red-500' : ''}`}
               >
-                <ReflectionCard 
+                <ReflectionCard
                   reflection={reflection}
                   type="weekly"
                   stats={stats}
