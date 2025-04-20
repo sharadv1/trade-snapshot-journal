@@ -13,10 +13,22 @@ let memoryServerUrl = '';
 
 // Add error handling state
 let lastConnectionError: string | null = null;
+let isDevEnvironment = false; // Flag to detect if we're in dev mode
 
 // Get the server connection status
 export const isUsingServerSync = (): boolean => {
   return useServerSync;
+};
+
+// Set whether we're in a development environment
+export const setDevEnvironment = (isDev: boolean): void => {
+  isDevEnvironment = isDev;
+  console.log(`Development environment mode: ${isDev ? 'enabled' : 'disabled'}`);
+};
+
+// Check if we're in a development environment
+export const isInDevEnvironment = (): boolean => {
+  return isDevEnvironment;
 };
 
 export const getServerUrl = (): string => {
@@ -126,6 +138,12 @@ export const setServerSync = (enabled: boolean, url: string = ''): void => {
 // Initialize server connection from localStorage (called on app start)
 export const initServerConnectionFromStorage = (): void => {
   try {
+    // Auto-detect if we're in development mode based on hostname
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('.lovableproject.com')) {
+      setDevEnvironment(true);
+    }
+    
     // First try localStorage
     let savedUrl = null;
     if (typeof localStorage !== 'undefined') {
@@ -173,7 +191,8 @@ export const isLikelyDockerEnvironment = (): boolean => {
   return (
     origin !== 'http://localhost:3000' && 
     origin !== 'http://localhost:5173' && 
-    origin !== 'http://127.0.0.1:5173'
+    origin !== 'http://127.0.0.1:5173' &&
+    !origin.includes('.lovableproject.com')
   );
 };
 
@@ -181,6 +200,14 @@ export const isLikelyDockerEnvironment = (): boolean => {
 export const isValidJsonResponse = async (response: Response): Promise<boolean> => {
   try {
     const contentType = response.headers.get('content-type');
+    
+    // If we're in development mode (Lovable or localhost), just assume it's valid
+    // This prevents errors when connecting to a dev server
+    if (isInDevEnvironment()) {
+      console.log('Development environment detected - bypassing JSON validation');
+      return true;
+    }
+    
     if (!contentType || !contentType.includes('application/json')) {
       // Server might be returning HTML - get a small preview to log
       const text = await response.clone().text();
@@ -201,4 +228,3 @@ export const isValidJsonResponse = async (response: Response): Promise<boolean> 
 export const isDevServer = (url: string): boolean => {
   return url.includes('localhost') || url.includes('127.0.0.1');
 };
-

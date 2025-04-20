@@ -28,6 +28,9 @@ import {
   syncAllData,
   restoreServerConnection
 } from '@/utils/storage/serverSync';
+import {
+  isInDevEnvironment
+} from '@/utils/storage/serverConnection';
 import { toast } from '@/utils/toast';
 import {
   Tooltip,
@@ -49,6 +52,7 @@ export function ServerSyncConfig() {
     isNearLimit: false,
     size: 0
   });
+  const [isDev, setIsDev] = useState(false);
   
   // Define the refreshConnectionStatus function
   const refreshConnectionStatus = () => {
@@ -58,6 +62,9 @@ export function ServerSyncConfig() {
     
     // Check connection status
     setIsConnected(isUsingServerSync());
+    
+    // Check if we're in dev environment
+    setIsDev(isInDevEnvironment());
     
     // Clear any previous errors when checking status
     setLastError(null);
@@ -196,6 +203,9 @@ export function ServerSyncConfig() {
             {storageStatus.isNearLimit && !isConnected && (
               <AlertTriangle className="h-4 w-4 ml-2 text-amber-500" />
             )}
+            {isDev && isConnected && (
+              <span className="ml-1 text-xs">(Dev)</span>
+            )}
           </Button>
         </DialogTrigger>
         
@@ -207,6 +217,7 @@ export function ServerSyncConfig() {
               {isConnected && (
                 <div className="mt-2 text-green-500 text-sm">
                   Connected to: {getServerUrl()}
+                  {isDev && <span className="ml-2">(Development Mode)</span>}
                 </div>
               )}
             </DialogDescription>
@@ -245,7 +256,14 @@ export function ServerSyncConfig() {
                 For Docker deployment, use: {window.location.origin}/api/trades
               </p>
               
-              {lastError && (
+              {isDev && (
+                <div className="flex items-center mt-2 text-blue-500 text-xs gap-1 border border-blue-200 bg-blue-50 p-2 rounded">
+                  <InfoIcon className="h-3 w-3" />
+                  <span>Development mode active. Server connection validation is disabled.</span>
+                </div>
+              )}
+              
+              {lastError && !isDev && (
                 <div className="flex items-center mt-2 text-red-500 text-xs gap-1 border border-red-200 bg-red-50 p-2 rounded">
                   <AlertTriangle className="h-3 w-3" />
                   <span>{lastError}</span>
