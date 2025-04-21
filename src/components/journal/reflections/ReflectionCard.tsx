@@ -59,9 +59,14 @@ export function ReflectionCard({
   const monthlyPlan = 'monthlyPlan' in reflection ? reflection.monthlyPlan : '';
   const monthlyGoals = 'monthlyGoals' in reflection ? reflection.monthlyGoals : '';
   
+  // Check if this is a future week (either passed in or from the reflection)
+  const isReflectionFutureWeek = type === 'weekly' && 
+    ('isFutureWeek' in reflection && reflection.isFutureWeek);
+  const isFuture = isFutureWeek || isReflectionFutureWeek;
+  
   return (
     <Card className={`overflow-hidden transition-all ${
-      isFutureWeek ? 'border-blue-300 bg-blue-50/50' : ''
+      isFuture ? 'border-blue-300 bg-blue-50/50' : ''
     }`}>
       <CardContent className="p-4">
         <div className="flex flex-col md:flex-row justify-between">
@@ -70,7 +75,7 @@ export function ReflectionCard({
               <div>
                 <h3 className="font-medium text-lg flex items-center">
                   {dateRange}
-                  {isFutureWeek && (
+                  {isFuture && (
                     <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-800 hover:bg-blue-200">
                       Future Week
                     </Badge>
@@ -83,7 +88,7 @@ export function ReflectionCard({
                 </h3>
                 <div className="text-sm text-muted-foreground flex items-center mt-1">
                   <span className="mr-4">
-                    {isFutureWeek ? 'Planning' : `${stats.tradeCount} trade${stats.tradeCount !== 1 ? 's' : ''}`}
+                    {isFuture ? 'Planning' : `${stats.tradeCount} trade${stats.tradeCount !== 1 ? 's' : ''}`}
                   </span>
                   {showGrade && grade && (
                     <ReflectionGradeBadge grade={grade} />
@@ -122,32 +127,32 @@ export function ReflectionCard({
               <div className="text-center p-2 bg-muted/30 rounded-md">
                 <div className="text-xs font-medium text-muted-foreground">P&L</div>
                 <div className={`text-sm font-semibold ${
-                  isFutureWeek ? 'text-blue-600' : stats.pnl >= 0 ? 'text-green-600' : 'text-red-600'
+                  isFuture ? 'text-blue-600' : stats.pnl >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {isFutureWeek ? 'Planned' : formatCurrency(stats.pnl)}
+                  {isFuture ? 'Planned' : formatCurrency(stats.pnl)}
                 </div>
               </div>
               
               <div className="text-center p-2 bg-muted/30 rounded-md">
                 <div className="text-xs font-medium text-muted-foreground">R Value</div>
                 <div className={`text-sm font-semibold ${
-                  isFutureWeek ? 'text-blue-600' : stats.rValue >= 0 ? 'text-green-600' : 'text-red-600'
+                  isFuture ? 'text-blue-600' : stats.rValue >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {isFutureWeek ? 'Planned' : `${stats.rValue.toFixed(2)}R`}
+                  {isFuture ? 'Planned' : `${stats.rValue.toFixed(2)}R`}
                 </div>
               </div>
               
               <div className="text-center p-2 bg-muted/30 rounded-md">
                 <div className="text-xs font-medium text-muted-foreground">Win Rate</div>
                 <div className="text-sm font-semibold">
-                  {isFutureWeek ? 'Planned' : stats.tradeCount > 0 ? `${stats.winRate.toFixed(1)}%` : 'N/A'}
+                  {isFuture ? 'Planned' : stats.tradeCount > 0 ? `${stats.winRate.toFixed(1)}%` : 'N/A'}
                 </div>
               </div>
               
               <div className="text-center p-2 bg-muted/30 rounded-md">
                 <div className="text-xs font-medium text-muted-foreground">W/L</div>
                 <div className="text-sm font-semibold">
-                  {isFutureWeek ? 'Planned' : `${stats.winCount}/${stats.lossCount}`}
+                  {isFuture ? 'Planned' : `${stats.winCount}/${stats.lossCount}`}
                 </div>
               </div>
             </div>

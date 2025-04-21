@@ -1,101 +1,133 @@
-import { 
-  WEEKLY_REFLECTIONS_KEY, 
-  MONTHLY_REFLECTIONS_KEY,
-  dispatchStorageEvent, 
-  safeParse,
-  debugStorage
-} from './storageCore';
 
-// Keeping track of processed trades to prevent duplicate operations
-const processedTradeMap = new Map<string, Set<string>>();
+import { notifyJournalUpdate, dispatchStorageEvent } from './storageCore';
+
+const TRADE_ASSOCIATIONS_KEY = 'trade-journal-trade-associations';
 
 /**
- * Associate a trade with its corresponding weekly and monthly reflections
- * This function is now optimized to prevent duplicate operations on the same trade
+ * Associates a trade with reflections
  */
-export function associateTradeWithReflections(tradeId: string, tradeDate: string | Date): void {
-  if (!tradeId || !tradeDate) {
-    console.error('Cannot associate trade: missing trade ID or date');
-    return;
-  }
-  
-  const tradeDateTime = new Date(tradeDate);
-  if (isNaN(tradeDateTime.getTime())) {
-    console.error('Cannot associate trade: invalid date format', tradeDate);
-    return;
-  }
-  
-  const weekStart = new Date(tradeDateTime);
-  weekStart.setDate(tradeDateTime.getDate() - tradeDateTime.getDay() + (tradeDateTime.getDay() === 0 ? -6 : 1));
-  const weekId = weekStart.toISOString().slice(0, 10);
-  
-  const monthId = tradeDateTime.toISOString().slice(0, 7);
-  
-  // Check if this trade has already been processed for these reflections
-  const tradeMapKey = `${tradeId}-${weekId}-${monthId}`;
-  if (processedTradeMap.has(tradeMapKey)) {
-    // Skip processing without logging to reduce console noise
-    return;
-  }
-  
-  // Track this operation to prevent repeated processing
-  processedTradeMap.set(tradeMapKey, new Set([weekId, monthId]));
-  
-  // Use a single update flag to prevent multiple dispatches
-  let updatedStorage = false;
-  
-  // Get weekly reflections
+export function associateTradeWithReflections(
+  tradeId: string,
+  weeklyReflectionId?: string,
+  monthlyReflectionId?: string
+): void {
   try {
-    const weeklyReflectionsJson = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
-    const weeklyReflections = safeParse(weeklyReflectionsJson, {});
+    const associationsJson = localStorage.getItem(TRADE_ASSOCIATIONS_KEY);
+    let associations = associationsJson ? JSON.parse(associationsJson) : {};
     
-    if (weeklyReflections[weekId]) {
-      if (!weeklyReflections[weekId].tradeIds) {
-        weeklyReflections[weekId].tradeIds = [];
+    if (!associations[tradeId]) {
+      associations[tradeId] = {
+        weeklyReflectionId: weeklyReflectionId || null,
+        monthlyReflectionId: monthlyReflectionId || null
+      };
+    } else {
+      if (weeklyReflectionId) {
+        associations[tradeId].weeklyReflectionId = weeklyReflectionId;
       }
-      
-      if (!weeklyReflections[weekId].tradeIds.includes(tradeId)) {
-        weeklyReflections[weekId].tradeIds.push(tradeId);
-        localStorage.setItem(WEEKLY_REFLECTIONS_KEY, JSON.stringify(weeklyReflections));
-        updatedStorage = true;
+      if (monthlyReflectionId) {
+        associations[tradeId].monthlyReflectionId = monthlyReflectionId;
       }
     }
-  } catch (error) {
-    console.error('Error associating trade with weekly reflection:', error);
-  }
-  
-  // Get monthly reflections
-  try {
-    const monthlyReflectionsJson = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
-    const monthlyReflections = safeParse(monthlyReflectionsJson, {});
     
-    if (monthlyReflections[monthId]) {
-      if (!monthlyReflections[monthId].tradeIds) {
-        monthlyReflections[monthId].tradeIds = [];
-      }
-      
-      if (!monthlyReflections[monthId].tradeIds.includes(tradeId)) {
-        monthlyReflections[monthId].tradeIds.push(tradeId);
-        localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(monthlyReflections));
-        updatedStorage = true;
-      }
-    }
+    localStorage.setItem(TRADE_ASSOCIATIONS_KEY, JSON.stringify(associations));
+    
+    notifyJournalUpdate('associateTradeWithReflections');
+    dispatchStorageEvent();
   } catch (error) {
-    console.error('Error associating trade with monthly reflection:', error);
-  }
-  
-  // Only dispatch events if we actually updated something and do it once at the end
-  if (updatedStorage) {
-    // Use a timeout to prevent immediate UI updates during processing
-    setTimeout(() => {
-      dispatchStorageEvent("trade-journal-reflections-updated");
-    }, 50); // Add small delay to batch potential updates
+    console.error('Error associating trade with reflections:', error);
   }
 }
 
 /**
- * Clear the processed trade cache - useful for testing or when storage is reset
+ * Get reflection IDs for a trade
  */
-export function clearTradeAssociationCache(): void {
-  processedTradeMap.clear();
+export function getReflectionIdsForTrade(tradeId: string): {
+  weeklyReflectionId: string | null;
+  monthlyReflectionId: string | null;
+} {
+  try {
+    const associationsJson = localStorage.getItem(TRADE_ASSOCIATIONS_KEY);
+    if (!associationsJson) return { weeklyReflectionId: null, monthlyReflectionId: null };
+    
+    const associations = JSON.parse(associationsJson);
+    
+    return {
+      weeklyReflectionId: associations[tradeId]?.weeklyReflectionId || null,
+      monthlyReflectionId: associations[tradeId]?.monthlyReflectionId || null
+    };
+  } catch (error) {
+    console.error('Error getting reflection IDs for trade:', error);
+    return { weeklyReflectionId: null, monthlyReflectionId: null };
+  }
+}
+
+/**
+ * Get trades for a weekly reflection
+ */
+export function getTradesForWeeklyReflection(weeklyReflectionId: string): string[] {
+  try {
+    const associationsJson = localStorage.getItem(TRADE_ASSOCIATIONS_KEY);
+    if (!associationsJson) return [];
+    
+    const associations = JSON.parse(associationsJson);
+    
+    const tradeIds: string[] = [];
+    Object.entries(associations).forEach(([tradeId, association]: [string, any]) => {
+      if (association.weeklyReflectionId === weeklyReflectionId) {
+        tradeIds.push(tradeId);
+      }
+    });
+    
+    return tradeIds;
+  } catch (error) {
+    console.error('Error getting trades for weekly reflection:', error);
+    return [];
+  }
+}
+
+/**
+ * Get trades for a monthly reflection
+ */
+export function getTradesForMonthlyReflection(monthlyReflectionId: string): string[] {
+  try {
+    const associationsJson = localStorage.getItem(TRADE_ASSOCIATIONS_KEY);
+    if (!associationsJson) return [];
+    
+    const associations = JSON.parse(associationsJson);
+    
+    const tradeIds: string[] = [];
+    Object.entries(associations).forEach(([tradeId, association]: [string, any]) => {
+      if (association.monthlyReflectionId === monthlyReflectionId) {
+        tradeIds.push(tradeId);
+      }
+    });
+    
+    return tradeIds;
+  } catch (error) {
+    console.error('Error getting trades for monthly reflection:', error);
+    return [];
+  }
+}
+
+/**
+ * Remove associations for a trade
+ */
+export function removeTradeAssociations(tradeId: string): void {
+  try {
+    const associationsJson = localStorage.getItem(TRADE_ASSOCIATIONS_KEY);
+    if (!associationsJson) return;
+    
+    const associations = JSON.parse(associationsJson);
+    
+    if (associations[tradeId]) {
+      delete associations[tradeId];
+      
+      localStorage.setItem(TRADE_ASSOCIATIONS_KEY, JSON.stringify(associations));
+      
+      notifyJournalUpdate('removeTradeAssociations');
+      dispatchStorageEvent();
+    }
+  } catch (error) {
+    console.error('Error removing trade associations:', error);
+  }
 }

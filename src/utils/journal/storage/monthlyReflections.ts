@@ -1,3 +1,4 @@
+
 import { MonthlyReflection } from '@/types';
 import { generateUUID } from '@/utils/generateUUID';
 import { 
@@ -153,7 +154,7 @@ export function saveMonthlyReflectionObject(reflection: MonthlyReflection): void
     }
     
     const reflectionsJson = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
-    const reflections = safeParse(reflectionsJson, {});
+    const reflections = safeParse<Record<string, MonthlyReflection>>(reflectionsJson) || {};
     const monthId = reflection.monthId || reflection.id || '';
     
     if (!monthId) {
@@ -166,12 +167,11 @@ export function saveMonthlyReflectionObject(reflection: MonthlyReflection): void
       id: monthId,
       monthId: monthId,
       lastUpdated: new Date().toISOString(),
-      isPlaceholder: false
     };
     
     localStorage.setItem(MONTHLY_REFLECTIONS_KEY, JSON.stringify(reflections));
     
-    dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
+    dispatchStorageEvent();
     console.log(`Monthly reflection object saved successfully for ${monthId}`);
   } catch (error) {
     console.error('Error saving monthly reflection object:', error);
@@ -191,7 +191,7 @@ export function saveMonthlyReflection(monthId: string, reflection: string, grade
   
   try {
     const reflectionsJson = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
-    const reflections = safeParse(reflectionsJson, {});
+    const reflections = safeParse<Record<string, MonthlyReflection>>(reflectionsJson) || {};
     
     let year: number;
     let month: number;
@@ -225,7 +225,6 @@ export function saveMonthlyReflection(monthId: string, reflection: string, grade
       grade: grade || '',
       lastUpdated: new Date().toISOString(),
       tradeIds: reflections[exactMonthId]?.tradeIds || [],
-      isPlaceholder: false
     };
     
     debugStorage("Saving monthly reflection object", exactMonthId, reflections[exactMonthId]);
@@ -260,7 +259,7 @@ export function saveMonthlyReflection(monthId: string, reflection: string, grade
       return;
     }
     
-    dispatchStorageEvent(MONTHLY_REFLECTIONS_KEY);
+    dispatchStorageEvent();
   } catch (error) {
     console.error('Error in saveMonthlyReflection:', error);
     toast.error('Failed to save monthly reflection');
