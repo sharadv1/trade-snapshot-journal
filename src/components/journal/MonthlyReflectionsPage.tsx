@@ -212,7 +212,7 @@ export function MonthlyReflectionsPage() {
             Refresh
           </Button>
           <Button asChild>
-            <Link to={`/journal/monthly/${getCurrentPeriodId('monthly')}`}>
+            <Link to={`/journal/monthly/${getCurrentPeriodId(new Date(), 'month')}`}>
               <Plus className="mr-2 h-4 w-4" />
               New Month
             </Link>

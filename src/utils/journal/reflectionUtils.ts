@@ -35,14 +35,34 @@ export const countWords = (text: string = ''): number => {
 };
 
 /**
+ * Type guard to check if a reflection is a weekly reflection
+ */
+function isWeeklyReflection(reflection: WeeklyReflection | MonthlyReflection): reflection is WeeklyReflection {
+  return 'weekStart' in reflection || 'weekEnd' in reflection || 'weekId' in reflection;
+}
+
+/**
+ * Type guard to check if a reflection is a monthly reflection
+ */
+function isMonthlyReflection(reflection: WeeklyReflection | MonthlyReflection): reflection is MonthlyReflection {
+  return 'monthStart' in reflection || 'monthEnd' in reflection || 'monthId' in reflection;
+}
+
+/**
  * Get statistics for a reflection
  */
 export const getReflectionStats = (reflection: WeeklyReflection | MonthlyReflection) => {
-  const weekStart = reflection.weekStart ? new Date(reflection.weekStart) : 
-                   (reflection.monthStart ? new Date(reflection.monthStart) : null);
-                   
-  const weekEnd = reflection.weekEnd ? new Date(reflection.weekEnd) : 
-                 (reflection.monthEnd ? new Date(reflection.monthEnd) : null);
+  let weekStart: Date | null = null;
+  let weekEnd: Date | null = null;
+  
+  // Determine the date range based on the reflection type
+  if (isWeeklyReflection(reflection)) {
+    weekStart = reflection.weekStart ? new Date(reflection.weekStart) : null;
+    weekEnd = reflection.weekEnd ? new Date(reflection.weekEnd) : null;
+  } else if (isMonthlyReflection(reflection)) {
+    weekStart = reflection.monthStart ? new Date(reflection.monthStart) : null;
+    weekEnd = reflection.monthEnd ? new Date(reflection.monthEnd) : null;
+  }
 
   const trades = weekStart && weekEnd
     ? getTradesForWeek(weekStart, weekEnd)
