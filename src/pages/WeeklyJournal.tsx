@@ -48,6 +48,7 @@ export function WeeklyJournal() {
     grade: ''
   });
   const previousWeekIdRef = useRef<string | null>(null);
+  const navigationInProgressRef = useRef<boolean>(false);
   
   const currentDate = weekId ? new Date(weekId) : new Date();
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -72,6 +73,7 @@ export function WeeklyJournal() {
     
     isMountedRef.current = true;
     previousWeekIdRef.current = weekId || null;
+    navigationInProgressRef.current = false;
     
     clearTradeCache();
     preventTradeFetching(false);
@@ -172,21 +174,39 @@ export function WeeklyJournal() {
   }, []);
   
   const goToPreviousWeek = useCallback(() => {
-    if (isSaving || isLoading) return;
+    if (isSaving || isLoading || navigationInProgressRef.current) return;
+    
+    navigationInProgressRef.current = true;
+    console.log("Going to previous week");
     
     const previousWeek = addDays(weekStart, -7);
+    const targetPath = `/journal/weekly/${format(previousWeek, 'yyyy-MM-dd')}`;
     
     clearTradeCache();
-    navigate(`/journal/weekly/${format(previousWeek, 'yyyy-MM-dd')}`);
+    navigate(targetPath);
+    
+    // Reset navigation progress after a short delay to prevent double-clicks
+    setTimeout(() => {
+      navigationInProgressRef.current = false;
+    }, 500);
   }, [navigate, weekStart, isSaving, isLoading]);
   
   const goToNextWeek = useCallback(() => {
-    if (isSaving || isLoading) return;
+    if (isSaving || isLoading || navigationInProgressRef.current) return;
+    
+    navigationInProgressRef.current = true;
+    console.log("Going to next week");
     
     const nextWeek = addDays(weekStart, 7);
+    const targetPath = `/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`;
     
     clearTradeCache();
-    navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
+    navigate(targetPath);
+    
+    // Reset navigation progress after a short delay to prevent double-clicks
+    setTimeout(() => {
+      navigationInProgressRef.current = false;
+    }, 500);
   }, [navigate, weekStart, isSaving, isLoading]);
   
   const handleDeleteReflection = useCallback(async () => {
