@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore, isAfter } from 'date-fns';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ChevronLeft, ChevronRight, Save, Loader2, ExternalLink, Trash } from 'lucide-react';
@@ -26,10 +26,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 
 export function WeeklyJournal() {
   const { weekId } = useParams<{ weekId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  
   const [reflection, setReflection] = useState<string>('');
   const [weeklyPlan, setWeeklyPlan] = useState<string>('');
   const [grade, setGrade] = useState<string>('');
@@ -53,6 +56,43 @@ export function WeeklyJournal() {
   const navigationInProgressRef = useRef<boolean>(false);
   const pendingSaveRef = useRef<boolean>(false);
   
+  // Define handleSave early since it's used in other functions
+  const handleSave = useCallback(async () => {
+    if (!weekId || isSaving || !isMountedRef.current) return;
+    
+    setIsSaving(true);
+    
+    try {
+      console.log(`Saving reflection for ${weekId}`, {
+        reflection: reflection.substring(0, 50) + (reflection.length > 50 ? '...' : ''),
+        grade,
+        weeklyPlan: weeklyPlan.substring(0, 50) + (weeklyPlan.length > 50 ? '...' : '')
+      });
+      
+      await saveWeeklyReflection(weekId, reflection, grade, weeklyPlan);
+      
+      if (!isMountedRef.current) return;
+      
+      toast.success('Reflection saved successfully');
+      
+      backupRef.current = { reflection, weeklyPlan, grade };
+      pendingSaveRef.current = false;
+      
+      needsReloadRef.current = true;
+      loadReflection();
+      loadTrades();
+    } catch (error) {
+      console.error('Error saving reflection:', error);
+      if (isMountedRef.current) {
+        toast.error('Failed to save reflection');
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
+  }, [weekId, reflection, grade, weeklyPlan, isSaving]);
+  
   // Ensure we have a valid weekId, defaulting to current week if not
   const safeWeekId = weekId || getWeekIdFromDate(new Date());
   const currentDate = safeWeekId ? new Date(safeWeekId) : new Date();
@@ -63,6 +103,7 @@ export function WeeklyJournal() {
   const formattedDateRange = `${format(weekStart, 'MMM dd')} - ${format(weekEnd, 'MMM dd, yyyy')}`;
   
   const today = new Date();
+  const isFutureWeek = isAfter(weekStart, today);
   
   useEffect(() => {
     console.log("Enabling trade debug mode");
@@ -86,9 +127,21 @@ export function WeeklyJournal() {
     clearTradeCache();
     preventTradeFetching(false);
     
+    // Add visibility change listener to reload when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isMountedRef.current && weekId) {
+        console.log('Weekly journal page visible again, refreshing data');
+        loadReflection();
+        loadTrades();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     return () => {
       console.log('WeeklyJournal: Component unmounting');
       isMountedRef.current = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
   
@@ -160,43 +213,6 @@ export function WeeklyJournal() {
       }
     }
   }, [weekId, weekStart, weekEnd]);
-
-  // Define handleSave before it's used in handleWeekNavigation
-  const handleSave = useCallback(async () => {
-    if (!weekId || isSaving || !isMountedRef.current) return;
-    
-    setIsSaving(true);
-    
-    try {
-      console.log(`Saving reflection for ${weekId}`, {
-        reflection: reflection.substring(0, 50) + (reflection.length > 50 ? '...' : ''),
-        grade,
-        weeklyPlan: weeklyPlan.substring(0, 50) + (weeklyPlan.length > 50 ? '...' : '')
-      });
-      
-      await saveWeeklyReflection(weekId, reflection, grade, weeklyPlan);
-      
-      if (!isMountedRef.current) return;
-      
-      toast.success('Reflection saved successfully');
-      
-      backupRef.current = { reflection, weeklyPlan, grade };
-      pendingSaveRef.current = false;
-      
-      needsReloadRef.current = true;
-      loadReflection();
-      loadTrades();
-    } catch (error) {
-      console.error('Error saving reflection:', error);
-      if (isMountedRef.current) {
-        toast.error('Failed to save reflection');
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setIsSaving(false);
-      }
-    }
-  }, [weekId, reflection, grade, weeklyPlan, isSaving, loadReflection, loadTrades]);
   
   const handleWeekNavigation = useCallback((direction: 'previous' | 'next') => {
     if (isSaving || isLoading || navigationInProgressRef.current) {
@@ -331,7 +347,7 @@ export function WeeklyJournal() {
       loadReflection();
       loadTrades();
     }
-  }, [weekId, loadReflection, loadTrades, initialLoadComplete, handleSave]);
+  }, [weekId, location.pathname, loadReflection, loadTrades, initialLoadComplete, handleSave]);
   
   useEffect(() => {
     return () => {
@@ -373,8 +389,6 @@ export function WeeklyJournal() {
     navigate(`/trade/${tradeId}`);
   }, [navigate]);
   
-  const isFutureWeek = isAfter(weekStart, today);
-  
   if (isLoading) {
     return (
       <div className="container mx-auto py-12 flex justify-center items-center">
@@ -399,13 +413,17 @@ export function WeeklyJournal() {
         </Button>
         
         <div className="flex flex-col">
-          <h1 className="text-3xl font-bold">Weekly Journal</h1>
-          <p className="text-muted-foreground">Reflect on your trading week.</p>
-          {isFutureWeek && (
-            <p className="text-sm text-blue-600 mt-1">
-              This is a future week - use it for planning your upcoming trades.
-            </p>
-          )}
+          <div className="flex items-center">
+            <h1 className="text-3xl font-bold">Weekly Journal</h1>
+            {isFutureWeek && (
+              <Badge className="ml-3 bg-blue-100 text-blue-800">Future Week</Badge>
+            )}
+          </div>
+          <p className="text-muted-foreground">
+            {isFutureWeek 
+              ? "Plan your upcoming trading week." 
+              : "Reflect on your trading week."}
+          </p>
         </div>
       </div>
       
@@ -435,7 +453,7 @@ export function WeeklyJournal() {
         </Button>
       </div>
       
-      <Card className="p-6 mb-6">
+      <Card className={`p-6 mb-6 ${isFutureWeek ? 'border-blue-200 bg-blue-50/30' : ''}`}>
         <ReflectionMetrics
           tradeCount={tradesForWeek.length}
           totalPnL={totalPnL}
@@ -444,13 +462,14 @@ export function WeeklyJournal() {
           lossCount={lossCount}
           winRate={winRate}
           avgRPerTrade={avgRPerTrade}
+          isFutureWeek={isFutureWeek}
         />
       </Card>
       
-      <Card className="p-6 mb-6">
+      <Card className={`p-6 mb-6 ${isFutureWeek ? 'border-blue-200 bg-blue-50/30' : ''}`}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-semibold">
-            Weekly Reflection - {formattedDateRange}
+            {isFutureWeek ? 'Weekly Plan' : 'Weekly Reflection'} - {formattedDateRange}
           </h2>
           
           <div className="flex space-x-2">
@@ -517,7 +536,9 @@ export function WeeklyJournal() {
               id="weekly-reflection"
               content={reflection}
               onChange={setReflection}
-              placeholder="Write your weekly reflection here..."
+              placeholder={isFutureWeek 
+                ? "This is a future week. You can use this space for notes about what you're planning to focus on."
+                : "Write your weekly reflection here..."}
             />
           </div>
           
@@ -562,7 +583,7 @@ export function WeeklyJournal() {
         </div>
       </Card>
       
-      <Card className="p-6">
+      <Card className={`p-6 ${isFutureWeek ? 'border-blue-200 bg-blue-50/30' : ''}`}>
         <h2 className="text-2xl font-semibold mb-6">
           Trades for {formattedDateRange}
         </h2>
@@ -573,7 +594,9 @@ export function WeeklyJournal() {
           </div>
         ) : tradesForWeek.length === 0 ? (
           <p className="text-center text-muted-foreground py-6">
-            No trades found for this week.
+            {isFutureWeek 
+              ? "This is a future week. No trades can be recorded yet."
+              : "No trades found for this week."}
           </p>
         ) : (
           <div className="overflow-x-auto">

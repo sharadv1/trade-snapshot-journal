@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
@@ -10,13 +11,14 @@ import { getCurrentPeriodId, getReflectionStats, getWeekIdFromDate } from '@/uti
 import { toast } from '@/utils/toast';
 import { clearTradeCache, preventTradeFetching } from '@/utils/tradeCalculations';
 import { ReflectionCard } from './reflections/ReflectionCard';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { format, addDays, startOfWeek, isAfter, parseISO } from 'date-fns';
 
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
+  const [includeEmptyWeeks, setIncludeEmptyWeeks] = useState(false);
   const navigate = useNavigate();
 
   const isMountedRef = useRef(true);
@@ -38,7 +40,27 @@ export function WeeklyReflectionsPage() {
       if (!isMountedRef.current) return;
 
       if (Array.isArray(fetchedReflections)) {
-        const sortedReflections = fetchedReflections.sort((a, b) => {
+        // Ensure we have a valid date for sorting
+        const validReflections = fetchedReflections.map(r => {
+          // If the weekStart is missing or invalid, try to create it from weekId
+          if (!r.weekStart || isNaN(new Date(r.weekStart).getTime())) {
+            if (r.weekId) {
+              try {
+                const weekDate = new Date(r.weekId);
+                if (!isNaN(weekDate.getTime())) {
+                  r.weekStart = weekDate.toISOString();
+                  r.weekEnd = addDays(weekDate, 6).toISOString();
+                }
+              } catch (error) {
+                console.warn("Error parsing weekId as date:", error);
+              }
+            }
+          }
+          return r;
+        });
+
+        // Sort by date descending (latest first)
+        const sortedReflections = validReflections.sort((a, b) => {
           if (!a.weekStart || !b.weekStart) return 0;
 
           try {
@@ -99,6 +121,17 @@ export function WeeklyReflectionsPage() {
     window.addEventListener('trades-updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     
+    // Add visibility change listener to reload when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isMountedRef.current) {
+        console.log('Weekly reflections page visible again, refreshing data');
+        clearTradeCache();
+        loadReflections();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     initializedRef.current = true;
 
     return () => {
@@ -107,6 +140,7 @@ export function WeeklyReflectionsPage() {
       window.removeEventListener('journalUpdated', handleUpdate);
       window.removeEventListener('trades-updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
 
       preventTradeFetching(false);
     };
@@ -207,6 +241,23 @@ export function WeeklyReflectionsPage() {
     navigateTo(`/journal/weekly/${weekId}`);
   };
 
+  const toggleEmptyWeeks = () => {
+    setIncludeEmptyWeeks(!includeEmptyWeeks);
+  };
+
+  // Function to create a future week
+  const handleCreateFutureWeek = () => {
+    // Use next week's Monday as the base date for a future reflection
+    const today = new Date();
+    const nextWeek = addDays(today, 7);
+    const weekId = getWeekIdFromDate(nextWeek);
+    
+    console.log(`Creating future week: ${weekId}`);
+    
+    clearTradeCache();
+    navigateTo(`/journal/weekly/${weekId}`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12 flex-col">
@@ -236,11 +287,21 @@ export function WeeklyReflectionsPage() {
     return false;
   });
 
+  // Today's date for comparison
+  const today = new Date();
+
   return (
     <div className="container mx-auto py-6 max-w-screen-xl px-4">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Weekly Reflections</h1>
         <div className="flex gap-2">
+          <Button
+            onClick={toggleEmptyWeeks}
+            variant="outline"
+            className="gap-2"
+          >
+            {includeEmptyWeeks ? 'Hide Empty Weeks' : 'Show All Weeks'}
+          </Button>
           <Button
             onClick={handleRemoveDuplicates}
             variant="outline"
@@ -253,6 +314,9 @@ export function WeeklyReflectionsPage() {
               <Scissors size={18} />
             )}
             {hasDuplicates ? 'Duplicates Detected!' : 'Remove Duplicates'}
+          </Button>
+          <Button onClick={handleCreateFutureWeek} variant="outline">
+            Add Future Week
           </Button>
           <Button onClick={handleCreateReflection} className="rounded-full h-12 w-12 p-0">
             <Plus className="h-6 w-6" />
@@ -276,15 +340,31 @@ export function WeeklyReflectionsPage() {
         <div className="space-y-4">
           {reflections.map((reflection) => {
             const stats = getReflectionStats(reflection);
-
+            
+            // Skip empty reflections if not showing all
+            if (!includeEmptyWeeks && !stats.hasContent && stats.tradeCount === 0) {
+              return null;
+            }
+            
             const dateRange = reflection.weekStart ?
               `Week of ${new Date(reflection.weekStart).toLocaleDateString()}` :
               'Unknown date range';
-
+              
             // Check if this is a duplicate reflection
             const isDuplicate = reflections.some(
               r => r.id !== reflection.id && r.weekId === reflection.weekId
             );
+            
+            // Determine if this is a future week
+            let isFutureWeek = false;
+            try {
+              const weekStartDate = reflection.weekStart ? parseISO(reflection.weekStart) : null;
+              if (weekStartDate) {
+                isFutureWeek = isAfter(weekStartDate, today);
+              }
+            } catch (e) {
+              console.error("Error parsing date:", e);
+            }
 
             return (
               <div
@@ -303,6 +383,7 @@ export function WeeklyReflectionsPage() {
                   isDuplicate={isDuplicate}
                   showWordCounts={false}
                   showGrade={false}
+                  isFutureWeek={isFutureWeek}
                 />
               </div>
             );

@@ -1,132 +1,154 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { MonthlyReflection, WeeklyReflection } from '@/types';
-import { formatCurrency } from '@/utils/calculations/formatters';
-import { Calendar, ArrowRight, Trash, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatCurrency } from '@/utils/calculations/formatters';
+import { ReflectionGradeBadge } from './ReflectionGradeBadge';
+import { WeeklyReflection, MonthlyReflection } from '@/types';
 
 interface ReflectionCardProps {
   reflection: WeeklyReflection | MonthlyReflection;
   type: 'weekly' | 'monthly';
+  dateRange: string;
   stats: {
     pnl: number;
     rValue: number;
     tradeCount: number;
     hasContent: boolean;
-    winCount?: number;
-    lossCount?: number;
-    winRate?: number;
+    winCount: number;
+    lossCount: number;
+    winRate: number;
   };
-  dateRange: string;
   canDelete?: boolean;
   onDelete?: (id: string, e: React.MouseEvent) => void;
-  hasContent: boolean;
+  hasContent?: boolean;
   isDuplicate?: boolean;
   showWordCounts?: boolean;
   showGrade?: boolean;
+  wordCounts?: {
+    reflection: number;
+    weeklyPlan?: number;
+    monthlyPlan?: number;
+    monthlyGoals?: number;
+  };
+  isFutureWeek?: boolean;
 }
 
-export function ReflectionCard({
-  reflection,
-  type,
-  stats,
-  dateRange,
-  canDelete,
+export function ReflectionCard({ 
+  reflection, 
+  type, 
+  dateRange, 
+  stats, 
+  canDelete, 
   onDelete,
   hasContent,
   isDuplicate,
-  showWordCounts = true,
-  showGrade = true
+  showWordCounts = false,
+  showGrade = true,
+  wordCounts,
+  isFutureWeek = false
 }: ReflectionCardProps) {
-  const isProfitable = stats.pnl > 0;
+  // Extract grade for highlighting
+  const grade = 'grade' in reflection ? reflection.grade : undefined;
   
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (onDelete) {
-      onDelete(reflection.id, e);
-    }
-  };
+  // Extract content for wordcounts
+  const reflectionText = 'reflection' in reflection ? reflection.reflection : '';
+  const weeklyPlan = 'weeklyPlan' in reflection ? reflection.weeklyPlan : '';
+  const monthlyPlan = 'monthlyPlan' in reflection ? reflection.monthlyPlan : '';
+  const monthlyGoals = 'monthlyGoals' in reflection ? reflection.monthlyGoals : '';
   
   return (
-    <Card className={`cursor-pointer hover:bg-muted/40 transition-colors ${
-      reflection.isPlaceholder ? 'border-dashed' : ''
+    <Card className={`overflow-hidden transition-all ${
+      isFutureWeek ? 'border-blue-300 bg-blue-50/50' : ''
     }`}>
       <CardContent className="p-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-base font-medium inline-flex items-center">
-              <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-              {dateRange}
-            </h3>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {canDelete && onDelete && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleDelete}
-                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-              >
-                <Trash className="h-4 w-4" />
-              </Button>
-            )}
-            
-            {isDuplicate && (
-              <AlertCircle className="h-4 w-4 text-red-500" />
-            )}
-            
-            {reflection.actions}
-            
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </div>
-        
-        <div className="flex flex-wrap gap-4 mt-4">
-          <div className={`text-sm ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
-            <span className="text-muted-foreground mr-1">P&L:</span>
-            <span className="font-medium">
-              {formatCurrency(stats.pnl)}
-            </span>
-          </div>
-          
-          <div className={`text-sm ${stats.rValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            <span className="text-muted-foreground mr-1">R Value:</span>
-            <span className="font-medium">
-              {stats.rValue > 0 ? '+' : ''}{stats.rValue.toFixed(1)}R
-            </span>
-          </div>
-          
-          <div className="text-sm">
-            <span className="text-muted-foreground mr-1">Trades:</span>
-            <span className="font-medium">
-              {stats.tradeCount}
-            </span>
-          </div>
-          
-          {stats.winCount !== undefined && stats.lossCount !== undefined && stats.winRate !== undefined && (
-            <div className="text-sm">
-              <span className="text-muted-foreground mr-1">Win Rate:</span>
-              <span className="font-medium">
-                {Math.round(stats.winRate)}% ({stats.winCount}W / {stats.lossCount}L)
-              </span>
+        <div className="flex flex-col md:flex-row justify-between">
+          <div className="flex-1">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h3 className="font-medium text-lg flex items-center">
+                  {dateRange}
+                  {isFutureWeek && (
+                    <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-800 hover:bg-blue-200">
+                      Future Week
+                    </Badge>
+                  )}
+                  {isDuplicate && (
+                    <Badge variant="outline" className="ml-2 bg-red-100 text-red-600 hover:bg-red-200">
+                      Duplicate
+                    </Badge>
+                  )}
+                </h3>
+                <div className="text-sm text-muted-foreground flex items-center mt-1">
+                  <span className="mr-4">
+                    {stats.tradeCount} trade{stats.tradeCount !== 1 ? 's' : ''}
+                  </span>
+                  {showGrade && grade && (
+                    <ReflectionGradeBadge grade={grade} />
+                  )}
+                </div>
+              </div>
+              
+              {canDelete && onDelete && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                  onClick={(e) => onDelete(reflection.id, e)}
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
+              )}
             </div>
-          )}
+            
+            {showWordCounts && (
+              <div className="text-xs text-muted-foreground mb-2 flex flex-wrap gap-2">
+                <span>Reflection: {wordCounts?.reflection || 0} words</span>
+                {type === 'weekly' && (
+                  <span>Weekly Plan: {wordCounts?.weeklyPlan || 0} words</span>
+                )}
+                {type === 'monthly' && (
+                  <>
+                    <span>Monthly Plan: {wordCounts?.monthlyPlan || 0} words</span>
+                    <span>Monthly Goals: {wordCounts?.monthlyGoals || 0} words</span>
+                  </>
+                )}
+              </div>
+            )}
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              <div className="text-center p-2 bg-muted/30 rounded-md">
+                <div className="text-xs font-medium text-muted-foreground">P&L</div>
+                <div className={`text-sm font-semibold ${stats.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(stats.pnl)}
+                </div>
+              </div>
+              
+              <div className="text-center p-2 bg-muted/30 rounded-md">
+                <div className="text-xs font-medium text-muted-foreground">R Value</div>
+                <div className={`text-sm font-semibold ${stats.rValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {stats.rValue.toFixed(2)}R
+                </div>
+              </div>
+              
+              <div className="text-center p-2 bg-muted/30 rounded-md">
+                <div className="text-xs font-medium text-muted-foreground">Win Rate</div>
+                <div className="text-sm font-semibold">
+                  {stats.tradeCount > 0 ? `${stats.winRate.toFixed(1)}%` : 'N/A'}
+                </div>
+              </div>
+              
+              <div className="text-center p-2 bg-muted/30 rounded-md">
+                <div className="text-xs font-medium text-muted-foreground">W/L</div>
+                <div className="text-sm font-semibold">
+                  {stats.winCount}/{stats.lossCount}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        {reflection.reflection && (
-          <div className="mt-3 text-sm text-muted-foreground line-clamp-2">
-            {reflection.reflection.replace(/<[^>]*>/g, ' ')}
-          </div>
-        )}
-        
-        {!hasContent && !reflection.isPlaceholder && (
-          <div className="mt-3 text-sm text-muted-foreground italic">
-            No {type} reflection content yet
-          </div>
-        )}
       </CardContent>
     </Card>
   );
