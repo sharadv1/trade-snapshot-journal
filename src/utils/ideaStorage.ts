@@ -15,9 +15,25 @@ const MAX_STORAGE_SIZE = 5 * 1024 * 1024;
 // Get ideas from storage (localStorage)
 export const getIdeas = (): TradeIdea[] => {
   try {
+    console.log('Getting trade ideas from localStorage');
     const ideasJson = localStorage.getItem(IDEAS_STORAGE_KEY);
-    if (!ideasJson) return [];
-    return JSON.parse(ideasJson);
+    if (!ideasJson) {
+      console.log('No trade ideas found in localStorage');
+      return [];
+    }
+    
+    try {
+      const parsed = JSON.parse(ideasJson);
+      if (!Array.isArray(parsed)) {
+        console.error('Trade ideas data is not an array, returning empty array');
+        return [];
+      }
+      console.log(`Found ${parsed.length} ideas in localStorage`);
+      return parsed;
+    } catch (parseError) {
+      console.error('Failed to parse trade ideas JSON:', parseError);
+      return [];
+    }
   } catch (error) {
     console.error('Error getting trade ideas:', error);
     toast.error('Failed to load trade ideas');
@@ -47,6 +63,13 @@ const wouldExceedStorageLimit = (ideas: TradeIdea[], newIdea: TradeIdea): boolea
 // Save ideas to storage (localStorage)
 export const saveIdeas = (ideas: TradeIdea[]): boolean => {
   try {
+    // First, validate that ideas is actually an array
+    if (!Array.isArray(ideas)) {
+      console.error('Cannot save ideas: data is not an array', ideas);
+      toast.error('Failed to save ideas: invalid data format');
+      return false;
+    }
+
     const jsonString = JSON.stringify(ideas);
     
     // Check if the stringified data is too large
@@ -57,6 +80,7 @@ export const saveIdeas = (ideas: TradeIdea[]): boolean => {
     
     // Try to save to localStorage
     localStorage.setItem(IDEAS_STORAGE_KEY, jsonString);
+    console.log(`Saved ${ideas.length} ideas to localStorage`);
     
     // Dispatch storage events to notify components
     window.dispatchEvent(new Event('storage'));
@@ -109,7 +133,7 @@ export const updateIdea = (updatedIdea: TradeIdea): boolean => {
     }
     
     // It's safe to update
-    ideas[index] = updatedIdea;
+    ideas.splice(index, 0, updatedIdea);
     return saveIdeas(ideas);
   }
   
@@ -154,11 +178,16 @@ export const syncIdeasWithServer = async (): Promise<boolean> => {
     
     if (response.ok) {
       const serverIdeas = await response.json();
-      localStorage.setItem(IDEAS_STORAGE_KEY, JSON.stringify(serverIdeas));
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(IDEAS_UPDATED_EVENT);
-      console.log('Ideas synced with server successfully');
-      return true;
+      if (Array.isArray(serverIdeas)) {
+        localStorage.setItem(IDEAS_STORAGE_KEY, JSON.stringify(serverIdeas));
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(IDEAS_UPDATED_EVENT);
+        console.log(`Synced ${serverIdeas.length} ideas with server successfully`);
+        return true;
+      } else {
+        console.error('Server returned non-array data for ideas:', serverIdeas);
+        return false;
+      }
     } else {
       console.error('Server returned an error status when syncing ideas', response.status);
       return false;

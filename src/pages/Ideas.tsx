@@ -14,7 +14,7 @@ export default function Ideas() {
   const [sortBy, setSortBy] = useState('date');
   const location = useLocation();
   
-  // Force reload ideas when navigating back to this page
+  // Force reload ideas when navigating back to this page or when it becomes visible
   useEffect(() => {
     console.log('Ideas page mounted or path changed');
     setRefreshKey(prev => prev + 1);
@@ -23,6 +23,20 @@ export default function Ideas() {
     syncIdeasWithServer().catch(error => {
       console.error('Failed to sync ideas with server:', error);
     });
+    
+    // Also reload ideas when the page becomes visible again (e.g., after navigating back)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Ideas page visible again, refreshing data');
+        setRefreshKey(prev => prev + 1);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [location.pathname]);
   
   const handleIdeaAdded = () => {

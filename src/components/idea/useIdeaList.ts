@@ -23,18 +23,28 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
     loadIdeas();
     
     // Listen for storage events to refresh the list
-    const handleStorageChange = () => {
-      console.log('Storage change detected, reloading ideas');
-      loadIdeas();
+    const handleStorageChange = (event?: StorageEvent) => {
+      // If no event or the event key matches our ideas storage key
+      if (!event || event.key === 'trade-journal-ideas' || event.key === null) {
+        console.log('Storage change detected, reloading ideas');
+        loadIdeas();
+      }
     };
     
+    // Listen for multiple event types to ensure data is always fresh
     window.addEventListener('storage', handleStorageChange);
-    // Also listen to our custom event for same-window updates
     window.addEventListener('ideas-updated', handleStorageChange);
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Page visible again, checking for updated ideas');
+        loadIdeas();
+      }
+    });
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('ideas-updated', handleStorageChange);
+      window.removeEventListener('visibilitychange', handleStorageChange);
     };
   }, [loadIdeas]);
   
