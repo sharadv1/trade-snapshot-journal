@@ -1,4 +1,5 @@
 
+
 export interface Trade {
   id: string;
   symbol: string;
@@ -169,3 +170,4 @@ export interface MediaFile {
   url: string;
   type: MediaFileType;
 }
+
