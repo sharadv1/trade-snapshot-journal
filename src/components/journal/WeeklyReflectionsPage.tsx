@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
@@ -6,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader2, Plus, Scissors, Trash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentPeriodId, countWords } from '@/utils/journal/reflectionUtils';
+import { getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflectionUtils';
 import { toast } from '@/utils/toast';
-import { clearTradeCache, preventTradeFetching, getTradesForWeek } from '@/utils/tradeCalculations';
+import { clearTradeCache, preventTradeFetching } from '@/utils/tradeCalculations';
 import { ReflectionCard } from './reflections/ReflectionCard';
 import { format, addDays } from 'date-fns';
 
@@ -17,6 +18,7 @@ export function WeeklyReflectionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const navigate = useNavigate();
 
   const isMountedRef = useRef(true);
@@ -74,6 +76,8 @@ export function WeeklyReflectionsPage() {
   }, []);
 
   useEffect(() => {
+    if (hasInitialized) return;
+    
     isMountedRef.current = true;
     hasLoadedRef.current = false;
 
@@ -95,6 +99,8 @@ export function WeeklyReflectionsPage() {
     window.addEventListener('journalUpdated', handleUpdate);
     window.addEventListener('trades-updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
+    
+    setHasInitialized(true);
 
     return () => {
       isMountedRef.current = false;
@@ -105,7 +111,7 @@ export function WeeklyReflectionsPage() {
 
       preventTradeFetching(false);
     };
-  }, [loadReflections]);
+  }, [loadReflections, hasInitialized]);
 
   const handleDeleteReflection = useCallback(async (reflectionId: string, e: React.MouseEvent) => {
     if (!isMountedRef.current) return;
@@ -114,9 +120,13 @@ export function WeeklyReflectionsPage() {
     e.stopPropagation();
 
     try {
-      const stats = getReflectionStats(
-        reflections.find(r => r.id === reflectionId) as WeeklyReflection
-      );
+      const reflection = reflections.find(r => r.id === reflectionId);
+      if (!reflection) {
+        toast.error("Reflection not found");
+        return;
+      }
+      
+      const stats = getReflectionStats(reflection);
 
       if (stats.tradeCount > 0) {
         toast.error("Cannot delete a reflection with associated trades");
@@ -187,30 +197,14 @@ export function WeeklyReflectionsPage() {
     navigate(path);
   }, [navigate]);
 
-  const getReflectionStats = (reflection: WeeklyReflection) => {
-    const weekStart = reflection.weekStart ? new Date(reflection.weekStart) : null;
-    const weekEnd = reflection.weekEnd ? new Date(reflection.weekEnd) : null;
+  const handleCreateReflection = () => {
+    // Ensure we're creating for the current or future week, not past week
+    const today = new Date();
+    const nextWeek = addDays(today, 1); // Add 1 day to ensure we're in the current week
+    const currentWeekId = format(nextWeek, 'yyyy-MM-dd');
 
-    const trades = weekStart && weekEnd
-      ? getTradesForWeek(weekStart, weekEnd)
-      : [];
-
-    const tradeCount = trades.length;
-    const totalPnL = trades.reduce((sum, trade) => sum + (trade.metrics?.profitLoss || 0), 0);
-    const totalR = trades.reduce((sum, trade) => sum + (trade.metrics?.rMultiple || 0), 0);
-    const winCount = trades.filter(trade => (trade.metrics?.profitLoss || 0) > 0).length;
-    const lossCount = trades.filter(trade => (trade.metrics?.profitLoss || 0) < 0).length;
-    const winRate = tradeCount > 0 ? (winCount / tradeCount) * 100 : 0;
-
-    return {
-      pnl: totalPnL,
-      rValue: totalR,
-      tradeCount: tradeCount,
-      hasContent: Boolean(reflection.reflection && reflection.reflection.trim().length > 0),
-      winCount: winCount,
-      lossCount: lossCount,
-      winRate: winRate
-    };
+    clearTradeCache();
+    navigateTo(`/journal/weekly/${currentWeekId}`);
   };
 
   if (isLoading) {
@@ -232,16 +226,6 @@ export function WeeklyReflectionsPage() {
       </Card>
     );
   }
-
-  const handleCreateReflection = () => {
-    // Ensure we're creating for the current or future week, not past week
-    const today = new Date();
-    const nextWeek = addDays(today, 1); // Add 1 day to ensure we're in the current week
-    const currentWeekId = format(nextWeek, 'yyyy-MM-dd');
-
-    clearTradeCache();
-    navigateTo(`/journal/weekly/${currentWeekId}`);
-  };
 
   // Find duplicate reflections (different IDs with the same weekId)
   const weekIdMap = new Map();

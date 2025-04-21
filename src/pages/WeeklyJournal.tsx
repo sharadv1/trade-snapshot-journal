@@ -38,6 +38,7 @@ export function WeeklyJournal() {
   const [isLoadingTrades, setIsLoadingTrades] = useState<boolean>(false);
   const [isProcessingDuplicates, setIsProcessingDuplicates] = useState<boolean>(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
   
   const isMountedRef = useRef(true);
   const needsReloadRef = useRef(true);
@@ -118,6 +119,7 @@ export function WeeklyJournal() {
       if (isMountedRef.current) {
         setIsLoading(false);
         needsReloadRef.current = false;
+        setInitialLoadComplete(true);
       }
     }
   }, [weekId]);
@@ -150,13 +152,13 @@ export function WeeklyJournal() {
   }, [weekId, weekStart, weekEnd]);
   
   useEffect(() => {
-    if (weekId && isMountedRef.current && needsReloadRef.current) {
+    if (weekId && isMountedRef.current && needsReloadRef.current && !initialLoadComplete) {
       console.log(`WeeklyJournal: loading initial data for ${weekId}`);
       
       clearTradeCache();
       loadReflection();
       loadTrades();
-    } else if (weekId && isMountedRef.current) {
+    } else if (weekId && isMountedRef.current && initialLoadComplete) {
       const prevWeekId = weeklyReflection?.weekId || '';
       if (weekId !== prevWeekId) {
         console.log(`WeeklyJournal: weekId changed to ${weekId}, reloading data`);
@@ -168,7 +170,7 @@ export function WeeklyJournal() {
         loadTrades();
       }
     }
-  }, [weekId, loadReflection, loadTrades, weeklyReflection?.weekId]);
+  }, [weekId, loadReflection, loadTrades, weeklyReflection?.weekId, initialLoadComplete]);
   
   const goToPreviousWeek = useCallback(() => {
     if (isSaving || isLoading) return;

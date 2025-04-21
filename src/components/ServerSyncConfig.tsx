@@ -53,6 +53,7 @@ export function ServerSyncConfig() {
     size: 0
   });
   const [isDev, setIsDev] = useState(false);
+  const [initializationAttempted, setInitializationAttempted] = useState(false);
   
   // Define the refreshConnectionStatus function
   const refreshConnectionStatus = () => {
@@ -88,28 +89,39 @@ export function ServerSyncConfig() {
   
   // Force connection restoration when component mounts
   useEffect(() => {
+    // Only attempt initialization once to prevent reload cycles
+    if (initializationAttempted) {
+      return;
+    }
+
     const initConnection = async () => {
       try {
         console.log('Initializing server connection on component mount');
         await restoreServerConnection();
         refreshConnectionStatus();
+        setInitializationAttempted(true);
       } catch (error) {
         console.error('Error initializing connection:', error);
+        setInitializationAttempted(true);
       }
     };
     
     initConnection();
-  }, []);
+  }, [initializationAttempted]);
   
   // Load saved server URL on component mount and check connection status
   useEffect(() => {
     refreshConnectionStatus();
     
     // Also listen for storage events to update connection status
-    window.addEventListener('storage', refreshConnectionStatus);
+    const handleStorageEvent = () => {
+      refreshConnectionStatus();
+    };
+    
+    window.addEventListener('storage', handleStorageEvent);
     
     return () => {
-      window.removeEventListener('storage', refreshConnectionStatus);
+      window.removeEventListener('storage', handleStorageEvent);
     };
   }, []);
   

@@ -1,87 +1,53 @@
 
-import { format, addDays } from 'date-fns';
-import { MonthlyReflection, WeeklyReflection, TradeWithMetrics } from '@/types';
-import { getTradesForWeek, getTradesForMonth } from '@/utils/tradeCalculations';
+import { WeeklyReflection, MonthlyReflection, TradeWithMetrics } from '@/types';
+import { getTradesForWeek } from '@/utils/tradeCalculations';
 
 /**
- * Get the current period ID for weekly or monthly reflections
+ * Get the current week or month ID based on a date
+ * @param date Optional date to use (defaults to current date)
+ * @param period 'week' or 'month'
+ * @returns ID string in the format YYYY-MM-DD (for week) or YYYY-MM (for month)
  */
-export const getCurrentPeriodId = (type: 'weekly' | 'monthly') => {
-  const today = new Date();
-  
-  if (type === 'weekly') {
-    // Ensure we're always getting the current week or future week, never past week
-    const nextWeek = addDays(today, 1); // Add a day to ensure we're in the current week
-    return format(nextWeek, 'yyyy-MM-dd');
+export const getCurrentPeriodId = (date: Date = new Date(), period: 'week' | 'month' = 'week'): string => {
+  if (period === 'week') {
+    // Format as YYYY-MM-DD for week IDs
+    return date.toISOString().split('T')[0];
   } else {
-    return format(today, 'yyyy-MM');
+    // Format as YYYY-MM for month IDs
+    return date.toISOString().slice(0, 7);
   }
 };
 
 /**
- * Count words in a text string, handling HTML content
+ * Count the number of words in a string
  */
-export const countWords = (text: string): number => {
-  if (!text) return 0;
-
-  // Remove HTML tags
-  const textOnly = text.replace(/<[^>]*>/g, ' ');
+export const countWords = (text: string = ''): number => {
+  if (!text || typeof text !== 'string') {
+    return 0;
+  }
   
-  // Remove special chars and collapse whitespace
-  const cleanText = textOnly.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  // First remove HTML tags
+  const strippedText = text.replace(/<[^>]*>/g, ' ');
   
-  // Count words
-  return cleanText ? cleanText.split(' ').length : 0;
+  // Then count non-empty words
+  const words = strippedText.trim().split(/\s+/).filter(word => word.length > 0);
+  return words.length;
 };
 
 /**
- * Get statistics for a reflection (weekly or monthly)
+ * Get statistics for a reflection
  */
 export const getReflectionStats = (reflection: WeeklyReflection | MonthlyReflection) => {
-  // Default values if we can't calculate stats
-  const defaultStats = {
-    pnl: 0,
-    rValue: 0,
-    tradeCount: 0,
-    hasContent: false,
-    winCount: 0,
-    lossCount: 0,
-    winRate: 0
-  };
+  const weekStart = reflection.weekStart ? new Date(reflection.weekStart) : 
+                   (reflection.monthStart ? new Date(reflection.monthStart) : null);
+                   
+  const weekEnd = reflection.weekEnd ? new Date(reflection.weekEnd) : 
+                 (reflection.monthEnd ? new Date(reflection.monthEnd) : null);
 
-  try {
-    // Handle weekly reflections
-    if ('weekStart' in reflection && 'weekEnd' in reflection) {
-      const weekStart = reflection.weekStart ? new Date(reflection.weekStart) : null;
-      const weekEnd = reflection.weekEnd ? new Date(reflection.weekEnd) : null;
+  const trades = weekStart && weekEnd
+    ? getTradesForWeek(weekStart, weekEnd)
+    : [];
 
-      if (!weekStart || !weekEnd) return defaultStats;
-
-      const trades = getTradesForWeek(weekStart, weekEnd);
-      return calculateStats(trades, !!reflection.reflection);
-    } 
-    // Handle monthly reflections
-    else if ('monthStart' in reflection && 'monthEnd' in reflection) {
-      const monthStart = reflection.monthStart ? new Date(reflection.monthStart) : null;
-      const monthEnd = reflection.monthEnd ? new Date(reflection.monthEnd) : null;
-
-      if (!monthStart || !monthEnd) return defaultStats;
-
-      const trades = getTradesForMonth(monthStart, monthEnd);
-      return calculateStats(trades, !!reflection.reflection);
-    }
-    
-    return defaultStats;
-  } catch (error) {
-    console.error("Error calculating reflection stats:", error);
-    return defaultStats;
-  }
-};
-
-/**
- * Calculate stats from a list of trades
- */
-function calculateStats(trades: TradeWithMetrics[], hasContent: boolean) {
   const tradeCount = trades.length;
   const totalPnL = trades.reduce((sum, trade) => sum + (trade.metrics?.profitLoss || 0), 0);
   const totalR = trades.reduce((sum, trade) => sum + (trade.metrics?.rMultiple || 0), 0);
@@ -93,9 +59,9 @@ function calculateStats(trades: TradeWithMetrics[], hasContent: boolean) {
     pnl: totalPnL,
     rValue: totalR,
     tradeCount: tradeCount,
-    hasContent: hasContent,
+    hasContent: Boolean(reflection.reflection && reflection.reflection.trim().length > 0),
     winCount: winCount,
     lossCount: lossCount,
     winRate: winRate
   };
-}
+};
