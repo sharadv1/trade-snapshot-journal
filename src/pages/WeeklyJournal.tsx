@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore, isAfter } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -173,41 +174,41 @@ export function WeeklyJournal() {
     };
   }, []);
   
-  const goToPreviousWeek = useCallback(() => {
-    if (isSaving || isLoading || navigationInProgressRef.current) return;
+  const handleWeekNavigation = useCallback((direction: 'previous' | 'next') => {
+    if (isSaving || isLoading || navigationInProgressRef.current) {
+      console.log(`Navigation blocked - saving: ${isSaving}, loading: ${isLoading}, navigationInProgress: ${navigationInProgressRef.current}`);
+      return;
+    }
     
+    // Set navigation in progress to prevent multiple clicks
     navigationInProgressRef.current = true;
-    console.log("Going to previous week");
+    console.log(`Going to ${direction} week`);
     
-    const previousWeek = addDays(weekStart, -7);
-    const targetPath = `/journal/weekly/${format(previousWeek, 'yyyy-MM-dd')}`;
+    // Calculate the target date
+    const daysToAdd = direction === 'next' ? 7 : -7;
+    const targetWeek = addDays(weekStart, daysToAdd);
+    const targetWeekId = format(targetWeek, 'yyyy-MM-dd');
+    const targetPath = `/journal/weekly/${targetWeekId}`;
     
+    console.log(`Navigating from ${weekId} to ${targetWeekId}`);
+    
+    // Clear cache and navigate
     clearTradeCache();
     navigate(targetPath);
     
-    // Reset navigation progress after a short delay to prevent double-clicks
+    // Reset navigation progress after a delay to prevent rapid clicks
     setTimeout(() => {
       navigationInProgressRef.current = false;
     }, 500);
-  }, [navigate, weekStart, isSaving, isLoading]);
+  }, [navigate, weekStart, weekId, isSaving, isLoading]);
+  
+  const goToPreviousWeek = useCallback(() => {
+    handleWeekNavigation('previous');
+  }, [handleWeekNavigation]);
   
   const goToNextWeek = useCallback(() => {
-    if (isSaving || isLoading || navigationInProgressRef.current) return;
-    
-    navigationInProgressRef.current = true;
-    console.log("Going to next week");
-    
-    const nextWeek = addDays(weekStart, 7);
-    const targetPath = `/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`;
-    
-    clearTradeCache();
-    navigate(targetPath);
-    
-    // Reset navigation progress after a short delay to prevent double-clicks
-    setTimeout(() => {
-      navigationInProgressRef.current = false;
-    }, 500);
-  }, [navigate, weekStart, isSaving, isLoading]);
+    handleWeekNavigation('next');
+  }, [handleWeekNavigation]);
   
   const handleDeleteReflection = useCallback(async () => {
     if (!weeklyReflection || !weeklyReflection.id || !isMountedRef.current) return;
@@ -371,7 +372,7 @@ export function WeeklyJournal() {
           size="icon" 
           onClick={goToPreviousWeek}
           className="rounded-full"
-          disabled={isSaving || isLoading}
+          disabled={isSaving || isLoading || navigationInProgressRef.current}
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -385,7 +386,7 @@ export function WeeklyJournal() {
           size="icon" 
           onClick={goToNextWeek}
           className="rounded-full"
-          disabled={isSaving || isLoading}
+          disabled={isSaving || isLoading || navigationInProgressRef.current}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>

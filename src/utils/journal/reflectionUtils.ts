@@ -72,9 +72,20 @@ export const getReflectionStats = (reflection: WeeklyReflection | MonthlyReflect
     }
   }
 
-  const trades = dateStart && dateEnd
-    ? getTradesForWeek(dateStart, dateEnd)
-    : [];
+  if (!dateStart || !dateEnd) {
+    // Return default empty stats if no dates are available
+    return {
+      pnl: 0,
+      rValue: 0,
+      tradeCount: 0,
+      hasContent: Boolean(reflection.reflection && reflection.reflection.trim().length > 0),
+      winCount: 0,
+      lossCount: 0,
+      winRate: 0
+    };
+  }
+
+  const trades = getTradesForWeek(dateStart, dateEnd);
 
   const tradeCount = trades.length;
   const totalPnL = trades.reduce((sum, trade) => sum + (trade.metrics?.profitLoss || 0), 0);
