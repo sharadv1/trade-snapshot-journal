@@ -1,4 +1,3 @@
-
 import { WeeklyReflection } from '@/types';
 import { generateUUID } from '@/utils/generateUUID';
 import { 
@@ -82,7 +81,8 @@ export async function saveWeeklyReflection(
     
     if (!hasContent) {
       console.warn('Attempting to save weekly reflection with no content');
-      // We'll still save it since either field is optional
+      // We'll still save it since empty reflections should be allowed
+      // but we'll log it for debugging purposes
     }
     
     // First check if we already have a reflection with this weekId

@@ -58,7 +58,8 @@ export function WeeklyJournal() {
   const handleSave = useCallback(async () => {
     if (!weekId || isSaving || !isMountedRef.current) return;
     
-    const hasContent = reflection.trim() !== '' || weeklyPlan.trim() !== '';
+    const hasContent = (reflection && reflection.trim() !== '') || 
+                       (weeklyPlan && weeklyPlan.trim() !== '');
     
     if (!hasContent) {
       if (isMountedRef.current) {
@@ -103,7 +104,7 @@ export function WeeklyJournal() {
         setIsSaving(false);
       }
     }
-  }, [weekId, reflection, grade, weeklyPlan, isSaving]);
+  }, [weekId, reflection, grade, weeklyPlan, isSaving, loadReflection, loadTrades]);
   
   const safeWeekId = weekId || getWeekIdFromDate(new Date());
   const currentDate = safeWeekId ? new Date(safeWeekId) : new Date();
@@ -335,7 +336,8 @@ export function WeeklyJournal() {
     if (!isMountedRef.current) return;
     
     try {
-      const hasContent = reflection.trim() !== '' || weeklyPlan.trim() !== '';
+      const hasContent = (reflection && reflection.trim() !== '') || 
+                         (weeklyPlan && weeklyPlan.trim() !== '');
       
       if (!hasContent) {
         if (isMountedRef.current) {
