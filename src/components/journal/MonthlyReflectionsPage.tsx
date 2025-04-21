@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { MonthlyReflection } from '@/types';
 import { getMonthlyReflections, deleteMonthlyReflection } from '@/utils/journal/reflectionStorage';
@@ -184,7 +185,7 @@ export function MonthlyReflectionsPage() {
           <p className="text-center">No monthly reflections found. Start creating your trading journal!</p>
           <div className="flex justify-center mt-4">
             <Button asChild>
-              <Link to={`/journal/monthly/${getCurrentPeriodId('monthly')}`}>Create First Reflection</Link>
+              <Link to={`/journal/monthly/${getCurrentPeriodId(new Date(), 'month')}`}>Create First Reflection</Link>
             </Button>
           </div>
         </CardContent>
