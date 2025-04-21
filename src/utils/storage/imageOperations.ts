@@ -17,6 +17,92 @@ export const isVideo = (url: string): boolean => {
          url.endsWith('.mkv');
 };
 
+// Test if image URL is valid by actually loading it
+export const testImageUrl = (url: string): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (!url || url === '/placeholder.svg') {
+      resolve(false);
+      return;
+    }
+    
+    // For data URLs, test if they're properly formatted
+    if (url.startsWith('data:')) {
+      try {
+        // Check for proper format
+        const parts = url.split(',');
+        if (parts.length !== 2) {
+          console.warn('Malformed data URL detected:', url.substring(0, 30) + '...');
+          resolve(false);
+          return;
+        }
+        
+        // For image data URLs, ensure they have an image mime type
+        if (url.startsWith('data:image/')) {
+          // Consider data URLs as valid if they have the correct format
+          resolve(true);
+          return;
+        }
+        
+        // For video data URLs
+        if (url.startsWith('data:video/')) {
+          // Video URLs are considered valid if properly formatted
+          resolve(true);
+          return;
+        }
+        
+        // If it's not an image or video, reject it
+        console.warn('Data URL has invalid mime type:', url.substring(0, 30) + '...');
+        resolve(false);
+      } catch (error) {
+        console.error('Error testing data URL:', error);
+        resolve(false);
+      }
+      return;
+    }
+    
+    // For local file URLs
+    if (url.startsWith('/media/') || url.startsWith('/public/')) {
+      // Test if image exists by creating an Image object
+      const img = new Image();
+      
+      img.onload = () => {
+        console.log('Image successfully loaded:', url);
+        resolve(true);
+      };
+      
+      img.onerror = () => {
+        console.warn('Image failed to load:', url);
+        resolve(false);
+      };
+      
+      img.src = url;
+      return;
+    }
+    
+    // For regular URLs, try to load the image
+    if (url.startsWith('http')) {
+      const img = new Image();
+      
+      img.onload = () => {
+        console.log('Remote image successfully loaded:', url);
+        resolve(true);
+      };
+      
+      img.onerror = () => {
+        console.warn('Remote image failed to load:', url);
+        resolve(false);
+      };
+      
+      img.src = url;
+      return;
+    }
+    
+    // If URL doesn't match any expected format, consider invalid
+    console.warn('URL has unknown format:', url);
+    resolve(false);
+  });
+};
+
 // Save media to a trade
 export const saveMediaToTrade = async (tradeId: string, mediaUrl: string): Promise<void> => {
   const trade = getTradeById(tradeId);
@@ -90,29 +176,6 @@ export const ensureSafeUrl = (url: string): string => {
   }
   
   return strUrl;
-};
-
-// Test an image URL to see if it's loadable
-export const testImageUrl = (url: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    if (!url || url === '/placeholder.svg') {
-      resolve(false);
-      return;
-    }
-    
-    if (url.startsWith('data:')) {
-      // For data URLs, just verify the format
-      const isValid = url.split(',').length === 2;
-      resolve(isValid);
-      return;
-    }
-    
-    // For regular URLs, try to load the image
-    const img = new Image();
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
-    img.src = url;
-  });
 };
 
 // Functions for legacy compatibility
