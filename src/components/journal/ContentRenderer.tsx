@@ -13,6 +13,11 @@ export function ContentRenderer({
   className = '',
   removeWrapperTags = false
 }: ContentRendererProps) {
+  // Don't try to render empty content
+  if (!content || content.trim() === '') {
+    return null;
+  }
+  
   // Sanitize HTML to prevent XSS attacks
   // Configure DOMPurify to allow all needed HTML elements and attributes 
   // for rich text without size limitations

@@ -58,6 +58,15 @@ export function WeeklyJournal() {
   const handleSave = useCallback(async () => {
     if (!weekId || isSaving || !isMountedRef.current) return;
     
+    const hasContent = reflection.trim() !== '' || weeklyPlan.trim() !== '';
+    
+    if (!hasContent) {
+      if (isMountedRef.current) {
+        toast.error('Please add content to either Reflection or Weekly Plan');
+      }
+      return;
+    }
+    
     setIsSaving(true);
     
     try {
@@ -326,6 +335,15 @@ export function WeeklyJournal() {
     if (!isMountedRef.current) return;
     
     try {
+      const hasContent = reflection.trim() !== '' || weeklyPlan.trim() !== '';
+      
+      if (!hasContent) {
+        if (isMountedRef.current) {
+          toast.error('Please add content to either Reflection or Weekly Plan');
+        }
+        return;
+      }
+      
       await handleSave();
       
       clearTradeCache();
@@ -334,7 +352,7 @@ export function WeeklyJournal() {
     } catch (error) {
       console.error('Error in save and return:', error);
     }
-  }, [handleSave, navigate]);
+  }, [handleSave, navigate, reflection, weeklyPlan]);
   
   useEffect(() => {
     if (!weekId || !isMountedRef.current) return;

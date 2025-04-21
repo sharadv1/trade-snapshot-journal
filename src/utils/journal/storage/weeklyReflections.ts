@@ -76,6 +76,15 @@ export async function saveWeeklyReflection(
   try {
     const allReflections = await getWeeklyReflections();
     
+    // Check if there is any content to save
+    const hasContent = (reflection && reflection.trim() !== '') || 
+                       (weeklyPlan && weeklyPlan.trim() !== '');
+    
+    if (!hasContent) {
+      console.warn('Attempting to save weekly reflection with no content');
+      // We'll still save it since either field is optional
+    }
+    
     // First check if we already have a reflection with this weekId
     const existingIndex = allReflections.findIndex(r => r.weekId === weekId);
     
