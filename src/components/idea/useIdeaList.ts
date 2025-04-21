@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { TradeIdea } from '@/types';
 import { getIdeas, deleteIdea } from '@/utils/ideaStorage';
 import { getTradesWithMetrics } from '@/utils/storage/tradeOperations';
@@ -11,8 +11,11 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [ideaToDelete, setIdeaToDelete] = useState<string | null>(null);
+  const mountedRef = useRef(true);
   
   const loadIdeas = useCallback(() => {
+    if (!mountedRef.current) return;
+    
     console.log('Loading ideas from storage');
     const loadedIdeas = getIdeas();
     console.log(`Loaded ${loadedIdeas.length} ideas from storage`);
@@ -20,37 +23,71 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
   }, []);
   
   useEffect(() => {
+    // Set mounted flag
+    mountedRef.current = true;
+    
+    // Initial load
     loadIdeas();
     
-    // Listen for storage events to refresh the list
+    // Define the storage event handler
     const handleStorageChange = (event?: StorageEvent) => {
       // If no event or the event key matches our ideas storage key
       if (!event || event.key === 'trade-journal-ideas' || event.key === null) {
         console.log('Storage change detected, reloading ideas');
+        if (mountedRef.current) {
+          loadIdeas();
+        }
+      }
+    };
+    
+    // Define custom event handler for ideas-updated event
+    const handleIdeasUpdated = () => {
+      console.log('ideas-updated event detected, reloading ideas');
+      if (mountedRef.current) {
+        loadIdeas();
+      }
+    };
+    
+    // Define visibility change handler
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && mountedRef.current) {
+        console.log('Page visible again, checking for updated ideas');
         loadIdeas();
       }
     };
     
     // Listen for multiple event types to ensure data is always fresh
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('ideas-updated', handleStorageChange);
-    window.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        console.log('Page visible again, checking for updated ideas');
+    window.addEventListener('ideas-updated', handleIdeasUpdated);
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Set an interval to periodically check for ideas (as a fallback)
+    const intervalId = setInterval(() => {
+      if (mountedRef.current) {
+        console.log('Periodic check for ideas');
         loadIdeas();
       }
-    });
+    }, 5000);
     
     return () => {
+      // Set mounted flag to false
+      mountedRef.current = false;
+      
+      // Clean up event listeners
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('ideas-updated', handleStorageChange);
-      window.removeEventListener('visibilitychange', handleStorageChange);
+      window.removeEventListener('ideas-updated', handleIdeasUpdated);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Clear interval
+      clearInterval(intervalId);
     };
   }, [loadIdeas]);
   
   // Refresh ideas when statusFilter or sortBy changes
   useEffect(() => {
-    loadIdeas();
+    if (mountedRef.current) {
+      loadIdeas();
+    }
   }, [statusFilter, sortBy, loadIdeas]);
   
   const handleEditClick = (idea: TradeIdea) => {
@@ -65,10 +102,14 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
   
   const confirmDelete = () => {
     if (ideaToDelete) {
-      deleteIdea(ideaToDelete);
-      setIdeaToDelete(null);
-      toast.success('Trade idea deleted successfully');
-      loadIdeas();
+      const deleted = deleteIdea(ideaToDelete);
+      if (deleted) {
+        setIdeaToDelete(null);
+        toast.success('Trade idea deleted successfully');
+        loadIdeas();
+      } else {
+        toast.error('Failed to delete trade idea');
+      }
     }
   };
   
@@ -88,7 +129,7 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
   
   const sortedIdeas = [...filteredIdeas].sort((a, b) => {
     if (sortBy === 'date') {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+      return new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime();
     } else if (sortBy === 'symbol') {
       return a.symbol.localeCompare(b.symbol);
     } else if (sortBy === 'status') {

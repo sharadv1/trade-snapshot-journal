@@ -112,26 +112,40 @@ export function useIdeaForm({
       
       if (initialIdea) {
         // Update existing idea
-        success = updateIdea({
+        const updatedIdea = {
           ...initialIdea,
           ...ideaToSave,
-        } as TradeIdea);
+          updatedAt: new Date().toISOString()
+        } as TradeIdea;
+        
+        success = updateIdea(updatedIdea);
         
         if (success) {
+          console.log('Idea updated successfully:', updatedIdea);
           toast.success("Trade idea updated successfully");
+        } else {
+          console.error('Failed to update idea:', updatedIdea);
+          toast.error("Failed to update trade idea");
         }
       } else {
         // Add new idea
         const newIdea = {
           ...ideaToSave,
           id: generateUUID(),
-          createdAt: new Date().toISOString()
-        } as unknown as TradeIdea;
+          createdAt: new Date().toISOString(),
+          date: idea.date || new Date().toISOString(),
+          status: idea.status || 'still valid'
+        } as TradeIdea;
         
+        console.log('Adding new idea:', newIdea);
         success = addIdea(newIdea);
         
         if (success) {
+          console.log('Idea added successfully');
           toast.success("Trade idea added successfully");
+        } else {
+          console.error('Failed to add idea');
+          toast.error("Failed to add trade idea");
         }
       }
       
@@ -146,6 +160,9 @@ export function useIdeaForm({
           images: []
         });
         setImages([]);
+        
+        // Explicitly trigger a custom event to notify other components
+        window.dispatchEvent(new Event('ideas-updated'));
         
         onOpenChange(false);
         

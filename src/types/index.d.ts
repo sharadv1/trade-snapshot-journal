@@ -92,10 +92,11 @@ export interface TradeIdea {
   takeProfit?: number;
   description?: string;
   images?: string[];
-  createdAt: Date;
-  updatedAt?: Date;
-  status: 'open' | 'taken' | 'expired' | 'invalid';
-  expiryDate?: Date;
+  createdAt: string;
+  date?: string;
+  updatedAt?: string;
+  status: 'open' | 'taken' | 'expired' | 'invalid' | 'still valid' | 'invalidated' | 'missed';
+  expiryDate?: string;
   strategy?: string;
   timeframe?: string;
   tags?: string[];

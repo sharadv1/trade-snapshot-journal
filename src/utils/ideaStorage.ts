@@ -102,49 +102,100 @@ export const saveIdeas = (ideas: TradeIdea[]): boolean => {
 
 // Add a new idea with size checking
 export const addIdea = (idea: TradeIdea): boolean => {
-  const ideas = getIdeas();
-  
-  // Check if adding this idea would exceed storage limits
-  if (wouldExceedStorageLimit(ideas, idea)) {
-    toast.error('This idea would exceed storage limits. Try using fewer or smaller images.');
+  try {
+    const ideas = getIdeas();
+    
+    // Check if adding this idea would exceed storage limits
+    if (wouldExceedStorageLimit(ideas, idea)) {
+      toast.error('This idea would exceed storage limits. Try using fewer or smaller images.');
+      return false;
+    }
+    
+    ideas.push(idea);
+    const success = saveIdeas(ideas);
+    
+    if (success) {
+      // Explicitly dispatch events for better cross-component communication
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(IDEAS_UPDATED_EVENT);
+      console.log(`Added idea with ID: ${idea.id}, total ideas: ${ideas.length}`);
+    }
+    
+    return success;
+  } catch (error) {
+    console.error('Error adding trade idea:', error);
+    toast.error('Failed to add trade idea');
     return false;
   }
-  
-  ideas.push(idea);
-  return saveIdeas(ideas);
 };
 
 // Update an existing idea with size checking
 export const updateIdea = (updatedIdea: TradeIdea): boolean => {
-  const ideas = getIdeas();
-  const index = ideas.findIndex(idea => idea.id === updatedIdea.id);
-  
-  if (index !== -1) {
-    // Remove the existing idea first
-    const existingIdea = ideas[index];
-    ideas.splice(index, 1);
+  try {
+    const ideas = getIdeas();
+    const index = ideas.findIndex(idea => idea.id === updatedIdea.id);
     
-    // Check if updating this idea would exceed storage limits
-    if (wouldExceedStorageLimit(ideas, updatedIdea)) {
-      // Put the original idea back
-      ideas.splice(index, 0, existingIdea);
-      toast.error('This update would exceed storage limits. Try using fewer or smaller images.');
-      return false;
+    if (index !== -1) {
+      // Remove the existing idea first
+      const existingIdea = ideas[index];
+      ideas.splice(index, 1);
+      
+      // Check if updating this idea would exceed storage limits
+      if (wouldExceedStorageLimit(ideas, updatedIdea)) {
+        // Put the original idea back
+        ideas.splice(index, 0, existingIdea);
+        toast.error('This update would exceed storage limits. Try using fewer or smaller images.');
+        return false;
+      }
+      
+      // It's safe to update
+      ideas.splice(index, 0, updatedIdea);
+      const success = saveIdeas(ideas);
+      
+      if (success) {
+        // Explicitly dispatch events for better cross-component communication
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(IDEAS_UPDATED_EVENT);
+        console.log(`Updated idea with ID: ${updatedIdea.id}`);
+      }
+      
+      return success;
     }
     
-    // It's safe to update
-    ideas.splice(index, 0, updatedIdea);
-    return saveIdeas(ideas);
+    console.error(`Cannot update idea: ID not found: ${updatedIdea.id}`);
+    return false;
+  } catch (error) {
+    console.error('Error updating trade idea:', error);
+    toast.error('Failed to update trade idea');
+    return false;
   }
-  
-  return false;
 };
 
 // Delete an idea
 export const deleteIdea = (ideaId: string): boolean => {
-  const ideas = getIdeas();
-  const filteredIdeas = ideas.filter(idea => idea.id !== ideaId);
-  return saveIdeas(filteredIdeas);
+  try {
+    const ideas = getIdeas();
+    const filteredIdeas = ideas.filter(idea => idea.id !== ideaId);
+    
+    if (filteredIdeas.length === ideas.length) {
+      console.warn(`No idea found with ID: ${ideaId} to delete`);
+    }
+    
+    const success = saveIdeas(filteredIdeas);
+    
+    if (success) {
+      // Explicitly dispatch events for better cross-component communication
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(IDEAS_UPDATED_EVENT);
+      console.log(`Deleted idea with ID: ${ideaId}`);
+    }
+    
+    return success;
+  } catch (error) {
+    console.error('Error deleting trade idea:', error);
+    toast.error('Failed to delete trade idea');
+    return false;
+  }
 };
 
 // Get a single idea by ID
