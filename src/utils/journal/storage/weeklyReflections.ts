@@ -6,7 +6,9 @@ import {
   notifyJournalUpdate, 
   dispatchStorageEvent,
   safeParse,
-  debugStorage
+  debugStorage,
+  getDataFromStorage,
+  saveDataToStorage
 } from './storageCore';
 import { toast } from '@/utils/toast';
 

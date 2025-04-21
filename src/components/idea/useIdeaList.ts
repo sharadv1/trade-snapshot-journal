@@ -12,6 +12,7 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [ideaToDelete, setIdeaToDelete] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  const lastIdeasCount = useRef<number>(0);
   
   const loadIdeas = useCallback(() => {
     if (!mountedRef.current) return;
@@ -19,8 +20,14 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
     console.log('Loading ideas from storage');
     const loadedIdeas = getIdeas();
     console.log(`Loaded ${loadedIdeas.length} ideas from storage`);
-    setIdeas(loadedIdeas);
-  }, []);
+    
+    // Only update state if ideas have actually changed
+    if (loadedIdeas.length !== lastIdeasCount.current || 
+        JSON.stringify(loadedIdeas) !== JSON.stringify(ideas)) {
+      lastIdeasCount.current = loadedIdeas.length;
+      setIdeas(loadedIdeas);
+    }
+  }, [ideas]);
   
   useEffect(() => {
     // Set mounted flag
@@ -29,7 +36,7 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
     // Initial load
     loadIdeas();
     
-    // Define the storage event handler
+    // Define the storage event handler with more robust checks
     const handleStorageChange = (event?: StorageEvent) => {
       // If no event or the event key matches our ideas storage key
       if (!event || event.key === 'trade-journal-ideas' || event.key === null) {
@@ -62,12 +69,13 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
     window.addEventListener('visibilitychange', handleVisibilityChange);
     
     // Set an interval to periodically check for ideas (as a fallback)
+    // Using a shorter interval (3000ms instead of 5000ms) for more responsive updates
     const intervalId = setInterval(() => {
       if (mountedRef.current) {
         console.log('Periodic check for ideas');
         loadIdeas();
       }
-    }, 5000);
+    }, 3000);
     
     return () => {
       // Set mounted flag to false

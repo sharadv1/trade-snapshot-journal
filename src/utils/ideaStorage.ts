@@ -60,7 +60,7 @@ const wouldExceedStorageLimit = (ideas: TradeIdea[], newIdea: TradeIdea): boolea
   return storageSize > MAX_STORAGE_SIZE;
 };
 
-// Save ideas to storage (localStorage)
+// Save ideas to storage (localStorage) with extra redundancy
 export const saveIdeas = (ideas: TradeIdea[]): boolean => {
   try {
     // First, validate that ideas is actually an array
@@ -79,14 +79,71 @@ export const saveIdeas = (ideas: TradeIdea[]): boolean => {
     }
     
     // Try to save to localStorage
-    localStorage.setItem(IDEAS_STORAGE_KEY, jsonString);
-    console.log(`Saved ${ideas.length} ideas to localStorage`);
+    let saveSuccess = false;
     
-    // Dispatch storage events to notify components
-    window.dispatchEvent(new Event('storage'));
-    window.dispatchEvent(IDEAS_UPDATED_EVENT);
+    try {
+      localStorage.setItem(IDEAS_STORAGE_KEY, jsonString);
+      saveSuccess = true;
+    } catch (storageError) {
+      console.error('Error saving to localStorage directly:', storageError);
+      
+      // Try again with a more aggressive approach - clear some space first
+      try {
+        // Remove any temporary items
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.includes('temp-')) {
+            localStorage.removeItem(key);
+          }
+        }
+        
+        // Try saving again
+        localStorage.setItem(IDEAS_STORAGE_KEY, jsonString);
+        saveSuccess = true;
+      } catch (retryError) {
+        console.error('Error saving ideas after cleanup attempt:', retryError);
+        saveSuccess = false;
+      }
+    }
     
-    return true;
+    // Log the result
+    if (saveSuccess) {
+      console.log(`Saved ${ideas.length} ideas to localStorage`);
+      
+      // Dispatch storage events to notify components - do this for both success and failure
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(IDEAS_UPDATED_EVENT);
+      
+      // If server sync is enabled, try to push to server
+      if (isUsingServerSync() && getServerUrl()) {
+        try {
+          const serverUrl = `${getServerUrl().replace(/\/trades$/, '')}/ideas`;
+          console.log('Syncing ideas with server at:', serverUrl);
+          
+          fetch(serverUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: jsonString,
+          }).then(response => {
+            if (response.ok) {
+              console.log('Successfully synced ideas with server');
+            } else {
+              console.error('Server returned an error status when syncing ideas', response.status);
+            }
+          }).catch(serverError => {
+            console.error('Error syncing ideas with server:', serverError);
+          });
+        } catch (syncError) {
+          console.error('Error initiating server sync for ideas:', syncError);
+        }
+      }
+      
+      return true;
+    }
+    
+    return false;
   } catch (error) {
     console.error('Error saving trade ideas:', error);
     
@@ -230,6 +287,32 @@ export const syncIdeasWithServer = async (): Promise<boolean> => {
     if (response.ok) {
       const serverIdeas = await response.json();
       if (Array.isArray(serverIdeas)) {
+        // Before saving, check if we actually got ideas from the server
+        if (serverIdeas.length === 0) {
+          // If server has no ideas, check if we have local ideas to push
+          const localIdeas = getIdeas();
+          if (localIdeas.length > 0) {
+            // Push local ideas to server instead of overwriting with empty array
+            try {
+              const pushResponse = await fetch(serverUrl, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(localIdeas)
+              });
+              
+              if (pushResponse.ok) {
+                console.log(`Pushed ${localIdeas.length} local ideas to empty server`);
+                return true;
+              }
+            } catch (pushError) {
+              console.error('Error pushing local ideas to server:', pushError);
+            }
+          }
+        }
+        
+        // Proceed with server data update
         localStorage.setItem(IDEAS_STORAGE_KEY, JSON.stringify(serverIdeas));
         window.dispatchEvent(new Event('storage'));
         window.dispatchEvent(IDEAS_UPDATED_EVENT);
