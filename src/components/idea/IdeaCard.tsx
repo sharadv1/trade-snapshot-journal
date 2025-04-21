@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TradeIdea } from '@/types';
 import { format } from 'date-fns';
-import { ImageViewerDialog } from '@/components/ImageViewerDialog';
+import { MediaViewerDialog } from '@/components/MediaViewerDialog';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -30,19 +30,13 @@ export function IdeaCard({
   onCreateTradeClick 
 }: IdeaCardProps) {
   const navigate = useNavigate();
-  const [viewingImage, setViewingImage] = useState<string | null>(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
-  const handleImageClick = (image: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setViewingImage(image);
-  };
-  
+  const [viewingImageIndex, setViewingImageIndex] = useState<number|null>(null);
+
   const changeDisplayedImage = (index: number, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setCurrentImageIndex(index);
+    setViewingImageIndex(index);
   };
-  
+
   const handleThumbnailClick = (index: number, image: string, e: React.MouseEvent) => {
     e.stopPropagation();
     changeDisplayedImage(index, e);
@@ -78,14 +72,15 @@ export function IdeaCard({
   const renderImageGallery = () => {
     if (!idea.images || idea.images.length === 0) return null;
     
-    const currentImage = idea.images[currentImageIndex];
-    
+    const currentIndex = viewingImageIndex ?? 0;
+    const currentImage = idea.images[currentIndex];
+
     return (
       <div className="px-4 pt-2">
         {/* Main image */}
         <div 
           className="w-full h-32 rounded-md overflow-hidden relative cursor-pointer group"
-          onClick={(e) => handleImageClick(currentImage, e)}
+          onClick={() => setViewingImageIndex(currentIndex)}
         >
           <img 
             src={currentImage} 
@@ -109,8 +104,8 @@ export function IdeaCard({
                   className="h-6 w-6 rounded-full bg-black/50 text-white hover:bg-black/70"
                   onClick={(e) => {
                     e.stopPropagation();
-                    const newIndex = (currentImageIndex - 1 + idea.images.length) % idea.images.length;
-                    changeDisplayedImage(newIndex, e);
+                    const newIndex = (currentIndex - 1 + idea.images.length) % idea.images.length;
+                    setViewingImageIndex(newIndex);
                   }}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -121,8 +116,8 @@ export function IdeaCard({
                   className="h-6 w-6 rounded-full bg-black/50 text-white hover:bg-black/70"
                   onClick={(e) => {
                     e.stopPropagation();
-                    const newIndex = (currentImageIndex + 1) % idea.images.length;
-                    changeDisplayedImage(newIndex, e);
+                    const newIndex = (currentIndex + 1) % idea.images.length;
+                    setViewingImageIndex(newIndex);
                   }}
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -131,7 +126,7 @@ export function IdeaCard({
               
               {/* Image counter */}
               <div className="absolute bottom-1 right-1 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                {currentImageIndex + 1}/{idea.images.length}
+                {currentIndex + 1}/{idea.images.length}
               </div>
             </>
           )}
@@ -144,7 +139,7 @@ export function IdeaCard({
               <button
                 key={idx}
                 className={`w-10 h-10 rounded overflow-hidden flex-shrink-0 border-2 ${
-                  idx === currentImageIndex ? 'border-primary' : 'border-transparent'
+                  idx === currentIndex ? 'border-primary' : 'border-transparent'
                 }`}
                 onClick={(e) => handleThumbnailClick(idx, image, e)}
               >
@@ -274,15 +269,14 @@ export function IdeaCard({
         </ContextMenuContent>
       </ContextMenu>
       
-      {/* Image viewer dialog */}
-      {viewingImage && (
-        <ImageViewerDialog 
-          image={viewingImage}
+      {/* Modal for image viewing - use MediaViewerDialog, just like trades! */}
+      {viewingImageIndex !== null && (
+        <MediaViewerDialog
           images={idea.images}
-          currentIndex={currentImageIndex}
-          isOpen={!!viewingImage} 
-          onClose={() => setViewingImage(null)}
-          onIndexChange={setCurrentImageIndex}
+          currentIndex={viewingImageIndex}
+          isOpen={viewingImageIndex !== null}
+          onClose={() => setViewingImageIndex(null)}
+          onIndexChange={setViewingImageIndex}
         />
       )}
     </>
