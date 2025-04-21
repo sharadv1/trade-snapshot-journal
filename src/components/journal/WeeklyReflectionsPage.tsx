@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { WeeklyReflection } from '@/types';
 import { getWeeklyReflections, deleteWeeklyReflection } from '@/utils/journal/reflectionStorage';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader2, Plus, Scissors, Trash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflectionUtils';
+import { getCurrentPeriodId, getReflectionStats, getWeekIdFromDate } from '@/utils/journal/reflectionUtils';
 import { toast } from '@/utils/toast';
 import { clearTradeCache, preventTradeFetching } from '@/utils/tradeCalculations';
 import { ReflectionCard } from './reflections/ReflectionCard';
@@ -200,13 +199,12 @@ export function WeeklyReflectionsPage() {
   const handleCreateReflection = () => {
     // Use the current week's Monday as the base date for a new reflection
     const today = new Date();
-    const currentWeekMonday = startOfWeek(today, { weekStartsOn: 1 });
-    const currentWeekId = format(currentWeekMonday, 'yyyy-MM-dd');
+    const weekId = getWeekIdFromDate(today);
     
-    console.log(`Creating new reflection for current week: ${currentWeekId}`);
+    console.log(`Creating new reflection for current week: ${weekId}`);
     
     clearTradeCache();
-    navigateTo(`/journal/weekly/${currentWeekId}`);
+    navigateTo(`/journal/weekly/${weekId}`);
   };
 
   if (isLoading) {

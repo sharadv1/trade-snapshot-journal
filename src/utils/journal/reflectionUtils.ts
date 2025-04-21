@@ -1,4 +1,3 @@
-
 import { WeeklyReflection, MonthlyReflection, TradeWithMetrics } from '@/types';
 import { getTradesForWeek } from '@/utils/tradeCalculations';
 
@@ -10,8 +9,14 @@ import { getTradesForWeek } from '@/utils/tradeCalculations';
  */
 export const getCurrentPeriodId = (date: Date = new Date(), period: 'week' | 'month' = 'week'): string => {
   if (period === 'week') {
+    // For weekly reflections, we want to use the start of the week (Monday) as the ID
+    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate difference to get to Monday
+    const monday = new Date(date);
+    monday.setDate(date.getDate() + diff);
+    
     // Format as YYYY-MM-DD for week IDs
-    return date.toISOString().split('T')[0];
+    return monday.toISOString().split('T')[0];
   } else {
     // Format as YYYY-MM for month IDs
     return date.toISOString().slice(0, 7);
@@ -107,4 +112,19 @@ export const getReflectionStats = (reflection: WeeklyReflection | MonthlyReflect
     lossCount: lossCount,
     winRate: winRate
   };
+};
+
+/**
+ * Create a consistent week ID from any date by finding the Monday of that week
+ * @param date Any date within the week
+ * @returns ID string in the format YYYY-MM-DD representing the Monday of that week
+ */
+export const getWeekIdFromDate = (date: Date): string => {
+  const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate difference to get to Monday
+  const monday = new Date(date);
+  monday.setDate(date.getDate() + diff);
+  
+  // Format as YYYY-MM-DD for week IDs
+  return monday.toISOString().split('T')[0];
 };

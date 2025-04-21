@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore, isAfter } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -14,6 +13,7 @@ import { formatCurrency } from '@/utils/calculations/formatters';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReflectionMetrics } from '@/components/journal/reflections/ReflectionMetrics';
 import { removeDuplicateReflections } from '@/utils/journal/storage/duplicateReflections';
+import { getWeekIdFromDate } from '@/utils/journal/reflectionUtils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,7 +52,11 @@ export function WeeklyJournal() {
   const navigationInProgressRef = useRef<boolean>(false);
   const pendingSaveRef = useRef<boolean>(false);
   
-  const currentDate = weekId ? new Date(weekId) : new Date();
+  // Ensure we have a valid weekId, defaulting to current week if not
+  const safeWeekId = weekId || getWeekIdFromDate(new Date());
+  const currentDate = safeWeekId ? new Date(safeWeekId) : new Date();
+  
+  // Always use consistent formatting for weekStart - Monday of the week
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const formattedDateRange = `${format(weekStart, 'MMM dd')} - ${format(weekEnd, 'MMM dd, yyyy')}`;
@@ -203,7 +207,7 @@ export function WeeklyJournal() {
     
     // Set navigation in progress to prevent multiple clicks
     navigationInProgressRef.current = true;
-    console.log(`Going to ${direction} week`);
+    console.log(`Going to ${direction} week from week ${safeWeekId}`);
     
     // Auto-save any pending changes
     if (pendingSaveRef.current) {
@@ -214,21 +218,22 @@ export function WeeklyJournal() {
     
     // Calculate the target date
     const daysToAdd = direction === 'next' ? 7 : -7;
-    const targetWeek = addDays(currentDate, daysToAdd);
-    const targetWeekId = format(targetWeek, 'yyyy-MM-dd');
-    const targetPath = `/journal/weekly/${targetWeekId}`;
+    const targetDate = addDays(weekStart, daysToAdd);
     
-    console.log(`Navigating from ${weekId} to ${targetWeekId}`);
+    // Always create a consistent weekId based on Monday of that week
+    const targetWeekId = getWeekIdFromDate(targetDate);
+    
+    console.log(`Navigating from ${safeWeekId} to ${targetWeekId}, weekStart: ${weekStart.toISOString()}, targetDate: ${targetDate.toISOString()}`);
     
     // Clear cache and navigate
     clearTradeCache();
-    navigate(targetPath);
+    navigate(`/journal/weekly/${targetWeekId}`);
     
     // Reset navigation progress after a delay to prevent rapid clicks
     setTimeout(() => {
       navigationInProgressRef.current = false;
     }, 500);
-  }, [navigate, currentDate, weekId, isSaving, isLoading]);
+  }, [navigate, weekStart, safeWeekId, isSaving, isLoading, handleSave]);
   
   const goToPreviousWeek = useCallback(() => {
     handleWeekNavigation('previous');
