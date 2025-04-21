@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PencilLine, ArrowRight, ArrowUp, ArrowDown, Trash2, ChevronLeft, ChevronRight, Link as LinkIcon } from 'lucide-react';
@@ -178,9 +179,9 @@ export function IdeaCard({
             {idea.images && idea.images.length > 0 && renderImageGallery()}
             
             <CardContent className="p-4 pt-2 flex-grow">
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+              <div className="text-sm text-muted-foreground whitespace-pre-wrap">
                 {idea.description || 'No description provided'}
-              </p>
+              </div>
               
               {/* Add trade link for taken ideas */}
               {idea.status === 'taken' && relatedTradeId && (
@@ -266,9 +267,12 @@ export function IdeaCard({
       {/* Image viewer dialog */}
       {viewingImage && (
         <ImageViewerDialog 
-          image={viewingImage} 
+          image={viewingImage}
+          images={idea.images}
+          currentIndex={currentImageIndex}
           isOpen={!!viewingImage} 
-          onClose={() => setViewingImage(null)} 
+          onClose={() => setViewingImage(null)}
+          onIndexChange={setCurrentImageIndex}
         />
       )}
     </>
