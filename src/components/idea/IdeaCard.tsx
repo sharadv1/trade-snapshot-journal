@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { TradeIdea } from '@/types';
 import { format } from 'date-fns';
 import { MediaViewerDialog } from '@/components/MediaViewerDialog';
+import { ContentRenderer } from '@/components/journal/ContentRenderer';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -186,7 +187,14 @@ export function IdeaCard({
             
             <CardContent className="p-4 pt-2 flex-grow">
               <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {idea.description || 'No description provided'}
+                {idea.description ? (
+                  <ContentRenderer 
+                    content={idea.description} 
+                    removeWrapperTags={true}
+                  />
+                ) : (
+                  'No description provided'
+                )}
               </div>
               
               {/* Add trade link for taken ideas */}

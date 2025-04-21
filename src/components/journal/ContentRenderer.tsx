@@ -5,9 +5,14 @@ import DOMPurify from 'dompurify';
 interface ContentRendererProps {
   content: string;
   className?: string;
+  removeWrapperTags?: boolean;
 }
 
-export function ContentRenderer({ content, className = '' }: ContentRendererProps) {
+export function ContentRenderer({ 
+  content, 
+  className = '',
+  removeWrapperTags = false
+}: ContentRendererProps) {
   // Sanitize HTML to prevent XSS attacks
   // Configure DOMPurify to allow all needed HTML elements and attributes 
   // for rich text without size limitations
@@ -23,10 +28,16 @@ export function ContentRenderer({ content, className = '' }: ContentRendererProp
     ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'class', 'id', 'style', 'allowfullscreen', 'frameborder', 'scrolling'],
   });
   
+  // If removeWrapperTags is true, remove the outer paragraph tags
+  let processedContent = sanitizedContent;
+  if (removeWrapperTags && processedContent.startsWith('<p>') && processedContent.endsWith('</p>')) {
+    processedContent = processedContent.substring(3, processedContent.length - 4);
+  }
+  
   return (
     <div 
       className={`rendered-markdown ${className}`}
-      dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+      dangerouslySetInnerHTML={{ __html: processedContent }}
     />
   );
 }

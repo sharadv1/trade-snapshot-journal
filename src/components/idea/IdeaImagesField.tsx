@@ -24,6 +24,7 @@ export function IdeaImagesField({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
+  const [uploadLock, setUploadLock] = useState<string | null>(null);
   
   const handleFileUpload = (file: File) => {
     if (isProcessingUpload) {
@@ -31,7 +32,24 @@ export function IdeaImagesField({
       return;
     }
     
+    // Create a unique ID for this upload to prevent duplicates
+    const fileId = `${file.name}-${file.size}-${Date.now()}`;
+    
+    // Check if this is a duplicate upload (same file within last 2 seconds)
+    if (uploadLock === fileId) {
+      console.log('Duplicate file upload detected, ignoring');
+      return;
+    }
+    
     setIsProcessingUpload(true);
+    setUploadLock(fileId);
+    
+    // Clear lock after 2 seconds
+    setTimeout(() => {
+      if (uploadLock === fileId) {
+        setUploadLock(null);
+      }
+    }, 2000);
     
     const isVideoFile = file.type.startsWith('video/');
     
