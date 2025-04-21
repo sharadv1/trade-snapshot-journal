@@ -11,7 +11,7 @@ import { getCurrentPeriodId, getReflectionStats } from '@/utils/journal/reflecti
 import { toast } from '@/utils/toast';
 import { clearTradeCache, preventTradeFetching } from '@/utils/tradeCalculations';
 import { ReflectionCard } from './reflections/ReflectionCard';
-import { format, addDays } from 'date-fns';
+import { format, addDays, startOfWeek } from 'date-fns';
 
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
@@ -198,11 +198,13 @@ export function WeeklyReflectionsPage() {
   }, [navigate]);
 
   const handleCreateReflection = () => {
-    // Ensure we're creating for the current or future week, not past week
+    // Use the current week's Monday as the base date for a new reflection
     const today = new Date();
-    const nextWeek = addDays(today, 1); // Add 1 day to ensure we're in the current week
-    const currentWeekId = format(nextWeek, 'yyyy-MM-dd');
-
+    const currentWeekMonday = startOfWeek(today, { weekStartsOn: 1 });
+    const currentWeekId = format(currentWeekMonday, 'yyyy-MM-dd');
+    
+    console.log(`Creating new reflection for current week: ${currentWeekId}`);
+    
     clearTradeCache();
     navigateTo(`/journal/weekly/${currentWeekId}`);
   };

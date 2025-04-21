@@ -38,14 +38,18 @@ export const countWords = (text: string = ''): number => {
  * Type guard to check if a reflection is a weekly reflection
  */
 export function isWeeklyReflection(reflection: WeeklyReflection | MonthlyReflection): reflection is WeeklyReflection {
-  return 'weekStart' in reflection || 'weekEnd' in reflection || 'weekId' in reflection;
+  return ('weekStart' in reflection && reflection.weekStart !== undefined) || 
+         ('weekEnd' in reflection && reflection.weekEnd !== undefined) || 
+         ('weekId' in reflection && reflection.weekId !== undefined);
 }
 
 /**
  * Type guard to check if a reflection is a monthly reflection
  */
 export function isMonthlyReflection(reflection: WeeklyReflection | MonthlyReflection): reflection is MonthlyReflection {
-  return 'monthStart' in reflection || 'monthEnd' in reflection || 'monthId' in reflection;
+  return ('monthStart' in reflection && reflection.monthStart !== undefined) || 
+         ('monthEnd' in reflection && reflection.monthEnd !== undefined) || 
+         ('monthId' in reflection && reflection.monthId !== undefined);
 }
 
 /**

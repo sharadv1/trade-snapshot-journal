@@ -35,11 +35,11 @@ export function WeeklyJournal() {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [tradesForWeek, setTradesForWeek] = useState<TradeWithMetrics[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [weeklyReflection, setWeeklyReflection] = useState<WeeklyReflection | null>(null);
   const [isLoadingTrades, setIsLoadingTrades] = useState<boolean>(false);
   const [isProcessingDuplicates, setIsProcessingDuplicates] = useState<boolean>(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
+  const [weeklyReflection, setWeeklyReflection] = useState<WeeklyReflection | null>(null);
   
   const isMountedRef = useRef(true);
   const needsReloadRef = useRef(true);
@@ -50,6 +50,7 @@ export function WeeklyJournal() {
   });
   const previousWeekIdRef = useRef<string | null>(null);
   const navigationInProgressRef = useRef<boolean>(false);
+  const pendingSaveRef = useRef<boolean>(false);
   
   const currentDate = weekId ? new Date(weekId) : new Date();
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -75,6 +76,7 @@ export function WeeklyJournal() {
     isMountedRef.current = true;
     previousWeekIdRef.current = weekId || null;
     navigationInProgressRef.current = false;
+    pendingSaveRef.current = false;
     
     clearTradeCache();
     preventTradeFetching(false);
@@ -96,6 +98,7 @@ export function WeeklyJournal() {
       if (!isMountedRef.current) return;
       
       if (reflectionData) {
+        console.log(`Loaded reflection data for ${weekId}:`, reflectionData);
         setWeeklyReflection(reflectionData);
         setReflection(reflectionData.reflection || '');
         setWeeklyPlan(reflectionData.weeklyPlan || '');
@@ -107,6 +110,7 @@ export function WeeklyJournal() {
           grade: reflectionData.grade || ''
         };
       } else {
+        console.log(`No reflection found for ${weekId}, creating new empty reflection`);
         setWeeklyReflection(null);
         setReflection('');
         setWeeklyPlan('');
@@ -160,6 +164,13 @@ export function WeeklyJournal() {
     if (isWeekIdChanged || !initialLoadComplete) {
       console.log(`WeeklyJournal: ${isWeekIdChanged ? 'weekId changed' : 'initial load'} for ${weekId}`);
       
+      // Save pending changes if needed before loading new data
+      if (isWeekIdChanged && pendingSaveRef.current) {
+        console.log('Auto-saving changes before navigation');
+        handleSave();
+        pendingSaveRef.current = false;
+      }
+      
       previousWeekIdRef.current = weekId;
       
       clearTradeCache();
@@ -174,6 +185,16 @@ export function WeeklyJournal() {
     };
   }, []);
   
+  // Track content changes to detect modifications
+  useEffect(() => {
+    if (initialLoadComplete && 
+        (reflection !== backupRef.current.reflection || 
+         weeklyPlan !== backupRef.current.weeklyPlan || 
+         grade !== backupRef.current.grade)) {
+      pendingSaveRef.current = true;
+    }
+  }, [reflection, weeklyPlan, grade, initialLoadComplete]);
+  
   const handleWeekNavigation = useCallback((direction: 'previous' | 'next') => {
     if (isSaving || isLoading || navigationInProgressRef.current) {
       console.log(`Navigation blocked - saving: ${isSaving}, loading: ${isLoading}, navigationInProgress: ${navigationInProgressRef.current}`);
@@ -184,9 +205,16 @@ export function WeeklyJournal() {
     navigationInProgressRef.current = true;
     console.log(`Going to ${direction} week`);
     
+    // Auto-save any pending changes
+    if (pendingSaveRef.current) {
+      console.log('Auto-saving changes before navigation');
+      handleSave();
+      pendingSaveRef.current = false;
+    }
+    
     // Calculate the target date
     const daysToAdd = direction === 'next' ? 7 : -7;
-    const targetWeek = addDays(weekStart, daysToAdd);
+    const targetWeek = addDays(currentDate, daysToAdd);
     const targetWeekId = format(targetWeek, 'yyyy-MM-dd');
     const targetPath = `/journal/weekly/${targetWeekId}`;
     
@@ -200,7 +228,7 @@ export function WeeklyJournal() {
     setTimeout(() => {
       navigationInProgressRef.current = false;
     }, 500);
-  }, [navigate, weekStart, weekId, isSaving, isLoading]);
+  }, [navigate, currentDate, weekId, isSaving, isLoading]);
   
   const goToPreviousWeek = useCallback(() => {
     handleWeekNavigation('previous');
@@ -224,6 +252,7 @@ export function WeeklyJournal() {
       setWeeklyPlan('');
       setGrade('');
       backupRef.current = { reflection: '', weeklyPlan: '', grade: '' };
+      pendingSaveRef.current = false;
       
       toast.success('Reflection deleted successfully');
       
@@ -269,6 +298,12 @@ export function WeeklyJournal() {
     setIsSaving(true);
     
     try {
+      console.log(`Saving reflection for ${weekId}`, {
+        reflection: reflection.substring(0, 50) + (reflection.length > 50 ? '...' : ''),
+        grade,
+        weeklyPlan: weeklyPlan.substring(0, 50) + (weeklyPlan.length > 50 ? '...' : '')
+      });
+      
       await saveWeeklyReflection(weekId, reflection, grade, weeklyPlan);
       
       if (!isMountedRef.current) return;
@@ -276,6 +311,7 @@ export function WeeklyJournal() {
       toast.success('Reflection saved successfully');
       
       backupRef.current = { reflection, weeklyPlan, grade };
+      pendingSaveRef.current = false;
       
       needsReloadRef.current = true;
       loadReflection();
