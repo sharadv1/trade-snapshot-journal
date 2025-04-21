@@ -1,4 +1,5 @@
 
+
 export interface Trade {
   id: string;
   symbol: string;
@@ -74,6 +75,11 @@ export interface WeeklyReflection {
   weeklyPlan?: string;
   isFutureWeek?: boolean;
   lastUpdated?: string;
+  weekStart?: string;
+  weekEnd?: string;
+  totalPnL?: number;
+  totalR?: number;
+  tradeIds?: string[];
 }
 
 export interface MonthlyReflection {
@@ -104,3 +110,4 @@ export interface TradeIdea {
   status: 'still valid' | 'invalidated' | 'taken' | 'missed';
   images: string[];
 }
+
