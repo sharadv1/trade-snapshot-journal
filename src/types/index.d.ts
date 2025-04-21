@@ -1,5 +1,4 @@
 
-
 export interface Trade {
   id: string;
   symbol: string;
@@ -110,4 +109,3 @@ export interface TradeIdea {
   status: 'still valid' | 'invalidated' | 'taken' | 'missed';
   images: string[];
 }
-

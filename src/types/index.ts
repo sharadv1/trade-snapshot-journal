@@ -1,4 +1,3 @@
-
 export interface Trade {
   id: string;
   symbol: string;
@@ -83,6 +82,7 @@ export interface WeeklyReflection {
   isPlaceholder?: boolean;
   lastUpdated?: string;
   actions?: React.ReactNode;
+  isFutureWeek?: boolean;
 }
 
 export interface MonthlyReflection {
