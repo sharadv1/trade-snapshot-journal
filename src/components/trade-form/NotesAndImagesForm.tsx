@@ -69,7 +69,7 @@ export function NotesAndImagesForm({
 
       <div className="space-y-2">
         <Label>Images</Label>
-        <div className="grid grid-cols-4 gap-2 mb-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-2">
           {images.map((url, index) => (
             <div 
               key={index} 

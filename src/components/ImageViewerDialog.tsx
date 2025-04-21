@@ -25,7 +25,7 @@ export function ImageViewerDialog({
   const [zoomLevel, setZoomLevel] = useState(100);
   
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 25, 200));
+    setZoomLevel(prev => Math.min(prev + 25, 300));
   };
   
   const handleZoomOut = () => {
@@ -121,15 +121,24 @@ export function ImageViewerDialog({
           </>
         )}
         
-        <div className="h-full flex items-center justify-center">
-          <div className="relative max-h-full max-w-full flex items-center justify-center">
+        <div className="h-full w-full flex items-center justify-center overflow-auto">
+          <div 
+            className="relative flex items-center justify-center"
+            style={{
+              width: "100%",
+              height: "100%"
+            }}
+          >
             <img 
               src={image} 
               alt="Enlarged view" 
-              className="object-contain max-h-[85vh] max-w-[90vw]"
+              className="max-h-[85vh]"
               style={{ 
                 transform: `scale(${zoomLevel / 100})`,
-                transformOrigin: 'center'
+                transformOrigin: 'center',
+                objectFit: 'contain',
+                maxWidth: 'none',
+                transition: 'transform 0.2s ease'
               }}
             />
           </div>
