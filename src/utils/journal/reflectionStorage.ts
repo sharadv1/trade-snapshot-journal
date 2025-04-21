@@ -111,7 +111,13 @@ export const getWeeklyReflection = async (weekId: string): Promise<WeeklyReflect
 };
 
 // Weekly reflection storage functions
-export const saveWeeklyReflection = (weekId: string, reflection: string, grade?: string, weeklyPlan?: string): Promise<void> => {
+export const saveWeeklyReflection = (
+  weekId: string, 
+  reflection: string, 
+  grade?: string, 
+  weeklyPlan?: string,
+  isFutureWeek?: boolean
+): Promise<void> => {
   return new Promise((resolve, reject) => {
     try {
       if (!weekId) {
@@ -123,7 +129,7 @@ export const saveWeeklyReflection = (weekId: string, reflection: string, grade?:
       console.log(`Saving weekly reflection for ${weekId}`);
       
       // Use the storage module function
-      saveWeeklyReflectionToStorage(weekId, reflection, grade, weeklyPlan);
+      saveWeeklyReflectionToStorage(weekId, reflection, grade, weeklyPlan, isFutureWeek);
       
       // Invalidate cache after save
       reflectionCache.weekly = null;

@@ -1,3 +1,4 @@
+
 export interface Trade {
   id: string;
   symbol: string;
@@ -114,12 +115,15 @@ export interface TradeLesson {
 
 export interface WeeklyReflection {
   id: string;
-  weekStartDate: string;
-  weekEndDate: string;
-  content: string;
-  createdAt: Date;
-  updatedAt?: Date;
+  weekId?: string;
+  weekStart?: string;
+  weekEnd?: string;
+  reflection?: string;
+  weeklyPlan?: string;
+  grade?: string;
+  lastUpdated?: string;
   tradeIds?: string[];
+  isFutureWeek?: boolean;
   metrics?: {
     totalTrades: number;
     winRate: number;
@@ -132,11 +136,14 @@ export interface WeeklyReflection {
 
 export interface MonthlyReflection {
   id: string;
-  month: number;
-  year: number;
-  content: string;
-  createdAt: Date;
-  updatedAt?: Date;
+  monthId?: string;
+  monthStart?: string;
+  monthEnd?: string;
+  reflection?: string;
+  monthlyPlan?: string;
+  monthlyGoals?: string;
+  grade?: string;
+  lastUpdated?: string;
   tradeIds?: string[];
   metrics?: {
     totalTrades: number;
