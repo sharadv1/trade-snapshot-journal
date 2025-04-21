@@ -6,7 +6,9 @@ import {
   notifyJournalUpdate, 
   dispatchStorageEvent,
   safeParse,
-  debugStorage
+  debugStorage,
+  getDataFromStorage,
+  saveDataToStorage
 } from './storageCore';
 import { toast } from '@/utils/toast';
 
@@ -154,7 +156,7 @@ export function saveMonthlyReflectionObject(reflection: MonthlyReflection): void
     }
     
     const reflectionsJson = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
-    const reflections = safeParse<Record<string, MonthlyReflection>>(reflectionsJson) || {};
+    const reflections = safeParse(reflectionsJson, {});
     const monthId = reflection.monthId || reflection.id || '';
     
     if (!monthId) {
@@ -187,11 +189,11 @@ export function saveMonthlyReflection(monthId: string, reflection: string, grade
     return;
   }
   
-  debugStorage('Saving monthly reflection', monthId, {reflection: reflection.substring(0, 50) + '...', grade});
+  debugStorage('Saving monthly reflection', monthId);
   
   try {
     const reflectionsJson = localStorage.getItem(MONTHLY_REFLECTIONS_KEY);
-    const reflections = safeParse<Record<string, MonthlyReflection>>(reflectionsJson) || {};
+    const reflections = safeParse(reflectionsJson, {});
     
     let year: number;
     let month: number;
@@ -227,7 +229,7 @@ export function saveMonthlyReflection(monthId: string, reflection: string, grade
       tradeIds: reflections[exactMonthId]?.tradeIds || [],
     };
     
-    debugStorage("Saving monthly reflection object", exactMonthId, reflections[exactMonthId]);
+    debugStorage("Saving monthly reflection object", exactMonthId);
     
     const reflectionsJson2 = JSON.stringify(reflections);
     
