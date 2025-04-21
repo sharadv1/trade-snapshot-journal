@@ -1,5 +1,4 @@
 
-
 export interface Trade {
   id: string;
   symbol: string;
