@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PencilLine, ArrowRight, ArrowUp, ArrowDown, Trash2, ChevronLeft, ChevronRight, Link as LinkIcon } from 'lucide-react';
@@ -269,7 +270,7 @@ export function IdeaCard({
         </ContextMenuContent>
       </ContextMenu>
       
-      {/* Modal for image viewing - use MediaViewerDialog, just like trades! */}
+      {/* Modal for image viewing */}
       {viewingImageIndex !== null && (
         <MediaViewerDialog
           images={idea.images}

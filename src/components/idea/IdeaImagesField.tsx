@@ -5,7 +5,7 @@ import { ImageUpload } from '@/components/ImageUpload';
 import { toast } from '@/utils/toast';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ImageViewerDialog } from '@/components/ImageViewerDialog';
+import { MediaViewerDialog } from '@/components/MediaViewerDialog';
 import { isVideo } from '@/utils/storage/imageOperations';
 
 interface IdeaImagesFieldProps {
@@ -46,8 +46,10 @@ export function IdeaImagesField({
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
           onImageUpload(reader.result);
+          setTimeout(() => setIsProcessingUpload(false), 500);
+        } else {
+          setIsProcessingUpload(false);
         }
-        setIsProcessingUpload(false);
       };
       reader.onerror = () => {
         setIsProcessingUpload(false);
@@ -95,8 +97,11 @@ export function IdeaImagesField({
           }
           
           onImageUpload(compressedBase64);
+          // Delay resetting the upload state to prevent double uploads
+          setTimeout(() => setIsProcessingUpload(false), 500);
+        } else {
+          setIsProcessingUpload(false);
         }
-        setIsProcessingUpload(false);
       };
       img.onerror = () => {
         setIsProcessingUpload(false);
@@ -179,9 +184,8 @@ export function IdeaImagesField({
         Media files are stored in the browser's local storage. For production use, we recommend configuring server storage.
       </p>
       
-      <ImageViewerDialog 
+      <MediaViewerDialog 
         images={images}
-        image={images[currentImageIndex] || ''}
         currentIndex={currentImageIndex}
         isOpen={viewerOpen}
         onClose={() => setViewerOpen(false)}

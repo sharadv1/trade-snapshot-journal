@@ -1,5 +1,4 @@
 
-
 export interface Trade {
   id: string;
   symbol: string;
@@ -96,3 +95,12 @@ export interface MediaFile {
   type: 'image' | 'video' | 'pdf';
 }
 
+export interface TradeIdea {
+  id: string;
+  symbol: string;
+  date: string;
+  description?: string;
+  direction?: 'long' | 'short';
+  status: 'still valid' | 'invalidated' | 'taken' | 'missed';
+  images: string[];
+}
