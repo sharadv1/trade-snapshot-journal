@@ -67,7 +67,7 @@ export function MediaViewerDialog({
   
   const handleZoomIn = () => {
     if (currentMedia.type === 'image') {
-      setZoomLevel(prev => Math.min(prev + 25, 200));
+      setZoomLevel(prev => Math.min(prev + 25, 300));
     }
   };
   
@@ -201,29 +201,27 @@ export function MediaViewerDialog({
           )}
           
           <div className="h-full flex items-center justify-center p-4">
-            <div className="relative overflow-auto max-h-full max-w-full flex items-center justify-center">
-              {currentMedia.type === 'image' ? (
-                <img 
-                  src={currentMedia.url} 
-                  alt="Media" 
-                  className="object-contain max-h-[calc(90vh-32px)]"
-                  style={{ 
-                    transform: `scale(${zoomLevel / 100})`,
-                    transformOrigin: 'center'
-                  }}
-                />
-              ) : (
-                <video 
-                  ref={videoRef}
-                  src={currentMedia.url}
-                  className="max-h-[calc(90vh-32px)] max-w-full media-viewer-video"
-                  controls={false}
-                  loop
-                  playsInline
-                  onClick={togglePlayPause}
-                />
-              )}
-            </div>
+            {currentMedia.type === 'image' ? (
+              <img 
+                src={currentMedia.url} 
+                alt="Media" 
+                className="object-contain max-h-[calc(90vh-32px)] max-w-[90vw]"
+                style={{ 
+                  transform: `scale(${zoomLevel / 100})`,
+                  transformOrigin: 'center'
+                }}
+              />
+            ) : (
+              <video 
+                ref={videoRef}
+                src={currentMedia.url}
+                className="max-h-[calc(90vh-32px)] max-w-[90vw]"
+                controls={false}
+                loop
+                playsInline
+                onClick={togglePlayPause}
+              />
+            )}
           </div>
           
           {mediaItems.length > 1 && (
