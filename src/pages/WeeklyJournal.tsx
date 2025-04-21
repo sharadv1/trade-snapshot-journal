@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore, isAfter } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -159,45 +160,43 @@ export function WeeklyJournal() {
       }
     }
   }, [weekId, weekStart, weekEnd]);
-  
-  useEffect(() => {
-    if (!weekId || !isMountedRef.current) return;
+
+  // Define handleSave before it's used in handleWeekNavigation
+  const handleSave = useCallback(async () => {
+    if (!weekId || isSaving || !isMountedRef.current) return;
     
-    const isWeekIdChanged = previousWeekIdRef.current !== weekId;
+    setIsSaving(true);
     
-    if (isWeekIdChanged || !initialLoadComplete) {
-      console.log(`WeeklyJournal: ${isWeekIdChanged ? 'weekId changed' : 'initial load'} for ${weekId}`);
+    try {
+      console.log(`Saving reflection for ${weekId}`, {
+        reflection: reflection.substring(0, 50) + (reflection.length > 50 ? '...' : ''),
+        grade,
+        weeklyPlan: weeklyPlan.substring(0, 50) + (weeklyPlan.length > 50 ? '...' : '')
+      });
       
-      // Save pending changes if needed before loading new data
-      if (isWeekIdChanged && pendingSaveRef.current) {
-        console.log('Auto-saving changes before navigation');
-        handleSave();
-        pendingSaveRef.current = false;
-      }
+      await saveWeeklyReflection(weekId, reflection, grade, weeklyPlan);
       
-      previousWeekIdRef.current = weekId;
+      if (!isMountedRef.current) return;
       
-      clearTradeCache();
+      toast.success('Reflection saved successfully');
+      
+      backupRef.current = { reflection, weeklyPlan, grade };
+      pendingSaveRef.current = false;
+      
+      needsReloadRef.current = true;
       loadReflection();
       loadTrades();
+    } catch (error) {
+      console.error('Error saving reflection:', error);
+      if (isMountedRef.current) {
+        toast.error('Failed to save reflection');
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
     }
-  }, [weekId, loadReflection, loadTrades, initialLoadComplete]);
-  
-  useEffect(() => {
-    return () => {
-      clearTradeCache();
-    };
-  }, []);
-  
-  // Track content changes to detect modifications
-  useEffect(() => {
-    if (initialLoadComplete && 
-        (reflection !== backupRef.current.reflection || 
-         weeklyPlan !== backupRef.current.weeklyPlan || 
-         grade !== backupRef.current.grade)) {
-      pendingSaveRef.current = true;
-    }
-  }, [reflection, weeklyPlan, grade, initialLoadComplete]);
+  }, [weekId, reflection, grade, weeklyPlan, isSaving, loadReflection, loadTrades]);
   
   const handleWeekNavigation = useCallback((direction: 'previous' | 'next') => {
     if (isSaving || isLoading || navigationInProgressRef.current) {
@@ -297,42 +296,6 @@ export function WeeklyJournal() {
     }
   }, [isProcessingDuplicates, loadReflection]);
   
-  const handleSave = useCallback(async () => {
-    if (!weekId || isSaving || !isMountedRef.current) return;
-    
-    setIsSaving(true);
-    
-    try {
-      console.log(`Saving reflection for ${weekId}`, {
-        reflection: reflection.substring(0, 50) + (reflection.length > 50 ? '...' : ''),
-        grade,
-        weeklyPlan: weeklyPlan.substring(0, 50) + (weeklyPlan.length > 50 ? '...' : '')
-      });
-      
-      await saveWeeklyReflection(weekId, reflection, grade, weeklyPlan);
-      
-      if (!isMountedRef.current) return;
-      
-      toast.success('Reflection saved successfully');
-      
-      backupRef.current = { reflection, weeklyPlan, grade };
-      pendingSaveRef.current = false;
-      
-      needsReloadRef.current = true;
-      loadReflection();
-      loadTrades();
-    } catch (error) {
-      console.error('Error saving reflection:', error);
-      if (isMountedRef.current) {
-        toast.error('Failed to save reflection');
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setIsSaving(false);
-      }
-    }
-  }, [weekId, reflection, grade, weeklyPlan, isSaving, loadReflection, loadTrades]);
-  
   const handleSaveAndReturn = useCallback(async () => {
     if (!isMountedRef.current) return;
     
@@ -346,6 +309,45 @@ export function WeeklyJournal() {
       console.error('Error in save and return:', error);
     }
   }, [handleSave, navigate]);
+  
+  useEffect(() => {
+    if (!weekId || !isMountedRef.current) return;
+    
+    const isWeekIdChanged = previousWeekIdRef.current !== weekId;
+    
+    if (isWeekIdChanged || !initialLoadComplete) {
+      console.log(`WeeklyJournal: ${isWeekIdChanged ? 'weekId changed' : 'initial load'} for ${weekId}`);
+      
+      // Save pending changes if needed before loading new data
+      if (isWeekIdChanged && pendingSaveRef.current) {
+        console.log('Auto-saving changes before navigation');
+        handleSave();
+        pendingSaveRef.current = false;
+      }
+      
+      previousWeekIdRef.current = weekId;
+      
+      clearTradeCache();
+      loadReflection();
+      loadTrades();
+    }
+  }, [weekId, loadReflection, loadTrades, initialLoadComplete, handleSave]);
+  
+  useEffect(() => {
+    return () => {
+      clearTradeCache();
+    };
+  }, []);
+  
+  // Track content changes to detect modifications
+  useEffect(() => {
+    if (initialLoadComplete && 
+        (reflection !== backupRef.current.reflection || 
+         weeklyPlan !== backupRef.current.weeklyPlan || 
+         grade !== backupRef.current.grade)) {
+      pendingSaveRef.current = true;
+    }
+  }, [reflection, weeklyPlan, grade, initialLoadComplete]);
   
   const totalPnL = tradesForWeek.reduce((sum, trade) => 
     sum + (trade.metrics?.profitLoss || 0), 0);
