@@ -28,10 +28,25 @@ export function ContentRenderer({
     ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'class', 'id', 'style', 'allowfullscreen', 'frameborder', 'scrolling'],
   });
   
-  // If removeWrapperTags is true, remove the outer paragraph tags
+  // If removeWrapperTags is true, remove the outer paragraph tags more thoroughly
   let processedContent = sanitizedContent;
-  if (removeWrapperTags && processedContent.startsWith('<p>') && processedContent.endsWith('</p>')) {
-    processedContent = processedContent.substring(3, processedContent.length - 4);
+  if (removeWrapperTags) {
+    // First check for simple case: content wrapped in a single p tag
+    if (processedContent.startsWith('<p>') && processedContent.endsWith('</p>')) {
+      processedContent = processedContent.substring(3, processedContent.length - 4);
+    } 
+    // Also handle content with multiple paragraphs more carefully
+    else if (processedContent.startsWith('<p>')) {
+      // Replace opening and closing p tags with line breaks, but preserve content
+      processedContent = processedContent
+        .replace(/<p>/g, '')
+        .replace(/<\/p>/g, '<br/>');
+      
+      // Remove trailing <br/> if it exists
+      if (processedContent.endsWith('<br/>')) {
+        processedContent = processedContent.substring(0, processedContent.length - 5);
+      }
+    }
   }
   
   return (

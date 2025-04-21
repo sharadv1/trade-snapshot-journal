@@ -14,7 +14,7 @@ export default function Ideas() {
   const [sortBy, setSortBy] = useState('date');
   const location = useLocation();
   
-  // Force reload ideas when navigating back to this page or when it becomes visible
+  // Force reload ideas when navigating to this page or when it becomes visible
   useEffect(() => {
     console.log('Ideas page mounted or path changed');
     setRefreshKey(prev => prev + 1);

@@ -68,14 +68,7 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
     window.addEventListener('ideas-updated', handleIdeasUpdated);
     window.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Set an interval to periodically check for ideas (as a fallback)
-    // Using a shorter interval (3000ms instead of 5000ms) for more responsive updates
-    const intervalId = setInterval(() => {
-      if (mountedRef.current) {
-        console.log('Periodic check for ideas');
-        loadIdeas();
-      }
-    }, 3000);
+    // Removed the periodic polling interval
     
     return () => {
       // Set mounted flag to false
@@ -85,9 +78,6 @@ export function useIdeaList(statusFilter: string = 'all', sortBy: string = 'date
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('ideas-updated', handleIdeasUpdated);
       window.removeEventListener('visibilitychange', handleVisibilityChange);
-      
-      // Clear interval
-      clearInterval(intervalId);
     };
   }, [loadIdeas]);
   

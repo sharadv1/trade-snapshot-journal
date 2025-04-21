@@ -34,11 +34,10 @@ export function MediaUpload({
 }: MediaUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Track last file uploaded to prevent duplicates
   const [lastUploadedFile, setLastUploadedFile] = useState<{ name: string, time: number } | null>(null);
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
+  const [uploadInProgress, setUploadInProgress] = useState(false);
 
-  // Backwards compatibility - support both media and images props
   const mediaItems: MediaFile[] = media || 
     (images ? images.map(url => ({
       url: ensureSafeUrl(url),
@@ -47,7 +46,6 @@ export function MediaUpload({
   
   const maxItemsCount = maxFiles || maxImages;
   
-  // Backwards compatibility - use either the media or image handlers
   const handleFileUpload = onMediaUpload || onImageUpload;
   const handleRemove = onMediaRemove || onImageRemove;
 
@@ -55,8 +53,7 @@ export function MediaUpload({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Prevent duplicate uploads and processing multiple uploads simultaneously
-    if (isProcessingUpload) {
+    if (isProcessingUpload || uploadInProgress) {
       console.log('Already processing an upload, ignoring duplicate request');
       return;
     }
@@ -76,7 +73,6 @@ export function MediaUpload({
     const isVideoFile = file.type.startsWith('video/');
     const isPdfFile = file.type === 'application/pdf';
     
-    // Check if file type is allowed
     if (isVideoFile && !acceptVideos) {
       toast.error("Video uploads are not allowed here");
       return;
@@ -87,7 +83,6 @@ export function MediaUpload({
       return;
     }
     
-    // Check file size - different limits for different file types
     if (isVideoFile) {
       if (file.size > 20 * 1024 * 1024) {
         toast.error("Video must be under 20MB");
@@ -99,28 +94,26 @@ export function MediaUpload({
         return;
       }
     } else {
-      // For images
       if (file.size > 5 * 1024 * 1024) {
         toast.error("Image must be under 5MB");
         return;
       }
     }
 
-    // Set processing state to prevent multiple simultaneous uploads
     setIsProcessingUpload(true);
+    setUploadInProgress(true);
     
-    // Record this upload to prevent duplicates
     setLastUploadedFile({ name: file.name, time: Date.now() });
     
-    // Process the file
     handleFileUpload(file);
     
-    // Clear the input value so the same file can be uploaded again (but not immediately)
     if (event.target.value) event.target.value = '';
     
-    // Reset processing state after a delay
     setTimeout(() => {
       setIsProcessingUpload(false);
+      setTimeout(() => {
+        setUploadInProgress(false);
+      }, 1000);
     }, 1000);
   };
 
@@ -129,7 +122,7 @@ export function MediaUpload({
     e.stopPropagation();
     setIsDragging(false);
     
-    if (disabled || isProcessingUpload) return;
+    if (disabled || isProcessingUpload || uploadInProgress) return;
     
     if (mediaItems.length >= maxItemsCount) {
       toast.error(`Maximum ${maxItemsCount} files allowed`);
@@ -140,7 +133,6 @@ export function MediaUpload({
       const file = e.dataTransfer.files[0];
       console.log('File dropped in MediaUpload:', file.name, file.type);
       
-      // Prevent duplicate uploads (same file within 2 seconds)
       if (lastUploadedFile && 
           lastUploadedFile.name === file.name && 
           (Date.now() - lastUploadedFile.time) < 2000) {
@@ -151,7 +143,6 @@ export function MediaUpload({
       const isVideoFile = file.type.startsWith('video/');
       const isPdfFile = file.type === 'application/pdf';
       
-      // Check file type
       if (isVideoFile && !acceptVideos) {
         toast.error("Video uploads are not allowed here");
         return;
@@ -162,15 +153,17 @@ export function MediaUpload({
         return;
       }
       
-      // Process the file
       setIsProcessingUpload(true);
+      setUploadInProgress(true);
       setLastUploadedFile({ name: file.name, time: Date.now() });
       handleFileUpload(file);
       console.log('File dropped and being processed:', file.name);
       
-      // Reset processing state after a delay
       setTimeout(() => {
         setIsProcessingUpload(false);
+        setTimeout(() => {
+          setUploadInProgress(false);
+        }, 1000);
       }, 1000);
     }
   };
@@ -178,7 +171,7 @@ export function MediaUpload({
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!disabled && !isProcessingUpload) {
+    if (!disabled && !isProcessingUpload && !uploadInProgress) {
       setIsDragging(true);
     }
   };
@@ -222,7 +215,6 @@ export function MediaUpload({
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       console.warn(`Image failed to load: ${url}`);
-                      // Set a fallback image on error
                       (e.target as HTMLImageElement).src = '/placeholder.svg';
                     }}
                   />
@@ -251,65 +243,9 @@ export function MediaUpload({
               isDragging ? 'border-primary bg-primary/10' : 'border-gray-300'
             } transition-colors cursor-pointer`}
             onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (!disabled && !isProcessingUpload) {
-                setIsDragging(true);
-              }
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsDragging(false);
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsDragging(false);
-              
-              if (disabled || isProcessingUpload) return;
-              
-              if (mediaItems.length >= maxItemsCount) {
-                toast.error(`Maximum ${maxItemsCount} files allowed`);
-                return;
-              }
-              
-              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                const file = e.dataTransfer.files[0];
-                
-                // Prevent duplicate uploads (same file within 2 seconds)
-                if (lastUploadedFile && 
-                    lastUploadedFile.name === file.name && 
-                    (Date.now() - lastUploadedFile.time) < 2000) {
-                  return;
-                }
-                
-                const isVideoFile = file.type.startsWith('video/');
-                const isPdfFile = file.type === 'application/pdf';
-                
-                // Check file type
-                if (isVideoFile && !acceptVideos) {
-                  toast.error("Video uploads are not allowed here");
-                  return;
-                }
-                
-                if (isPdfFile && !acceptPdfs) {
-                  toast.error("PDF uploads are not allowed here");
-                  return;
-                }
-                
-                // Process the file
-                setIsProcessingUpload(true);
-                setLastUploadedFile({ name: file.name, time: Date.now() });
-                handleFileUpload(file);
-                
-                // Reset processing state after a delay
-                setTimeout(() => {
-                  setIsProcessingUpload(false);
-                }, 1000);
-              }
-            }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
           >
             <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">
@@ -330,7 +266,7 @@ export function MediaUpload({
                     : "image/*"
             }
             ref={fileInputRef}
-            disabled={disabled || isProcessingUpload || mediaItems.length >= maxItemsCount}
+            disabled={disabled || isProcessingUpload || uploadInProgress || mediaItems.length >= maxItemsCount}
           />
         </>
       )}
@@ -338,7 +274,6 @@ export function MediaUpload({
   );
 }
 
-// For backwards compatibility
 export function ImageUpload(props: MediaUploadProps) {
   return <MediaUpload {...props} />;
 }
