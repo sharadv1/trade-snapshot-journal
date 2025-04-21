@@ -1,122 +1,62 @@
-import { toast } from '@/utils/toast';
 
-// Storage keys - keep these consistent across files
+// Storage keys
 export const WEEKLY_REFLECTIONS_KEY = 'trade-journal-weekly-reflections';
 export const MONTHLY_REFLECTIONS_KEY = 'trade-journal-monthly-reflections';
 
-// Event notification utilities
-let lastEventDispatchTime: Record<string, number> = {};
-const MIN_EVENT_INTERVAL = 750; // Increased to reduce event frequency
-
-// Debounce management for events
-interface DebouncedEvent {
-  timer: NodeJS.Timeout | null;
-  lastFired: number;
-}
-
-const debouncedEvents: Record<string, DebouncedEvent> = {};
+// Debug flag
+let DEBUG_STORAGE = false;
 
 /**
- * Dispatches events to notify of journal updates with rate limiting and debouncing
+ * Enable or disable storage debugging
+ */
+export function setStorageDebug(debug: boolean) {
+  DEBUG_STORAGE = debug;
+}
+
+/**
+ * Debug log for storage operations
+ */
+export function debugStorage(...args: any[]) {
+  if (DEBUG_STORAGE) {
+    console.log('[Storage]', ...args);
+  }
+}
+
+/**
+ * Safely parse JSON with error handling
+ */
+export function safeParse<T>(json: string | null): T | null {
+  if (!json) return null;
+  try {
+    return JSON.parse(json) as T;
+  } catch (e) {
+    console.error('Failed to parse JSON:', e);
+    return null;
+  }
+}
+
+/**
+ * Notify the application about journal updates
  */
 export function notifyJournalUpdate(source: string): void {
-  const debounceKey = `journal-updated-${source}`;
-  const now = Date.now();
-  
-  // Cancel any pending updates for this source
-  if (debouncedEvents[debounceKey] && debouncedEvents[debounceKey].timer) {
-    clearTimeout(debouncedEvents[debounceKey].timer);
-  }
-  
-  // If we've dispatched this event recently, debounce it with longer interval
-  if (debouncedEvents[debounceKey] && now - debouncedEvents[debounceKey].lastFired < MIN_EVENT_INTERVAL) {
-    debouncedEvents[debounceKey].timer = setTimeout(() => {
-      dispatchJournalEvents(source);
-      debouncedEvents[debounceKey].lastFired = Date.now();
-      debouncedEvents[debounceKey].timer = null;
-    }, MIN_EVENT_INTERVAL);
-    return;
-  }
-  
-  // Otherwise dispatch with a small delay to allow batching
-  setTimeout(() => {
-    dispatchJournalEvents(source);
-  }, 50);
-  
-  // Update the debounce tracking
-  debouncedEvents[debounceKey] = {
-    timer: null,
-    lastFired: now
-  };
-}
-
-/**
- * Helper to actually dispatch events safely, preventing redundancy
- */
-function dispatchJournalEvents(source: string): void {
   try {
-    // Only dispatch one type of event to reduce cascading updates
-    window.dispatchEvent(new CustomEvent('journal-updated', { detail: { source } }));
+    window.dispatchEvent(new CustomEvent('journal-updated', { 
+      detail: { source, timestamp: new Date().toISOString() } 
+    }));
+    debugStorage(`Journal updated notification sent (source: ${source})`);
   } catch (error) {
-    console.error('Error dispatching journal update events:', error);
+    console.error('Error dispatching journal update event:', error);
   }
 }
 
 /**
- * Dispatches storage events with rate limiting, using a more focused approach
+ * Dispatch a storage event to notify other tabs
  */
-export function dispatchStorageEvent(key: string): void {
-  const now = Date.now();
-  if (lastEventDispatchTime[key] && (now - lastEventDispatchTime[key] < MIN_EVENT_INTERVAL)) {
-    // Skip dispatching if too recent, but don't log to reduce console noise
-    return;
-  }
-  
-  lastEventDispatchTime[key] = now;
-  
+export function dispatchStorageEvent(): void {
   try {
-    // Use a small timeout to batch potential multiple updates
-    setTimeout(() => {
-      try {
-        const customEvent = new CustomEvent('journal-updated', { detail: { key } });
-        window.dispatchEvent(customEvent);
-      } catch (err) {
-        console.error('Error in delayed event dispatch:', err);
-      }
-    }, 50);
-  } catch (e) {
-    console.error('Error setting up event dispatch:', e);
-  }
-}
-
-/**
- * Safely parses JSON from localStorage with fallback
- */
-export function safeParse<T>(value: string | null, defaultValue: T): T {
-  if (!value) return defaultValue;
-  
-  try {
-    const parsed = JSON.parse(value);
-    if (typeof parsed !== 'object' || parsed === null) {
-      console.error('Invalid data format in localStorage, expected object but got:', typeof parsed);
-      return defaultValue;
-    }
-    return parsed as T;
+    window.dispatchEvent(new Event('storage'));
+    debugStorage('Storage event dispatched');
   } catch (error) {
-    console.error('Error parsing JSON:', error);
-    return defaultValue;
-  }
-}
-
-/**
- * Debug helper for storage operations
- */
-export function debugStorage(action: string, key: string, data?: any): void {
-  // Only log in development environment to reduce console noise
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[JOURNAL STORAGE] ${action} for key "${key}"`);
-    if (data) {
-      console.log('Data:', typeof data === 'string' ? data.substring(0, 50) + '...' : data);
-    }
+    console.error('Error dispatching storage event:', error);
   }
 }
