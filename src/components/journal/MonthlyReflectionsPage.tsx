@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { MonthlyReflection } from '@/types';
 import { getMonthlyReflections, deleteMonthlyReflection } from '@/utils/journal/reflectionStorage';
@@ -7,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useReflectionGenerator } from '@/hooks/useReflectionGenerator';
 import { Loader2, Plus, Search, RefreshCw } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { ReflectionCard } from './reflections/ReflectionCard';
 import { getCurrentPeriodId, getReflectionStats, countWords } from '@/utils/journal/reflectionUtils';
@@ -23,12 +22,14 @@ export function MonthlyReflectionsPage() {
   const [forceReload, setForceReload] = useState(false);
   const mountedRef = useRef(true);
   const initialLoadDoneRef = useRef(false);
+  const loadingRef = useRef(false);
   
   const { isGenerating, error: generationError, isComplete } = useReflectionGenerator();
   
   const loadReflections = useCallback(async () => {
-    if (!mountedRef.current) return;
+    if (!mountedRef.current || loadingRef.current) return;
     
+    loadingRef.current = true;
     setIsLoading(true);
     setLoadError(null);
     
@@ -68,6 +69,7 @@ export function MonthlyReflectionsPage() {
       if (mountedRef.current) {
         setIsLoading(false);
         initialLoadDoneRef.current = true;
+        loadingRef.current = false;
       }
     }
   }, []);
@@ -94,11 +96,11 @@ export function MonthlyReflectionsPage() {
     setFilteredReflections(filtered);
   }, [searchQuery, reflections]);
 
-  // Initial load
+  // Initial load - fix to run only once
   useEffect(() => {
     mountedRef.current = true;
     
-    if (!initialLoadDoneRef.current) {
+    if (!initialLoadDoneRef.current && !loadingRef.current) {
       loadReflections();
     }
     
@@ -107,16 +109,23 @@ export function MonthlyReflectionsPage() {
     };
   }, [loadReflections]);
 
-  // Handle reload triggers
+  // Handle reload triggers - fixed to prevent infinite loops
   useEffect(() => {
-    if ((isComplete || !isGenerating) && initialLoadDoneRef.current) {
+    if (forceReload && mountedRef.current && !loadingRef.current) {
       loadReflections();
     }
-  }, [loadReflections, isComplete, isGenerating, forceReload]);
+  }, [loadReflections, forceReload]);
+  
+  // Separate effect for completion/generation events to reduce dependencies
+  useEffect(() => {
+    if ((isComplete || !isGenerating) && initialLoadDoneRef.current && mountedRef.current && !loadingRef.current) {
+      loadReflections();
+    }
+  }, [loadReflections, isComplete, isGenerating]);
   
   useEffect(() => {
     const handleReflectionsGenerated = () => {
-      if (mountedRef.current && initialLoadDoneRef.current) {
+      if (mountedRef.current && initialLoadDoneRef.current && !loadingRef.current) {
         console.log("Reflections generation completed - reloading reflections list");
         loadReflections();
       }
@@ -154,8 +163,9 @@ export function MonthlyReflectionsPage() {
   const formatDateRange = (reflection: MonthlyReflection) => {
     if (reflection.monthStart && reflection.monthEnd) {
       try {
-        const start = parseISO(reflection.monthStart);
-        return format(start, 'MMMM yyyy');
+        // Parse the date string to Date object
+        const startDate = new Date(reflection.monthStart);
+        return format(startDate, 'MMMM yyyy');
       } catch (error) {
         console.error("Error formatting date range:", error);
         return 'Invalid date range';

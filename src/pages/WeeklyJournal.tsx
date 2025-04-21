@@ -47,6 +47,7 @@ export function WeeklyJournal() {
     weeklyPlan: '',
     grade: ''
   });
+  const previousWeekIdRef = useRef<string | null>(null);
   
   const currentDate = weekId ? new Date(weekId) : new Date();
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -58,7 +59,6 @@ export function WeeklyJournal() {
   useEffect(() => {
     console.log("Enabling trade debug mode");
     setTradeDebug(true);
-    
     clearTradeCache();
     
     return () => {
@@ -71,16 +71,16 @@ export function WeeklyJournal() {
     console.log(`WeeklyJournal: Component mounted for week ${weekId}`);
     
     isMountedRef.current = true;
+    previousWeekIdRef.current = weekId || null;
     
     clearTradeCache();
-    
     preventTradeFetching(false);
     
     return () => {
       console.log('WeeklyJournal: Component unmounting');
       isMountedRef.current = false;
     };
-  }, [weekId]);
+  }, []);
   
   const loadReflection = useCallback(async () => {
     if (!weekId || !isMountedRef.current) return;
@@ -131,8 +131,6 @@ export function WeeklyJournal() {
       setIsLoadingTrades(true);
       console.log(`Loading trades for week ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
       
-      clearTradeCache();
-      
       const trades = getTradesForWeek(weekStart, weekEnd);
       
       if (!isMountedRef.current) return;
@@ -152,25 +150,26 @@ export function WeeklyJournal() {
   }, [weekId, weekStart, weekEnd]);
   
   useEffect(() => {
-    if (weekId && isMountedRef.current && needsReloadRef.current && !initialLoadComplete) {
-      console.log(`WeeklyJournal: loading initial data for ${weekId}`);
+    if (!weekId || !isMountedRef.current) return;
+    
+    const isWeekIdChanged = previousWeekIdRef.current !== weekId;
+    
+    if (isWeekIdChanged || !initialLoadComplete) {
+      console.log(`WeeklyJournal: ${isWeekIdChanged ? 'weekId changed' : 'initial load'} for ${weekId}`);
+      
+      previousWeekIdRef.current = weekId;
       
       clearTradeCache();
       loadReflection();
       loadTrades();
-    } else if (weekId && isMountedRef.current && initialLoadComplete) {
-      const prevWeekId = weeklyReflection?.weekId || '';
-      if (weekId !== prevWeekId) {
-        console.log(`WeeklyJournal: weekId changed to ${weekId}, reloading data`);
-        
-        needsReloadRef.current = true;
-        
-        clearTradeCache();
-        loadReflection();
-        loadTrades();
-      }
     }
-  }, [weekId, loadReflection, loadTrades, weeklyReflection?.weekId, initialLoadComplete]);
+  }, [weekId, loadReflection, loadTrades, initialLoadComplete]);
+  
+  useEffect(() => {
+    return () => {
+      clearTradeCache();
+    };
+  }, []);
   
   const goToPreviousWeek = useCallback(() => {
     if (isSaving || isLoading) return;
@@ -178,9 +177,6 @@ export function WeeklyJournal() {
     const previousWeek = addDays(weekStart, -7);
     
     clearTradeCache();
-    
-    needsReloadRef.current = true;
-    
     navigate(`/journal/weekly/${format(previousWeek, 'yyyy-MM-dd')}`);
   }, [navigate, weekStart, isSaving, isLoading]);
   
@@ -190,9 +186,6 @@ export function WeeklyJournal() {
     const nextWeek = addDays(weekStart, 7);
     
     clearTradeCache();
-    
-    needsReloadRef.current = true;
-    
     navigate(`/journal/weekly/${format(nextWeek, 'yyyy-MM-dd')}`);
   }, [navigate, weekStart, isSaving, isLoading]);
   
