@@ -1,3 +1,4 @@
+
 export interface Trade {
   id: string;
   symbol: string;
@@ -87,4 +88,9 @@ export interface MonthlyReflection {
 export interface MaxRiskSettings {
   maxRiskPerTrade: number | null;
   maxRiskPerDay: number | null;
+}
+
+export interface MediaFile {
+  url: string;
+  type: 'image' | 'video' | 'pdf';
 }

@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, ZoomIn, ZoomOut, Maximize, ExternalLink } from 'lucide-react';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
@@ -55,6 +55,7 @@ export function ImageViewerDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 overflow-hidden" onPointerDownOutside={onClose}>
+        <DialogTitle className="sr-only">Image Viewer</DialogTitle>
         <div className="absolute top-4 right-4 flex space-x-2 z-10">
           <Button 
             variant="secondary" 
@@ -136,7 +137,7 @@ export function ImageViewerDialog({
               transition: 'transform 0.2s ease'
             }}
             onError={(e) => {
-              console.error('Image failed to load:', image);
+              console.error('Image failed to load in ImageViewerDialog:', image);
               const imgElement = e.currentTarget;
               imgElement.src = '/placeholder.svg';
               imgElement.style.opacity = '0.5';

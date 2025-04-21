@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ImageUpload';
@@ -99,12 +100,14 @@ export function IdeaImagesField({
       };
       img.onerror = () => {
         setIsProcessingUpload(false);
+        toast.error("Failed to process image. Please try another one.");
       };
       img.src = reader.result as string;
     };
     
     reader.onerror = () => {
       setIsProcessingUpload(false);
+      toast.error("Failed to read file. Please try another one.");
     };
     
     reader.readAsDataURL(file);
@@ -143,6 +146,9 @@ export function IdeaImagesField({
                     const imgElement = e.currentTarget;
                     imgElement.src = '/placeholder.svg';
                     imgElement.style.opacity = '0.5';
+                  }}
+                  onLoad={() => {
+                    console.log('Image loaded successfully in IdeaImagesField:', url);
                   }}
                 />
               )}

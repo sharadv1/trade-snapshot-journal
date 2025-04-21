@@ -108,9 +108,7 @@ export function MediaViewerDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 overflow-hidden" onPointerDownOutside={onClose}>
-        <DialogTitle>
-          <VisuallyHidden>Media Viewer</VisuallyHidden>
-        </DialogTitle>
+        <DialogTitle className="sr-only">Media Viewer</DialogTitle>
         <div className="relative h-full">
           <div className="absolute top-4 right-4 flex space-x-2 z-10">
             {currentMedia.type === 'image' && (
@@ -216,7 +214,7 @@ export function MediaViewerDialog({
                   transition: 'transform 0.2s ease'
                 }}
                 onError={(e) => {
-                  console.error('Image failed to load:', currentMedia.url);
+                  console.error('Image failed to load in MediaViewerDialog:', currentMedia.url);
                   const imgElement = e.currentTarget;
                   imgElement.src = '/placeholder.svg';
                   imgElement.style.opacity = '0.5';

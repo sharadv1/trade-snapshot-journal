@@ -35,6 +35,9 @@ export const saveMediaToTrade = async (tradeId: string, mediaUrl: string): Promi
       images: [...trade.images, safeUrl]
     };
     await updateTrade(updatedTrade);
+    
+    // Log successful image save
+    console.log('Media successfully saved to trade:', tradeId, safeUrl.substring(0, 50) + '...');
   }
 };
 
@@ -51,6 +54,7 @@ export const deleteMediaFromTrade = async (tradeId: string, mediaIndex: number):
       images: updatedImages
     };
     await updateTrade(updatedTrade);
+    console.log('Media successfully deleted from trade:', tradeId, 'index:', mediaIndex);
   }
 };
 
@@ -70,9 +74,45 @@ export const ensureSafeUrl = (url: string): string => {
       // Return a placeholder instead of a broken URL
       return '/placeholder.svg';
     }
+    
+    // Check if it has the correct mime type
+    const mimeType = parts[0].split(':')[1]?.split(';')[0];
+    if (!mimeType || (!mimeType.startsWith('image/') && !mimeType.startsWith('video/') && mimeType !== 'application/pdf')) {
+      console.warn('Invalid mime type in data URL:', mimeType);
+      return '/placeholder.svg';
+    }
+  }
+  
+  // Check for invalid or corrupted URLs (non-data URLs)
+  if (!strUrl.startsWith('data:') && !strUrl.startsWith('/') && !strUrl.startsWith('http')) {
+    console.warn('Invalid URL format detected:', strUrl.substring(0, 20) + '...');
+    return '/placeholder.svg';
   }
   
   return strUrl;
+};
+
+// Test an image URL to see if it's loadable
+export const testImageUrl = (url: string): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (!url || url === '/placeholder.svg') {
+      resolve(false);
+      return;
+    }
+    
+    if (url.startsWith('data:')) {
+      // For data URLs, just verify the format
+      const isValid = url.split(',').length === 2;
+      resolve(isValid);
+      return;
+    }
+    
+    // For regular URLs, try to load the image
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
 };
 
 // Functions for legacy compatibility

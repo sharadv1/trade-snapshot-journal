@@ -83,6 +83,7 @@ export function NotesAndImagesForm({
                 onError={(e) => {
                   console.error('Image failed to load in NotesAndImagesForm:', url);
                   const imgElement = e.currentTarget;
+                  // Use a relative path for the placeholder to ensure it loads correctly
                   imgElement.src = '/placeholder.svg';
                   imgElement.style.opacity = '0.5';
                 }}

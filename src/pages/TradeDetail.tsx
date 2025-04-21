@@ -750,18 +750,22 @@ export function TradeDetail() {
                 {trade.images.map((image, index) => (
                   <div 
                     key={index} 
-                    className="overflow-hidden rounded-md border hover:opacity-90 transition-opacity cursor-pointer"
+                    className="overflow-hidden rounded-md border hover:opacity-90 transition-opacity cursor-pointer aspect-video flex items-center justify-center"
                     onClick={() => handleImageClick(index)}
                   >
                     <img 
                       src={image} 
                       alt={`Trade chart ${index + 1}`} 
-                      className="h-auto w-full object-cover" 
+                      className="w-full h-full object-cover" 
                       onError={(e) => {
                         console.error('Image failed to load in thumbnail:', image);
                         const imgElement = e.currentTarget;
                         imgElement.src = '/placeholder.svg';
+                        imgElement.classList.add('p-4');
                         imgElement.style.opacity = '0.5';
+                      }}
+                      onLoad={(e) => {
+                        console.log('Image loaded successfully:', image);
                       }}
                     />
                   </div>
