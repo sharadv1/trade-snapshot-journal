@@ -83,7 +83,7 @@ export function ReflectionCard({
                 </h3>
                 <div className="text-sm text-muted-foreground flex items-center mt-1">
                   <span className="mr-4">
-                    {stats.tradeCount} trade{stats.tradeCount !== 1 ? 's' : ''}
+                    {isFutureWeek ? 'Planning' : `${stats.tradeCount} trade${stats.tradeCount !== 1 ? 's' : ''}`}
                   </span>
                   {showGrade && grade && (
                     <ReflectionGradeBadge grade={grade} />
@@ -121,29 +121,33 @@ export function ReflectionCard({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
               <div className="text-center p-2 bg-muted/30 rounded-md">
                 <div className="text-xs font-medium text-muted-foreground">P&L</div>
-                <div className={`text-sm font-semibold ${stats.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(stats.pnl)}
+                <div className={`text-sm font-semibold ${
+                  isFutureWeek ? 'text-blue-600' : stats.pnl >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {isFutureWeek ? 'Planned' : formatCurrency(stats.pnl)}
                 </div>
               </div>
               
               <div className="text-center p-2 bg-muted/30 rounded-md">
                 <div className="text-xs font-medium text-muted-foreground">R Value</div>
-                <div className={`text-sm font-semibold ${stats.rValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {stats.rValue.toFixed(2)}R
+                <div className={`text-sm font-semibold ${
+                  isFutureWeek ? 'text-blue-600' : stats.rValue >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {isFutureWeek ? 'Planned' : `${stats.rValue.toFixed(2)}R`}
                 </div>
               </div>
               
               <div className="text-center p-2 bg-muted/30 rounded-md">
                 <div className="text-xs font-medium text-muted-foreground">Win Rate</div>
                 <div className="text-sm font-semibold">
-                  {stats.tradeCount > 0 ? `${stats.winRate.toFixed(1)}%` : 'N/A'}
+                  {isFutureWeek ? 'Planned' : stats.tradeCount > 0 ? `${stats.winRate.toFixed(1)}%` : 'N/A'}
                 </div>
               </div>
               
               <div className="text-center p-2 bg-muted/30 rounded-md">
                 <div className="text-xs font-medium text-muted-foreground">W/L</div>
                 <div className="text-sm font-semibold">
-                  {stats.winCount}/{stats.lossCount}
+                  {isFutureWeek ? 'Planned' : `${stats.winCount}/${stats.lossCount}`}
                 </div>
               </div>
             </div>

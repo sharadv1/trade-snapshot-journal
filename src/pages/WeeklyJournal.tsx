@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore, isAfter } from 'date-fns';
+import { format, parseISO, startOfWeek, endOfWeek, addDays, isBefore, isAfter, addWeeks } from 'date-fns';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,7 +55,6 @@ export function WeeklyJournal() {
   const navigationInProgressRef = useRef<boolean>(false);
   const pendingSaveRef = useRef<boolean>(false);
   
-  // Define handleSave early since it's used in other functions
   const handleSave = useCallback(async () => {
     if (!weekId || isSaving || !isMountedRef.current) return;
     
@@ -69,7 +67,12 @@ export function WeeklyJournal() {
         weeklyPlan: weeklyPlan.substring(0, 50) + (weeklyPlan.length > 50 ? '...' : '')
       });
       
-      await saveWeeklyReflection(weekId, reflection, grade, weeklyPlan);
+      const today = new Date();
+      const currentDate = weekId ? new Date(weekId) : today;
+      const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+      const isFutureWeek = isAfter(weekStart, today);
+      
+      await saveWeeklyReflection(weekId, reflection, grade, weeklyPlan, isFutureWeek);
       
       if (!isMountedRef.current) return;
       
@@ -93,11 +96,9 @@ export function WeeklyJournal() {
     }
   }, [weekId, reflection, grade, weeklyPlan, isSaving]);
   
-  // Ensure we have a valid weekId, defaulting to current week if not
   const safeWeekId = weekId || getWeekIdFromDate(new Date());
   const currentDate = safeWeekId ? new Date(safeWeekId) : new Date();
   
-  // Always use consistent formatting for weekStart - Monday of the week
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const formattedDateRange = `${format(weekStart, 'MMM dd')} - ${format(weekEnd, 'MMM dd, yyyy')}`;
@@ -127,7 +128,6 @@ export function WeeklyJournal() {
     clearTradeCache();
     preventTradeFetching(false);
     
-    // Add visibility change listener to reload when tab becomes visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isMountedRef.current && weekId) {
         console.log('Weekly journal page visible again, refreshing data');
@@ -157,6 +157,11 @@ export function WeeklyJournal() {
       
       if (reflectionData) {
         console.log(`Loaded reflection data for ${weekId}:`, reflectionData);
+        
+        if (isFutureWeek && !reflectionData.isFutureWeek) {
+          reflectionData.isFutureWeek = true;
+        }
+        
         setWeeklyReflection(reflectionData);
         setReflection(reflectionData.reflection || '');
         setWeeklyPlan(reflectionData.weeklyPlan || '');
@@ -169,7 +174,18 @@ export function WeeklyJournal() {
         };
       } else {
         console.log(`No reflection found for ${weekId}, creating new empty reflection`);
-        setWeeklyReflection(null);
+        setWeeklyReflection({
+          id: weekId,
+          weekId: weekId,
+          weekStart: weekStart.toISOString(),
+          weekEnd: weekEnd.toISOString(),
+          reflection: '',
+          weeklyPlan: '',
+          grade: '',
+          isFutureWeek: isFutureWeek,
+          lastUpdated: new Date().toISOString(),
+          tradeIds: []
+        });
         setReflection('');
         setWeeklyPlan('');
         setGrade('');
@@ -187,7 +203,7 @@ export function WeeklyJournal() {
         setInitialLoadComplete(true);
       }
     }
-  }, [weekId]);
+  }, [weekId, weekStart, weekEnd, isFutureWeek]);
   
   const loadTrades = useCallback(() => {
     if (!weekId || !isMountedRef.current) return;
@@ -220,31 +236,25 @@ export function WeeklyJournal() {
       return;
     }
     
-    // Set navigation in progress to prevent multiple clicks
     navigationInProgressRef.current = true;
     console.log(`Going to ${direction} week from week ${safeWeekId}`);
     
-    // Auto-save any pending changes
     if (pendingSaveRef.current) {
       console.log('Auto-saving changes before navigation');
       handleSave();
       pendingSaveRef.current = false;
     }
     
-    // Calculate the target date
     const daysToAdd = direction === 'next' ? 7 : -7;
     const targetDate = addDays(weekStart, daysToAdd);
     
-    // Always create a consistent weekId based on Monday of that week
     const targetWeekId = getWeekIdFromDate(targetDate);
     
     console.log(`Navigating from ${safeWeekId} to ${targetWeekId}, weekStart: ${weekStart.toISOString()}, targetDate: ${targetDate.toISOString()}`);
     
-    // Clear cache and navigate
     clearTradeCache();
     navigate(`/journal/weekly/${targetWeekId}`);
     
-    // Reset navigation progress after a delay to prevent rapid clicks
     setTimeout(() => {
       navigationInProgressRef.current = false;
     }, 500);
@@ -334,7 +344,6 @@ export function WeeklyJournal() {
     if (isWeekIdChanged || !initialLoadComplete) {
       console.log(`WeeklyJournal: ${isWeekIdChanged ? 'weekId changed' : 'initial load'} for ${weekId}`);
       
-      // Save pending changes if needed before loading new data
       if (isWeekIdChanged && pendingSaveRef.current) {
         console.log('Auto-saving changes before navigation');
         handleSave();
@@ -355,7 +364,6 @@ export function WeeklyJournal() {
     };
   }, []);
   
-  // Track content changes to detect modifications
   useEffect(() => {
     if (initialLoadComplete && 
         (reflection !== backupRef.current.reflection || 

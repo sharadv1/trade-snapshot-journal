@@ -11,7 +11,7 @@ import { getCurrentPeriodId, getReflectionStats, getWeekIdFromDate } from '@/uti
 import { toast } from '@/utils/toast';
 import { clearTradeCache, preventTradeFetching } from '@/utils/tradeCalculations';
 import { ReflectionCard } from './reflections/ReflectionCard';
-import { format, addDays, startOfWeek, isAfter, parseISO } from 'date-fns';
+import { format, addDays, startOfWeek, isAfter, parseISO, addWeeks } from 'date-fns';
 
 export function WeeklyReflectionsPage() {
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
@@ -249,7 +249,7 @@ export function WeeklyReflectionsPage() {
   const handleCreateFutureWeek = () => {
     // Use next week's Monday as the base date for a future reflection
     const today = new Date();
-    const nextWeek = addDays(today, 7);
+    const nextWeek = addWeeks(today, 1);
     const weekId = getWeekIdFromDate(nextWeek);
     
     console.log(`Creating future week: ${weekId}`);
@@ -342,7 +342,7 @@ export function WeeklyReflectionsPage() {
             const stats = getReflectionStats(reflection);
             
             // Skip empty reflections if not showing all
-            if (!includeEmptyWeeks && !stats.hasContent && stats.tradeCount === 0) {
+            if (!includeEmptyWeeks && !stats.hasContent && stats.tradeCount === 0 && !reflection.isFutureWeek) {
               return null;
             }
             
@@ -356,14 +356,20 @@ export function WeeklyReflectionsPage() {
             );
             
             // Determine if this is a future week
-            let isFutureWeek = false;
-            try {
-              const weekStartDate = reflection.weekStart ? parseISO(reflection.weekStart) : null;
-              if (weekStartDate) {
-                isFutureWeek = isAfter(weekStartDate, today);
+            let isFutureWeek = !!reflection.isFutureWeek;
+            if (!isFutureWeek) {
+              try {
+                const weekStartDate = reflection.weekStart ? parseISO(reflection.weekStart) : null;
+                if (weekStartDate) {
+                  isFutureWeek = isAfter(weekStartDate, today);
+                  // Flag future weeks for better tracking
+                  if (isFutureWeek && !reflection.isFutureWeek) {
+                    reflection.isFutureWeek = true;
+                  }
+                }
+              } catch (e) {
+                console.error("Error parsing date:", e);
               }
-            } catch (e) {
-              console.error("Error parsing date:", e);
             }
 
             return (

@@ -36,7 +36,8 @@ export function ReflectionMetrics({
         <div className="text-sm text-muted-foreground mb-1">P&L</div>
         <div className={`text-2xl font-semibold ${
           !isFutureWeek && totalPnL > 0 ? 'text-green-600' : 
-          !isFutureWeek && totalPnL < 0 ? 'text-red-600' : ''
+          !isFutureWeek && totalPnL < 0 ? 'text-red-600' : 
+          isFutureWeek ? 'text-blue-600' : ''
         }`}>
           {isFutureWeek ? '-' : formatCurrency(totalPnL)}
         </div>
@@ -46,7 +47,8 @@ export function ReflectionMetrics({
         <div className="text-sm text-muted-foreground mb-1">R Multiple</div>
         <div className={`text-2xl font-semibold ${
           !isFutureWeek && totalR > 0 ? 'text-green-600' : 
-          !isFutureWeek && totalR < 0 ? 'text-red-600' : ''
+          !isFutureWeek && totalR < 0 ? 'text-red-600' : 
+          isFutureWeek ? 'text-blue-600' : ''
         }`}>
           {isFutureWeek ? '-' : `${totalR.toFixed(2)}R`}
         </div>
@@ -70,7 +72,8 @@ export function ReflectionMetrics({
         <div className="text-sm text-muted-foreground mb-1">Average R/Trade</div>
         <div className={`text-2xl font-semibold ${
           !isFutureWeek && avgRPerTrade > 0 ? 'text-green-600' : 
-          !isFutureWeek && avgRPerTrade < 0 ? 'text-red-600' : ''
+          !isFutureWeek && avgRPerTrade < 0 ? 'text-red-600' : 
+          isFutureWeek ? 'text-blue-600' : ''
         }`}>
           {isFutureWeek ? '-' : tradeCount > 0 ? `${avgRPerTrade.toFixed(2)}R` : 'N/A'}
         </div>

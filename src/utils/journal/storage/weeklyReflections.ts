@@ -187,13 +187,24 @@ export function saveWeeklyReflectionObject(reflection: WeeklyReflection): void {
 /**
  * Save a weekly reflection with text content
  */
-export function saveWeeklyReflection(weekId: string, reflection: string, grade?: string, weeklyPlan?: string): void {
+export function saveWeeklyReflection(
+  weekId: string, 
+  reflection: string, 
+  grade?: string, 
+  weeklyPlan?: string, 
+  isFutureWeek?: boolean
+): void {
   if (!weekId) {
     console.error('Cannot save weekly reflection: weekId is empty');
     return;
   }
   
-  debugStorage('Saving weekly reflection', weekId, {reflection: reflection.substring(0, 50) + '...', grade, weeklyPlan: weeklyPlan?.substring(0, 50) + '...'});
+  debugStorage('Saving weekly reflection', weekId, {
+    reflection: reflection.substring(0, 50) + '...', 
+    grade, 
+    weeklyPlan: weeklyPlan?.substring(0, 50) + '...',
+    isFutureWeek
+  });
   
   try {
     const reflectionsJson = localStorage.getItem(WEEKLY_REFLECTIONS_KEY);
@@ -204,6 +215,13 @@ export function saveWeeklyReflection(weekId: string, reflection: string, grade?:
     weekStart.setDate(currentDate.getDate() - currentDate.getDay() + (currentDate.getDay() === 0 ? -6 : 1));
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
+    
+    // Check if it's a future week
+    const today = new Date();
+    const isFutureDate = weekStart > today;
+    
+    // Use the provided isFutureWeek flag if available, otherwise check the date
+    const isActuallyFutureWeek = typeof isFutureWeek !== 'undefined' ? isFutureWeek : isFutureDate;
     
     reflections[weekId] = {
       ...reflections[weekId],
@@ -216,7 +234,8 @@ export function saveWeeklyReflection(weekId: string, reflection: string, grade?:
       grade: grade || '',
       lastUpdated: new Date().toISOString(),
       tradeIds: reflections[weekId]?.tradeIds || [],
-      isPlaceholder: false
+      isPlaceholder: false,
+      isFutureWeek: isActuallyFutureWeek
     };
     
     const reflectionsJson2 = JSON.stringify(reflections);
