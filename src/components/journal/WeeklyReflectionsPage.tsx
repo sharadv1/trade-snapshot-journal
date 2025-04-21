@@ -18,12 +18,12 @@ export function WeeklyReflectionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
-  const [hasInitialized, setHasInitialized] = useState(false);
   const navigate = useNavigate();
 
   const isMountedRef = useRef(true);
   const loadingRef = useRef(false);
   const hasLoadedRef = useRef(false);
+  const initializedRef = useRef(false);
 
   const loadReflections = useCallback(async (showToast = false) => {
     if (!isMountedRef.current || loadingRef.current) return;
@@ -76,7 +76,7 @@ export function WeeklyReflectionsPage() {
   }, []);
 
   useEffect(() => {
-    if (hasInitialized) return;
+    if (initializedRef.current) return;
     
     isMountedRef.current = true;
     hasLoadedRef.current = false;
@@ -100,7 +100,7 @@ export function WeeklyReflectionsPage() {
     window.addEventListener('trades-updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     
-    setHasInitialized(true);
+    initializedRef.current = true;
 
     return () => {
       isMountedRef.current = false;
@@ -111,7 +111,7 @@ export function WeeklyReflectionsPage() {
 
       preventTradeFetching(false);
     };
-  }, [loadReflections, hasInitialized]);
+  }, [loadReflections]);
 
   const handleDeleteReflection = useCallback(async (reflectionId: string, e: React.MouseEvent) => {
     if (!isMountedRef.current) return;

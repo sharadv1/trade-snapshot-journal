@@ -37,14 +37,14 @@ export const countWords = (text: string = ''): number => {
 /**
  * Type guard to check if a reflection is a weekly reflection
  */
-function isWeeklyReflection(reflection: WeeklyReflection | MonthlyReflection): reflection is WeeklyReflection {
+export function isWeeklyReflection(reflection: WeeklyReflection | MonthlyReflection): reflection is WeeklyReflection {
   return 'weekStart' in reflection || 'weekEnd' in reflection || 'weekId' in reflection;
 }
 
 /**
  * Type guard to check if a reflection is a monthly reflection
  */
-function isMonthlyReflection(reflection: WeeklyReflection | MonthlyReflection): reflection is MonthlyReflection {
+export function isMonthlyReflection(reflection: WeeklyReflection | MonthlyReflection): reflection is MonthlyReflection {
   return 'monthStart' in reflection || 'monthEnd' in reflection || 'monthId' in reflection;
 }
 
@@ -52,20 +52,28 @@ function isMonthlyReflection(reflection: WeeklyReflection | MonthlyReflection): 
  * Get statistics for a reflection
  */
 export const getReflectionStats = (reflection: WeeklyReflection | MonthlyReflection) => {
-  let weekStart: Date | null = null;
-  let weekEnd: Date | null = null;
+  let dateStart: Date | null = null;
+  let dateEnd: Date | null = null;
   
   // Determine the date range based on the reflection type
   if (isWeeklyReflection(reflection)) {
-    weekStart = reflection.weekStart ? new Date(reflection.weekStart) : null;
-    weekEnd = reflection.weekEnd ? new Date(reflection.weekEnd) : null;
+    if (reflection.weekStart) {
+      dateStart = new Date(reflection.weekStart);
+    }
+    if (reflection.weekEnd) {
+      dateEnd = new Date(reflection.weekEnd);
+    }
   } else if (isMonthlyReflection(reflection)) {
-    weekStart = reflection.monthStart ? new Date(reflection.monthStart) : null;
-    weekEnd = reflection.monthEnd ? new Date(reflection.monthEnd) : null;
+    if (reflection.monthStart) {
+      dateStart = new Date(reflection.monthStart);
+    }
+    if (reflection.monthEnd) {
+      dateEnd = new Date(reflection.monthEnd);
+    }
   }
 
-  const trades = weekStart && weekEnd
-    ? getTradesForWeek(weekStart, weekEnd)
+  const trades = dateStart && dateEnd
+    ? getTradesForWeek(dateStart, dateEnd)
     : [];
 
   const tradeCount = trades.length;

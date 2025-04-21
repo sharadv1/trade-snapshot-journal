@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { MonthlyReflection } from '@/types';
 import { getMonthlyReflections, deleteMonthlyReflection } from '@/utils/journal/reflectionStorage';
 import { Button } from '@/components/ui/button';
@@ -21,16 +21,22 @@ export function MonthlyReflectionsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [forceReload, setForceReload] = useState(false);
+  const mountedRef = useRef(true);
+  const initialLoadDoneRef = useRef(false);
   
   const { isGenerating, error: generationError, isComplete } = useReflectionGenerator();
   
   const loadReflections = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     setIsLoading(true);
     setLoadError(null);
     
     try {
       console.log("Loading monthly reflections...");
       const fetchedReflections = await getMonthlyReflections();
+      
+      if (!mountedRef.current) return;
       
       if (Array.isArray(fetchedReflections)) {
         const sortedReflections = fetchedReflections.sort((a, b) => {
@@ -55,9 +61,14 @@ export function MonthlyReflectionsPage() {
       }
     } catch (error) {
       console.error("Error loading reflections:", error);
-      setLoadError("Failed to load reflections. Please try refreshing the page.");
+      if (mountedRef.current) {
+        setLoadError("Failed to load reflections. Please try refreshing the page.");
+      }
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+        initialLoadDoneRef.current = true;
+      }
     }
   }, []);
 
@@ -83,16 +94,32 @@ export function MonthlyReflectionsPage() {
     setFilteredReflections(filtered);
   }, [searchQuery, reflections]);
 
+  // Initial load
   useEffect(() => {
-    if (isComplete || !isGenerating) {
+    mountedRef.current = true;
+    
+    if (!initialLoadDoneRef.current) {
+      loadReflections();
+    }
+    
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [loadReflections]);
+
+  // Handle reload triggers
+  useEffect(() => {
+    if ((isComplete || !isGenerating) && initialLoadDoneRef.current) {
       loadReflections();
     }
   }, [loadReflections, isComplete, isGenerating, forceReload]);
   
   useEffect(() => {
     const handleReflectionsGenerated = () => {
-      console.log("Reflections generation completed - reloading reflections list");
-      loadReflections();
+      if (mountedRef.current && initialLoadDoneRef.current) {
+        console.log("Reflections generation completed - reloading reflections list");
+        loadReflections();
+      }
     };
     
     window.addEventListener('reflections-generated', handleReflectionsGenerated);
