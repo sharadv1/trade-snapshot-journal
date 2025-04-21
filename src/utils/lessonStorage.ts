@@ -5,7 +5,10 @@ import { isUsingServerSync, getServerUrl } from './storage/serverConnection';
 import { safeGetItem, safeSetItem } from './storage/storageUtils';
 
 const STORAGE_KEY = 'trade-journal-lessons';
-const SERVER_ENDPOINT = '/lessons'; // Removed duplicate "api" prefix
+const SERVER_ENDPOINT = '/lessons';
+
+// Create custom event for notifying other components in same window
+const LESSONS_UPDATED_EVENT = new Event('lessons-updated');
 
 // Memory fallback for when localStorage is full
 let memoryLessons: Lesson[] = [];
@@ -120,6 +123,10 @@ export const saveLessons = async (lessons: Lesson[]): Promise<boolean> => {
             console.warn('Could not cache lessons in localStorage:', e);
           }
           
+          // Dispatch events to notify components
+          window.dispatchEvent(new Event('storage'));
+          window.dispatchEvent(LESSONS_UPDATED_EVENT);
+          
           return true;
         }
       } catch (serverError) {
@@ -137,8 +144,18 @@ export const saveLessons = async (lessons: Lesson[]): Promise<boolean> => {
         console.warn('Could not save lessons to localStorage, using memory fallback');
         // We've already cached in memory at the beginning of the function
         toast.warning('Storage is full. Using memory fallback, but data may be lost if you close the browser.');
+        
+        // Even though local storage failed, dispatch events so UI updates
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(LESSONS_UPDATED_EVENT);
+        
         return true; // Return true since we have memory fallback
       }
+      
+      // Dispatch events to notify components
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(LESSONS_UPDATED_EVENT);
+      
       return true;
     } catch (e) {
       console.error('Error saving to localStorage:', e);
@@ -151,6 +168,11 @@ export const saveLessons = async (lessons: Lesson[]): Promise<boolean> => {
         console.error('Storage error: Tried to save', sizeInKB.toFixed(2), 'KB but hit limit');
         
         toast.warning('Storage limit reached. Using memory fallback, but data may be lost if you close the browser.');
+        
+        // Still dispatch events so UI updates
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(LESSONS_UPDATED_EVENT);
+        
         // We're still returning true since we've saved to memory
         return true;
       }
@@ -300,6 +322,10 @@ export const syncLessonsWithServer = async (): Promise<boolean> => {
       try {
         memoryLessons = serverLessons;
         safeSetItem(STORAGE_KEY, JSON.stringify(serverLessons));
+        
+        // Dispatch events to notify components
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(LESSONS_UPDATED_EVENT);
       } catch (e) {
         console.warn('Could not update localStorage with server lessons:', e);
       }

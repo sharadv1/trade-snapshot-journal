@@ -6,7 +6,7 @@ import { LessonList } from '@/components/lessons/LessonList';
 import { LessonDialog } from '@/components/lessons/LessonDialog';
 import { LessonFilters } from '@/components/lessons/LessonFilters';
 import { Lesson } from '@/types';
-import { getLessons, exportLessons, importLessons } from '@/utils/lessonStorage';
+import { getLessons, exportLessons, importLessons, syncLessonsWithServer } from '@/utils/lessonStorage';
 import { 
   Dialog,
   DialogContent,
@@ -32,16 +32,71 @@ export default function Lessons() {
   const [exportData, setExportData] = useState('');
   const [importData, setImportData] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
+  // Load data initially and set up event listeners
   useEffect(() => {
+    console.log('Lessons page loaded or refreshKey changed');
     loadLessons();
     checkStorageUsage();
+    
+    // Try to sync with server if applicable
+    syncLessonsWithServer().catch(error => {
+      console.error('Failed to sync lessons with server:', error);
+    });
+    
+    // Set up event listeners to refresh data
+    const handleStorageChange = () => {
+      console.log('Storage change detected in Lessons page');
+      loadLessons();
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Lessons page visible again, refreshing data');
+        loadLessons();
+        checkStorageUsage();
+      }
+    };
+    
+    const handleLessonsUpdated = () => {
+      console.log('Lessons updated event detected');
+      loadLessons();
+    };
+    
+    // Listen for storage events
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('lessons-updated', handleLessonsUpdated);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('lessons-updated', handleLessonsUpdated);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshKey]);
+
+  // Monitor URL changes to reload data
+  useEffect(() => {
+    const handleRouteChange = () => {
+      console.log('Route changed to Lessons page');
+      setRefreshKey(prev => prev + 1);
+    };
+    
+    // This will catch route changes within the app
+    window.addEventListener('popstate', handleRouteChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+    };
   }, []);
 
   const loadLessons = async () => {
     setIsLoading(true);
+    console.log('Loading lessons data from storage');
     try {
       const loadedLessons = await getLessons();
+      console.log(`Loaded ${loadedLessons.length} lessons from storage`);
       setLessons(loadedLessons);
     } catch (error) {
       console.error('Error loading lessons:', error);
