@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ImageUpload';
@@ -23,11 +22,9 @@ export function IdeaImagesField({
 }: IdeaImagesFieldProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  // Add this state to prevent duplicate uploads
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
   
   const handleFileUpload = (file: File) => {
-    // Prevent duplicate uploads
     if (isProcessingUpload) {
       console.log('Upload already in progress, ignoring duplicate request');
       return;
@@ -141,6 +138,12 @@ export function IdeaImagesField({
                   src={url} 
                   alt={`Image ${index + 1}`} 
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('Image failed to load in IdeaImagesField:', url);
+                    const imgElement = e.currentTarget;
+                    imgElement.src = '/placeholder.svg';
+                    imgElement.style.opacity = '0.5';
+                  }}
                 />
               )}
             </div>

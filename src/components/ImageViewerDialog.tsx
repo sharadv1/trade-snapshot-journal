@@ -121,7 +121,7 @@ export function ImageViewerDialog({
           </>
         )}
         
-        <div className="h-full w-full flex items-center justify-center overflow-auto">
+        <div className="h-full w-full flex items-center justify-center overflow-auto bg-background/95">
           <img 
             src={image} 
             alt="Enlarged view" 
@@ -132,7 +132,16 @@ export function ImageViewerDialog({
               maxWidth: '90vw',
               objectFit: 'contain',
               width: 'auto',
-              height: 'auto'
+              height: 'auto',
+              transition: 'transform 0.2s ease'
+            }}
+            onError={(e) => {
+              console.error('Image failed to load:', image);
+              const imgElement = e.currentTarget;
+              imgElement.src = '/placeholder.svg';
+              imgElement.style.opacity = '0.5';
+              imgElement.style.width = '200px';
+              imgElement.style.height = '200px';
             }}
           />
         </div>

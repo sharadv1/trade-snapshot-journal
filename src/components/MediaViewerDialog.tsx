@@ -200,7 +200,7 @@ export function MediaViewerDialog({
             </>
           )}
           
-          <div className="h-full flex items-center justify-center overflow-auto p-4">
+          <div className="h-full flex items-center justify-center overflow-auto p-4 bg-background/95">
             {currentMedia.type === 'image' ? (
               <img 
                 src={currentMedia.url} 
@@ -212,7 +212,16 @@ export function MediaViewerDialog({
                   maxWidth: '90vw',
                   width: 'auto',
                   height: 'auto',
-                  objectFit: 'contain'
+                  objectFit: 'contain',
+                  transition: 'transform 0.2s ease'
+                }}
+                onError={(e) => {
+                  console.error('Image failed to load:', currentMedia.url);
+                  const imgElement = e.currentTarget;
+                  imgElement.src = '/placeholder.svg';
+                  imgElement.style.opacity = '0.5';
+                  imgElement.style.width = '200px';
+                  imgElement.style.height = '200px';
                 }}
               />
             ) : (
@@ -227,6 +236,14 @@ export function MediaViewerDialog({
                 loop
                 playsInline
                 onClick={togglePlayPause}
+                onError={(e) => {
+                  console.error('Video failed to load:', currentMedia.url);
+                  const videoElement = e.currentTarget;
+                  videoElement.poster = '/placeholder.svg';
+                  videoElement.style.opacity = '0.5';
+                  videoElement.style.width = '200px';
+                  videoElement.style.height = '200px';
+                }}
               />
             )}
           </div>

@@ -80,6 +80,12 @@ export function NotesAndImagesForm({
                 src={url} 
                 alt={`Image ${index + 1}`} 
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  console.error('Image failed to load in NotesAndImagesForm:', url);
+                  const imgElement = e.currentTarget;
+                  imgElement.src = '/placeholder.svg';
+                  imgElement.style.opacity = '0.5';
+                }}
               />
             </div>
           ))}

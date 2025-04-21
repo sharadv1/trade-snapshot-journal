@@ -91,6 +91,12 @@ export function IdeaCard({
             src={currentImage} 
             alt={`${idea.symbol} chart`}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              console.error('Image failed to load in IdeaCard:', currentImage);
+              const imgElement = e.currentTarget;
+              imgElement.src = '/placeholder.svg';
+              imgElement.style.opacity = '0.5';
+            }}
           />
           
           {idea.images.length > 1 && (
@@ -146,6 +152,11 @@ export function IdeaCard({
                   src={image} 
                   alt={`Thumbnail ${idx + 1}`}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const imgElement = e.currentTarget;
+                    imgElement.src = '/placeholder.svg';
+                    imgElement.style.opacity = '0.5';
+                  }}
                 />
               </button>
             ))}

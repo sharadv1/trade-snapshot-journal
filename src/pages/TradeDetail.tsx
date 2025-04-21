@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, ChevronDown, ChevronUp, Star, AlertTriangle, Ratio, Target, CheckCircle2, XCircle } from 'lucide-react';
@@ -201,10 +200,12 @@ export function TradeDetail() {
   const handleImageClick = (index: number) => {
     setSelectedImageIndex(index);
     setIsImageViewerOpen(true);
+    setModalIsOpen(true);
   };
 
   const handleImageClose = () => {
     setIsImageViewerOpen(false);
+    setModalIsOpen(false);
   };
   
   const metrics = trade ? calculateTradeMetrics(trade) : null;
@@ -756,6 +757,12 @@ export function TradeDetail() {
                       src={image} 
                       alt={`Trade chart ${index + 1}`} 
                       className="h-auto w-full object-cover" 
+                      onError={(e) => {
+                        console.error('Image failed to load in thumbnail:', image);
+                        const imgElement = e.currentTarget;
+                        imgElement.src = '/placeholder.svg';
+                        imgElement.style.opacity = '0.5';
+                      }}
                     />
                   </div>
                 ))}
@@ -772,7 +779,7 @@ export function TradeDetail() {
           isOpen={modalIsOpen}
           onClose={() => setModalIsOpen(false)}
           onIndexChange={setSelectedImageIndex}
-          image=""
+          image={trade.images[selectedImageIndex] || ""}
         />
       )}
     </div>
