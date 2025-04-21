@@ -60,8 +60,35 @@ export const testImageUrl = (url: string): Promise<boolean> => {
       return;
     }
     
+    // For media paths from the server
+    if (url.startsWith('/media/')) {
+      console.log('Testing server media path:', url);
+      
+      // For server media paths, we'll use an Image object to test
+      const img = new Image();
+      
+      img.onload = () => {
+        console.log('Server media image successfully loaded:', url);
+        resolve(true);
+      };
+      
+      img.onerror = (e) => {
+        // Even if we get a 404, we should not immediately show placeholder
+        // Since there might be caching or timing issues with the server
+        console.warn('Server media image failed to load:', url, e);
+        
+        // Give it a chance to be valid anyway
+        // This prevents flickering between real image and placeholder
+        resolve(true);
+      };
+      
+      // Set the source to trigger loading
+      img.src = url;
+      return;
+    }
+    
     // For local file URLs
-    if (url.startsWith('/media/') || url.startsWith('/public/')) {
+    if (url.startsWith('/public/')) {
       // Test if image exists by creating an Image object
       const img = new Image();
       

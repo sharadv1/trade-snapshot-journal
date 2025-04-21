@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Trade } from '@/types';
 import { Label } from '@/components/ui/label';
@@ -50,41 +51,9 @@ export function NotesAndImagesForm({
         return;
       }
       
-      // Process each image and ensure it's valid
-      const processedImages = [...images];
-      
-      // Keep the existing images but validate them
-      for (let i = 0; i < processedImages.length; i++) {
-        const url = processedImages[i];
-        
-        // Skip empty URLs
-        if (!url || url === '') {
-          console.log(`Empty URL at index ${i}, skipping`);
-          continue;
-        }
-        
-        try {
-          // Log for debugging
-          console.log(`Validating image at index ${i}: ${url.substring(0, 30)}...`);
-          
-          // Try to load the image
-          const isValid = await testImageUrl(url);
-          
-          if (!isValid) {
-            console.warn(`Image at index ${i} failed validation: ${url.substring(0, 30)}...`);
-            
-            // We'll keep the URL but it will show as placeholder when rendered
-            // No need to modify the array
-          } else {
-            console.log(`Image at index ${i} validated successfully`);
-          }
-        } catch (error) {
-          console.error(`Error validating image at index ${i}:`, error);
-          // Keep the URL as is but it will show placeholder when rendered
-        }
-      }
-      
-      setValidatedImages(processedImages);
+      // Use the existing images array directly
+      // We'll trust the images from the trade object as valid
+      setValidatedImages(images);
       setIsValidating(false);
     };
     
@@ -145,9 +114,15 @@ export function NotesAndImagesForm({
                     onLoad={() => console.log(`Image loaded successfully: ${url}`)}
                     onError={(e) => {
                       console.error('Image failed to load in NotesAndImagesForm:', url);
-                      const imgElement = e.currentTarget;
-                      imgElement.src = '/placeholder.svg';
-                      imgElement.style.opacity = '0.6';
+                      // Don't immediately set placeholder - let the image try to load
+                      // Only set placeholder after a short delay if it fails
+                      setTimeout(() => {
+                        if (!e.currentTarget.complete || e.currentTarget.naturalWidth === 0) {
+                          const imgElement = e.currentTarget;
+                          imgElement.src = '/placeholder.svg';
+                          imgElement.style.opacity = '0.6';
+                        }
+                      }, 500);
                     }}
                   />
                 </div>
