@@ -200,22 +200,29 @@ export function MediaViewerDialog({
             </>
           )}
           
-          <div className="h-full flex items-center justify-center p-4">
+          <div className="h-full flex items-center justify-center overflow-auto p-4">
             {currentMedia.type === 'image' ? (
               <img 
                 src={currentMedia.url} 
                 alt="Media" 
-                className="object-contain max-h-[calc(90vh-32px)] max-w-[90vw]"
                 style={{ 
                   transform: `scale(${zoomLevel / 100})`,
-                  transformOrigin: 'center'
+                  transformOrigin: 'center',
+                  maxHeight: 'calc(90vh - 32px)',
+                  maxWidth: '90vw',
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain'
                 }}
               />
             ) : (
               <video 
                 ref={videoRef}
                 src={currentMedia.url}
-                className="max-h-[calc(90vh-32px)] max-w-[90vw]"
+                style={{
+                  maxHeight: 'calc(90vh - 32px)',
+                  maxWidth: '90vw'
+                }}
                 controls={false}
                 loop
                 playsInline

@@ -121,16 +121,18 @@ export function ImageViewerDialog({
           </>
         )}
         
-        <div className="h-full w-full flex items-center justify-center">
+        <div className="h-full w-full flex items-center justify-center overflow-auto">
           <img 
             src={image} 
             alt="Enlarged view" 
-            className="max-h-[85vh]"
             style={{ 
               transform: `scale(${zoomLevel / 100})`,
               transformOrigin: 'center',
+              maxHeight: '85vh',
+              maxWidth: '90vw',
               objectFit: 'contain',
-              maxWidth: '90vw'
+              width: 'auto',
+              height: 'auto'
             }}
           />
         </div>
